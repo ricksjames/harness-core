@@ -12,7 +12,6 @@ source "${SCRIPT_DIR}/portal-openjdk-bazel-commons.sh"
 
 prepare_to_copy_jars
 
-
 copy_cg_manager_jars
 
 copy_event_server_jars

@@ -87,6 +87,8 @@ BAZEL_MODULES="\
   //800-pipeline-service:module \
   //810-ng-triggers:module \
   //815-cg-triggers:module \
+  //360-cg-manager:module \
+  //360-cg-manager:module_deploy.jar \
   //platform-service/service:module \
   //platform-service/service:module_deploy.jar \
   //platform-service/modules/audit-service/contracts:module \
@@ -97,6 +99,10 @@ BAZEL_MODULES="\
   //platform-service/modules/audit-service:module \
   //platform-service/modules/notification-service:module \
   //platform-service/modules/resource-group-service:module \
+  //830-notification-service:module \
+  //830-resource-group:module \
+  //835-notification-senders:module \
+  //835-notification-senders:module \
   //840-template-service:module \
   //860-orchestration-steps:module \
   //860-orchestration-visualization:module \
@@ -293,6 +299,8 @@ build_protocol_info(){
   bazel ${bazelrc} run ${BAZEL_ARGUMENTS}  //001-microservice-intfc-tool:module -- kryo-file=/tmp/KryoDeps.text proto-file=/tmp/ProtoDeps.text ignore-json | grep "Codebase Hash:" > ${moduleName}-protocol.info
   rm module-deps.sh /tmp/ProtoDeps.text /tmp/KryoDeps.text
 }
+
+build_bazel_application 820-platform-service
 
 build_bazel_module 100-migrator
 build_bazel_module 320-ci-execution
