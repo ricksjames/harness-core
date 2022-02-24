@@ -334,6 +334,8 @@ build_bazel_module 932-connector-task
 build_bazel_module 940-feature-flag
 build_bazel_module 940-secret-manager-client
 build_bazel_module 947-scim-core
+build_bazel_module 948-access-control-admin-client
+build_bazel_module 948-access-control-sdk
 build_bazel_module 950-command-library-common
 build_bazel_module 959-common-entities
 build_bazel_module 950-delegate-tasks-beans
@@ -390,3 +392,4 @@ if [ "${PLATFORM}" == "jenkins" ]; then
  build_protocol_info 800-pipeline-service pipeline-service
  build_protocol_info 310-ci-manager ci-manager
 fi
+build_bazel_module 878-pipeline-service-utilities
