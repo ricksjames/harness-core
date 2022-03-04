@@ -255,7 +255,6 @@ cp ../../800-pipeline-service/key.pem .
 cp ../../800-pipeline-service/cert.pem .
 cp ../../800-pipeline-service/src/main/resources/redisson-jcache.yaml .
 
-cp ../../alpn-boot-8.1.13.v20181017.jar .
 cp ../../dockerization/pipeline-service/Dockerfile-pipeline-service-jenkins-k8-openjdk ./Dockerfile
 cp ../../dockerization/pipeline-service/Dockerfile-pipeline-service-jenkins-k8-gcr-openjdk ./Dockerfile-gcr
 cp -r ../../dockerization/pipeline-service/scripts/ .
@@ -266,7 +265,6 @@ if [ ! -z ${PURPOSE} ]
 then
     echo ${PURPOSE} > purpose.txt
 fi
-java -jar pipeline-service-capsule.jar scan-classpath-metadata
 
 cd ../..
 

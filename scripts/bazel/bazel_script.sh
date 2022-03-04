@@ -89,6 +89,8 @@ BAZEL_MODULES="\
   //815-cg-triggers:module \
   //360-cg-manager:module \
   //360-cg-manager:module_deploy.jar \
+  //800-pipeline-service:module \
+  //800-pipeline-service:module_deploy.jar \
   //platform-service/service:module \
   //platform-service/service:module_deploy.jar \
   //platform-service/modules/audit-service/contracts:module \
@@ -403,3 +405,5 @@ if [ "${PLATFORM}" == "jenkins" ]; then
  build_protocol_info 310-ci-manager ci-manager
 fi
 build_bazel_module 878-pipeline-service-utilities
+if [ "${PLATFORM}" == "jenkins" ]; then
+ build_protocol_info 800-pipeline-service pipeline-service
