@@ -37,7 +37,6 @@ cp ../../270-delegate-service-app/key.pem .
 cp ../../270-delegate-service-app/cert.pem .
 cp ../../270-delegate-service-app/delegate-service-config.yml .
 cp ../../270-delegate-service-app/src/main/resources/redisson-jcache.yaml .
-cp ../../alpn-boot-8.1.13.v20181017.jar .
 
 cp ../../dockerization/delegate-service-app/Dockerfile-delegate-service-app-jenkins-k8-openjdk ./Dockerfile
 cp ../../dockerization/delegate-service-app/Dockerfile-delegate-service-app-jenkins-k8-gcr-openjdk ./Dockerfile-gcr
@@ -60,7 +59,6 @@ cd dist/cv-nextgen
 cp ${HOME}/.bazel-dirs/bin/300-cv-nextgen/module_deploy.jar cv-nextgen-capsule.jar
 cp ../../300-cv-nextgen/keystore.jks .
 cp ../../300-cv-nextgen/cv-nextgen-config.yml .
-cp ../../alpn-boot-8.1.13.v20181017.jar .
 cp ../../300-cv-nextgen/src/main/resources/redisson-jcache.yaml .
 
 
@@ -105,7 +103,6 @@ cd dist/command-library-server
 cp ${HOME}/.bazel-dirs/bin/210-command-library-server/module_deploy.jar command-library-app-capsule.jar
 cp ../../210-command-library-server/keystore.jks .
 cp ../../210-command-library-server/command-library-server-config.yml .
-cp ../../alpn-boot-8.1.13.v20181017.jar .
 
 cp ../../dockerization/command-library-server/Dockerfile-command-library-server-jenkins-k8-openjdk ./Dockerfile
 cp ../../dockerization/command-library-server/Dockerfile-command-library-server-jenkins-k8-gcr-openjdk ./Dockerfile-gcr
@@ -186,7 +183,6 @@ cp ../../310-ci-manager/key.pem .
 cp ../../310-ci-manager/cert.pem .
 cp ../../310-ci-manager/src/main/resources/redisson-jcache.yaml .
 
-cp ../../alpn-boot-8.1.13.v20181017.jar .
 
 cp ../../dockerization/ci-manager/Dockerfile-ci-manager-jenkins-k8-openjdk ./Dockerfile
 cp ../../dockerization/ci-manager/Dockerfile-ci-manager-jenkins-k8-gcr-openjdk ./Dockerfile-gcr
@@ -265,6 +261,92 @@ if [ ! -z ${PURPOSE} ]
 then
     echo ${PURPOSE} > purpose.txt
 fi
+#java -jar pipeline-service-capsule.jar scan-classpath-metadata
+
+cd ../..
+
+mkdir -p dist/template-service
+cd dist/template-service
+
+cp ${HOME}/.bazel-dirs/bin/840-template-service/module_deploy.jar template-service-capsule.jar
+cp ../../840-template-service/config.yml .
+cp ../../840-template-service/keystore.jks .
+cp ../../840-template-service/key.pem .
+cp ../../840-template-service/cert.pem .
+cp ../../840-template-service/src/main/resources/redisson-jcache.yaml .
+
+cp ../../dockerization/template-service/Dockerfile-template-service-jenkins-k8-openjdk ./Dockerfile
+cp ../../dockerization/template-service/Dockerfile-template-service-jenkins-k8-gcr-openjdk ./Dockerfile-gcr
+cp -r ../../dockerization/template-service/scripts/ .
+cp ../../protocol.info .
+echo ${JDK} > jdk.txt
+echo ${VERSION} > version.txt
+if [ ! -z ${PURPOSE} ]
+then
+    echo ${PURPOSE} > purpose.txt
+fi
+
+cd ../..
+
+mkdir -p dist/eventsapi-monitor
+cd dist/eventsapi-monitor
+
+cp ${HOME}/.bazel-dirs/bin/950-events-framework-monitor/module_deploy.jar eventsapi-monitor-capsule.jar
+cp ../../950-events-framework-monitor/config.yml .
+cp ../../950-events-framework-monitor/redis/* .
+cp ../../dockerization/eventsapi-monitor/Dockerfile-eventsapi-monitor-jenkins-k8-openjdk ./Dockerfile
+cp ../../dockerization/eventsapi-monitor/Dockerfile-eventsapi-monitor-jenkins-k8-gcr-openjdk ./Dockerfile-gcr
+cp -r ../../dockerization/eventsapi-monitor/scripts/ .
+cp ../../protocol.info .
+echo ${JDK} > jdk.txt
+echo ${VERSION} > version.txt
+if [ ! -z ${PURPOSE} ]
+then
+    echo ${PURPOSE} > purpose.txt
+fi
+
+cd ../..
+
+mkdir -p dist/accesscontrol-service
+cd dist/accesscontrol-service
+
+cp ${HOME}/.bazel-dirs/bin/access-control/service/module_deploy.jar accesscontrol-service-capsule.jar
+cp ../../access-control/service/config.yml .
+cp ../../access-control/service/keystore.jks .
+cp ../../access-control/container/Dockerfile-accesscontrol-service-jenkins-k8-openjdk ./Dockerfile
+cp ../../access-control/container/Dockerfile-accesscontrol-service-jenkins-k8-gcr-openjdk ./Dockerfile-gcr
+cp -r ../../access-control/container/scripts/ .
+cp ../../protocol.info .
+echo ${JDK} > jdk.txt
+echo ${VERSION} > version.txt
+if [ ! -z ${PURPOSE} ]
+then
+    echo ${PURPOSE} > purpose.txt
+fi
+#java -jar accesscontrol-service-capsule.jar scan-classpath-metadata
+
+cd ../..
+
+mkdir -p dist/migrator ;
+cd dist/migrator
+
+cp ${BAZEL_BIN}/100-migrator/module_deploy.jar migrator-capsule.jar
+cp ../../400-rest/src/main/resources/hazelcast.xml .
+cp ../../keystore.jks .
+cp ../../360-cg-manager/key.pem .
+cp ../../360-cg-manager/cert.pem .
+cp ../../360-cg-manager/newrelic.yml .
+cp ../../100-migrator/config.yml .
+cp ../../400-rest/src/main/resources/redisson-jcache.yaml .
+
+cp ../../dockerization/migrator/Dockerfile-manager-jenkins-k8-openjdk ./Dockerfile
+cp ../../dockerization/migrator/Dockerfile-manager-jenkins-k8-gcr-openjdk ./Dockerfile-gcr
+cp -r ../../dockerization/migrator/scripts/ .
+mv scripts/start_process_bazel.sh scripts/start_process.sh
+
+copy_common_files
+
+#java -jar migrator-capsule.jar scan-classpath-metadata
 
 cd ../..
 
