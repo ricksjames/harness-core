@@ -139,7 +139,6 @@ BAZEL_MODULES="\
   //945-license-usage-sdk:module \
   //clients/audit:module \
   //947-scim-core:module \
-  //948-access-control-sdk:module \
   //950-command-library-common:module \
   //959-common-entities:module \
   //950-delegate-tasks-beans/src/main/proto:all \
