@@ -503,9 +503,13 @@ import io.harness.delegate.task.serverless.response.ServerlessGitFetchResponse;
 import io.harness.delegate.task.serverless.response.ServerlessRollbackResponse;
 import io.harness.delegate.task.servicenow.ServiceNowTaskNGParameters;
 import io.harness.delegate.task.servicenow.ServiceNowTaskNGResponse;
+import io.harness.delegate.task.shell.CommandTaskParameters;
+import io.harness.delegate.task.shell.CommandTaskResponse;
 import io.harness.delegate.task.shell.ShellScriptApprovalTaskParameters;
 import io.harness.delegate.task.shell.ShellScriptTaskParametersNG;
 import io.harness.delegate.task.shell.ShellScriptTaskResponseNG;
+import io.harness.delegate.task.shell.SshCommandTaskParameters;
+import io.harness.delegate.task.shell.TailFilePatternDto;
 import io.harness.delegate.task.spotinst.request.SpotInstDeployTaskParameters;
 import io.harness.delegate.task.spotinst.request.SpotInstGetElastigroupJsonParameters;
 import io.harness.delegate.task.spotinst.request.SpotInstListElastigroupInstancesParameters;
@@ -1466,5 +1470,10 @@ public class DelegateTasksBeansKryoRegister implements KryoRegistrar {
     kryo.register(JenkinsCapabilityHelper.class, 29302);
     kryo.register(JenkinsValidationParams.class, 29303);
     kryo.register(JenkinsArtifactDelegateRequest.class, 29304);
+    kryo.register(CommandTaskResponse.class, 29305);
+    kryo.register(CommandTaskParameters.class, 29306);
+    kryo.register(SshCommandTaskParameters.class, 29307);
+    kryo.register(TailFilePatternDto.class, 29308);
+
   }
 }
