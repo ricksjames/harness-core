@@ -7570,7 +7570,7 @@
         "tailFile": {
           "oneOf": [
             {
-              "type": "string"
+              "$ref": "#/definitions/ParameterFieldString"
             },
             {
               "type": "string"
@@ -7580,7 +7580,7 @@
         "tailPattern": {
           "oneOf": [
             {
-              "type": "string"
+              "$ref": "#/definitions/ParameterFieldString"
             },
             {
               "type": "string"
