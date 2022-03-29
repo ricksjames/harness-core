@@ -19,7 +19,6 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import java.util.List;
 import java.util.Objects;
-
 import lombok.extern.slf4j.Slf4j;
 import org.mongodb.morphia.query.Query;
 import org.mongodb.morphia.query.UpdateOperations;
@@ -36,23 +35,23 @@ public class BusinessMappingDao {
 
   public BusinessMapping update(BusinessMapping businessMapping) {
     Query<BusinessMapping> query = hPersistence.createQuery(BusinessMapping.class)
-                      .field(BusinessMappingKeys.accountId)
-                      .equal(businessMapping.getAccountId())
-                      .field(BusinessMappingKeys.uuid)
-                      .equal(businessMapping.getUuid());
+                                       .field(BusinessMappingKeys.accountId)
+                                       .equal(businessMapping.getAccountId())
+                                       .field(BusinessMappingKeys.uuid)
+                                       .equal(businessMapping.getUuid());
 
     hPersistence.update(query, getUpdateOperations(businessMapping));
     return businessMapping;
   }
 
   private UpdateOperations<BusinessMapping> getUpdateOperations(BusinessMapping businessMapping) {
-    UpdateOperations<BusinessMapping> updateOperations =
-        hPersistence.createUpdateOperations(BusinessMapping.class);
+    UpdateOperations<BusinessMapping> updateOperations = hPersistence.createUpdateOperations(BusinessMapping.class);
 
     setUnsetUpdateOperations(updateOperations, BusinessMappingKeys.name, businessMapping.getName());
     setUnsetUpdateOperations(updateOperations, BusinessMappingKeys.costTargets, businessMapping.getCostTargets());
     setUnsetUpdateOperations(updateOperations, BusinessMappingKeys.sharedCosts, businessMapping.getSharedCosts());
-    setUnsetUpdateOperations(updateOperations, BusinessMappingKeys.unallocatedCost, businessMapping.getUnallocatedCost());
+    setUnsetUpdateOperations(
+        updateOperations, BusinessMappingKeys.unallocatedCost, businessMapping.getUnallocatedCost());
 
     return updateOperations;
   }
@@ -67,10 +66,10 @@ public class BusinessMappingDao {
 
   public boolean delete(String uuid, String accountId) {
     Query<BusinessMapping> query = hPersistence.createQuery(BusinessMapping.class)
-                      .field(BusinessMappingKeys.accountId)
-                      .equal(accountId)
-                      .field(BusinessMappingKeys.uuid)
-                      .equal(uuid);
+                                       .field(BusinessMappingKeys.accountId)
+                                       .equal(accountId)
+                                       .field(BusinessMappingKeys.uuid)
+                                       .equal(uuid);
 
     return hPersistence.delete(query);
   }
