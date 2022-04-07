@@ -759,7 +759,7 @@ public class HelmTaskHelperBaseTest extends CategoryTest {
         getHelmChartManifestDelegateConfig(repoUrl, username, password, V3, HTTP_HELM);
     doReturn(new ProcessResult(0, null)).when(processExecutor).execute();
 
-    doAnswer(invocationOnMock -> invocationOnMock.getArgumentAt(0, String.class))
+    doAnswer(invocationOnMock -> invocationOnMock.getArgument(0, String.class))
         .when(helmTaskHelperBase)
         .createDirectory(directory);
     doReturn(new ProcessResult(0, new ProcessOutput(getHelmCollectionResult().getBytes())))
@@ -800,14 +800,14 @@ public class HelmTaskHelperBaseTest extends CategoryTest {
         getHelmChartManifestDelegateConfig(repoUrl, username, password, V2, HTTP_HELM);
     doReturn(new ProcessResult(0, null)).when(processExecutor).execute();
 
-    doAnswer(invocationOnMock -> invocationOnMock.getArgumentAt(0, String.class))
+    doAnswer(invocationOnMock -> invocationOnMock.getArgument(0, String.class))
         .when(helmTaskHelperBase)
         .createDirectory(directory);
     doReturn(new ProcessResult(0, new ProcessOutput(getHelmCollectionResult().getBytes())))
         .when(helmTaskHelperBase)
         .executeCommand(anyMap(), eq(V_2_HELM_SEARCH_REPO_COMMAND), eq(directory), anyString(), eq(timeout),
             any(HelmCliCommandType.class));
-    doAnswer(invocationOnMock -> invocationOnMock.getArgumentAt(0, String.class))
+    doAnswer(invocationOnMock -> invocationOnMock.getArgument(0, String.class))
         .when(helmTaskHelperBase)
         .applyHelmHomePath(V_2_HELM_SEARCH_REPO_COMMAND, directory);
 
@@ -848,10 +848,10 @@ public class HelmTaskHelperBaseTest extends CategoryTest {
         .when(ngChartMuseumService)
         .startChartMuseumServer(helmChartManifestDelegateConfig.getStoreDelegateConfig(), RESOURCE_DIR_BASE);
     doReturn(new ProcessResult(0, null)).when(processExecutor).execute();
-    doAnswer(invocationOnMock -> invocationOnMock.getArgumentAt(0, String.class))
+    doAnswer(invocationOnMock -> invocationOnMock.getArgument(0, String.class))
         .when(helmTaskHelperBase)
         .createNewDirectoryAtPath(RESOURCE_DIR_BASE);
-    doAnswer(invocationOnMock -> invocationOnMock.getArgumentAt(0, String.class))
+    doAnswer(invocationOnMock -> invocationOnMock.getArgument(0, String.class))
         .when(helmTaskHelperBase)
         .createDirectory(directory);
     doReturn(new ProcessResult(0, new ProcessOutput(getHelmCollectionResult().getBytes())))
@@ -880,7 +880,7 @@ public class HelmTaskHelperBaseTest extends CategoryTest {
 
     processExecutor.readOutput(true);
     doReturn(new ProcessResult(0, null)).when(processExecutor).execute();
-    doAnswer(invocationOnMock -> invocationOnMock.getArgumentAt(0, String.class))
+    doAnswer(invocationOnMock -> invocationOnMock.getArgument(0, String.class))
         .when(helmTaskHelperBase)
         .createDirectory(directory);
     doReturn(new ProcessResult(0, new ProcessOutput("".getBytes())))
@@ -934,10 +934,10 @@ public class HelmTaskHelperBaseTest extends CategoryTest {
     })
         .when(processExecutor)
         .execute();
-    doAnswer(invocationOnMock -> invocationOnMock.getArgumentAt(0, String.class))
+    doAnswer(invocationOnMock -> invocationOnMock.getArgument(0, String.class))
         .when(helmTaskHelperBase)
         .createNewDirectoryAtPath(RESOURCE_DIR_BASE);
-    doAnswer(invocationOnMock -> invocationOnMock.getArgumentAt(0, String.class))
+    doAnswer(invocationOnMock -> invocationOnMock.getArgument(0, String.class))
         .when(helmTaskHelperBase)
         .createDirectory(directory);
 

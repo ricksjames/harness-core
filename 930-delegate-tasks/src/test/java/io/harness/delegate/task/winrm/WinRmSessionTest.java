@@ -143,7 +143,7 @@ public class WinRmSessionTest extends CategoryTest {
             anyString(), any(LogCallback.class), any(Writer.class), anyBoolean(), anyMapOf(String.class, String.class)))
         .thenReturn(true);
     winRmSession = new WinRmSession(winRmSessionConfig, logCallback);
-    PowerMockito.verifyStatic(VerificationModeFactory.times(1));
+    PowerMockito.verifyStatic(SshHelperUtils.class, VerificationModeFactory.times(1));
     SshHelperUtils.executeLocalCommand(
         anyString(), any(LogCallback.class), any(Writer.class), anyBoolean(), anyMapOf(String.class, String.class));
   }
