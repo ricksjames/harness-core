@@ -530,6 +530,8 @@ import io.harness.delegate.task.spotinst.response.SpotInstTaskExecutionResponse;
 import io.harness.delegate.task.spotinst.response.SpotInstTaskResponse;
 import io.harness.delegate.task.spotinst.response.SpotinstTrafficShiftAlbDeployResponse;
 import io.harness.delegate.task.spotinst.response.SpotinstTrafficShiftAlbSetupResponse;
+import io.harness.delegate.task.ssh.PdcSshInfraDelegateConfig;
+import io.harness.delegate.task.ssh.PdcSshInfraDelegateConfig;
 import io.harness.delegate.task.stepstatus.StepExecutionStatus;
 import io.harness.delegate.task.stepstatus.StepMapOutput;
 import io.harness.delegate.task.stepstatus.StepStatus;
@@ -1474,6 +1476,7 @@ public class DelegateTasksBeansKryoRegister implements KryoRegistrar {
     kryo.register(CommandTaskParameters.class, 29306);
     kryo.register(SshCommandTaskParameters.class, 29307);
     kryo.register(TailFilePatternDto.class, 29308);
+    kryo.register(PdcSshInfraDelegateConfig.class, 55309);
 
   }
 }

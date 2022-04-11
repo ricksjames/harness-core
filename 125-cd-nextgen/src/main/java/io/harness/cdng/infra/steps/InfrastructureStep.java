@@ -24,6 +24,7 @@ import io.harness.cdng.infra.beans.InfraMapping;
 import io.harness.cdng.infra.beans.InfrastructureOutcome;
 import io.harness.cdng.infra.beans.K8sDirectInfrastructureOutcome;
 import io.harness.cdng.infra.beans.K8sGcpInfrastructureOutcome;
+import io.harness.cdng.infra.beans.PdcInfrastructureOutcome;
 import io.harness.cdng.infra.yaml.Infrastructure;
 import io.harness.cdng.infra.yaml.K8SDirectInfrastructure;
 import io.harness.cdng.infra.yaml.K8sAzureInfrastructure;
@@ -46,6 +47,7 @@ import io.harness.delegate.beans.connector.awsconnector.AwsCredentialType;
 import io.harness.delegate.beans.connector.azureconnector.AzureConnectorDTO;
 import io.harness.delegate.beans.connector.gcpconnector.GcpConnectorDTO;
 import io.harness.delegate.task.k8s.K8sInfraDelegateConfig;
+import io.harness.delegate.task.ssh.SshInfraDelegateConfig;
 import io.harness.eventsframework.schemas.entity.EntityDetailProtoDTO;
 import io.harness.exception.InvalidArgumentsException;
 import io.harness.exception.InvalidRequestException;
@@ -80,6 +82,7 @@ import io.harness.steps.StepUtils;
 import io.harness.steps.environment.EnvironmentOutcome;
 import io.harness.steps.executable.SyncExecutableWithRbac;
 import io.harness.steps.shellscript.K8sInfraDelegateConfigOutput;
+import io.harness.steps.shellscript.SshInfraDelegateConfigOutput;
 import io.harness.utils.IdentifierRefHelper;
 import io.harness.walktree.visitor.SimpleVisitorFactory;
 
@@ -190,13 +193,33 @@ public class InfrastructureStep implements SyncExecutableWithRbac<Infrastructure
       executionSweepingOutputService.consume(ambiance, OutputExpressionConstants.K8S_INFRA_DELEGATE_CONFIG_OUTPUT_NAME,
           k8sInfraDelegateConfigOutput, StepOutcomeGroup.STAGE.name());
     }
+
+    if (infrastructureOutcome instanceof PdcInfrastructureOutcome) {
+      publishSshInfraDelegateConfigOutput(infrastructureOutcome, ambiance);
+    }
   }
+
+  private void publishSshInfraDelegateConfigOutput(InfrastructureOutcome infrastructureOutcome, Ambiance ambiance) {
+    SshInfraDelegateConfig sshInfraDelegateConfig =
+            k8sStepHelper.getSshInfraDelegateConfig(infrastructureOutcome, ambiance);
+
+    SshInfraDelegateConfigOutput sshInfraDelegateConfigOutput =
+            SshInfraDelegateConfigOutput.builder().sshInfraDelegateConfig(sshInfraDelegateConfig).build();
+    executionSweepingOutputService.consume(ambiance, OutputExpressionConstants.SSH_INFRA_DELEGATE_CONFIG_OUTPUT_NAME,
+            sshInfraDelegateConfigOutput, StepOutcomeGroup.STAGE.name());
+  }
+
 
   @VisibleForTesting
   void validateConnector(Infrastructure infrastructure, Ambiance ambiance) {
     NGLogCallback logCallback = infrastructureStepHelper.getInfrastructureLogCallback(ambiance);
 
     if (infrastructure == null) {
+      return;
+    }
+
+    if (InfrastructureKind.PDC.equals(infrastructure.getKind())
+        && ParameterField.isNull(infrastructure.getConnectorReference())) {
       return;
     }
 
