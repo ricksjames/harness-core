@@ -231,9 +231,7 @@ public class AwsAmiServiceTrafficShiftAlbSetupTest extends WingsBaseTest {
     doNothing().when(stateExecutionService).appendDelegateTaskDetails(anyString(), any());
     doReturn(false).when(featureFlagService).isEnabled(any(), anyString());
     if (!isSuccess) {
-      doAnswer(invocation -> {
-        throw new Exception();
-      }).when(delegateService).queueTask(any());
+      doAnswer(invocation -> { throw new Exception(); }).when(delegateService).queueTask(any());
     }
   }
 
