@@ -84,6 +84,7 @@ import static org.apache.commons.lang3.StringUtils.EMPTY;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
 import static org.apache.commons.lang3.StringUtils.substringBefore;
+import static org.atmosphere.wasync.Event.REOPENED;
 
 import io.harness.annotations.dev.BreakDependencyOn;
 import io.harness.annotations.dev.HarnessModule;
@@ -381,7 +382,6 @@ public class DelegateAgentServiceImpl implements DelegateAgentService {
   private final AtomicBoolean selfDestruct = new AtomicBoolean(false);
   private final AtomicBoolean multiVersionWatcherStarted = new AtomicBoolean(false);
   private final AtomicBoolean switchStorage = new AtomicBoolean(false);
-  private final AtomicBoolean reconnectingSocket = new AtomicBoolean(false);
   private final AtomicBoolean closingSocket = new AtomicBoolean(false);
   private final AtomicBoolean sentFirstHeartbeat = new AtomicBoolean(false);
 
@@ -555,8 +555,14 @@ public class DelegateAgentServiceImpl implements DelegateAgentService {
 
         RequestBuilder requestBuilder = prepareRequestBuilder();
 
-        Options clientOptions = client.newOptionsBuilder().runtime(asyncHttpClient, true).reconnect(true).build();
+        Options clientOptions = client.newOptionsBuilder()
+                                    .runtime(asyncHttpClient, true)
+                                    .reconnect(true)
+                                    .pauseBeforeReconnectInSeconds(60)
+                                    .reconnectAttempts(14)
+                                    .build();
         socket = client.create(clientOptions);
+
         socket
             .on(Event.MESSAGE,
                 new Function<String>() { // Do not change this, wasync doesn't like lambdas
@@ -569,27 +575,34 @@ public class DelegateAgentServiceImpl implements DelegateAgentService {
                 new Function<Exception>() { // Do not change this, wasync doesn't like lambdas
                   @Override
                   public void on(Exception e) {
-                    handleError(e);
+                    log.info("Event:{}, message:[{}]", Event.ERROR.name(), e.getMessage());
+                  }
+                })
+            .on(Event.REOPENED,
+                new Function<Object>() { // Do not change this, wasync doesn't like lambdas
+                  @Override
+                  public void on(Object o) {
+                    log.info("Event:{}, message:[{}]", Event.REOPENED.name(), o.toString());
                   }
                 })
             .on(Event.OPEN,
                 new Function<Object>() { // Do not change this, wasync doesn't like lambdas
                   @Override
                   public void on(Object o) {
-                    handleOpen(o);
+                    log.info("Event:{}, message:[{}]", Event.OPEN.name(), o.toString());
                   }
                 })
             .on(Event.CLOSE,
                 new Function<Object>() { // Do not change this, wasync doesn't like lambdas
                   @Override
                   public void on(Object o) {
-                    handleClose(o);
+                    log.info("Event:{}, message:[{}]", Event.CLOSE.name(), o.toString());
                   }
                 })
             .on(new Function<IOException>() {
               @Override
               public void on(IOException ioe) {
-                log.error("Error occured while starting Delegate", ioe);
+                log.error("Error occurred while establishing connection with manager", ioe);
               }
             });
 
@@ -756,69 +769,6 @@ public class DelegateAgentServiceImpl implements DelegateAgentService {
     String[] suffixes = nonProxyHostsString.split("\\|");
     List<String> nonProxyHosts = Stream.of(suffixes).map(suffix -> suffix.substring(1)).collect(toList());
     log.info("No proxy for hosts with suffix in: {}", nonProxyHosts);
-  }
-
-  private void handleOpen(Object o) {
-    log.info("Event:{}, message:[{}]", Event.OPEN.name(), o.toString());
-  }
-
-  private void handleClose(Object o) {
-    log.info("Event:{}, message:[{}]", Event.CLOSE.name(), o.toString());
-    // TODO(brett): Disabling the fallback to poll for tasks as it can cause too much traffic to ingress controller
-    // pollingForTasks.set(true);
-    if (!closingSocket.get() && reconnectingSocket.compareAndSet(false, true)) {
-      try {
-        trySocketReconnect();
-      } finally {
-        reconnectingSocket.set(false);
-      }
-    }
-  }
-
-  private void handleError(final Exception e) {
-    log.info("Event:{}, message:[{}]", Event.ERROR.name(), e.getMessage());
-    if (reconnectingSocket.compareAndSet(false, true)) {
-      try {
-        if (e instanceof SSLException || e instanceof TransportNotSupported) {
-          log.warn("Reopening connection to manager because of exception", e);
-          try {
-            socket.close();
-          } catch (final Exception ex) {
-            log.error("Failed closing the socket!", ex);
-          }
-          trySocketReconnect();
-        } else if (e instanceof ConnectException) {
-          log.warn("Failed to connect.", e);
-          restartNeeded.set(true);
-        } else if (e instanceof ConcurrentModificationException) {
-          log.warn("ConcurrentModificationException on WebSocket ignoring");
-          log.debug("ConcurrentModificationException on WebSocket.", e);
-        } else {
-          log.error("Exception: ", e);
-          try {
-            finalizeSocket();
-          } catch (final Exception ex) {
-            log.error("Failed closing the socket!", ex);
-          }
-          restartNeeded.set(true);
-        }
-      } finally {
-        reconnectingSocket.set(false);
-      }
-    }
-  }
-
-  private void trySocketReconnect() {
-    try {
-      FibonacciBackOff.executeForEver(() -> {
-        RequestBuilder requestBuilder = prepareRequestBuilder();
-        Socket skt = socket.open(requestBuilder.build());
-        log.info("Socket status: {}", socket.status().toString());
-        return skt;
-      });
-    } catch (IOException ex) {
-      log.error("Unable to open socket", ex);
-    }
   }
 
   private void finalizeSocket() {
