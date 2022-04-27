@@ -26,7 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
 
 import io.harness.CvNextGenTestBase;
@@ -680,7 +680,7 @@ public class MonitoredServiceServiceImplTest extends CvNextGenTestBase {
         HealthSourceService.getNameSpacedIdentifier(monitoredServiceIdentifier, healthSourceIdentifier));
     assertThat(cvConfigs.size()).isEqualTo(1);
 
-    doThrow(SocketTimeoutException.class)
+    doAnswer(invocation -> { throw new SocketTimeoutException(); })
         .when(pagerdutyChangeSourceUpdateHandler)
         .handleDelete(any(PagerDutyChangeSource.class));
 
@@ -1074,7 +1074,7 @@ public class MonitoredServiceServiceImplTest extends CvNextGenTestBase {
 
     assertThatThrownBy(() -> monitoredServiceService.list(null, null, null))
         .isInstanceOf(NullPointerException.class)
-        .hasMessage("projectParams is marked @NonNull but is null");
+        .hasMessage("projectParams is marked non-null but is null");
   }
 
   @Test
