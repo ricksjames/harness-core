@@ -17,6 +17,7 @@ import io.harness.mongo.index.FdUniqueIndex;
 import io.harness.persistence.AccountAccess;
 
 import software.wings.beans.DeploymentSpecification;
+import software.wings.beans.entityinterface.ApplicationAccess;
 
 import javax.validation.constraints.NotNull;
 import lombok.Builder;
@@ -35,7 +36,7 @@ import org.mongodb.morphia.annotations.Entity;
 @HarnessEntity(exportable = true)
 @OwnedBy(CDP)
 @TargetModule(HarnessModule._957_CG_BEANS)
-public class HelmChartSpecification extends DeploymentSpecification implements AccountAccess {
+public class HelmChartSpecification implements AccountAccess, ApplicationAccess {
   @NotEmpty @FdUniqueIndex private String serviceId;
   @NotNull private String chartUrl;
   @NotNull private String chartName;
@@ -48,9 +49,17 @@ public class HelmChartSpecification extends DeploymentSpecification implements A
                                                .chartVersion(this.getChartVersion())
                                                .serviceId(this.serviceId)
                                                .build();
-    specification.setAccountId(this.getAccountId());
-    specification.setAppId(this.getAppId());
     return specification;
+  }
+
+  @Override
+  public String getAccountId() {
+    return this.getAccountId();
+  }
+
+  @Override
+  public String getAppId() {
+    return this.getAppId();
   }
 
   @Data
