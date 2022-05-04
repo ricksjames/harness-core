@@ -33,6 +33,7 @@ public class SaasSignupNotificationHelper implements SignupNotificationHelper {
   private final SignupNotificationConfiguration notificationConfiguration;
   private final LoadingCache<EmailType, Boolean> cache;
 
+  @Inject
   public SaasSignupNotificationHelper(NotificationClient notificationClient,
       SignupNotificationTemplateLoader cacheLoader, SignupNotificationConfiguration notificationConfiguration) {
     this.notificationClient = notificationClient;
