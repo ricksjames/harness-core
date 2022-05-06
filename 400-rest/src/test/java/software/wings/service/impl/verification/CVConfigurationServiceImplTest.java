@@ -50,6 +50,8 @@ import software.wings.beans.Application;
 import software.wings.beans.DatadogConfig;
 import software.wings.beans.Environment;
 import software.wings.beans.Event;
+import software.wings.beans.MetricCollectionInfo;
+import software.wings.beans.ResponseMapping;
 import software.wings.beans.Service;
 import software.wings.beans.SettingAttribute;
 import software.wings.beans.alert.Alert;
@@ -82,8 +84,6 @@ import software.wings.service.intfc.SettingsService;
 import software.wings.service.intfc.verification.CVConfigurationService;
 import software.wings.service.intfc.yaml.YamlPushService;
 import software.wings.sm.StateType;
-import software.wings.sm.states.APMVerificationState;
-import software.wings.sm.states.APMVerificationState.MetricCollectionInfo;
 import software.wings.sm.states.DatadogState;
 import software.wings.sm.states.DatadogState.Metric;
 import software.wings.sm.states.StackDriverState;
@@ -919,15 +919,14 @@ public class CVConfigurationServiceImplTest extends WingsBaseTest {
     APMCVServiceConfiguration apmcvServiceConfiguration = createAPMCVConfig(true, appId, accountId);
 
     List<MetricCollectionInfo> metricCollectionInfos = new ArrayList<>();
-    APMVerificationState.ResponseMapping responseMapping = new APMVerificationState.ResponseMapping(null, "sometxnName",
-        "sometxnname", "somemetricjsonpath", "hostpath", "hostregex", "timestamppath", "formattimestamp");
+    ResponseMapping responseMapping = new ResponseMapping(null, "sometxnName", "sometxnname", "somemetricjsonpath",
+        "hostpath", "hostregex", "timestamppath", "formattimestamp");
 
     MetricCollectionInfo metricCollectionInfo = new MetricCollectionInfo("metricName", MetricType.INFRA, "randomtag",
         "dummyuri", null, "bodycollection ${start_time} ${end_time}", ResponseType.JSON, responseMapping, Method.POST);
 
-    APMVerificationState.ResponseMapping responseMapping2 =
-        new APMVerificationState.ResponseMapping(null, "differentJsonPath", "sometxnname", "somemetricjsonpath",
-            "hostpath", "hostregex", "timestamppath", "formattimestamp");
+    ResponseMapping responseMapping2 = new ResponseMapping(null, "differentJsonPath", "sometxnname",
+        "somemetricjsonpath", "hostpath", "hostregex", "timestamppath", "formattimestamp");
 
     MetricCollectionInfo metricCollectionInfo2 = new MetricCollectionInfo("metricName", MetricType.INFRA, "randomtag",
         "dummyuri ${start_time} ${end_time}", null, "bodycollection", ResponseType.JSON, responseMapping2, Method.POST);
@@ -1325,9 +1324,8 @@ public class CVConfigurationServiceImplTest extends WingsBaseTest {
     apmcvServiceConfiguration.setAnalysisTolerance(AnalysisTolerance.MEDIUM);
 
     List<MetricCollectionInfo> metricCollectionInfos = new ArrayList<>();
-    APMVerificationState.ResponseMapping responseMapping =
-        new APMVerificationState.ResponseMapping("myhardcodedtxnName", null, "sometxnname",
-            "series[*].pointlist[*].[1]", null, null, "series[*].pointlist[*].[0]", null);
+    ResponseMapping responseMapping = new ResponseMapping("myhardcodedtxnName", null, "sometxnname",
+        "series[*].pointlist[*].[1]", null, null, "series[*].pointlist[*].[0]", null);
 
     MetricCollectionInfo metricCollectionInfo =
         new MetricCollectionInfo("metricName", MetricType.INFRA, "randomtag", "dummyuri ${start_time} ${end_time}",
@@ -1342,8 +1340,8 @@ public class CVConfigurationServiceImplTest extends WingsBaseTest {
     APMCVServiceConfiguration apmcvServiceConfiguration = createAPMCVConfig(true, appId, accountId);
 
     List<MetricCollectionInfo> metricCollectionInfos = new ArrayList<>();
-    APMVerificationState.ResponseMapping responseMapping = new APMVerificationState.ResponseMapping("sometxnName", null,
-        "sometxnname", "somemetricjsonpath", "hostpath", "hostregex", "timestamppath", "formattimestamp");
+    ResponseMapping responseMapping = new ResponseMapping("sometxnName", null, "sometxnname", "somemetricjsonpath",
+        "hostpath", "hostregex", "timestamppath", "formattimestamp");
 
     MetricCollectionInfo metricCollectionInfo = new MetricCollectionInfo("metricName", MetricType.INFRA, "randomtag",
         "dummyuri ${start_time} ${end_time}", null, "bodycollection", ResponseType.JSON, responseMapping, Method.POST);

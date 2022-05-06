@@ -41,6 +41,8 @@ import software.wings.api.HostElement;
 import software.wings.api.PhaseElement;
 import software.wings.api.ServiceElement;
 import software.wings.beans.APMVerificationConfig;
+import software.wings.beans.MetricCollectionInfo;
+import software.wings.beans.ResponseMapping;
 import software.wings.beans.SettingAttribute;
 import software.wings.beans.apm.Method;
 import software.wings.service.impl.apm.APMMetricInfo;
@@ -50,8 +52,6 @@ import software.wings.service.intfc.SettingsService;
 import software.wings.sm.ExecutionContextImpl;
 import software.wings.sm.StateExecutionInstance;
 import software.wings.sm.WorkflowStandardParams;
-import software.wings.sm.states.APMVerificationState.MetricCollectionInfo;
-import software.wings.sm.states.APMVerificationState.ResponseMapping;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.base.Charsets;
@@ -118,8 +118,7 @@ public class APMVerificationStateTest extends APMStateVerificationTestBase {
     YamlUtils yamlUtils = new YamlUtils();
     String yamlStr =
         Resources.toString(APMVerificationStateTest.class.getResource("/apm/apm_config.yml"), Charsets.UTF_8);
-    List<APMVerificationState.MetricCollectionInfo> mcInfo =
-        yamlUtils.read(yamlStr, new TypeReference<List<APMVerificationState.MetricCollectionInfo>>() {});
+    List<MetricCollectionInfo> mcInfo = yamlUtils.read(yamlStr, new TypeReference<List<MetricCollectionInfo>>() {});
     apmVerificationState.setMetricCollectionInfos(mcInfo);
 
     Map<String, List<APMMetricInfo>> apmMetricInfos =
@@ -148,8 +147,7 @@ public class APMVerificationStateTest extends APMStateVerificationTestBase {
     YamlUtils yamlUtils = new YamlUtils();
     String yamlStr =
         Resources.toString(APMVerificationStateTest.class.getResource("/apm/apm_config.yml"), Charsets.UTF_8);
-    List<APMVerificationState.MetricCollectionInfo> mcInfo =
-        yamlUtils.read(yamlStr, new TypeReference<List<APMVerificationState.MetricCollectionInfo>>() {});
+    List<MetricCollectionInfo> mcInfo = yamlUtils.read(yamlStr, new TypeReference<List<MetricCollectionInfo>>() {});
     mcInfo.get(2).getResponseMapping().setTxnNameJsonPath("${workflow.variable.jsonPath}");
     apmVerificationState.setMetricCollectionInfos(mcInfo);
     ExecutionContextImpl executionContext = mock(ExecutionContextImpl.class);
@@ -367,8 +365,7 @@ public class APMVerificationStateTest extends APMStateVerificationTestBase {
   public void testValidInitialDelay() throws Exception {
     String yamlStr =
         Resources.toString(APMVerificationStateTest.class.getResource("/apm/apm_config.yml"), Charsets.UTF_8);
-    List<APMVerificationState.MetricCollectionInfo> mcInfo =
-        yamlUtils.read(yamlStr, new TypeReference<List<APMVerificationState.MetricCollectionInfo>>() {});
+    List<MetricCollectionInfo> mcInfo = yamlUtils.read(yamlStr, new TypeReference<List<MetricCollectionInfo>>() {});
     apmVerificationState.setMetricCollectionInfos(mcInfo);
     apmVerificationState.setInitialAnalysisDelay("4m");
     assertThat(apmVerificationState.validateFields().containsKey("initialAnalysisDelay")).isFalse();
@@ -381,8 +378,7 @@ public class APMVerificationStateTest extends APMStateVerificationTestBase {
     YamlUtils yamlUtils = new YamlUtils();
     String yamlStr =
         Resources.toString(APMVerificationStateTest.class.getResource("/apm/apm_config.yml"), Charsets.UTF_8);
-    List<APMVerificationState.MetricCollectionInfo> mcInfo =
-        yamlUtils.read(yamlStr, new TypeReference<List<APMVerificationState.MetricCollectionInfo>>() {});
+    List<MetricCollectionInfo> mcInfo = yamlUtils.read(yamlStr, new TypeReference<List<MetricCollectionInfo>>() {});
     apmVerificationState.setMetricCollectionInfos(mcInfo);
     apmVerificationState.setInitialAnalysisDelay("200s");
     assertThat(apmVerificationState.validateFields().containsKey("initialAnalysisDelay")).isFalse();
@@ -395,8 +391,7 @@ public class APMVerificationStateTest extends APMStateVerificationTestBase {
     YamlUtils yamlUtils = new YamlUtils();
     String yamlStr =
         Resources.toString(APMVerificationStateTest.class.getResource("/apm/apm_config.yml"), Charsets.UTF_8);
-    List<APMVerificationState.MetricCollectionInfo> mcInfo =
-        yamlUtils.read(yamlStr, new TypeReference<List<APMVerificationState.MetricCollectionInfo>>() {});
+    List<MetricCollectionInfo> mcInfo = yamlUtils.read(yamlStr, new TypeReference<List<MetricCollectionInfo>>() {});
     apmVerificationState.setMetricCollectionInfos(mcInfo);
     apmVerificationState.setInitialAnalysisDelay("500s");
     // Now value is hard coded to DELAY_MINUTES
@@ -412,8 +407,7 @@ public class APMVerificationStateTest extends APMStateVerificationTestBase {
     YamlUtils yamlUtils = new YamlUtils();
     String yamlStr =
         Resources.toString(APMVerificationStateTest.class.getResource("/apm/apm_config.yml"), Charsets.UTF_8);
-    List<APMVerificationState.MetricCollectionInfo> mcInfo =
-        yamlUtils.read(yamlStr, new TypeReference<List<APMVerificationState.MetricCollectionInfo>>() {});
+    List<MetricCollectionInfo> mcInfo = yamlUtils.read(yamlStr, new TypeReference<List<MetricCollectionInfo>>() {});
     apmVerificationState.setMetricCollectionInfos(mcInfo);
 
     assertThat(apmVerificationState.isHistoricalAnalysis(accountId)).isTrue();
@@ -427,8 +421,7 @@ public class APMVerificationStateTest extends APMStateVerificationTestBase {
     YamlUtils yamlUtils = new YamlUtils();
     String yamlStr = Resources.toString(
         APMVerificationStateTest.class.getResource("/apm/apm_collection_info_not_historical.yml"), Charsets.UTF_8);
-    List<APMVerificationState.MetricCollectionInfo> mcInfo =
-        yamlUtils.read(yamlStr, new TypeReference<List<APMVerificationState.MetricCollectionInfo>>() {});
+    List<MetricCollectionInfo> mcInfo = yamlUtils.read(yamlStr, new TypeReference<List<MetricCollectionInfo>>() {});
     apmVerificationState.setMetricCollectionInfos(mcInfo);
 
     assertThat(apmVerificationState.isHistoricalAnalysis(accountId)).isFalse();
@@ -442,8 +435,7 @@ public class APMVerificationStateTest extends APMStateVerificationTestBase {
     YamlUtils yamlUtils = new YamlUtils();
     String yamlStr = Resources.toString(
         APMVerificationStateTest.class.getResource("/apm/apm_collection_info_not_historical.yml"), Charsets.UTF_8);
-    List<APMVerificationState.MetricCollectionInfo> mcInfo =
-        yamlUtils.read(yamlStr, new TypeReference<List<APMVerificationState.MetricCollectionInfo>>() {});
+    List<MetricCollectionInfo> mcInfo = yamlUtils.read(yamlStr, new TypeReference<List<MetricCollectionInfo>>() {});
     mcInfo.forEach(info -> info.setCollectionUrl(info.getCollectionUrl() + VERIFICATION_HOST_PLACEHOLDER));
     apmVerificationState.setMetricCollectionInfos(mcInfo);
 
@@ -458,8 +450,7 @@ public class APMVerificationStateTest extends APMStateVerificationTestBase {
     YamlUtils yamlUtils = new YamlUtils();
     String yamlStr = Resources.toString(
         APMVerificationStateTest.class.getResource("/apm/apm_collection_info_not_historical.yml"), Charsets.UTF_8);
-    List<APMVerificationState.MetricCollectionInfo> mcInfo =
-        yamlUtils.read(yamlStr, new TypeReference<List<APMVerificationState.MetricCollectionInfo>>() {});
+    List<MetricCollectionInfo> mcInfo = yamlUtils.read(yamlStr, new TypeReference<List<MetricCollectionInfo>>() {});
     mcInfo.forEach(info -> info.setCollectionBody(null));
     mcInfo.forEach(info -> info.setCollectionUrl("dummyURLwithoutHost"));
     apmVerificationState.setMetricCollectionInfos(mcInfo);
@@ -475,8 +466,7 @@ public class APMVerificationStateTest extends APMStateVerificationTestBase {
     YamlUtils yamlUtils = new YamlUtils();
     String yamlStr = Resources.toString(
         APMVerificationStateTest.class.getResource("/apm/apm_collection_info_not_historical.yml"), Charsets.UTF_8);
-    List<APMVerificationState.MetricCollectionInfo> mcInfo =
-        yamlUtils.read(yamlStr, new TypeReference<List<APMVerificationState.MetricCollectionInfo>>() {});
+    List<MetricCollectionInfo> mcInfo = yamlUtils.read(yamlStr, new TypeReference<List<MetricCollectionInfo>>() {});
     mcInfo.forEach(info -> info.setCollectionUrl(null));
     apmVerificationState.setMetricCollectionInfos(mcInfo);
 
@@ -492,8 +482,7 @@ public class APMVerificationStateTest extends APMStateVerificationTestBase {
     YamlUtils yamlUtils = new YamlUtils();
     String yamlStr = Resources.toString(
         APMVerificationStateTest.class.getResource("/apm/apm_collection_info_not_historical.yml"), Charsets.UTF_8);
-    List<APMVerificationState.MetricCollectionInfo> mcInfo =
-        yamlUtils.read(yamlStr, new TypeReference<List<APMVerificationState.MetricCollectionInfo>>() {});
+    List<MetricCollectionInfo> mcInfo = yamlUtils.read(yamlStr, new TypeReference<List<MetricCollectionInfo>>() {});
     mcInfo.forEach(info -> info.setCollectionUrl(null));
     apmVerificationState.setMetricCollectionInfos(mcInfo);
 
@@ -512,8 +501,7 @@ public class APMVerificationStateTest extends APMStateVerificationTestBase {
     apmVerificationState.setAnalysisServerConfigId(analysisServerConfigId);
     String yamlStr =
         Resources.toString(APMVerificationStateTest.class.getResource("/apm/apm_config.yml"), Charsets.UTF_8);
-    List<APMVerificationState.MetricCollectionInfo> mcInfo =
-        yamlUtils.read(yamlStr, new TypeReference<List<APMVerificationState.MetricCollectionInfo>>() {});
+    List<MetricCollectionInfo> mcInfo = yamlUtils.read(yamlStr, new TypeReference<List<MetricCollectionInfo>>() {});
     apmVerificationState.setMetricCollectionInfos(mcInfo);
     APMVerificationConfig apmVerificationConfig = new APMVerificationConfig();
     apmVerificationConfig.setValidationUrl("/validation");
@@ -547,8 +535,7 @@ public class APMVerificationStateTest extends APMStateVerificationTestBase {
     apmVerificationState.setAnalysisServerConfigId(analysisServerConfigId);
     String yamlStr =
         Resources.toString(APMVerificationStateTest.class.getResource("/apm/apm_config.yml"), Charsets.UTF_8);
-    List<APMVerificationState.MetricCollectionInfo> mcInfo =
-        yamlUtils.read(yamlStr, new TypeReference<List<APMVerificationState.MetricCollectionInfo>>() {});
+    List<MetricCollectionInfo> mcInfo = yamlUtils.read(yamlStr, new TypeReference<List<MetricCollectionInfo>>() {});
     apmVerificationState.setMetricCollectionInfos(mcInfo);
     APMVerificationConfig apmVerificationConfig = new APMVerificationConfig();
     apmVerificationConfig.setValidationUrl("/validation");

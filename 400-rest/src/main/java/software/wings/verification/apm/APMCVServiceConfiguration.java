@@ -14,11 +14,11 @@ import static software.wings.service.impl.newrelic.NewRelicMetricDataRecord.DEFA
 
 import io.harness.beans.FeatureName;
 
+import software.wings.beans.MetricCollectionInfo;
 import software.wings.metrics.MetricType;
 import software.wings.service.impl.analysis.DataCollectionInfoV2;
 import software.wings.service.impl.apm.CustomAPMDataCollectionInfo;
 import software.wings.sm.states.APMVerificationState;
-import software.wings.sm.states.APMVerificationState.MetricCollectionInfo;
 import software.wings.verification.CVConfiguration;
 
 import java.util.ArrayList;

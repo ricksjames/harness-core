@@ -48,6 +48,8 @@ import io.harness.serializer.JsonUtils;
 
 import software.wings.beans.ElkConfig;
 import software.wings.beans.Environment;
+import software.wings.beans.MetricCollectionInfo;
+import software.wings.beans.ResponseMapping;
 import software.wings.beans.Service;
 import software.wings.beans.SettingAttribute;
 import software.wings.beans.SettingAttribute.Builder;
@@ -77,8 +79,6 @@ import software.wings.service.impl.newrelic.LearningEngineAnalysisTask.LearningE
 import software.wings.service.intfc.AppService;
 import software.wings.service.intfc.EnvironmentService;
 import software.wings.sm.StateType;
-import software.wings.sm.states.APMVerificationState.MetricCollectionInfo;
-import software.wings.sm.states.APMVerificationState.ResponseMapping;
 import software.wings.verification.CVConfiguration;
 import software.wings.verification.CVConfiguration.CVConfigurationKeys;
 import software.wings.verification.apm.APMCVServiceConfiguration;

@@ -20,6 +20,8 @@ import io.harness.exception.WingsException;
 import io.harness.rule.Owner;
 
 import software.wings.beans.Application;
+import software.wings.beans.MetricCollectionInfo;
+import software.wings.beans.ResponseMapping;
 import software.wings.beans.Service;
 import software.wings.beans.SettingAttribute;
 import software.wings.beans.apm.Method;
@@ -34,8 +36,6 @@ import software.wings.service.intfc.ServiceResourceService;
 import software.wings.service.intfc.SettingsService;
 import software.wings.service.intfc.verification.CVConfigurationService;
 import software.wings.sm.StateType;
-import software.wings.sm.states.APMVerificationState.MetricCollectionInfo;
-import software.wings.sm.states.APMVerificationState.ResponseMapping;
 import software.wings.verification.apm.APMCVConfigurationYaml;
 import software.wings.verification.apm.APMCVServiceConfiguration;
 

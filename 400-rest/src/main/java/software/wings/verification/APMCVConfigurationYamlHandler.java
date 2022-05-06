@@ -14,9 +14,9 @@ import static io.harness.validation.Validator.notNullCheck;
 
 import io.harness.exception.WingsException;
 
+import software.wings.beans.MetricCollectionInfo;
 import software.wings.beans.yaml.ChangeContext;
 import software.wings.sm.StateType;
-import software.wings.sm.states.APMVerificationState.MetricCollectionInfo;
 import software.wings.verification.apm.APMCVConfigurationYaml;
 import software.wings.verification.apm.APMCVServiceConfiguration;
 
