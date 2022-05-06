@@ -92,7 +92,7 @@ public class NGGitCommandTaskTest extends CategoryTest {
     doReturn(gitCommandExecutionResponse)
         .when(gitCommandTaskHandler)
         .handleValidateTask(
-            any(GitConfigDTO.class), any(ScmConnector.class), any(String.class), any(SshSessionConfig.class));
+            any(GitConfigDTO.class), any(), anyString(), any());
     TaskParameters params = GitCommandParams.builder()
                                 .gitConfig(GitConfigDTO.builder().build())
                                 .gitCommandType(GitCommandType.VALIDATE)
@@ -110,7 +110,7 @@ public class NGGitCommandTaskTest extends CategoryTest {
     doReturn(gitCommitAndPushResult)
         .when(gitService)
         .commitAndPush(
-            any(GitConfigDTO.class), any(CommitAndPushRequest.class), anyString(), any(SshSessionConfig.class));
+            any(GitConfigDTO.class), any(), anyString(), any());
     TaskParameters params = GitCommandParams.builder()
                                 .gitConfig(GitConfigDTO.builder().build())
                                 .gitCommandType(GitCommandType.COMMIT_AND_PUSH)
