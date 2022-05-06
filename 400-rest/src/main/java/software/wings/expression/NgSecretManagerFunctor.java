@@ -52,11 +52,13 @@ import java.util.stream.Collectors;
 import javax.cache.Cache;
 import lombok.Builder;
 import lombok.Value;
+import lombok.extern.slf4j.Slf4j;
 
 @OwnedBy(CDP)
 @Value
 @Builder
 @TargetModule(HarnessModule._950_NG_CORE)
+@Slf4j
 public class NgSecretManagerFunctor implements ExpressionFunctor, NgSecretManagerFunctorInterface {
   private int expressionFunctorToken;
   private final String accountId;
@@ -133,11 +135,13 @@ public class NgSecretManagerFunctor implements ExpressionFunctor, NgSecretManage
       String secretValue;
       String dataUuid = null;
       if (localEncryptedDetails.size() == 1) {
+        log.info("fetching entry from cache {}", secretVariableDTO.getName() );
         dataUuid = localEncryptedDetails.get(0).getEncryptedData().getUuid();
         locallyEncryptedData = secretsCache.get(dataUuid);
         canUseCache = true;
       }
       if (locallyEncryptedData == null) {
+        log.info("cache miss for secret {}",secretVariableDTO.getName() );
         decryptLocal(secretVariableDTO, localEncryptedDetails);
         secretValue = new String(secretVariableDTO.getSecret().getDecryptedValue());
         if (canUseCache) {
@@ -152,9 +156,12 @@ public class NgSecretManagerFunctor implements ExpressionFunctor, NgSecretManage
                                      .encryptedValue(reEncryptedValue)
                                      .base64Encoded(localEncryptedDetails.get(0).getEncryptedData().isBase64Encoded())
                                      .build();
+          log.info("inserting entry to cache {}", secretVariableDTO.getName() );
           secretsCache.put(dataUuid, locallyEncryptedData);
+          log.info ("output from cache {}", secretsCache.get(dataUuid));
         }
       } else {
+        log.info("cache hit for secret {}",secretVariableDTO.getName() );
         // Cache hit. Decrypt the value locally with previously saved encryption key.
         secretValue = new String(new SimpleEncryption(locallyEncryptedData.getEncryptionKey())
                                      .decryptChars(locallyEncryptedData.getEncryptedValue()));
