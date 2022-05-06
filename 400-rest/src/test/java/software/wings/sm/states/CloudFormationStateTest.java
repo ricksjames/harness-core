@@ -99,12 +99,12 @@ import software.wings.beans.InfraMappingSweepingOutput;
 import software.wings.beans.InfrastructureMappingBlueprint;
 import software.wings.beans.Service;
 import software.wings.beans.ServiceVariable;
-import software.wings.beans.ServiceVariable.Type;
+import software.wings.beans.ServiceVariableType;
 import software.wings.beans.SettingAttribute;
 import software.wings.beans.TemplateExpression;
 import software.wings.beans.WorkflowExecution;
 import software.wings.beans.artifact.Artifact;
-import software.wings.beans.artifact.Artifact.ArtifactMetadataKeys;
+import software.wings.beans.artifact.ArtifactMetadataKeys;
 import software.wings.beans.artifact.ArtifactStream;
 import software.wings.beans.artifact.JenkinsArtifactStream;
 import software.wings.beans.command.CommandType;
@@ -263,13 +263,21 @@ public class CloudFormationStateTest extends WingsBaseTest {
 
   private SettingAttribute awsConfig = aSettingAttribute().withValue(AwsConfig.builder().build()).build();
 
-  private List<ServiceVariable> serviceVariableList =
-      asList(ServiceVariable.builder().type(Type.TEXT).name("VAR_1").value("value1".toCharArray()).build(),
-          ServiceVariable.builder().type(Type.ENCRYPTED_TEXT).name("VAR_2").value("value2".toCharArray()).build());
+  private List<ServiceVariable> serviceVariableList = asList(
+      ServiceVariable.builder().type(ServiceVariableType.TEXT).name("VAR_1").value("value1".toCharArray()).build(),
+      ServiceVariable.builder()
+          .type(ServiceVariableType.ENCRYPTED_TEXT)
+          .name("VAR_2")
+          .value("value2".toCharArray())
+          .build());
 
-  private List<ServiceVariable> safeDisplayServiceVariableList =
-      asList(ServiceVariable.builder().type(Type.TEXT).name("VAR_1").value("value1".toCharArray()).build(),
-          ServiceVariable.builder().type(Type.ENCRYPTED_TEXT).name("VAR_2").value("*******".toCharArray()).build());
+  private List<ServiceVariable> safeDisplayServiceVariableList = asList(
+      ServiceVariable.builder().type(ServiceVariableType.TEXT).name("VAR_1").value("value1".toCharArray()).build(),
+      ServiceVariable.builder()
+          .type(ServiceVariableType.ENCRYPTED_TEXT)
+          .name("VAR_2")
+          .value("*******".toCharArray())
+          .build());
 
   private String outputName = InfrastructureConstants.PHASE_INFRA_MAPPING_KEY_NAME + phaseElement.getUuid();
   private SweepingOutputInstance sweepingOutputInstance =

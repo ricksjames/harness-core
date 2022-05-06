@@ -978,15 +978,13 @@ public class AccountServiceImpl implements AccountService {
     if (licenseService.isAccountDeleted(accountId)) {
       throw new InvalidRequestException("Deleted AccountId: " + accountId);
     }
-    log.info("feature flag service {}", featureFlagService);
-    log.info("accountID name {}", accountId);
     if (featureFlagService.isEnabled(DELEGATE_VERSION_FROM_RING, accountId)) {
       log.info("Getting delegate configuration from Delegate ring");
 
       // Prefer using delegateConfiguration from DelegateRing.
       List<String> delegateVersionFromRing = delegateVersionService.getDelegateJarVersions(accountId);
       if (isNotEmpty(delegateVersionFromRing)) {
-        return DelegateConfiguration.builder().delegateVersions(delegateVersionFromRing).build();
+        return DelegateConfiguration.builder().delegateVersions(new ArrayList<>(delegateVersionFromRing)).build();
       }
       log.warn("Unable to get Delegate version from ring, falling back to regular flow");
     }
