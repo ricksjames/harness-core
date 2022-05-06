@@ -173,7 +173,6 @@ import software.wings.beans.AzureVMSSInfrastructureMapping;
 import software.wings.beans.AzureWebAppInfrastructureMapping;
 import software.wings.beans.BarrierInstance;
 import software.wings.beans.Base;
-import software.wings.beans.BaseFile;
 import software.wings.beans.BasicOrchestrationWorkflow;
 import software.wings.beans.BlueGreenOrchestrationWorkflow;
 import software.wings.beans.BugsnagConfig;
@@ -282,8 +281,8 @@ import software.wings.beans.approval.ApprovalPollingJobEntity;
 import software.wings.beans.artifact.AcrArtifactStream;
 import software.wings.beans.artifact.AmazonS3ArtifactStream;
 import software.wings.beans.artifact.AmiArtifactStream;
-import software.wings.beans.artifact.Artifact;
 import software.wings.beans.artifact.ArtifactStream;
+import software.wings.beans.artifact.ArtifactView;
 import software.wings.beans.artifact.ArtifactoryArtifactStream;
 import software.wings.beans.artifact.AzureArtifactsArtifactStream;
 import software.wings.beans.artifact.AzureMachineImageArtifactStream;
@@ -422,8 +421,6 @@ import software.wings.delegatetasks.buildsource.BuildSourceCleanupCallback;
 import software.wings.delegatetasks.buildsource.BuildSourceExecutionResponse;
 import software.wings.delegatetasks.validation.capabilities.HelmCommandCapability;
 import software.wings.helpers.ext.cloudformation.CloudFormationCompletionFlag;
-import software.wings.helpers.ext.cloudformation.response.CloudFormationCommandExecutionResponse;
-import software.wings.helpers.ext.cloudformation.response.CloudFormationCreateStackResponse;
 import software.wings.helpers.ext.ecs.request.EcsBGListenerUpdateRequest;
 import software.wings.helpers.ext.ecs.request.EcsRunTaskDeployRequest;
 import software.wings.helpers.ext.ecs.response.EcsBGRoute53DNSWeightUpdateResponse;
@@ -759,7 +756,6 @@ public class ManagerMorphiaRegistrar implements MorphiaRegistrar {
     set.add(ApplicationManifest.class);
     set.add(ApprovalNotification.class);
     set.add(ApprovalPollingJobEntity.class);
-    set.add(Artifact.class);
     set.add(ArtifactoryArtifactStream.class);
     set.add(ArtifactStream.class);
     set.add(ArtifactStreamWithOnlyAuditNeededData.class);
@@ -779,7 +775,6 @@ public class ManagerMorphiaRegistrar implements MorphiaRegistrar {
     set.add(BambooArtifactStream.class);
     set.add(BarrierInstance.class);
     set.add(Base.class);
-    set.add(BaseFile.class);
     set.add(BugsnagCVConfiguration.class);
     set.add(CECloudAccountOld.class);
     set.add(CECommunications.class);
@@ -986,6 +981,7 @@ public class ManagerMorphiaRegistrar implements MorphiaRegistrar {
     set.add(DeletedEntity.class);
     set.add(ARMInfrastructureProvisioner.class);
     set.add(AccessRequest.class);
+    set.add(ArtifactView.class);
   }
 
   @Override
@@ -1473,8 +1469,6 @@ public class ManagerMorphiaRegistrar implements MorphiaRegistrar {
     w.put("yaml.gitSync.GitSyncMetadata", GitSyncMetadata.class);
     w.put("beans.template.ImportedTemplateMetadata", ImportedTemplateMetadata.class);
     w.put("beans.template.CopiedTemplateMetadata", CopiedTemplateMetadata.class);
-    w.put(cf + "response.CloudFormationCommandExecutionResponse", CloudFormationCommandExecutionResponse.class);
-    w.put(cf + "response.CloudFormationCreateStackResponse", CloudFormationCreateStackResponse.class);
     w.put("sm.states.customdeployment.InstanceFetchState", InstanceFetchState.class);
     w.put("api.customdeployment.InstanceFetchStateExecutionData", InstanceFetchStateExecutionData.class);
     w.put("api.InstanceFetchStateExecutionSummary", InstanceFetchStateExecutionSummary.class);

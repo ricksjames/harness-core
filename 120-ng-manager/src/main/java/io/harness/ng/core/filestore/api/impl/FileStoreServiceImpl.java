@@ -7,6 +7,11 @@
 
 package io.harness.ng.core.filestore.api.impl;
 
+import static io.harness.EntityType.PIPELINES;
+import static io.harness.EntityType.PIPELINE_STEPS;
+import static io.harness.EntityType.SECRETS;
+import static io.harness.EntityType.SERVICE;
+import static io.harness.EntityType.TEMPLATE;
 import static io.harness.annotations.dev.HarnessTeam.CDP;
 import static io.harness.data.structure.EmptyPredicate.isEmpty;
 import static io.harness.data.structure.EmptyPredicate.isNotEmpty;
@@ -54,6 +59,7 @@ import io.harness.stream.BoundedInputStream;
 import software.wings.app.MainConfiguration;
 import software.wings.service.intfc.FileService;
 
+import com.google.common.collect.Lists;
 import com.google.common.io.Files;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
@@ -80,6 +86,8 @@ import org.springframework.data.mongodb.core.query.Criteria;
 @AllArgsConstructor(onConstructor = @__({ @Inject }))
 @Slf4j
 public class FileStoreServiceImpl implements FileStoreService {
+  private static final List<EntityType> SUPPORTED_ENTITY_TYPES =
+      Lists.newArrayList(PIPELINES, PIPELINE_STEPS, SERVICE, SECRETS, TEMPLATE);
   private final FileService fileService;
   private final FileStoreRepository fileStoreRepository;
   private final MainConfiguration configuration;
@@ -164,7 +172,7 @@ public class FileStoreServiceImpl implements FileStoreService {
     }
 
     NGFile file = fetchFileOrThrow(accountIdentifier, orgIdentifier, projectIdentifier, identifier);
-    validateIsReferencedBy(file);
+    fileReferenceService.validateIsReferencedBy(file);
 
     return deleteFileOrFolder(file);
   }
@@ -204,6 +212,16 @@ public class FileStoreServiceImpl implements FileStoreService {
   }
 
   @Override
+  public Page<EntitySetupUsageDTO> listReferencedByInScope(SearchPageParams pageParams,
+      @NotNull String accountIdentifier, String orgIdentifier, String projectIdentifier, EntityType entityType) {
+    if (isEmpty(accountIdentifier)) {
+      throw new InvalidArgumentsException("Account identifier cannot be null or empty");
+    }
+    return fileReferenceService.getAllReferencedByInScope(
+        accountIdentifier, orgIdentifier, projectIdentifier, pageParams, entityType);
+  }
+
+  @Override
   public Page<FileDTO> listFilesWithFilter(String accountIdentifier, String orgIdentifier, String projectIdentifier,
       String filterIdentifier, String searchTerm, FilesFilterPropertiesDTO filterProperties, Pageable pageable) {
     if (isNotEmpty(filterIdentifier) && filterProperties != null) {
@@ -236,6 +254,11 @@ public class FileStoreServiceImpl implements FileStoreService {
     AggregationResults<CreatedBy> aggregate = fileStoreRepository.aggregate(aggregation, CreatedBy.class);
 
     return aggregate.getMappedResults().stream().map(CreatedBy::getCreatedBy).collect(Collectors.toSet());
+  }
+
+  @Override
+  public List<EntityType> getSupportedEntityTypes() {
+    return SUPPORTED_ENTITY_TYPES;
   }
 
   private boolean isFileExistsByIdentifier(FileDTO fileDto) {
@@ -321,41 +344,6 @@ public class FileStoreServiceImpl implements FileStoreService {
         createCriteriaByScopeAndParentIdentifier(
             Scope.of(accountIdentifier, orgIdentifier, projectIdentifier), parentIdentifier),
         createSortByLastModifiedAtDesc());
-  }
-
-  private void validateIsReferencedBy(NGFile fileOrFolder) {
-    if (NGFileType.FOLDER.equals(fileOrFolder.getType())) {
-      if (anyFileInFolderHasReferences(fileOrFolder)) {
-        throw new InvalidArgumentsException(format(
-            "Folder [%s], or its subfolders, contain file(s) referenced by other entities and can not be deleted.",
-            fileOrFolder.getIdentifier()));
-      }
-    } else {
-      if (isFileReferencedByOtherEntities(fileOrFolder)) {
-        throw new InvalidArgumentsException(
-            format("File [%s] is referenced by other entities and can not be deleted.", fileOrFolder.getIdentifier()));
-      }
-    }
-  }
-
-  private boolean anyFileInFolderHasReferences(NGFile folder) {
-    List<NGFile> childrenFiles = listFilesByParent(folder);
-    if (isEmpty(childrenFiles)) {
-      return false;
-    }
-    return childrenFiles.stream().filter(Objects::nonNull).anyMatch(this::isReferencedByOtherEntities);
-  }
-
-  private boolean isReferencedByOtherEntities(NGFile fileOrFolder) {
-    if (NGFileType.FOLDER.equals(fileOrFolder.getType())) {
-      return anyFileInFolderHasReferences(fileOrFolder);
-    } else {
-      return isFileReferencedByOtherEntities(fileOrFolder);
-    }
-  }
-
-  private boolean isFileReferencedByOtherEntities(NGFile file) {
-    return fileReferenceService.isFileReferencedByOtherEntities(file);
   }
 
   private boolean deleteFileOrFolder(NGFile fileOrFolder) {
