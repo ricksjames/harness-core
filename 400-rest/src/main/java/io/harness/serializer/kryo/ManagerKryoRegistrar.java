@@ -7,9 +7,25 @@
 
 package io.harness.serializer.kryo;
 
-import static io.harness.annotations.dev.HarnessModule._360_CG_MANAGER;
-import static io.harness.annotations.dev.HarnessTeam.PL;
-
+import com.amazonaws.services.cloudformation.model.StackStatus;
+import com.amazonaws.services.cloudwatch.model.Datapoint;
+import com.amazonaws.services.cloudwatch.model.Dimension;
+import com.amazonaws.services.cloudwatch.model.StandardUnit;
+import com.amazonaws.services.ecs.model.Deployment;
+import com.amazonaws.services.ecs.model.DeploymentConfiguration;
+import com.amazonaws.services.ecs.model.Service;
+import com.amazonaws.services.ecs.model.ServiceEvent;
+import com.esotericsoftware.kryo.Kryo;
+import com.google.api.services.logging.v2.model.LogEntry;
+import com.google.api.services.logging.v2.model.LogEntryOperation;
+import com.google.api.services.logging.v2.model.LogEntrySourceLocation;
+import com.google.api.services.logging.v2.model.MonitoredResource;
+import com.google.api.services.logging.v2.model.MonitoredResourceMetadata;
+import com.google.gson.internal.LinkedTreeMap;
+import com.google.protobuf.Duration;
+import com.splunk.HttpException;
+import com.sumologic.client.SumoClientException;
+import com.sumologic.client.SumoException;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.annotations.dev.TargetModule;
 import io.harness.ccm.cluster.entities.ClusterRecord;
@@ -21,7 +37,7 @@ import io.harness.cvng.state.CVNGVerificationTask;
 import io.harness.perpetualtask.PerpetualTaskSchedule;
 import io.harness.perpetualtask.internal.AssignmentTaskResponse;
 import io.harness.serializer.KryoRegistrar;
-
+import io.kubernetes.client.openapi.ApiException;
 import software.wings.api.ARMStateExecutionData;
 import software.wings.api.AmiServiceDeployElement;
 import software.wings.api.AmiServiceSetupElement;
@@ -454,7 +470,6 @@ import software.wings.service.impl.analysis.DataCollectionCallback;
 import software.wings.service.impl.analysis.MLAnalysisType;
 import software.wings.service.impl.analysis.TimeSeries;
 import software.wings.service.impl.apm.APMDataCollectionInfo;
-import software.wings.service.impl.apm.APMMetricInfo;
 import software.wings.service.impl.appdynamics.AppDynamicsDataCollectionInfoV2;
 import software.wings.service.impl.aws.model.AwsAmiAllPhaseRollbackData;
 import software.wings.service.impl.aws.model.AwsAmiRequest;
@@ -523,7 +538,6 @@ import software.wings.service.impl.instana.InstanaAnalyzeMetricRequest;
 import software.wings.service.impl.instana.InstanaAnalyzeMetrics;
 import software.wings.service.impl.instana.InstanaTagFilter;
 import software.wings.service.impl.instance.sync.response.ContainerSyncResponse;
-import software.wings.service.impl.newrelic.NewRelicDataCollectionInfoV2;
 import software.wings.service.impl.newrelic.NewRelicMarkerExecutionData;
 import software.wings.service.impl.prometheus.PrometheusDataCollectionInfo;
 import software.wings.service.impl.prometheus.PrometheusMetricDataResponse;
@@ -595,27 +609,10 @@ import software.wings.utils.ContainerFamily;
 import software.wings.verification.VerificationDataAnalysisResponse;
 import software.wings.verification.VerificationStateAnalysisExecutionData;
 
-import com.amazonaws.services.cloudformation.model.StackStatus;
-import com.amazonaws.services.cloudwatch.model.Datapoint;
-import com.amazonaws.services.cloudwatch.model.Dimension;
-import com.amazonaws.services.cloudwatch.model.StandardUnit;
-import com.amazonaws.services.ecs.model.Deployment;
-import com.amazonaws.services.ecs.model.DeploymentConfiguration;
-import com.amazonaws.services.ecs.model.Service;
-import com.amazonaws.services.ecs.model.ServiceEvent;
-import com.esotericsoftware.kryo.Kryo;
-import com.google.api.services.logging.v2.model.LogEntry;
-import com.google.api.services.logging.v2.model.LogEntryOperation;
-import com.google.api.services.logging.v2.model.LogEntrySourceLocation;
-import com.google.api.services.logging.v2.model.MonitoredResource;
-import com.google.api.services.logging.v2.model.MonitoredResourceMetadata;
-import com.google.gson.internal.LinkedTreeMap;
-import com.google.protobuf.Duration;
-import com.splunk.HttpException;
-import com.sumologic.client.SumoClientException;
-import com.sumologic.client.SumoException;
-import io.kubernetes.client.openapi.ApiException;
 import java.time.Instant;
+
+import static io.harness.annotations.dev.HarnessModule._360_CG_MANAGER;
+import static io.harness.annotations.dev.HarnessTeam.PL;
 
 @OwnedBy(PL)
 @TargetModule(_360_CG_MANAGER)
@@ -837,8 +834,6 @@ public class ManagerKryoRegistrar implements KryoRegistrar {
     kryo.register(TwoFactorAuthenticationMechanism.class, 5358);
     kryo.register(TimeSeries.class, 5312);
     kryo.register(APMDataCollectionInfo.class, 5320);
-    kryo.register(APMMetricInfo.ResponseMapper.class, 5322);
-    kryo.register(APMMetricInfo.class, 5321);
 
     kryo.register(AwsAmiRequestType.class, 5458);
     kryo.register(AwsAmiRequest.class, 5457);
@@ -1017,7 +1012,6 @@ public class ManagerKryoRegistrar implements KryoRegistrar {
     kryo.register(SpotInstSetupStateExecutionData.class, 7241);
     kryo.register(SpotinstDeployExecutionSummary.class, 7242);
     kryo.register(SpotinstAllPhaseRollbackData.class, 7245);
-    kryo.register(NewRelicDataCollectionInfoV2.class, 7247);
     kryo.register(Dimension.class, 7251);
     kryo.register(Datapoint.class, 7252);
     kryo.register(AwsCloudWatchStatisticsResponse.class, 7253);
@@ -1051,17 +1045,8 @@ public class ManagerKryoRegistrar implements KryoRegistrar {
     kryo.register(SumoException.class, 7309);
     kryo.register(SumoClientException.class, 7310);
 
-    kryo.register(InstanaAnalyzeMetricRequest.class, 7311);
-    kryo.register(InstanaAnalyzeMetricRequest.Group.class, 7312);
-    kryo.register(InstanaAnalyzeMetricRequest.Metric.class, 7313);
-    kryo.register(InstanaTagFilter.Operator.class, 7314);
-    kryo.register(InstanaAnalyzeMetrics.class, 7315);
-    kryo.register(InstanaAnalyzeMetrics.Item.class, 7316);
-
     kryo.register(SkipStateExecutionData.class, 7322);
-
     kryo.register(InstanceInfoVariables.class, 7331);
-    kryo.register(AppDynamicsDataCollectionInfoV2.class, 7332);
     kryo.register(ScalyrConfig.class, 7334);
 
     kryo.register(HelmCommandCapability.class, 7336);
