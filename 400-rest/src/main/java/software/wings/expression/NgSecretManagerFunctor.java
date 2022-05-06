@@ -14,6 +14,7 @@ import static io.harness.data.structure.UUIDGenerator.generateUuid;
 import static io.harness.exception.WingsException.USER;
 import static io.harness.reflection.ReflectionUtils.getFieldByName;
 import static io.harness.security.SimpleEncryption.CHARSET;
+import static io.harness.security.encryption.EncryptionType.LOCAL;
 
 import static java.lang.String.format;
 
@@ -35,6 +36,7 @@ import io.harness.ng.core.BaseNGAccess;
 import io.harness.secretmanagerclient.services.api.SecretManagerClientService;
 import io.harness.security.SimpleEncryption;
 import io.harness.security.encryption.EncryptedDataDetail;
+import io.harness.security.encryption.EncryptedRecordData;
 import io.harness.security.encryption.EncryptionConfig;
 import io.harness.security.encryption.EncryptionType;
 import io.harness.utils.IdentifierRefHelper;
@@ -47,6 +49,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import javax.cache.Cache;
 import lombok.Builder;
 import lombok.Value;
 
@@ -60,6 +63,7 @@ public class NgSecretManagerFunctor implements ExpressionFunctor, NgSecretManage
   private final String orgId;
   private final String projectId;
   private final SecretManager secretManager;
+  private final Cache<String, EncryptedRecordData> secretsCache;
   private final SecretManagerClientService ngSecretService;
   private SecretManagerMode mode;
 
@@ -124,10 +128,39 @@ public class NgSecretManagerFunctor implements ExpressionFunctor, NgSecretManage
 
     if (isNotEmpty(localEncryptedDetails)) {
       // ToDo Vikas said that we can have decrypt here for now. Later on it will be moved to proper service.
-      decryptLocal(secretVariableDTO, localEncryptedDetails);
-      String value = new String(secretVariableDTO.getSecret().getDecryptedValue());
-      evaluatedSecrets.put(secretIdentifier, value);
-      return returnValue(secretIdentifier, value);
+      boolean canUseCache = false;
+      EncryptedRecordData locallyEncryptedData = null;
+      String secretValue;
+      String dataUuid = null;
+      if (localEncryptedDetails.size() == 1) {
+        dataUuid = localEncryptedDetails.get(0).getEncryptedData().getUuid();
+        locallyEncryptedData = secretsCache.get(dataUuid);
+        canUseCache = true;
+      }
+      if (locallyEncryptedData == null) {
+        decryptLocal(secretVariableDTO, localEncryptedDetails);
+        secretValue = new String(secretVariableDTO.getSecret().getDecryptedValue());
+        if (canUseCache) {
+          final String localEncryptionKey = generateUuid();
+          char[] reEncryptedValue =
+              new SimpleEncryption(localEncryptionKey).encryptChars(secretVariableDTO.getSecret().getDecryptedValue());
+          locallyEncryptedData = EncryptedRecordData.builder()
+                                     .uuid(dataUuid)
+                                     .name(secretVariableDTO.getName())
+                                     .encryptionType(LOCAL)
+                                     .encryptionKey(localEncryptionKey)
+                                     .encryptedValue(reEncryptedValue)
+                                     .base64Encoded(localEncryptedDetails.get(0).getEncryptedData().isBase64Encoded())
+                                     .build();
+          secretsCache.put(dataUuid, locallyEncryptedData);
+        }
+      } else {
+        // Cache hit. Decrypt the value locally with previously saved encryption key.
+        secretValue = new String(new SimpleEncryption(locallyEncryptedData.getEncryptionKey())
+                                     .decryptChars(locallyEncryptedData.getEncryptedValue()));
+      }
+      evaluatedSecrets.put(secretIdentifier, secretValue);
+      return returnValue(secretIdentifier, secretValue);
     }
 
     List<EncryptedDataDetail> nonLocalEncryptedDetails =

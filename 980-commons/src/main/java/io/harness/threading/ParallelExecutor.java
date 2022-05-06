@@ -28,7 +28,7 @@ import lombok.extern.slf4j.Slf4j;
 @Singleton
 public class ParallelExecutor {
   public static <T> List<T> executeParallel(List<Callable<T>> callables) {
-    executeParallel(newCachedThreadPool(), callables);
+    return executeParallel(newCachedThreadPool(), callables);
   }
   public static <T> List<T> executeParallel(ExecutorService executorService, List<Callable<T>> callables) {
     CompletionService<T> completionService = new ExecutorCompletionService<>(executorService);

@@ -895,7 +895,9 @@ public class DelegateTaskServiceClassicImpl implements DelegateTaskServiceClassi
         if (value == null) {
           return null;
         }
-        return managerPreExecutionExpressionEvaluator.substitute(value, new HashMap<>());
+        String val = managerPreExecutionExpressionEvaluator.substitute(value, new HashMap<>());
+        return val;
+
         // TODO: this code is causing the second issue in DEL-1167
         //        if (secretManagerFunctor != null && secretMode == DISALLOW_SECRETS
         //            && secretManagerFunctor.getEvaluatedSecrets().size() > 0) {
