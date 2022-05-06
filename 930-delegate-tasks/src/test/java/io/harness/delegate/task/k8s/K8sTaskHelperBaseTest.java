@@ -56,7 +56,6 @@ import static io.harness.rule.OwnerRule.VAIBHAV_SI;
 import static io.harness.rule.OwnerRule.YOGESH;
 import static io.harness.state.StateConstants.DEFAULT_STEADY_STATE_TIMEOUT;
 
-import static org.mockito.ArgumentMatchers.nullable;
 import static software.wings.beans.LogColor.Yellow;
 import static software.wings.beans.LogHelper.color;
 import static software.wings.beans.LogWeight.Bold;
@@ -68,6 +67,7 @@ import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyLong;
@@ -3222,7 +3222,9 @@ public class K8sTaskHelperBaseTest extends CategoryTest {
     doReturn(KUBERNETES_CONFIG)
         .when(mockK8sYamlToDelegateDTOMapper)
         .createKubernetesConfigFromClusterConfig(any(KubernetesClusterConfigDTO.class));
-    doReturn(ErrorDetail.builder().message(DEFAULT).build()).when(ngErrorHelper).createErrorDetail(nullable(String.class));
+    doReturn(ErrorDetail.builder().message(DEFAULT).build())
+        .when(ngErrorHelper)
+        .createErrorDetail(nullable(String.class));
     doReturn(DEFAULT).when(ngErrorHelper).getErrorSummary(nullable(String.class));
     doAnswer(invocation -> { throw new ApiException(); })
         .when(mockKubernetesContainerService)

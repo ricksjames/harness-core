@@ -390,10 +390,9 @@ public class WinRmSessionTest extends CategoryTest {
     // session cache file should be deleted after session close
     assertThat(sessionCacheFile).doesNotExist();
 
-    //    PowerMockito.verifyStatic(SshHelperUtils.class);
     ArgumentCaptor<Map> captor = ArgumentCaptor.forClass(Map.class);
-    mockStatic.when(
-        () -> SshHelperUtils.generateTGT(anyString(), anyString(), anyString(), eq(logCallback), captor.capture()));
+    mockStatic.verify(
+        () -> SshHelperUtils.generateTGT(anyString(), anyString(), any(), eq(logCallback), captor.capture()));
     Map<String, String> passedEnvVariables = captor.getValue();
     assertThat(passedEnvVariables)
         .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(

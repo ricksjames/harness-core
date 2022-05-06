@@ -610,8 +610,7 @@ public class K8sRollingRollbackBaseHandlerTest extends CategoryTest {
     doReturn(previousSuccessfulRelease).when(releaseHistory).getPreviousRollbackEligibleRelease(anyInt());
     doReturn(true)
         .when(k8sTaskHelperBase)
-        .applyManifests(
-            any(), anyList(), any(K8sDelegateTaskParams.class), any(LogCallback.class), anyBoolean());
+        .applyManifests(any(), anyList(), any(K8sDelegateTaskParams.class), any(LogCallback.class), anyBoolean());
 
     assertThat(k8sRollingRollbackBaseHandler.recreatePrunedResources(
                    rollbackHandlerConfig, 1, resourceIds, logCallback, k8sDelegateTaskParams))

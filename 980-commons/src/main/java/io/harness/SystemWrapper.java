@@ -17,11 +17,11 @@ import io.harness.annotations.dev.OwnedBy;
  */
 @OwnedBy(HarnessTeam.PIPELINE)
 public class SystemWrapper {
-    public static long currentTimeMillis() {
-        return System.currentTimeMillis();
-    }
+  public static long currentTimeMillis() {
+    return System.currentTimeMillis();
+  }
 
-    public static String getenv(String name) {
-        return System.getenv(name);
-    }
+  public static String getenv(String name) {
+    return System.getenv(name);
+  }
 }
