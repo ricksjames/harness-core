@@ -7,7 +7,8 @@
 
 package software.wings.delegatetasks.cv;
 
-import static software.wings.common.VerificationConstants.TOTAL_HITS_PER_MIN_THRESHOLD;
+import static software.wings.delegatetasks.cv.CVConstants.DUMMY_HOST_NAME;
+import static software.wings.delegatetasks.cv.CVConstants.TOTAL_HITS_PER_MIN_THRESHOLD;
 
 import io.harness.annotations.dev.HarnessModule;
 import io.harness.annotations.dev.TargetModule;
@@ -15,7 +16,6 @@ import io.harness.delegate.beans.DelegateTaskPackage;
 import io.harness.delegate.beans.DelegateTaskResponse;
 import io.harness.delegate.beans.logstreaming.ILogStreamingTaskClient;
 
-import software.wings.common.VerificationConstants;
 import software.wings.delegatetasks.LogAnalysisStoreService;
 import software.wings.service.impl.analysis.LogDataCollectionInfoV2;
 import software.wings.service.impl.analysis.LogElement;
@@ -122,7 +122,7 @@ public class LogDataCollectionTask<T extends LogDataCollectionInfoV2> extends Ab
               .clusterLabel(String.valueOf(ClusterLevel.H2.getLevel()))
               .host(host.isPresent()
                       ? host.get()
-                      : VerificationConstants.DUMMY_HOST_NAME) // TODO: we should get rid of this requirement and
+                      : DUMMY_HOST_NAME) // TODO: we should get rid of this requirement and
                                                                // everything should work without setting the host.
               .count(0)
               .logMessage("")
