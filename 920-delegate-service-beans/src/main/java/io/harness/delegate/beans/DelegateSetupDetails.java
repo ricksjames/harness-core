@@ -14,10 +14,12 @@ import io.harness.gitsync.beans.YamlDTO;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.util.Set;
+import java.util.stream.Collectors;
 import javax.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import org.apache.commons.lang3.StringUtils;
 
 @Data
 @Builder
@@ -42,4 +44,8 @@ public class DelegateSetupDetails implements YamlDTO {
 
   @NotNull private String delegateType;
   private String tokenName;
+
+  public Set<String> getTags() {
+    return tags.stream().filter(StringUtils::isNotBlank).map(String::trim).collect(Collectors.toSet());
+  }
 }
