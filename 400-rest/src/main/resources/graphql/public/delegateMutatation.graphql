@@ -9,8 +9,10 @@ extend type Mutation {
     @dataFetcher(name: delegateApproval)
   # Deletes delegate.
   deleteDelegate(input: DeleteDelegateInput!): DeleteDelegatePayload @dataFetcher(name: deleteDelegate)
-  # Add delegate scope
-  addDelegegateScope(input: AddDelegateScopeInput!): AddDelegateScopePayload @dataFetcher(name: addDelegateScope)
+  # Add delegate scope - DEPRECATED
+  addDelegegateScope(input: AddDelegateScopeInput!): AddDelegateScopePayload @dataFetcher(name: addDelegateScope) @deprecated(reason: "Use addDelegateScope.")
+   # Add delegate scope
+  addDelegateScope(input: AddDelegateScopeInput!): AddDelegateScopePayload @dataFetcher(name: addDelegateScope)
   # attach scope to delegate
   attachScopeToDelegate(input: AttachScopeToDelegateInput!): AttachScopeToDelegatePayload
     @dataFetcher(name: attachScopeToDelegate)
