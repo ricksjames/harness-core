@@ -42,8 +42,9 @@ public class InstrumentationHelperTest {
   @Owner(developers = TEJAS)
   @Category(UnitTests.class)
   public void testGetUserIdUserPrincipal() {
-    try(MockedStatic<SecurityContextBuilder> mocked = mockStatic(SecurityContextBuilder.class)) {
-      mocked.when(SecurityContextBuilder::getPrincipal).thenReturn(new UserPrincipal("dummy", EMAIL, "dummy", ACCOUNT_ID));
+    try (MockedStatic<SecurityContextBuilder> mocked = mockStatic(SecurityContextBuilder.class)) {
+      mocked.when(SecurityContextBuilder::getPrincipal)
+          .thenReturn(new UserPrincipal("dummy", EMAIL, "dummy", ACCOUNT_ID));
       assertEquals(instrumentationHelper.getUserId(), EMAIL);
     }
   }
@@ -52,10 +53,11 @@ public class InstrumentationHelperTest {
   @Owner(developers = TEJAS)
   @Category(UnitTests.class)
   public void testGetUserIdServiceAccountPrincipal() {
-    try(MockedStatic mocked = mockStatic(SecurityContextBuilder.class)) {
-      mocked.when(SecurityContextBuilder::getPrincipal).thenReturn(new UserPrincipal("dummy", EMAIL, "dummy", ACCOUNT_ID));
+    try (MockedStatic mocked = mockStatic(SecurityContextBuilder.class)) {
+      mocked.when(SecurityContextBuilder::getPrincipal)
+          .thenReturn(new UserPrincipal("dummy", EMAIL, "dummy", ACCOUNT_ID));
       Mockito.when(SecurityContextBuilder.getPrincipal())
-              .thenReturn(new ServiceAccountPrincipal("dummy", EMAIL, "dummy"));
+          .thenReturn(new ServiceAccountPrincipal("dummy", EMAIL, "dummy"));
       assertEquals(instrumentationHelper.getUserId(), EMAIL);
     }
   }
@@ -64,8 +66,9 @@ public class InstrumentationHelperTest {
   @Owner(developers = TEJAS)
   @Category(UnitTests.class)
   public void testGetUserIdServicePrincipal() {
-    try(MockedStatic mocked = mockStatic(SecurityContextBuilder.class)) {
-      mocked.when(SecurityContextBuilder::getPrincipal).thenReturn(new UserPrincipal("dummy", EMAIL, "dummy", ACCOUNT_ID));
+    try (MockedStatic mocked = mockStatic(SecurityContextBuilder.class)) {
+      mocked.when(SecurityContextBuilder::getPrincipal)
+          .thenReturn(new UserPrincipal("dummy", EMAIL, "dummy", ACCOUNT_ID));
       Mockito.when(SecurityContextBuilder.getPrincipal()).thenReturn(new ServicePrincipal(NAME));
       assertEquals(instrumentationHelper.getUserId(), NAME);
     }
@@ -75,8 +78,9 @@ public class InstrumentationHelperTest {
   @Owner(developers = TEJAS)
   @Category(UnitTests.class)
   public void testGetUserIdApiKeyPrincipal() {
-    try(MockedStatic mocked = mockStatic(SecurityContextBuilder.class)) {
-      mocked.when(SecurityContextBuilder::getPrincipal).thenReturn(new UserPrincipal("dummy", EMAIL, "dummy", ACCOUNT_ID));
+    try (MockedStatic mocked = mockStatic(SecurityContextBuilder.class)) {
+      mocked.when(SecurityContextBuilder::getPrincipal)
+          .thenReturn(new UserPrincipal("dummy", EMAIL, "dummy", ACCOUNT_ID));
       Mockito.when(SecurityContextBuilder.getPrincipal()).thenReturn(new ApiKeyPrincipal(NAME));
       assertEquals(instrumentationHelper.getUserId(), NAME);
     }

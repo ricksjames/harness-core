@@ -69,13 +69,10 @@ public class NGSecretResourceV2Test extends CategoryTest {
     List<Object> mockResponse = Collections.singletonList(getMockResponse());
     PageResponse<Object> pageResponse = PageResponse.builder().content(mockResponse).build();
 
-    doNothing()
-        .when(secretPermissionValidator)
-        .checkForAccessOrThrow(any(), any(), any(), any());
+    doNothing().when(secretPermissionValidator).checkForAccessOrThrow(any(), any(), any(), any());
     doReturn(pageResponse)
         .when(ngSecretService)
-        .list(any(), any(), any(), any(), any(), anyBoolean(),
-            any(), anyInt(), anyInt(), any());
+        .list(any(), any(), any(), any(), any(), anyBoolean(), any(), anyInt(), anyInt(), any());
     ResponseDTO<PageResponse<SecretResponseWrapper>> list = ngSecretResourceV2.listSecrets(
         "Test", "TestOrg", "TestProj", SecretResourceFilterDTO.builder().identifiers(null).build(), 1, 10);
     assertThat(list.getData().getContent().size()).isEqualTo(1);
