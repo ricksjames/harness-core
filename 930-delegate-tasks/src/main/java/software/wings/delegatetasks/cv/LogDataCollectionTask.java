@@ -120,10 +120,8 @@ public class LogDataCollectionTask<T extends LogDataCollectionInfoV2> extends Ab
           LogElement.builder()
               .query(logDataCollectionInfo.getQuery())
               .clusterLabel(String.valueOf(ClusterLevel.H2.getLevel()))
-              .host(host.isPresent()
-                      ? host.get()
-                      : DUMMY_HOST_NAME) // TODO: we should get rid of this requirement and
-                                                               // everything should work without setting the host.
+              .host(host.isPresent() ? host.get() : DUMMY_HOST_NAME) // TODO: we should get rid of this requirement and
+                                                                     // everything should work without setting the host.
               .count(0)
               .logMessage("")
               .timeStamp(TimeUnit.MINUTES.toMillis(heartbeatMin))

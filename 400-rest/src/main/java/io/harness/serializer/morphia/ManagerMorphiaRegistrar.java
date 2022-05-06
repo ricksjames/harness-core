@@ -493,7 +493,6 @@ import software.wings.service.impl.aws.model.AwsAmiServiceSetupResponse;
 import software.wings.service.impl.aws.model.AwsAmiSwitchRoutesResponse;
 import software.wings.service.impl.aws.model.AwsLambdaExecuteFunctionResponse;
 import software.wings.service.impl.aws.model.AwsLambdaExecuteWfResponse;
-import software.wings.service.impl.cloudwatch.CloudWatchMetric;
 import software.wings.service.impl.email.EmailNotificationCallBack;
 import software.wings.service.impl.event.AccountEntityEvent;
 import software.wings.service.impl.event.AlertEvent;
@@ -1258,7 +1257,6 @@ public class ManagerMorphiaRegistrar implements MorphiaRegistrar {
     w.put("service.impl.aws.model.AwsAmiSwitchRoutesResponse", AwsAmiSwitchRoutesResponse.class);
     w.put("service.impl.aws.model.AwsLambdaExecuteFunctionResponse", AwsLambdaExecuteFunctionResponse.class);
     w.put("service.impl.aws.model.AwsLambdaExecuteWfResponse", AwsLambdaExecuteWfResponse.class);
-    w.put("service.impl.cloudwatch.CloudWatchMetric", CloudWatchMetric.class);
     w.put("service.impl.email.EmailNotificationCallBack", EmailNotificationCallBack.class);
     w.put("service.impl.event.AccountEntityEvent", AccountEntityEvent.class);
     w.put("service.impl.event.AlertEvent", AlertEvent.class);

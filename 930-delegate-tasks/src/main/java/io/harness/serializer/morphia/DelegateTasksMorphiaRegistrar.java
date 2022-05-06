@@ -65,6 +65,7 @@ import software.wings.helpers.ext.mail.EmailData;
 import software.wings.helpers.ext.mail.SmtpConfig;
 import software.wings.service.impl.analysis.CustomLogDataCollectionInfo;
 import software.wings.service.impl.analysis.DataCollectionTaskResult;
+import software.wings.service.impl.cloudwatch.CloudWatchMetric;
 import software.wings.service.impl.elk.ElkDataCollectionInfo;
 import software.wings.service.impl.elk.ElkDataCollectionInfoV2;
 import software.wings.service.impl.instana.InstanaDataCollectionInfo;
@@ -162,5 +163,6 @@ public class DelegateTasksMorphiaRegistrar implements MorphiaRegistrar {
     w.put("service.impl.newrelic.NewRelicDataCollectionInfoV2", NewRelicDataCollectionInfoV2.class);
     w.put("service.impl.instana.InstanaDataCollectionInfo", InstanaDataCollectionInfo.class);
     w.put("service.impl.elk.ElkDataCollectionInfoV2", ElkDataCollectionInfoV2.class);
+    w.put("service.impl.cloudwatch.CloudWatchMetric", CloudWatchMetric.class);
   }
 }

@@ -40,4 +40,8 @@ public class CVConstants {
   public static final String DEFAULT_GROUP_NAME = "default";
   public static final String INSTANA_DOCKER_PLUGIN = "docker";
   public static final String INSTANA_GROUPBY_TAG_TRACE_NAME = "trace.name";
+  public static final long KB = 1024;
+  public static final long MB = KB * KB;
+  public static final long GB = MB * MB;
+  public static final String LAMBDA_HOST_NAME = "LAMBDA_HOST";
 }

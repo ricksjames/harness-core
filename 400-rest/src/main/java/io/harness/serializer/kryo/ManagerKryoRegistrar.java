@@ -501,10 +501,6 @@ import software.wings.service.impl.aws.model.response.AwsLambdaDetailsResponse;
 import software.wings.service.impl.azure.manager.AzureVMSSAllPhaseRollbackData;
 import software.wings.service.impl.bugsnag.BugsnagApplication;
 import software.wings.service.impl.bugsnag.BugsnagSetupTestData;
-import software.wings.service.impl.cloudwatch.AwsNameSpace;
-import software.wings.service.impl.cloudwatch.CloudWatchDataCollectionInfo;
-import software.wings.service.impl.cloudwatch.CloudWatchMetric;
-import software.wings.service.impl.cloudwatch.CloudWatchSetupTestNodeData;
 import software.wings.service.impl.email.EmailNotificationCallBack;
 import software.wings.service.impl.instance.sync.response.ContainerSyncResponse;
 import software.wings.service.impl.newrelic.NewRelicMarkerExecutionData;
@@ -847,11 +843,6 @@ public class ManagerKryoRegistrar implements KryoRegistrar {
     kryo.register(AwsLambdaRequestType.class, 5447);
     kryo.register(AwsLambdaRequest.class, 5446);
     kryo.register(BugsnagApplication.class, 5491);
-    kryo.register(AwsNameSpace.class, 5319);
-    kryo.register(CloudWatchDataCollectionInfo.class, 5317);
-    kryo.register(CloudWatchMetric.class, 5318);
-    kryo.register(CloudWatchSetupTestNodeData.class, 5494);
-
     kryo.register(NewRelicMarkerExecutionData.class, 5243);
     kryo.register(PrometheusDataCollectionInfo.class, 5311);
     kryo.register(PrometheusMetricDataResponse.PrometheusMetric.class, 5489);

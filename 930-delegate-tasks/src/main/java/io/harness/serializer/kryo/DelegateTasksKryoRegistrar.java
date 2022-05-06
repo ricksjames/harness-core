@@ -181,6 +181,10 @@ import software.wings.service.impl.aws.model.AwsS3Request.AwsS3RequestType;
 import software.wings.service.impl.aws.model.response.HostReachabilityResponse;
 import software.wings.service.impl.azure.manager.AzureTaskExecutionRequest;
 import software.wings.service.impl.azure.manager.AzureVMSSCommandRequest;
+import software.wings.service.impl.cloudwatch.AwsNameSpace;
+import software.wings.service.impl.cloudwatch.CloudWatchDataCollectionInfo;
+import software.wings.service.impl.cloudwatch.CloudWatchMetric;
+import software.wings.service.impl.cloudwatch.CloudWatchSetupTestNodeData;
 import software.wings.service.impl.dynatrace.DynaTraceApplication;
 import software.wings.service.impl.dynatrace.DynaTraceDataCollectionInfo;
 import software.wings.service.impl.dynatrace.DynaTraceMetricDataResponse;
@@ -263,6 +267,9 @@ public class DelegateTasksKryoRegistrar implements KryoRegistrar {
     kryo.register(ElkQueryType.class, 5275);
     kryo.register(PcfConfig.class, 5296);
     kryo.register(SmtpConfig.class, 5304);
+    kryo.register(CloudWatchDataCollectionInfo.class, 5317);
+    kryo.register(CloudWatchMetric.class, 5318);
+    kryo.register(AwsNameSpace.class, 5319);
     kryo.register(APMMetricInfo.class, 5321);
     kryo.register(APMMetricInfo.ResponseMapper.class, 5322);
     kryo.register(APMValidateCollectorConfig.class, 5323);
@@ -323,6 +330,7 @@ public class DelegateTasksKryoRegistrar implements KryoRegistrar {
     kryo.register(LogElement.class, 5486);
     kryo.register(CustomLogDataCollectionInfo.class, 5492);
     kryo.register(CustomLogResponseMapper.class, 5493);
+    kryo.register(CloudWatchSetupTestNodeData.class, 5494);
     kryo.register(DynaTraceSetupTestNodeData.class, 5512);
     kryo.register(DynaTraceMetricDataResponse.class, 5513);
     kryo.register(DynaTraceMetricDataResponse.DynaTraceMetricDataResult.class, 5514);
