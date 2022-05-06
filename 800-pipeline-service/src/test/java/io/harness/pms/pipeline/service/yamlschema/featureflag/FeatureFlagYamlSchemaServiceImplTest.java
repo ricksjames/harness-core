@@ -74,15 +74,15 @@ public class FeatureFlagYamlSchemaServiceImplTest {
       JsonNode ffSchema = objectMapper.readTree(getResource());
       doReturn(ffSchema).when(yamlSchemaProvider).getYamlSchema(EntityType.FEATURE_FLAG_STAGE, orgId, projectId, null);
       when(YamlSchemaUtils.getNodeEntityTypesByYamlGroup(any(), any()))
-              .thenReturn(Collections.singletonList(EntityType.HTTP_STEP));
+          .thenReturn(Collections.singletonList(EntityType.HTTP_STEP));
 
       ArgumentCaptor<List> entityTypesArgumentCaptor = ArgumentCaptor.forClass(List.class);
       ArgumentCaptor<JsonNode> schemaArgumentCaptor = ArgumentCaptor.forClass(JsonNode.class);
 
       PartialSchemaDTO response =
-              featureFlagYamlService.getFeatureFlagYamlSchema(accountId, projectId, orgId, null, null);
+          featureFlagYamlService.getFeatureFlagYamlSchema(accountId, projectId, orgId, null, null);
       verify(yamlSchemaProvider, times(1))
-              .mergeAllV2StepsDefinitions(any(), any(), any(), any(), entityTypesArgumentCaptor.capture());
+          .mergeAllV2StepsDefinitions(any(), any(), any(), any(), entityTypesArgumentCaptor.capture());
       verify(yamlSchemaGenerator, times(1)).modifyRefsNamespace(schemaArgumentCaptor.capture(), any());
 
       List<EntityType> v2EntityTypes = entityTypesArgumentCaptor.getValue();

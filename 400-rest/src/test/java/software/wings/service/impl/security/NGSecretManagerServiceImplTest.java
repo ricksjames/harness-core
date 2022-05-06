@@ -47,9 +47,6 @@ import io.harness.secretmanagers.SecretManagerConfigService;
 import io.harness.security.encryption.AccessType;
 import io.harness.security.encryption.EncryptionType;
 
-import org.junit.runner.RunWith;
-import org.mockito.MockitoAnnotations;
-import org.mockito.junit.MockitoJUnitRunner;
 import software.wings.beans.AwsSecretsManagerConfig;
 import software.wings.beans.GcpKmsConfig;
 import software.wings.beans.LocalEncryptionConfig;
@@ -67,7 +64,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.mockito.junit.MockitoJUnitRunner;
 
 @OwnedBy(PL)
 @TargetModule(_890_SM_CORE)
@@ -179,9 +179,7 @@ public class NGSecretManagerServiceImplTest extends CategoryTest {
   @Owner(developers = PHOENIKX)
   @Category(UnitTests.class)
   public void testTestConnection_shouldFailDueToSecretManagerNotPresent() {
-    doReturn(Optional.empty())
-        .when(ngSecretManagerService)
-        .get(any(), any(), any(), any(), eq(true));
+    doReturn(Optional.empty()).when(ngSecretManagerService).get(any(), any(), any(), any(), eq(true));
     ConnectorValidationResult connectorValidationResult =
         ngSecretManagerService.testConnection("account", null, null, "identifier");
     assertThat(connectorValidationResult.getStatus()).isEqualTo(ConnectivityStatus.FAILURE);
