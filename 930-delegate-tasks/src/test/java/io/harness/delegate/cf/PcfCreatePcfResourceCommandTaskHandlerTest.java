@@ -93,7 +93,7 @@ public class PcfCreatePcfResourceCommandTaskHandlerTest extends CategoryTest {
     doAnswer(invocation -> { throw new Exception(); })
         .when(pcfDeploymentManager)
         .createRouteMap(
-            any(CfRequestConfig.class), anyString(), anyString(), anyString(), anyBoolean(), anyBoolean(), anyInt());
+            any(CfRequestConfig.class), any(), any(), any(), anyBoolean(), anyBoolean(), any());
     CfCommandExecutionResponse response = pcfSetupCommandTaskHandler.executeTaskInternal(
         mappingDataRequest, encryptedDataDetails, logStreamingTaskClient, false);
     assertThat(response).isNotNull();
