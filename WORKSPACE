@@ -12,7 +12,7 @@ http_archive(
     strip_prefix = "buildtools-4.0.1",
     url = "http://jfrogdev.dev.harness.io:80/artifactory/bazel-buildtools-github/archive/refs/tags/4.0.1.zip",
 )
-
+ 
 http_archive(
     name = "com_google_protobuf",
     sha256 = "d0f5f605d0d656007ce6c8b5a82df3037e1d8fe8b121ed42e536f569dec16113",
