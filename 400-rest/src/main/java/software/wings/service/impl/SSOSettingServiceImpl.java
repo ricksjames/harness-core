@@ -295,6 +295,8 @@ public class SSOSettingServiceImpl implements SSOSettingService {
     settings.getConnectionSettings().setEncryptedBindPassword(
         oldSettings.getConnectionSettings().getEncryptedBindPassword());
     settings.getConnectionSettings().setPasswordType(oldSettings.getConnectionSettings().getPasswordType());
+    settings.getConnectionSettings().setEncryptedBindSecret(
+        oldSettings.getConnectionSettings().getEncryptedBindSecret());
     oldSettings.getConnectionSettings().setAccountId(settings.getAccountId());
     oldSettings.setUrl(settings.getUrl());
     oldSettings.setDisplayName(settings.getDisplayName());
@@ -348,22 +350,33 @@ public class SSOSettingServiceImpl implements SSOSettingService {
     if (isEmpty(accountId)) {
       return null;
     }
-    return wingsPersistence.createQuery(LdapSettings.class)
-        .field(SSOSettingsKeys.accountId)
-        .equal(accountId)
-        .field(SSOSettingsKeys.type)
-        .equal(SSOType.LDAP)
-        .get();
+    LdapSettings ldapSettings = wingsPersistence.createQuery(LdapSettings.class)
+                                    .field(SSOSettingsKeys.accountId)
+                                    .equal(accountId)
+                                    .field(SSOSettingsKeys.type)
+                                    .equal(SSOType.LDAP)
+                                    .get();
+    sanitizeLdapSetting(ldapSettings);
+    return ldapSettings;
   }
 
   @Override
   public LdapSettings getLdapSettingsByUuid(@NotBlank String uuid) {
-    return wingsPersistence.createQuery(LdapSettings.class)
-        .field("uuid")
-        .equal(uuid)
-        .field("type")
-        .equal(SSOType.LDAP)
-        .get();
+    LdapSettings ldapSettings = wingsPersistence.createQuery(LdapSettings.class)
+                                    .field("uuid")
+                                    .equal(uuid)
+                                    .field("type")
+                                    .equal(SSOType.LDAP)
+                                    .get();
+    sanitizeLdapSetting(ldapSettings);
+    return ldapSettings;
+  }
+
+  private void sanitizeLdapSetting(LdapSettings ldapSettings) {
+    if (ldapSettings != null && isNotEmpty(ldapSettings.getConnectionSettings().getEncryptedBindSecret())) {
+      ldapSettings.getConnectionSettings().setBindSecret(
+          ldapSettings.getConnectionSettings().getEncryptedBindSecret().toCharArray());
+    }
   }
 
   @Override

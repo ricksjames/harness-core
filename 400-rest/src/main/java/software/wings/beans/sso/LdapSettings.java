@@ -130,6 +130,7 @@ public class LdapSettings extends SSOSettings implements ExecutionCapabilityDema
       String encryptedBindPassword = secretManager.saveSecretText(accountId, secretText, false);
       connectionSettings.setEncryptedBindPassword(encryptedBindPassword);
       connectionSettings.setBindPassword(LdapConstants.MASKED_STRING);
+      connectionSettings.setEncryptedBindSecret(null);
     } else {
       connectionSettings.setBindPassword(LdapConstants.MASKED_STRING);
     }
@@ -137,9 +138,12 @@ public class LdapSettings extends SSOSettings implements ExecutionCapabilityDema
 
   public void decryptFields(
       @NotNull EncryptedDataDetail encryptedDataDetail, @NotNull EncryptionService encryptionService) {
-    if (connectionSettings.getBindPassword().equals(LdapConstants.MASKED_STRING)) {
+    if (connectionSettings.getPasswordType().equals(LdapConnectionSettings.INLINE_SECRET)) {
       String bindPassword = new String(encryptionService.getDecryptedValue(encryptedDataDetail, false));
       connectionSettings.setBindPassword(bindPassword);
+    } else {
+      String bindSecret = new String(encryptionService.getDecryptedValue(encryptedDataDetail, false));
+      connectionSettings.setBindSecret(bindSecret.toCharArray());
     }
   }
 
