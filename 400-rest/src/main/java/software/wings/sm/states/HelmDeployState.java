@@ -122,6 +122,7 @@ import software.wings.beans.artifact.Artifact;
 import software.wings.beans.command.CommandUnit;
 import software.wings.beans.command.CommandUnitDetails.CommandUnitType;
 import software.wings.beans.command.HelmDummyCommandUnit;
+import software.wings.beans.command.HelmDummyCommandUnitConstants;
 import software.wings.beans.container.ContainerTask;
 import software.wings.beans.container.HelmChartSpecification;
 import software.wings.beans.yaml.GitCommandExecutionResponse;
@@ -420,14 +421,14 @@ public class HelmDeployState extends State {
     List<CommandUnit> commandUnits = new ArrayList<>();
 
     if (valuesInGit || valuesInHelmChartRepo || isCustomManifestSource) {
-      commandUnits.add(new HelmDummyCommandUnit(HelmDummyCommandUnit.FetchFiles));
+      commandUnits.add(new HelmDummyCommandUnit(HelmDummyCommandUnitConstants.FetchFiles));
     }
 
-    commandUnits.add(new HelmDummyCommandUnit(HelmDummyCommandUnit.Init));
-    commandUnits.add(new HelmDummyCommandUnit(HelmDummyCommandUnit.Prepare));
-    commandUnits.add(new HelmDummyCommandUnit(HelmDummyCommandUnit.InstallUpgrade));
-    commandUnits.add(new HelmDummyCommandUnit(HelmDummyCommandUnit.WaitForSteadyState));
-    commandUnits.add(new HelmDummyCommandUnit(HelmDummyCommandUnit.WrapUp));
+    commandUnits.add(new HelmDummyCommandUnit(HelmDummyCommandUnitConstants.Init));
+    commandUnits.add(new HelmDummyCommandUnit(HelmDummyCommandUnitConstants.Prepare));
+    commandUnits.add(new HelmDummyCommandUnit(HelmDummyCommandUnitConstants.InstallUpgrade));
+    commandUnits.add(new HelmDummyCommandUnit(HelmDummyCommandUnitConstants.WaitForSteadyState));
+    commandUnits.add(new HelmDummyCommandUnit(HelmDummyCommandUnitConstants.WrapUp));
 
     return commandUnits;
   }
@@ -458,11 +459,11 @@ public class HelmDeployState extends State {
   }
 
   protected HelmCommandRequest getHelmCommandRequest(ExecutionContext context,
-                                                     HelmChartSpecification helmChartSpecification, ContainerServiceParams containerServiceParams, String releaseName,
-                                                     String accountId, String appId, String activityId, ImageDetails imageDetails, String repoName,
-                                                     GitConfig gitConfig, List<EncryptedDataDetail> encryptedDataDetails, String commandFlags,
-                                                     K8sManifestConfig manifestConfig, Map<K8sValuesLocation, ApplicationManifest> appManifestMap,
-                                                     HelmVersion helmVersion, HelmCommandFlag helmCommandFlag) {
+      HelmChartSpecification helmChartSpecification, ContainerServiceParams containerServiceParams, String releaseName,
+      String accountId, String appId, String activityId, ImageDetails imageDetails, String repoName,
+      GitConfig gitConfig, List<EncryptedDataDetail> encryptedDataDetails, String commandFlags,
+      K8sManifestConfig manifestConfig, Map<K8sValuesLocation, ApplicationManifest> appManifestMap,
+      HelmVersion helmVersion, HelmCommandFlag helmCommandFlag) {
     List<String> helmValueOverridesYamlFilesEvaluated =
         getValuesYamlOverrides(context, containerServiceParams, imageDetails, appManifestMap);
 
@@ -1228,7 +1229,7 @@ public class HelmDeployState extends State {
     Log.Builder logBuilder = aLog()
                                  .appId(context.getAppId())
                                  .activityId(activityId)
-                                 .commandUnitName(HelmDummyCommandUnit.Rollback)
+                                 .commandUnitName(HelmDummyCommandUnitConstants.Rollback)
                                  .logLevel(LogLevel.INFO)
                                  .executionResult(CommandExecutionStatus.SUCCESS);
     ManagerExecutionLogCallback executionLogCallback =

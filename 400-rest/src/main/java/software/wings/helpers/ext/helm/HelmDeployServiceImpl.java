@@ -67,6 +67,7 @@ import software.wings.beans.appmanifest.ManifestFile;
 import software.wings.beans.appmanifest.StoreType;
 import software.wings.beans.command.ExecutionLogCallback;
 import software.wings.beans.command.HelmDummyCommandUnit;
+import software.wings.beans.command.HelmDummyCommandUnitConstants;
 import software.wings.beans.container.HelmChartSpecification;
 import software.wings.beans.yaml.GitFetchFilesResult;
 import software.wings.delegatetasks.DelegateLogService;
@@ -176,7 +177,7 @@ public class HelmDeployServiceImpl implements HelmDeployService {
       printHelmChartKubernetesResources(commandRequest);
 
       executionLogCallback =
-          markDoneAndStartNew(commandRequest, executionLogCallback, HelmDummyCommandUnit.InstallUpgrade);
+          markDoneAndStartNew(commandRequest, executionLogCallback, HelmDummyCommandUnitConstants.InstallUpgrade);
       helmChartInfo = getHelmChartDetails(commandRequest);
 
       if (checkNewHelmInstall(commandRequest)) {
@@ -208,13 +209,13 @@ public class HelmDeployServiceImpl implements HelmDeployService {
       }
 
       executionLogCallback =
-          markDoneAndStartNew(commandRequest, executionLogCallback, HelmDummyCommandUnit.WaitForSteadyState);
+          markDoneAndStartNew(commandRequest, executionLogCallback, HelmDummyCommandUnitConstants.WaitForSteadyState);
 
       List<ContainerInfo> containerInfos = getContainerInfos(commandRequest, k8sWorkloads, useK8sSteadyStateCheck,
           executionLogCallback, commandRequest.getTimeoutInMillis());
       commandResponse.setContainerInfoList(containerInfos);
 
-      executionLogCallback = markDoneAndStartNew(commandRequest, executionLogCallback, HelmDummyCommandUnit.WrapUp);
+      executionLogCallback = markDoneAndStartNew(commandRequest, executionLogCallback, HelmDummyCommandUnitConstants.WrapUp);
       return commandResponse;
     } catch (UncheckedTimeoutException e) {
       String msg = TIMED_OUT_IN_STEADY_STATE;
@@ -557,7 +558,7 @@ public class HelmDeployServiceImpl implements HelmDeployService {
 
   @Override
   public HelmCommandResponse rollback(HelmRollbackCommandRequest commandRequest) {
-    LogCallback executionLogCallback = getExecutionLogCallback(commandRequest, HelmDummyCommandUnit.Rollback);
+    LogCallback executionLogCallback = getExecutionLogCallback(commandRequest, HelmDummyCommandUnitConstants.Rollback);
     commandRequest.setExecutionLogCallback(executionLogCallback);
 
     try {
@@ -581,7 +582,7 @@ public class HelmDeployServiceImpl implements HelmDeployService {
       }
 
       executionLogCallback =
-          markDoneAndStartNew(commandRequest, executionLogCallback, HelmDummyCommandUnit.WaitForSteadyState);
+          markDoneAndStartNew(commandRequest, executionLogCallback, HelmDummyCommandUnitConstants.WaitForSteadyState);
 
       List<ContainerInfo> containerInfos = getContainerInfos(commandRequest, k8sRollbackWorkloads,
           useK8sSteadyStateCheck, executionLogCallback, commandRequest.getTimeoutInMillis());

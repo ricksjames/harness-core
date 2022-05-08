@@ -30,6 +30,7 @@ import software.wings.beans.appmanifest.ApplicationManifest;
 import software.wings.beans.artifact.Artifact;
 import software.wings.beans.command.CommandUnit;
 import software.wings.beans.command.HelmDummyCommandUnit;
+import software.wings.beans.command.HelmDummyCommandUnitConstants;
 import software.wings.beans.container.HelmChartSpecification;
 import software.wings.helpers.ext.helm.request.HelmCommandRequest;
 import software.wings.helpers.ext.helm.request.HelmRollbackCommandRequest;
@@ -167,9 +168,9 @@ public class HelmRollbackState extends HelmDeployState {
       boolean valuesInGit, boolean valuesInHelmChartRepo, boolean isCustomManifest) {
     List<CommandUnit> commandUnits = new ArrayList<>();
 
-    commandUnits.add(new HelmDummyCommandUnit(HelmDummyCommandUnit.Init));
-    commandUnits.add(new HelmDummyCommandUnit(HelmDummyCommandUnit.Rollback));
-    commandUnits.add(new HelmDummyCommandUnit(HelmDummyCommandUnit.WaitForSteadyState));
+    commandUnits.add(new HelmDummyCommandUnit(HelmDummyCommandUnitConstants.Init));
+    commandUnits.add(new HelmDummyCommandUnit(HelmDummyCommandUnitConstants.Rollback));
+    commandUnits.add(new HelmDummyCommandUnit(HelmDummyCommandUnitConstants.WaitForSteadyState));
 
     return commandUnits;
   }
