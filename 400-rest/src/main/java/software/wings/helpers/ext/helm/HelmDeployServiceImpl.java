@@ -90,7 +90,7 @@ import software.wings.helpers.ext.helm.response.HelmReleaseHistoryCommandRespons
 import software.wings.helpers.ext.helm.response.ReleaseInfo;
 import software.wings.helpers.ext.helm.response.RepoListInfo;
 import software.wings.helpers.ext.helm.response.SearchInfo;
-import software.wings.helpers.ext.k8s.request.K8sDelegateManifestConfig;
+import software.wings.helpers.ext.k8s.request.K8sManifestConfig;
 import software.wings.service.impl.ContainerServiceParams;
 import software.wings.service.impl.yaml.GitClientHelper;
 import software.wings.service.intfc.GitService;
@@ -321,7 +321,7 @@ public class HelmDeployServiceImpl implements HelmDeployService {
   }
 
   private void prepareRepoAndCharts(HelmCommandRequest commandRequest, long timeoutInMillis) throws Exception {
-    K8sDelegateManifestConfig repoConfig = commandRequest.getRepoConfig();
+    K8sManifestConfig repoConfig = commandRequest.getRepoConfig();
     if (repoConfig == null) {
       addRepoForCommand(commandRequest);
       repoUpdate(commandRequest);
@@ -346,7 +346,7 @@ public class HelmDeployServiceImpl implements HelmDeployService {
   }
 
   void fetchRepo(HelmCommandRequest commandRequest, long timeoutInMillis) throws Exception {
-    K8sDelegateManifestConfig repoConfig = commandRequest.getRepoConfig();
+    K8sManifestConfig repoConfig = commandRequest.getRepoConfig();
     switch (repoConfig.getManifestStoreTypes()) {
       case HelmSourceRepo:
         fetchSourceRepo(commandRequest);
@@ -364,7 +364,7 @@ public class HelmDeployServiceImpl implements HelmDeployService {
 
   @VisibleForTesting
   void fetchCustomSourceManifest(HelmCommandRequest commandRequest) throws IOException {
-    K8sDelegateManifestConfig sourceRepoConfig = commandRequest.getRepoConfig();
+    K8sManifestConfig sourceRepoConfig = commandRequest.getRepoConfig();
 
     handleIncorrectConfiguration(sourceRepoConfig);
     String workingDirectory = Paths.get(getWorkingDirectory(commandRequest)).toString();
@@ -421,7 +421,7 @@ public class HelmDeployServiceImpl implements HelmDeployService {
 
   @VisibleForTesting
   void fetchSourceRepo(HelmCommandRequest commandRequest) {
-    K8sDelegateManifestConfig sourceRepoConfig = commandRequest.getRepoConfig();
+    K8sManifestConfig sourceRepoConfig = commandRequest.getRepoConfig();
     if (sourceRepoConfig == null) {
       return;
     }
@@ -452,10 +452,10 @@ public class HelmDeployServiceImpl implements HelmDeployService {
   }
 
   private void printHelmChartKubernetesResources(HelmInstallCommandRequest commandRequest) {
-    K8sDelegateManifestConfig repoConfig = commandRequest.getRepoConfig();
+    K8sManifestConfig repoConfig = commandRequest.getRepoConfig();
     Optional<StoreType> storeTypeOpt =
         Optional.ofNullable(repoConfig)
-            .map(K8sDelegateManifestConfig::getManifestStoreTypes)
+            .map(K8sManifestConfig::getManifestStoreTypes)
             .filter(Objects::nonNull)
             .filter(storeType
                 -> storeType == StoreType.HelmSourceRepo || storeType == StoreType.HelmChartRepo
@@ -1045,7 +1045,7 @@ public class HelmDeployServiceImpl implements HelmDeployService {
   }
 
   private HelmChartInfo getHelmChartDetails(HelmInstallCommandRequest request) {
-    K8sDelegateManifestConfig repoConfig = request.getRepoConfig();
+    K8sManifestConfig repoConfig = request.getRepoConfig();
     HelmChartInfo helmChartInfo = null;
 
     try {

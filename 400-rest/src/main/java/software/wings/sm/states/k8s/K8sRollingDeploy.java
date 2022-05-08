@@ -40,7 +40,7 @@ import software.wings.beans.Application;
 import software.wings.beans.ContainerInfrastructureMapping;
 import software.wings.beans.appmanifest.ApplicationManifest;
 import software.wings.beans.command.CommandUnit;
-import software.wings.helpers.ext.k8s.request.K8sDelegateManifestConfig;
+import software.wings.helpers.ext.k8s.request.K8sManifestConfig;
 import software.wings.helpers.ext.k8s.request.K8sRollingDeployTaskParameters;
 import software.wings.helpers.ext.k8s.request.K8sRollingDeployTaskParameters.K8sRollingDeployTaskParametersBuilder;
 import software.wings.helpers.ext.k8s.request.K8sTaskParameters;
@@ -144,15 +144,15 @@ public class K8sRollingDeploy extends AbstractK8sState {
       inCanaryFlow = k8sElement.isCanary();
     }
 
-    K8sDelegateManifestConfig k8sDelegateManifestConfig =
+    K8sManifestConfig k8SManifestConfig =
         createDelegateManifestConfig(context, appManifestMap.get(K8sValuesLocation.Service));
-    k8sDelegateManifestConfig.setShouldSaveManifest(shouldSaveManifest(context));
+    k8SManifestConfig.setShouldSaveManifest(shouldSaveManifest(context));
 
     if (shouldInheritManifest(context)) {
       K8sApplicationManifestSourceInfo k8SApplicationManifestSourceInfo =
           fetchK8sApplicationManifestInfo(context, applicationManifestUtils.fetchServiceFromContext(context).getUuid());
       if (k8SApplicationManifestSourceInfo != null) {
-        k8sDelegateManifestConfig.setGitFileConfig(
+        k8SManifestConfig.setGitFileConfig(
             k8SApplicationManifestSourceInfo.getGitFetchFilesConfig().getGitFileConfig());
       }
     }
@@ -179,7 +179,7 @@ public class K8sRollingDeploy extends AbstractK8sState {
             .commandName(K8S_ROLLING_DEPLOY_COMMAND_NAME)
             .k8sTaskType(K8sTaskType.DEPLOYMENT_ROLLING)
             .timeoutIntervalInMin(stateTimeoutInMinutes)
-            .k8sDelegateManifestConfig(k8sDelegateManifestConfig)
+            .k8sDelegateManifestConfig(k8SManifestConfig)
             .valuesYamlList(fetchRenderedValuesFiles(appManifestMap, context))
             .skipDryRun(skipDryRun)
             .localOverrideFeatureFlag(
