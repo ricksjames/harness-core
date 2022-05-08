@@ -111,17 +111,17 @@ public class K8sCanaryDeployTaskHandler extends K8sTaskHandler {
           color("\nStarting Kubernetes Canary Deployment", LogColor.White, LogWeight.Bold));
 
       success = k8sTaskHelper.fetchManifestFilesAndWriteToDirectory(
-          k8sCanaryDeployTaskParameters.getK8SManifestConfig(), canaryHandlerConfig.getManifestFilesDirectory(),
+          k8sCanaryDeployTaskParameters.getK8sDelegateManifestConfig(), canaryHandlerConfig.getManifestFilesDirectory(),
           executionLogCallback, timeoutInMillis);
       if (!success) {
         return getFailureResponse();
       }
 
-      if (k8sCanaryDeployTaskParameters.getK8SManifestConfig().getGitFileConfig() != null
-          && k8sCanaryDeployTaskParameters.getK8SManifestConfig().isShouldSaveManifest()) {
+      if (k8sCanaryDeployTaskParameters.getK8sDelegateManifestConfig().getGitFileConfig() != null
+          && k8sCanaryDeployTaskParameters.getK8sDelegateManifestConfig().isShouldSaveManifest()) {
         gitFetchFilesConfig =
             GitFetchFilesConfig.builder()
-                .gitFileConfig(k8sCanaryDeployTaskParameters.getK8SManifestConfig().getGitFileConfig())
+                .gitFileConfig(k8sCanaryDeployTaskParameters.getK8sDelegateManifestConfig().getGitFileConfig())
                 .build();
       }
 
@@ -171,7 +171,7 @@ public class K8sCanaryDeployTaskHandler extends K8sTaskHandler {
       List<K8sPod> allPods = k8sCanaryBaseHandler.getAllPods(
           canaryHandlerConfig, k8sCanaryDeployTaskParameters.getReleaseName(), timeoutInMillis);
       HelmChartInfo helmChartInfo =
-          k8sTaskHelper.getHelmChartDetails(k8sCanaryDeployTaskParameters.getK8SManifestConfig(),
+          k8sTaskHelper.getHelmChartDetails(k8sCanaryDeployTaskParameters.getK8sDelegateManifestConfig(),
               canaryHandlerConfig.getManifestFilesDirectory());
 
       k8sCanaryBaseHandler.wrapUp(canaryHandlerConfig.getClient(), k8sDelegateTaskParams, wrapUpLogCallback);
@@ -238,7 +238,7 @@ public class K8sCanaryDeployTaskHandler extends K8sTaskHandler {
           canaryHandlerConfig.getManifestFilesDirectory(), executionLogCallback);
 
       List<FileData> manifestFiles = k8sTaskHelper.renderTemplate(k8sDelegateTaskParams,
-          k8sCanaryDeployTaskParameters.getK8SManifestConfig(), canaryHandlerConfig.getManifestFilesDirectory(),
+          k8sCanaryDeployTaskParameters.getK8sDelegateManifestConfig(), canaryHandlerConfig.getManifestFilesDirectory(),
           k8sCanaryDeployTaskParameters.getValuesYamlList(), canaryHandlerConfig.getReleaseName(),
           kubernetesConfig.getNamespace(), executionLogCallback, k8sCanaryDeployTaskParameters);
 

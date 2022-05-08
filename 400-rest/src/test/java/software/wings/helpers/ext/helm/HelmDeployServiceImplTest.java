@@ -117,7 +117,7 @@ import software.wings.helpers.ext.helm.response.HelmListReleasesCommandResponse;
 import software.wings.helpers.ext.helm.response.HelmReleaseHistoryCommandResponse;
 import software.wings.helpers.ext.helm.response.ReleaseInfo;
 import software.wings.helpers.ext.k8s.request.K8sClusterConfig;
-import software.wings.helpers.ext.k8s.request.K8sManifestConfig;
+import software.wings.helpers.ext.k8s.request.K8sDelegateManifestConfig;
 import software.wings.service.impl.ContainerServiceParams;
 import software.wings.service.impl.yaml.GitClientHelper;
 import software.wings.service.intfc.GitService;
@@ -488,7 +488,7 @@ public class HelmDeployServiceImplTest extends WingsBaseTest {
             .chartSpecification(HelmChartSpecification.builder().chartName(HelmTestConstants.CHART_NAME_KEY).build())
             .containerServiceParams(ContainerServiceParams.builder().namespace("default").build())
             .executionLogCallback(logCallback)
-            .sourceRepoConfig(K8sManifestConfig.builder()
+            .sourceRepoConfig(K8sDelegateManifestConfig.builder()
                                   .manifestStoreTypes(StoreType.HelmSourceRepo)
                                   .gitConfig(GitConfig.builder().build())
                                   .gitFileConfig(GitFileConfig.builder().filePath("test").build())
@@ -847,7 +847,7 @@ public class HelmDeployServiceImplTest extends WingsBaseTest {
     HelmInstallCommandRequest request =
         HelmInstallCommandRequest.builder()
             .executionLogCallback(executionLogCallback)
-            .sourceRepoConfig(K8sManifestConfig.builder()
+            .sourceRepoConfig(K8sDelegateManifestConfig.builder()
                                   .helmChartConfigParams(HelmChartConfigParams.builder().chartName("foo").build())
                                   .build())
             .helmCommandFlag(commandFlag)
@@ -873,7 +873,7 @@ public class HelmDeployServiceImplTest extends WingsBaseTest {
     ArgumentCaptor<GitConfig> argumentCaptor = ArgumentCaptor.forClass(GitConfig.class);
     HelmInstallCommandRequest request =
         HelmInstallCommandRequest.builder()
-            .sourceRepoConfig(K8sManifestConfig.builder()
+            .sourceRepoConfig(K8sDelegateManifestConfig.builder()
                                   .manifestStoreTypes(StoreType.HelmSourceRepo)
                                   .gitConfig(GitConfig.builder().build())
                                   .gitFileConfig(GitFileConfig.builder().branch("master").useBranch(true).build())
@@ -898,7 +898,7 @@ public class HelmDeployServiceImplTest extends WingsBaseTest {
     doReturn(true).when(scmFetchFilesHelper).shouldUseScm(anyBoolean(), any());
     HelmInstallCommandRequest request =
         HelmInstallCommandRequest.builder()
-            .sourceRepoConfig(K8sManifestConfig.builder()
+            .sourceRepoConfig(K8sDelegateManifestConfig.builder()
                                   .manifestStoreTypes(StoreType.HelmSourceRepo)
                                   .gitConfig(GitConfig.builder().build())
                                   .gitFileConfig(GitFileConfig.builder().branch("master").useBranch(true).build())
@@ -1182,7 +1182,7 @@ public class HelmDeployServiceImplTest extends WingsBaseTest {
   private void shouldThrowExceptionForUnknownStoreType() {
     HelmInstallCommandRequest helmInstallCommandRequest =
         HelmInstallCommandRequest.builder()
-            .sourceRepoConfig(K8sManifestConfig.builder().manifestStoreTypes(StoreType.Local).build())
+            .sourceRepoConfig(K8sDelegateManifestConfig.builder().manifestStoreTypes(StoreType.Local).build())
             .build();
 
     assertThatThrownBy(() -> spyHelmDeployService.fetchRepo(helmInstallCommandRequest, LONG_TIMEOUT_INTERVAL))
@@ -1193,7 +1193,7 @@ public class HelmDeployServiceImplTest extends WingsBaseTest {
   private void shouldCallFetchSourceRepo() throws Exception {
     HelmInstallCommandRequest helmInstallCommandRequest =
         HelmInstallCommandRequest.builder()
-            .sourceRepoConfig(K8sManifestConfig.builder().manifestStoreTypes(StoreType.HelmSourceRepo).build())
+            .sourceRepoConfig(K8sDelegateManifestConfig.builder().manifestStoreTypes(StoreType.HelmSourceRepo).build())
             .build();
     doNothing().when(spyHelmDeployService).fetchSourceRepo(helmInstallCommandRequest);
 
@@ -1205,7 +1205,7 @@ public class HelmDeployServiceImplTest extends WingsBaseTest {
   private void shouldCallFetchChartRepo() throws Exception {
     HelmInstallCommandRequest helmInstallCommandRequest =
         HelmInstallCommandRequest.builder()
-            .sourceRepoConfig(K8sManifestConfig.builder().manifestStoreTypes(StoreType.HelmChartRepo).build())
+            .sourceRepoConfig(K8sDelegateManifestConfig.builder().manifestStoreTypes(StoreType.HelmChartRepo).build())
             .build();
     doNothing().when(spyHelmDeployService).fetchChartRepo(helmInstallCommandRequest, LONG_TIMEOUT_INTERVAL);
 
@@ -1643,8 +1643,8 @@ public class HelmDeployServiceImplTest extends WingsBaseTest {
   }
 
   private void testGetHelmChartInfoFromRemoteRepo(StoreType storeType) throws Exception {
-    K8sManifestConfig manifestConfig =
-        K8sManifestConfig.builder()
+    K8sDelegateManifestConfig manifestConfig =
+        K8sDelegateManifestConfig.builder()
             .manifestStoreTypes(storeType)
             .helmChartConfigParams(HelmChartConfigParams.builder().chartName("chartName").build())
             .gitConfig(GitConfig.builder().build())
@@ -1750,7 +1750,7 @@ public class HelmDeployServiceImplTest extends WingsBaseTest {
     HelmInstallCommandRequest request =
         HelmInstallCommandRequest.builder()
             .executionLogCallback(executionLogCallback)
-            .sourceRepoConfig(K8sManifestConfig.builder()
+            .sourceRepoConfig(K8sDelegateManifestConfig.builder()
                                   .customManifestEnabled(false)
                                   .customManifestSource(CustomManifestSource.builder()
                                                             .script("script")
@@ -1769,7 +1769,7 @@ public class HelmDeployServiceImplTest extends WingsBaseTest {
         .isInstanceOf(InvalidRequestException.class)
         .hasMessageContaining("Source Config can not be null");
 
-    request.setRepoConfig(K8sManifestConfig.builder().customManifestEnabled(true).build());
+    request.setRepoConfig(K8sDelegateManifestConfig.builder().customManifestEnabled(true).build());
     assertThatThrownBy(() -> helmDeployService.fetchCustomSourceManifest(request))
         .isInstanceOf(InvalidRequestException.class)
         .hasMessageContaining("Custom Manifest Source can not be null");
@@ -1786,7 +1786,7 @@ public class HelmDeployServiceImplTest extends WingsBaseTest {
             .executionLogCallback(executionLogCallback)
             .activityId("ACTIVITY_ID")
             .accountId("ACCOUNT_ID")
-            .sourceRepoConfig(K8sManifestConfig.builder()
+            .sourceRepoConfig(K8sDelegateManifestConfig.builder()
                                   .customManifestEnabled(true)
                                   .customManifestSource(CustomManifestSource.builder()
                                                             .script("script")

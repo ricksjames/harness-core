@@ -114,7 +114,7 @@ import software.wings.helpers.ext.helm.HelmHelper;
 import software.wings.helpers.ext.helm.request.HelmChartConfigParams;
 import software.wings.helpers.ext.k8s.request.K8sApplyTaskParameters;
 import software.wings.helpers.ext.k8s.request.K8sClusterConfig;
-import software.wings.helpers.ext.k8s.request.K8sManifestConfig;
+import software.wings.helpers.ext.k8s.request.K8sDelegateManifestConfig;
 import software.wings.helpers.ext.k8s.request.K8sDeleteTaskParameters;
 import software.wings.helpers.ext.k8s.request.K8sRollingDeployRollbackTaskParameters;
 import software.wings.helpers.ext.k8s.request.K8sTaskParameters;
@@ -276,7 +276,7 @@ public class K8sTaskHelperTest extends CategoryTest {
     doReturn("").when(spyHelperBase).getManifestFileNamesInLogFormat(anyString());
     assertThat(
         spyHelper.fetchManifestFilesAndWriteToDirectory(
-            K8sManifestConfig.builder()
+            K8sDelegateManifestConfig.builder()
                 .manifestStoreTypes(storeType)
                 .gitConfig(GitConfig.builder().repoUrl(REPO_URL).build())
                 .encryptedDataDetails(
@@ -298,7 +298,7 @@ public class K8sTaskHelperTest extends CategoryTest {
         .downloadFiles(any(GitConfig.class), any(GitFileConfig.class), anyString(), eq(false));
     assertThat(
         spyHelper.fetchManifestFilesAndWriteToDirectory(
-            K8sManifestConfig.builder()
+            K8sDelegateManifestConfig.builder()
                 .manifestStoreTypes(storeType)
                 .gitConfig(GitConfig.builder().repoUrl(REPO_URL).build())
                 .gitFileConfig(
@@ -315,7 +315,7 @@ public class K8sTaskHelperTest extends CategoryTest {
     doReturn("").when(spyHelperBase).getManifestFileNamesInLogFormat(anyString());
     doReturn(true).when(scmFetchFilesHelper).shouldUseScm(anyBoolean(), any());
     assertThat(spyHelper.fetchManifestFilesAndWriteToDirectory(
-                   K8sManifestConfig.builder()
+                   K8sDelegateManifestConfig.builder()
                        .optimizedFilesFetch(true)
                        .manifestStoreTypes(Remote)
                        .encryptedDataDetails(
@@ -341,7 +341,7 @@ public class K8sTaskHelperTest extends CategoryTest {
     doReturn(true).when(scmFetchFilesHelper).shouldUseScm(anyBoolean(), any());
     doThrow(new RuntimeException()).when(scmFetchFilesHelper).downloadFilesUsingScm(any(), any(), any(), any());
     assertThat(spyHelper.fetchManifestFilesAndWriteToDirectory(
-                   K8sManifestConfig.builder()
+                   K8sDelegateManifestConfig.builder()
                        .optimizedFilesFetch(true)
                        .manifestStoreTypes(Remote)
                        .gitConfig(GitConfig.builder().repoUrl(REPO_URL).providerType(ProviderType.GITHUB).build())
@@ -362,7 +362,7 @@ public class K8sTaskHelperTest extends CategoryTest {
   private void fetchManifestFilesAndWriteToDirectory_helmChartRepo() throws Exception {
     doReturn("").when(mockK8sTaskHelperBase).getManifestFileNamesInLogFormat(anyString());
     final HelmChartConfigParams helmChartConfigParams = HelmChartConfigParams.builder().chartVersion("1.0").build();
-    assertThat(helper.fetchManifestFilesAndWriteToDirectory(K8sManifestConfig.builder()
+    assertThat(helper.fetchManifestFilesAndWriteToDirectory(K8sDelegateManifestConfig.builder()
                                                                 .manifestStoreTypes(StoreType.HelmChartRepo)
                                                                 .helmChartConfigParams(helmChartConfigParams)
                                                                 .build(),
@@ -375,7 +375,7 @@ public class K8sTaskHelperTest extends CategoryTest {
     doThrow(new RuntimeException())
         .when(mockHelmTaskHelper)
         .downloadChartFiles(any(HelmChartConfigParams.class), anyString(), anyLong(), eq(null));
-    assertThat(helper.fetchManifestFilesAndWriteToDirectory(K8sManifestConfig.builder()
+    assertThat(helper.fetchManifestFilesAndWriteToDirectory(K8sDelegateManifestConfig.builder()
                                                                 .manifestStoreTypes(StoreType.HelmChartRepo)
                                                                 .helmChartConfigParams(helmChartConfigParams)
                                                                 .build(),
@@ -388,7 +388,7 @@ public class K8sTaskHelperTest extends CategoryTest {
     List<FileData> manifestFiles = new ArrayList<>(prepareSomeCorrectManifestFiles());
     manifestFiles.add(prepareValuesYamlFile());
     boolean success =
-        helper.fetchManifestFilesAndWriteToDirectory(K8sManifestConfig.builder()
+        helper.fetchManifestFilesAndWriteToDirectory(K8sDelegateManifestConfig.builder()
                                                          .manifestStoreTypes(Local)
                                                          .manifestFiles(convertFileDataToManifestFiles(manifestFiles))
                                                          .build(),
@@ -406,13 +406,13 @@ public class K8sTaskHelperTest extends CategoryTest {
     ManifestFile values =
         ManifestFile.builder().fileName(fileData.getFileName()).fileContent(fileData.getFileContent()).build();
     assertThat(helper.fetchManifestFilesAndWriteToDirectory(
-                   K8sManifestConfig.builder().manifestFiles(asList(values)).manifestStoreTypes(Local).build(),
+                   K8sDelegateManifestConfig.builder().manifestFiles(asList(values)).manifestStoreTypes(Local).build(),
                    manifestFileDirectory, logCallback, LONG_TIMEOUT_INTERVAL))
         .isTrue();
 
     // invalid manifest files directory
     assertThat(helper.fetchManifestFilesAndWriteToDirectory(
-                   K8sManifestConfig.builder()
+                   K8sDelegateManifestConfig.builder()
                        .manifestStoreTypes(Local)
                        .manifestFiles(convertFileDataToManifestFiles(prepareSomeCorrectManifestFiles()))
                        .build(),
@@ -433,7 +433,7 @@ public class K8sTaskHelperTest extends CategoryTest {
     String manifestDirectory = "manifest-files";
     doReturn("").when(mockK8sTaskHelperBase).getManifestFileNamesInLogFormat(anyString());
     CustomManifestSource customManifestSource = CustomManifestSource.builder().build();
-    K8sManifestConfig delegateManifestConfig = K8sManifestConfig.builder()
+    K8sDelegateManifestConfig delegateManifestConfig = K8sDelegateManifestConfig.builder()
                                                            .manifestStoreTypes(storeType)
                                                            .customManifestSource(customManifestSource)
                                                            .build();
@@ -488,7 +488,7 @@ public class K8sTaskHelperTest extends CategoryTest {
                                                     .filePaths(singletonList("file1"))
                                                     .zippedManifestFileId("fileId")
                                                     .build();
-    K8sManifestConfig delegateManifestConfig = K8sManifestConfig.builder()
+    K8sDelegateManifestConfig delegateManifestConfig = K8sDelegateManifestConfig.builder()
                                                            .manifestStoreTypes(CUSTOM)
                                                            .customManifestSource(customManifestSource)
                                                            .customManifestEnabled(true)
@@ -561,7 +561,7 @@ public class K8sTaskHelperTest extends CategoryTest {
                                                       .build();
 
     final List<FileData> manifestFiles = spyHelper.renderTemplateForGivenFiles(k8sDelegateTaskParams,
-        K8sManifestConfig.builder().manifestStoreTypes(Local).build(), ".", new ArrayList<>(),
+        K8sDelegateManifestConfig.builder().manifestStoreTypes(Local).build(), ".", new ArrayList<>(),
         new ArrayList<>(), "release", "namespace", executionLogCallback, K8sApplyTaskParameters.builder().build(),
         false);
 
@@ -587,7 +587,7 @@ public class K8sTaskHelperTest extends CategoryTest {
         .executeCommandUsingUtils(any(K8sDelegateTaskParams.class), any(), any(), any(), any());
 
     final List<FileData> manifestFiles = spyHelper.renderTemplateForGivenFiles(k8sDelegateTaskParams,
-        K8sManifestConfig.builder().manifestStoreTypes(Remote).build(), ".", new ArrayList<>(),
+        K8sDelegateManifestConfig.builder().manifestStoreTypes(Remote).build(), ".", new ArrayList<>(),
         new ArrayList<>(), "release", "namespace", executionLogCallback, K8sApplyTaskParameters.builder().build(),
         false);
 
@@ -613,7 +613,7 @@ public class K8sTaskHelperTest extends CategoryTest {
         .thenReturn(manifestFilesList);
 
     final List<FileData> manifestFiles = spyHelper.renderTemplateForGivenFiles(k8sDelegateTaskParams,
-        K8sManifestConfig.builder().manifestStoreTypes(Remote).build(), ".", new ArrayList<>(),
+        K8sDelegateManifestConfig.builder().manifestStoreTypes(Remote).build(), ".", new ArrayList<>(),
         new ArrayList<>(), "release", "namespace", executionLogCallback, K8sApplyTaskParameters.builder().build(),
         true);
 
@@ -630,7 +630,7 @@ public class K8sTaskHelperTest extends CategoryTest {
         K8sDelegateTaskParams.builder().workingDirectory(workingDirectory).helmPath("helm").build();
 
     spyHelper.renderTemplateForGivenFiles(k8sDelegateTaskParams,
-        K8sManifestConfig.builder().manifestStoreTypes(HelmSourceRepo).helmCommandFlag(commandFlag).build(),
+        K8sDelegateManifestConfig.builder().manifestStoreTypes(HelmSourceRepo).helmCommandFlag(commandFlag).build(),
         ".", new ArrayList<>(), new ArrayList<>(), "release", "namespace", executionLogCallback,
         K8sApplyTaskParameters.builder().build(), false);
 
@@ -651,7 +651,7 @@ public class K8sTaskHelperTest extends CategoryTest {
         .when(kustomizeTaskHelper)
         .buildForApply(any(), any(), any(), any(), anyBoolean(), any(), any());
     final List<FileData> manifestFiles = spyHelper.renderTemplateForGivenFiles(k8sDelegateTaskParams,
-        K8sManifestConfig.builder().manifestStoreTypes(KustomizeSourceRepo).build(), ".", new ArrayList<>(),
+        K8sDelegateManifestConfig.builder().manifestStoreTypes(KustomizeSourceRepo).build(), ".", new ArrayList<>(),
         new ArrayList<>(), "release", "namespace", executionLogCallback, K8sApplyTaskParameters.builder().build(),
         false);
     verify(kustomizeTaskHelper).buildForApply(any(), any(), any(), any(), anyBoolean(), any(), any());
@@ -670,7 +670,7 @@ public class K8sTaskHelperTest extends CategoryTest {
         .when(kustomizeTaskHelper)
         .buildForApply(any(), any(), any(), any(), anyBoolean(), any(), any());
     final List<FileData> manifestFiles = spyHelper.renderTemplateForGivenFiles(k8sDelegateTaskParams,
-        K8sManifestConfig.builder().manifestStoreTypes(KustomizeSourceRepo).build(), ".", new ArrayList<>(),
+        K8sDelegateManifestConfig.builder().manifestStoreTypes(KustomizeSourceRepo).build(), ".", new ArrayList<>(),
         new ArrayList<>(), "release", "namespace", executionLogCallback, K8sApplyTaskParameters.builder().build(),
         false);
     verify(kustomizeTaskHelper).buildForApply(any(), any(), any(), any(), anyBoolean(), any(), any());
@@ -688,7 +688,7 @@ public class K8sTaskHelperTest extends CategoryTest {
     when(openShiftDelegateService.processTemplatization(any(), any(), any(), any(), any()))
         .thenReturn(new ArrayList<>());
     final List<FileData> manifestFiles = spyHelper.renderTemplate(k8sDelegateTaskParams,
-        K8sManifestConfig.builder()
+        K8sDelegateManifestConfig.builder()
             .manifestStoreTypes(OC_TEMPLATES)
             .gitFileConfig(GitFileConfig.builder().build())
             .build(),
@@ -710,7 +710,7 @@ public class K8sTaskHelperTest extends CategoryTest {
     doReturn(processResult).when(spyHelperBase).executeShellCommand(any(), any(), any(), anyLong());
 
     final List<FileData> manifestFiles = spyHelper.renderTemplateForGivenFiles(k8sDelegateTaskParams,
-        K8sManifestConfig.builder()
+        K8sDelegateManifestConfig.builder()
             .helmChartConfigParams(HelmChartConfigParams.builder().chartName("chart").build())
             .manifestStoreTypes(HelmChartRepo)
             .build(),
@@ -746,7 +746,7 @@ public class K8sTaskHelperTest extends CategoryTest {
             any(LogCallback.class), any(HelmVersion.class), anyLong(), any(HelmCommandFlag.class));
 
     final List<FileData> manifestFiles = helper.renderTemplate(k8sDelegateTaskParams,
-        K8sManifestConfig.builder().manifestStoreTypes(HelmSourceRepo).build(), ".", valuesFiles, "release",
+        K8sDelegateManifestConfig.builder().manifestStoreTypes(HelmSourceRepo).build(), ".", valuesFiles, "release",
         "namespace", executionLogCallback, K8sApplyTaskParameters.builder().helmVersion(HelmVersion.V3).build());
 
     assertThat(manifestFiles.size()).isEqualTo(1);
@@ -765,7 +765,7 @@ public class K8sTaskHelperTest extends CategoryTest {
 
     when(kustomizeTaskHelper.build(any(), any(), any(), any(), any())).thenReturn(new ArrayList<>());
     final List<FileData> manifestFiles = spyHelper.renderTemplate(k8sDelegateTaskParams,
-        K8sManifestConfig.builder().manifestStoreTypes(KustomizeSourceRepo).build(), ".", new ArrayList<>(),
+        K8sDelegateManifestConfig.builder().manifestStoreTypes(KustomizeSourceRepo).build(), ".", new ArrayList<>(),
         "release", "namespace", executionLogCallback, K8sApplyTaskParameters.builder().build());
     verify(kustomizeTaskHelper).build(any(), any(), any(), any(), any());
     assertThat(manifestFiles.size()).isEqualTo(0);
@@ -782,7 +782,7 @@ public class K8sTaskHelperTest extends CategoryTest {
     when(openShiftDelegateService.processTemplatization(any(), any(), any(), any(), any()))
         .thenReturn(new ArrayList<>());
     final List<FileData> manifestFiles = spyHelper.renderTemplate(k8sDelegateTaskParams,
-        K8sManifestConfig.builder()
+        K8sDelegateManifestConfig.builder()
             .manifestStoreTypes(OC_TEMPLATES)
             .gitFileConfig(GitFileConfig.builder().build())
             .build(),
@@ -801,7 +801,7 @@ public class K8sTaskHelperTest extends CategoryTest {
         K8sDelegateTaskParams.builder().workingDirectory(workingDirectory).helmPath("helm").build();
 
     helper.renderTemplate(k8sDelegateTaskParams,
-        K8sManifestConfig.builder()
+        K8sDelegateManifestConfig.builder()
             .helmChartConfigParams(HelmChartConfigParams.builder().chartName("chart").build())
             .manifestStoreTypes(HelmChartRepo)
             .build(),
@@ -824,7 +824,7 @@ public class K8sTaskHelperTest extends CategoryTest {
         K8sDelegateTaskParams.builder().workingDirectory(workingDirectory).helmPath("helm").build();
 
     helper.renderTemplate(k8sDelegateTaskParams,
-        K8sManifestConfig.builder()
+        K8sDelegateManifestConfig.builder()
             .helmChartConfigParams(HelmChartConfigParams.builder().chartName("bitnami/nginx").build())
             .manifestStoreTypes(HelmChartRepo)
             .build(),
@@ -843,7 +843,7 @@ public class K8sTaskHelperTest extends CategoryTest {
     final String manifestDirectory = "manifests/";
     K8sDelegateTaskParams k8sDelegateTaskParams =
         K8sDelegateTaskParams.builder().workingDirectory(workingDirectory).helmPath("helm").build();
-    K8sManifestConfig manifestConfig = K8sManifestConfig.builder().manifestStoreTypes(Remote).build();
+    K8sDelegateManifestConfig manifestConfig = K8sDelegateManifestConfig.builder().manifestStoreTypes(Remote).build();
     List<FileData> manifestFiles = emptyList();
     on(helper).set("k8sTaskHelperBase", spyHelperBase);
 
@@ -866,8 +866,8 @@ public class K8sTaskHelperTest extends CategoryTest {
     final String manifestDirectory = "manifests/";
     K8sDelegateTaskParams k8sDelegateTaskParams =
         K8sDelegateTaskParams.builder().workingDirectory(workingDirectory).build();
-    K8sManifestConfig manifestConfig =
-        K8sManifestConfig.builder().manifestStoreTypes(CUSTOM).customManifestEnabled(false).build();
+    K8sDelegateManifestConfig manifestConfig =
+        K8sDelegateManifestConfig.builder().manifestStoreTypes(CUSTOM).customManifestEnabled(false).build();
     List<FileData> manifestFiles = emptyList();
     doReturn(manifestFiles).when(spyHelperBase).readManifestFilesFromDirectory(manifestDirectory);
     on(helper).set("k8sTaskHelperBase", spyHelperBase);
@@ -900,8 +900,8 @@ public class K8sTaskHelperTest extends CategoryTest {
     final String ocPath = "oc";
     K8sDelegateTaskParams k8sDelegateTaskParams =
         K8sDelegateTaskParams.builder().ocPath(ocPath).workingDirectory(workingDirectory).build();
-    K8sManifestConfig manifestConfig =
-        K8sManifestConfig.builder()
+    K8sDelegateManifestConfig manifestConfig =
+        K8sDelegateManifestConfig.builder()
             .manifestStoreTypes(CUSTOM_OPENSHIFT_TEMPLATE)
             .customManifestSource(
                 CustomManifestSource.builder().filePaths(singletonList("manifest/template.yaml")).build())
@@ -932,7 +932,7 @@ public class K8sTaskHelperTest extends CategoryTest {
 
     // When Store Type is HelmSourceRepo
     doReturn(existingHelmChartInfo).when(mockHelmTaskHelper).getHelmChartInfoFromChartDirectory(anyString());
-    K8sManifestConfig delegateManifestConfig = K8sManifestConfig.builder()
+    K8sDelegateManifestConfig delegateManifestConfig = K8sDelegateManifestConfig.builder()
                                                            .manifestStoreTypes(HelmSourceRepo)
                                                            .gitConfig(GitConfig.builder().branch("master").build())
                                                            .build();
@@ -970,7 +970,7 @@ public class K8sTaskHelperTest extends CategoryTest {
   @Owner(developers = ABOSII)
   @Category(UnitTests.class)
   public void testFetchManifestFilesAndWriteToDirectory_properErrorOnHelmClientException() throws Exception {
-    K8sManifestConfig manifestConfig = K8sManifestConfig.builder()
+    K8sDelegateManifestConfig manifestConfig = K8sDelegateManifestConfig.builder()
                                                    .helmChartConfigParams(HelmChartConfigParams.builder().build())
                                                    .manifestStoreTypes(HelmChartRepo)
                                                    .build();
@@ -1015,8 +1015,8 @@ public class K8sTaskHelperTest extends CategoryTest {
                                        .kubectlPath("kubectlPath")
                                        .build();
     K8sTaskParameters k8sTaskParameters = K8sRollingDeployRollbackTaskParameters.builder().build();
-    K8sManifestConfig config =
-        K8sManifestConfig.builder()
+    K8sDelegateManifestConfig config =
+        K8sDelegateManifestConfig.builder()
             .manifestStoreTypes(Remote)
             .manifestFiles(singletonList(ManifestFile.builder().accountId("1234").build()))
             .build();
@@ -1046,8 +1046,8 @@ public class K8sTaskHelperTest extends CategoryTest {
                                        .kubectlPath("kubectlPath")
                                        .build();
     K8sTaskParameters k8sTaskParameters = K8sRollingDeployRollbackTaskParameters.builder().build();
-    K8sManifestConfig config =
-        K8sManifestConfig.builder()
+    K8sDelegateManifestConfig config =
+        K8sDelegateManifestConfig.builder()
             .manifestStoreTypes(Remote)
             .manifestFiles(singletonList(ManifestFile.builder().accountId("1234").build()))
             .build();

@@ -34,7 +34,7 @@ import software.wings.beans.container.HelmChartSpecification;
 import software.wings.helpers.ext.helm.request.HelmCommandRequest;
 import software.wings.helpers.ext.helm.request.HelmRollbackCommandRequest;
 import software.wings.helpers.ext.helm.request.HelmRollbackCommandRequest.HelmRollbackCommandRequestBuilder;
-import software.wings.helpers.ext.k8s.request.K8sManifestConfig;
+import software.wings.helpers.ext.k8s.request.K8sDelegateManifestConfig;
 import software.wings.helpers.ext.k8s.request.K8sValuesLocation;
 import software.wings.service.impl.ContainerServiceParams;
 import software.wings.sm.ContextElement;
@@ -67,7 +67,7 @@ public class HelmRollbackState extends HelmDeployState {
   protected HelmCommandRequest getHelmCommandRequest(ExecutionContext context,
       HelmChartSpecification helmChartSpecification, ContainerServiceParams containerServiceParams, String releaseName,
       String accountId, String appId, String activityId, ImageDetails imageTag, String repoName, GitConfig gitConfig,
-      List<EncryptedDataDetail> encryptedDataDetails, String commandFlags, K8sManifestConfig manifestConfig,
+      List<EncryptedDataDetail> encryptedDataDetails, String commandFlags, K8sDelegateManifestConfig manifestConfig,
       Map<K8sValuesLocation, ApplicationManifest> appManifestMap, HelmVersion helmVersion,
       HelmCommandFlag helmCommandFlag) {
     Integer previousReleaseRevision = null;

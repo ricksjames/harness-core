@@ -130,7 +130,7 @@ public class K8sRollingDeployTaskHandler extends K8sTaskHandler {
           color("\nStarting Kubernetes Rolling Deployment", LogColor.White, LogWeight.Bold));
 
       success = k8sTaskHelper.fetchManifestFilesAndWriteToDirectory(
-          k8sRollingDeployTaskParameters.getK8SManifestConfig(),
+          k8sRollingDeployTaskParameters.getK8sDelegateManifestConfig(),
           k8sRollingHandlerConfig.getManifestFilesDirectory(), executionLogCallback, steadyStateTimeoutInMillis);
 
       if (!success) {
@@ -220,7 +220,7 @@ public class K8sRollingDeployTaskHandler extends K8sTaskHandler {
     }
 
     HelmChartInfo helmChartInfo =
-        k8sTaskHelper.getHelmChartDetails(k8sRollingDeployTaskParameters.getK8SManifestConfig(),
+        k8sTaskHelper.getHelmChartDetails(k8sRollingDeployTaskParameters.getK8sDelegateManifestConfig(),
             k8sRollingHandlerConfig.getManifestFilesDirectory());
 
     ExecutionLogCallback executionLogCallback =
@@ -334,7 +334,7 @@ public class K8sRollingDeployTaskHandler extends K8sTaskHandler {
           k8sRollingHandlerConfig.getManifestFilesDirectory(), executionLogCallback);
 
       List<FileData> manifestFiles = k8sTaskHelper.renderTemplate(k8sDelegateTaskParams,
-          request.getK8SManifestConfig(), k8sRollingHandlerConfig.getManifestFilesDirectory(),
+          request.getK8sDelegateManifestConfig(), k8sRollingHandlerConfig.getManifestFilesDirectory(),
           request.getValuesYamlList(), k8sRollingHandlerConfig.getReleaseName(),
           k8sRollingHandlerConfig.getKubernetesConfig().getNamespace(), executionLogCallback, request);
 

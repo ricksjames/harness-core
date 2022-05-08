@@ -34,7 +34,7 @@ import lombok.Data;
 @Builder
 @OwnedBy(CDP)
 @TargetModule(_950_DELEGATE_TASKS_BEANS)
-public class K8sManifestConfig implements NestedAnnotationResolver {
+public class K8sDelegateManifestConfig implements NestedAnnotationResolver {
   StoreType manifestStoreTypes;
   List<ManifestFile> manifestFiles;
   List<EncryptedDataDetail> encryptedDataDetails;

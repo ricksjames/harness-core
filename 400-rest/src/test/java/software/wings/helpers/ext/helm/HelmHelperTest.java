@@ -41,7 +41,7 @@ import software.wings.beans.settings.helm.GCSHelmRepoConfig;
 import software.wings.beans.settings.helm.HelmRepoConfig;
 import software.wings.beans.settings.helm.HttpHelmRepoConfig;
 import software.wings.helpers.ext.helm.request.HelmChartConfigParams;
-import software.wings.helpers.ext.k8s.request.K8sManifestConfig;
+import software.wings.helpers.ext.k8s.request.K8sDelegateManifestConfig;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -184,7 +184,7 @@ public class HelmHelperTest extends WingsBaseTest {
   @Category(UnitTests.class)
   public void testPrepareHelmExecutionSummarySourceRepo() {
     final String releaseName = "release-name";
-    K8sManifestConfig delegateManifestConfig = K8sManifestConfig.builder()
+    K8sDelegateManifestConfig delegateManifestConfig = K8sDelegateManifestConfig.builder()
                                                            .manifestStoreTypes(StoreType.HelmSourceRepo)
                                                            .gitConfig(GitConfig.builder().repoUrl("abc.com").build())
                                                            .build();
@@ -200,8 +200,8 @@ public class HelmHelperTest extends WingsBaseTest {
   @Category(UnitTests.class)
   public void testPrepareHelmExecutionSummaryChartRepo() {
     final String releaseName = "release-name";
-    K8sManifestConfig delegateManifestConfig =
-        K8sManifestConfig.builder()
+    K8sDelegateManifestConfig delegateManifestConfig =
+        K8sDelegateManifestConfig.builder()
             .manifestStoreTypes(StoreType.HelmChartRepo)
             .helmChartConfigParams(
                 HelmChartConfigParams.builder().chartName("stable/etcd").chartVersion("1.0.0").build())

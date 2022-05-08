@@ -84,7 +84,7 @@ public class K8sTaskParametersTest extends WingsBaseTest {
 
   private K8sTaskParameters k8sTaskParamsWithNoKustomizeConfig() {
     return K8sRollingDeployTaskParameters.builder()
-        .k8sDelegateManifestConfig(K8sManifestConfig.builder().build())
+        .k8sDelegateManifestConfig(K8sDelegateManifestConfig.builder().build())
         .k8sClusterConfig(clusterConfig)
         .build();
   }
@@ -93,7 +93,7 @@ public class K8sTaskParametersTest extends WingsBaseTest {
     return K8sApplyTaskParameters.builder()
         .k8sClusterConfig(clusterConfig)
         .k8sDelegateManifestConfig(
-            K8sManifestConfig.builder()
+            K8sDelegateManifestConfig.builder()
                 .kustomizeConfig(KustomizeConfig.builder().pluginRootDir(kustomizePluginPath).build())
                 .build())
         .build();

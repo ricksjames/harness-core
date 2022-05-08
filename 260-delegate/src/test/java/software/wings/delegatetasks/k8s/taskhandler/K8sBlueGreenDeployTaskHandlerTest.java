@@ -95,7 +95,7 @@ import software.wings.helpers.ext.container.ContainerDeploymentDelegateHelper;
 import software.wings.helpers.ext.helm.request.HelmChartConfigParams;
 import software.wings.helpers.ext.k8s.request.K8sBlueGreenDeployTaskParameters;
 import software.wings.helpers.ext.k8s.request.K8sClusterConfig;
-import software.wings.helpers.ext.k8s.request.K8sManifestConfig;
+import software.wings.helpers.ext.k8s.request.K8sDelegateManifestConfig;
 import software.wings.helpers.ext.k8s.response.K8sBlueGreenDeployResponse;
 import software.wings.helpers.ext.k8s.response.K8sTaskExecutionResponse;
 import software.wings.helpers.ext.k8s.response.K8sTaskResponse;
@@ -153,7 +153,7 @@ public class K8sBlueGreenDeployTaskHandlerTest extends CategoryTest {
     doReturn(true)
         .when(k8sTaskHelper)
         .fetchManifestFilesAndWriteToDirectory(
-            any(K8sManifestConfig.class), anyString(), any(ExecutionLogCallback.class), anyLong());
+            any(K8sDelegateManifestConfig.class), anyString(), any(ExecutionLogCallback.class), anyLong());
     doReturn(executionLogCallback)
         .when(k8sTaskHelper)
         .getExecutionLogCallback(any(K8sBlueGreenDeployTaskParameters.class), anyString());
@@ -343,7 +343,7 @@ public class K8sBlueGreenDeployTaskHandlerTest extends CategoryTest {
     doReturn(true)
         .when(k8sTaskHelper)
         .fetchManifestFilesAndWriteToDirectory(
-            any(K8sManifestConfig.class), anyString(), any(ExecutionLogCallback.class), anyLong());
+            any(K8sDelegateManifestConfig.class), anyString(), any(ExecutionLogCallback.class), anyLong());
     doReturn(executionLogCallback)
         .when(k8sTaskHelper)
         .getExecutionLogCallback(any(K8sBlueGreenDeployTaskParameters.class), anyString());
@@ -803,7 +803,7 @@ public class K8sBlueGreenDeployTaskHandlerTest extends CategoryTest {
   @Category(UnitTests.class)
   public void testAssignHelmChartInfo() throws Exception {
     K8sBlueGreenDeployTaskHandler handler = spy(k8sBlueGreenDeployTaskHandler);
-    K8sManifestConfig manifestConfig = K8sManifestConfig.builder()
+    K8sDelegateManifestConfig manifestConfig = K8sDelegateManifestConfig.builder()
                                                    .manifestStoreTypes(StoreType.HelmChartRepo)
                                                    .helmChartConfigParams(HelmChartConfigParams.builder().build())
                                                    .build();
@@ -815,7 +815,7 @@ public class K8sBlueGreenDeployTaskHandlerTest extends CategoryTest {
     doReturn(true)
         .when(k8sTaskHelper)
         .fetchManifestFilesAndWriteToDirectory(
-            any(K8sManifestConfig.class), anyString(), any(ExecutionLogCallback.class), anyLong());
+            any(K8sDelegateManifestConfig.class), anyString(), any(ExecutionLogCallback.class), anyLong());
     doReturn(executionLogCallback)
         .when(k8sTaskHelper)
         .getExecutionLogCallback(any(K8sBlueGreenDeployTaskParameters.class), anyString());
@@ -867,7 +867,7 @@ public class K8sBlueGreenDeployTaskHandlerTest extends CategoryTest {
   @Category(UnitTests.class)
   public void testFailWorkloadStatusCheck() throws Exception {
     K8sBlueGreenDeployTaskHandler handler = spy(k8sBlueGreenDeployTaskHandler);
-    K8sManifestConfig manifestConfig = K8sManifestConfig.builder()
+    K8sDelegateManifestConfig manifestConfig = K8sDelegateManifestConfig.builder()
                                                    .manifestStoreTypes(StoreType.HelmChartRepo)
                                                    .helmChartConfigParams(HelmChartConfigParams.builder().build())
                                                    .build();
@@ -878,7 +878,7 @@ public class K8sBlueGreenDeployTaskHandlerTest extends CategoryTest {
     doReturn(true)
         .when(k8sTaskHelper)
         .fetchManifestFilesAndWriteToDirectory(
-            any(K8sManifestConfig.class), anyString(), any(ExecutionLogCallback.class), anyLong());
+            any(K8sDelegateManifestConfig.class), anyString(), any(ExecutionLogCallback.class), anyLong());
     doReturn(executionLogCallback)
         .when(k8sTaskHelper)
         .getExecutionLogCallback(any(K8sBlueGreenDeployTaskParameters.class), anyString());
@@ -950,7 +950,7 @@ public class K8sBlueGreenDeployTaskHandlerTest extends CategoryTest {
     doReturn(true)
         .when(k8sTaskHelper)
         .fetchManifestFilesAndWriteToDirectory(
-            any(K8sManifestConfig.class), anyString(), any(ExecutionLogCallback.class), anyLong());
+            any(K8sDelegateManifestConfig.class), anyString(), any(ExecutionLogCallback.class), anyLong());
     doReturn(executionLogCallback)
         .when(k8sTaskHelper)
         .getExecutionLogCallback(any(K8sBlueGreenDeployTaskParameters.class), anyString());
@@ -1031,7 +1031,7 @@ public class K8sBlueGreenDeployTaskHandlerTest extends CategoryTest {
     doReturn(true)
         .when(k8sTaskHelper)
         .fetchManifestFilesAndWriteToDirectory(
-            any(K8sManifestConfig.class), anyString(), any(ExecutionLogCallback.class), anyLong());
+            any(K8sDelegateManifestConfig.class), anyString(), any(ExecutionLogCallback.class), anyLong());
     doReturn(true)
         .when(spyHandler)
         .prepareForBlueGreen(any(K8sBlueGreenDeployTaskParameters.class), any(K8sDelegateTaskParams.class),

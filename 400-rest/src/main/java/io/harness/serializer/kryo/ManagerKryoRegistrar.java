@@ -382,7 +382,7 @@ import software.wings.helpers.ext.k8s.request.K8sApplyTaskParameters;
 import software.wings.helpers.ext.k8s.request.K8sBlueGreenDeployTaskParameters;
 import software.wings.helpers.ext.k8s.request.K8sCanaryDeployTaskParameters;
 import software.wings.helpers.ext.k8s.request.K8sCanaryRollbackTaskParameters;
-import software.wings.helpers.ext.k8s.request.K8sManifestConfig;
+import software.wings.helpers.ext.k8s.request.K8sDelegateManifestConfig;
 import software.wings.helpers.ext.k8s.request.K8sDeleteTaskParameters;
 import software.wings.helpers.ext.k8s.request.K8sInstanceSyncTaskParameters;
 import software.wings.helpers.ext.k8s.request.K8sRollingDeployRollbackTaskParameters;
@@ -898,7 +898,7 @@ public class ManagerKryoRegistrar implements KryoRegistrar {
     kryo.register(K8sInstanceSyncResponse.class, 7132);
     kryo.register(K8sContextElement.class, 7133);
     kryo.register(K8sStateExecutionData.class, 7134);
-    kryo.register(K8sManifestConfig.class, 7135);
+    kryo.register(K8sDelegateManifestConfig.class, 7135);
     kryo.register(K8sScaleTaskParameters.class, 7136);
     kryo.register(K8sScaleResponse.class, 7137);
     kryo.register(K8sCanaryDeployTaskParameters.class, 7138);

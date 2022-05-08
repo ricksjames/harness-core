@@ -167,7 +167,7 @@ import software.wings.helpers.ext.helm.request.HelmChartConfigParams;
 import software.wings.helpers.ext.helm.request.HelmValuesFetchTaskParameters;
 import software.wings.helpers.ext.helm.response.HelmValuesFetchTaskResponse;
 import software.wings.helpers.ext.k8s.request.K8sClusterConfig;
-import software.wings.helpers.ext.k8s.request.K8sManifestConfig;
+import software.wings.helpers.ext.k8s.request.K8sDelegateManifestConfig;
 import software.wings.helpers.ext.k8s.request.K8sRollingDeployTaskParameters;
 import software.wings.helpers.ext.k8s.request.K8sTaskParameters;
 import software.wings.helpers.ext.k8s.request.K8sValuesLocation;
@@ -404,7 +404,7 @@ public class AbstractK8SStateTest extends WingsBaseTest {
     doReturn(GitConfig.builder().build()).when(settingsService).fetchGitConfigFromConnectorId(anyString());
     doReturn(emptyList()).when(secretManager).getEncryptionDetails(any(), anyString(), any());
 
-    K8sManifestConfig delegateManifestConfig =
+    K8sDelegateManifestConfig delegateManifestConfig =
         abstractK8SState.createDelegateManifestConfig(context, appManifest);
     assertThat(delegateManifestConfig.getGitFileConfig()).isEqualTo(gitConfigAtService);
     assertThat(delegateManifestConfig.getGitFileConfig().getFilePath()).isEqualTo("abc/");
@@ -462,7 +462,7 @@ public class AbstractK8SStateTest extends WingsBaseTest {
                 .build();
           }
         });
-    K8sManifestConfig delegateManifestConfig =
+    K8sDelegateManifestConfig delegateManifestConfig =
         abstractK8SState.createDelegateManifestConfig(context, appManifest);
     assertThat(delegateManifestConfig.getHelmChartConfigParams().getChartName()).isEqualTo("n1");
     assertThat(delegateManifestConfig.getHelmChartConfigParams().getChartVersion()).isEqualTo("v1");
@@ -538,7 +538,7 @@ public class AbstractK8SStateTest extends WingsBaseTest {
         .thenReturn(new GitFileConfig());
 
     ApplicationManifest appManifest = buildKustomizeAppManifest();
-    K8sManifestConfig delegateManifestConfig =
+    K8sDelegateManifestConfig delegateManifestConfig =
         abstractK8SState.createDelegateManifestConfig(context, appManifest);
 
     verify(gitFileConfigHelperService, times(1)).renderGitFileConfig(context, appManifest.getGitFileConfig());
@@ -1437,7 +1437,7 @@ public class AbstractK8SStateTest extends WingsBaseTest {
     persistence.save(appManifest);
     persistence.save(manifestFile);
 
-    K8sManifestConfig delegateManifestConfig =
+    K8sDelegateManifestConfig delegateManifestConfig =
         abstractK8SState.createDelegateManifestConfig(context, appManifest);
     assertThat(delegateManifestConfig.getManifestFiles().get(0).getFileName()).isEqualTo("fileName");
     assertThat(delegateManifestConfig.getManifestFiles().get(0).getFileContent()).isEqualTo("fileContent");
@@ -1468,7 +1468,7 @@ public class AbstractK8SStateTest extends WingsBaseTest {
             .build();
 
     doReturn(false).when(featureFlagService).isEnabled(FeatureName.CUSTOM_MANIFEST, ACCOUNT_ID);
-    K8sManifestConfig delegateManifestConfig =
+    K8sDelegateManifestConfig delegateManifestConfig =
         abstractK8SState.createDelegateManifestConfig(context, appManifest);
     assertCustomManifestSource(delegateManifestConfig, false, customScript, manifestPath);
 
@@ -1478,7 +1478,7 @@ public class AbstractK8SStateTest extends WingsBaseTest {
   }
 
   private void assertCustomManifestSource(
-          K8sManifestConfig delegateManifestConfig, boolean customManifestEnabled, String script, String path) {
+      K8sDelegateManifestConfig delegateManifestConfig, boolean customManifestEnabled, String script, String path) {
     assertThat(delegateManifestConfig.isCustomManifestEnabled()).isEqualTo(customManifestEnabled);
     if (customManifestEnabled) {
       assertThat(delegateManifestConfig.getCustomManifestSource().getScript()).isEqualTo(script);

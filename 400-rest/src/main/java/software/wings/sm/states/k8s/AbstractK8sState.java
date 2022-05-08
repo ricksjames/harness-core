@@ -118,8 +118,8 @@ import software.wings.helpers.ext.helm.request.HelmChartConfigParams;
 import software.wings.helpers.ext.helm.request.HelmValuesFetchTaskParameters;
 import software.wings.helpers.ext.helm.response.HelmValuesFetchTaskResponse;
 import software.wings.helpers.ext.k8s.request.K8sClusterConfig;
-import software.wings.helpers.ext.k8s.request.K8sManifestConfig;
-import software.wings.helpers.ext.k8s.request.K8sManifestConfig.K8sDelegateManifestConfigBuilder;
+import software.wings.helpers.ext.k8s.request.K8sDelegateManifestConfig;
+import software.wings.helpers.ext.k8s.request.K8sDelegateManifestConfig.K8sDelegateManifestConfigBuilder;
 import software.wings.helpers.ext.k8s.request.K8sTaskParameters;
 import software.wings.helpers.ext.k8s.request.K8sValuesLocation;
 import software.wings.helpers.ext.kustomize.KustomizeConfig;
@@ -242,10 +242,10 @@ public abstract class AbstractK8sState extends State implements K8sStateExecutor
     return activityService.save(activity);
   }
 
-  public K8sManifestConfig createDelegateManifestConfig(
+  public K8sDelegateManifestConfig createDelegateManifestConfig(
       ExecutionContext context, ApplicationManifest appManifest) {
     K8sDelegateManifestConfigBuilder manifestConfigBuilder =
-        K8sManifestConfig.builder()
+        K8sDelegateManifestConfig.builder()
             .manifestStoreTypes(appManifest.getStoreType())
             .helmCommandFlag(ApplicationManifestUtils.getHelmCommandFlags(appManifest.getHelmCommandFlag()))
             .optimizedFilesFetch(featureFlagService.isEnabled(OPTIMIZED_GIT_FETCH_FILES, context.getAccountId())

@@ -129,7 +129,7 @@ public class K8sBlueGreenDeployTaskHandler extends K8sTaskHandler {
           color("\nStarting Kubernetes Blue-Greeen Deployment", LogColor.White, LogWeight.Bold));
 
       success = k8sTaskHelper.fetchManifestFilesAndWriteToDirectory(
-          k8sBlueGreenDeployTaskParameters.getK8SManifestConfig(),
+          k8sBlueGreenDeployTaskParameters.getK8sDelegateManifestConfig(),
           k8sBlueGreenHandlerConfig.getManifestFilesDirectory(), executionLogCallback, timeoutInMillis);
       if (!success) {
         return getFailureResponse(null);
@@ -193,7 +193,7 @@ public class K8sBlueGreenDeployTaskHandler extends K8sTaskHandler {
         k8sTaskHelper.getExecutionLogCallback(k8sBlueGreenDeployTaskParameters, WrapUp);
     try {
       HelmChartInfo helmChartInfo =
-          k8sTaskHelper.getHelmChartDetails(k8sBlueGreenDeployTaskParameters.getK8SManifestConfig(),
+          k8sTaskHelper.getHelmChartDetails(k8sBlueGreenDeployTaskParameters.getK8sDelegateManifestConfig(),
               k8sBlueGreenHandlerConfig.getManifestFilesDirectory());
       k8sBGBaseHandler.wrapUp(k8sDelegateTaskParams, wrapUpLogCallback, k8sBlueGreenHandlerConfig.getClient());
       final List<K8sPod> podList =
@@ -251,7 +251,7 @@ public class K8sBlueGreenDeployTaskHandler extends K8sTaskHandler {
           k8sBlueGreenHandlerConfig.getManifestFilesDirectory(), executionLogCallback);
 
       List<FileData> manifestFiles = k8sTaskHelper.renderTemplate(k8sDelegateTaskParams,
-          k8sBlueGreenDeployTaskParameters.getK8SManifestConfig(),
+          k8sBlueGreenDeployTaskParameters.getK8sDelegateManifestConfig(),
           k8sBlueGreenHandlerConfig.getManifestFilesDirectory(), k8sBlueGreenDeployTaskParameters.getValuesYamlList(),
           k8sBlueGreenHandlerConfig.getReleaseName(), kubernetesConfig.getNamespace(), executionLogCallback,
           k8sBlueGreenDeployTaskParameters);

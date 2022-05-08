@@ -36,7 +36,7 @@ import software.wings.beans.container.HelmChartSpecification;
 import software.wings.delegatetasks.delegatecapability.CapabilityHelper;
 import software.wings.delegatetasks.validation.capabilities.GitConnectionCapability;
 import software.wings.delegatetasks.validation.capabilities.HelmCommandCapability;
-import software.wings.helpers.ext.k8s.request.K8sManifestConfig;
+import software.wings.helpers.ext.k8s.request.K8sDelegateManifestConfig;
 import software.wings.service.impl.ContainerServiceParams;
 import software.wings.settings.SettingValue;
 
@@ -74,7 +74,7 @@ public class HelmCommandRequest implements TaskParameters, ActivityAccess, Execu
   @JsonIgnore private transient LogCallback executionLogCallback;
   @Expression(ALLOW_SECRETS) private String commandFlags;
   @Expression(ALLOW_SECRETS) private HelmCommandFlag helmCommandFlag;
-  private K8sManifestConfig repoConfig;
+  private K8sDelegateManifestConfig repoConfig;
   @Builder.Default private HelmVersion helmVersion = V2;
   private String ocPath;
   private String workingDir;

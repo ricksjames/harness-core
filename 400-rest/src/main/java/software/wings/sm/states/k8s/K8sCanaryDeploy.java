@@ -45,7 +45,7 @@ import software.wings.delegatetasks.aws.AwsCommandHelper;
 import software.wings.helpers.ext.container.ContainerDeploymentManagerHelper;
 import software.wings.helpers.ext.k8s.request.K8sCanaryDeployTaskParameters;
 import software.wings.helpers.ext.k8s.request.K8sCanaryDeployTaskParameters.K8sCanaryDeployTaskParametersBuilder;
-import software.wings.helpers.ext.k8s.request.K8sManifestConfig;
+import software.wings.helpers.ext.k8s.request.K8sDelegateManifestConfig;
 import software.wings.helpers.ext.k8s.request.K8sTaskParameters;
 import software.wings.helpers.ext.k8s.request.K8sValuesLocation;
 import software.wings.helpers.ext.k8s.response.K8sCanaryDeployResponse;
@@ -162,9 +162,9 @@ public class K8sCanaryDeploy extends AbstractK8sState {
     ContainerInfrastructureMapping infraMapping = k8sStateHelper.fetchContainerInfrastructureMapping(context);
     storePreviousHelmDeploymentInfo(context, appManifestMap.get(K8sValuesLocation.Service));
 
-    K8sManifestConfig k8SManifestConfig =
+    K8sDelegateManifestConfig k8sDelegateManifestConfig =
         createDelegateManifestConfig(context, appManifestMap.get(K8sValuesLocation.Service));
-    k8SManifestConfig.setShouldSaveManifest(shouldSaveManifest(context));
+    k8sDelegateManifestConfig.setShouldSaveManifest(shouldSaveManifest(context));
     K8sCanaryDeployTaskParametersBuilder builder = K8sCanaryDeployTaskParameters.builder();
 
     if (k8sStateHelper.isExportManifestsEnabled(context.getAccountId())) {
@@ -188,7 +188,7 @@ public class K8sCanaryDeploy extends AbstractK8sState {
             .instances(Integer.valueOf(context.renderExpression(this.instances)))
             .instanceUnitType(this.instanceUnitType)
             .timeoutIntervalInMin(stateTimeoutInMinutes)
-            .k8sDelegateManifestConfig(k8SManifestConfig)
+            .k8sDelegateManifestConfig(k8sDelegateManifestConfig)
             .valuesYamlList(fetchRenderedValuesFiles(appManifestMap, context))
             .skipDryRun(skipDryRun)
             .skipVersioningForAllK8sObjects(

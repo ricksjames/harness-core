@@ -65,7 +65,7 @@ import software.wings.beans.command.CommandUnit;
 import software.wings.common.VariableProcessor;
 import software.wings.expression.ManagerExpressionEvaluator;
 import software.wings.helpers.ext.k8s.request.K8sApplyTaskParameters;
-import software.wings.helpers.ext.k8s.request.K8sManifestConfig;
+import software.wings.helpers.ext.k8s.request.K8sDelegateManifestConfig;
 import software.wings.helpers.ext.k8s.request.K8sTaskParameters;
 import software.wings.helpers.ext.k8s.request.K8sValuesLocation;
 import software.wings.helpers.ext.k8s.response.K8sApplyResponse;
@@ -138,7 +138,7 @@ public class K8sApplyStateTest extends CategoryTest {
     when(k8sStateHelper.fetchContainerInfrastructureMapping(context))
         .thenReturn(aGcpKubernetesInfrastructureMapping().build());
     doReturn(RELEASE_NAME).when(k8sApplyState).fetchReleaseName(any(), any());
-    doReturn(K8sManifestConfig.builder().build())
+    doReturn(K8sDelegateManifestConfig.builder().build())
         .when(k8sApplyState)
         .createDelegateManifestConfig(any(), any());
     doReturn(emptyList()).when(k8sApplyState).fetchRenderedValuesFiles(any(), any());
@@ -178,7 +178,7 @@ public class K8sApplyStateTest extends CategoryTest {
     when(k8sStateHelper.fetchContainerInfrastructureMapping(context))
         .thenReturn(aGcpKubernetesInfrastructureMapping().build());
     doReturn(RELEASE_NAME).when(k8sApplyState).fetchReleaseName(any(), any());
-    doReturn(K8sManifestConfig.builder().build())
+    doReturn(K8sDelegateManifestConfig.builder().build())
         .when(k8sApplyState)
         .createDelegateManifestConfig(any(), any());
     doReturn(emptyList()).when(k8sApplyState).fetchRenderedValuesFiles(any(), any());
@@ -217,7 +217,7 @@ public class K8sApplyStateTest extends CategoryTest {
     when(k8sStateHelper.fetchContainerInfrastructureMapping(context))
         .thenReturn(aGcpKubernetesInfrastructureMapping().build());
     doReturn(RELEASE_NAME).when(k8sApplyState).fetchReleaseName(any(), any());
-    doReturn(K8sManifestConfig.builder().build())
+    doReturn(K8sDelegateManifestConfig.builder().build())
         .when(k8sApplyState)
         .createDelegateManifestConfig(any(), any());
     doReturn(emptyList()).when(k8sApplyState).fetchRenderedValuesFiles(any(), any());

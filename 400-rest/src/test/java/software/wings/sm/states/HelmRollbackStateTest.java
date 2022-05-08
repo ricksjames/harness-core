@@ -25,7 +25,7 @@ import software.wings.WingsBaseTest;
 import software.wings.beans.GitConfig;
 import software.wings.beans.container.HelmChartSpecification;
 import software.wings.helpers.ext.helm.request.HelmRollbackCommandRequest;
-import software.wings.helpers.ext.k8s.request.K8sManifestConfig;
+import software.wings.helpers.ext.k8s.request.K8sDelegateManifestConfig;
 import software.wings.service.impl.ContainerServiceParams;
 import software.wings.sm.ExecutionContext;
 import software.wings.utils.ApplicationManifestUtils;
@@ -69,6 +69,6 @@ public class HelmRollbackStateTest extends WingsBaseTest {
         HelmChartSpecification.builder().build(), ContainerServiceParams.builder().build(), "release-name",
         WingsTestConstants.ACCOUNT_ID, WingsTestConstants.APP_ID, WingsTestConstants.ACTIVITY_ID,
         ImageDetails.builder().build(), "repo", GitConfig.builder().build(), Collections.emptyList(), null,
-        K8sManifestConfig.builder().build(), Collections.emptyMap(), HelmVersion.V3, null);
+        K8sDelegateManifestConfig.builder().build(), Collections.emptyMap(), HelmVersion.V3, null);
   }
 }

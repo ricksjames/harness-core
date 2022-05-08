@@ -25,19 +25,19 @@ import lombok.NonNull;
 @OwnedBy(CDP)
 @TargetModule(HarnessModule._950_DELEGATE_TASKS_BEANS)
 public interface ManifestAwareTaskParams {
-  K8sManifestConfig getK8sDelegateManifestConfig();
+  K8sDelegateManifestConfig getK8sDelegateManifestConfig();
 
   @NonNull
-  default Set<String> getDelegateSelectorsFromConfigs(K8sManifestConfig k8SManifestConfig) {
+  default Set<String> getDelegateSelectorsFromConfigs(K8sDelegateManifestConfig k8sDelegateManifestConfig) {
     Set<String> delegateSelectors = new HashSet<>();
 
-    if (k8SManifestConfig != null) {
-      if (k8SManifestConfig.getGitConfig() != null
-          && isNotEmpty(k8SManifestConfig.getGitConfig().getDelegateSelectors())) {
-        delegateSelectors.addAll(k8SManifestConfig.getGitConfig().getDelegateSelectors());
+    if (k8sDelegateManifestConfig != null) {
+      if (k8sDelegateManifestConfig.getGitConfig() != null
+          && isNotEmpty(k8sDelegateManifestConfig.getGitConfig().getDelegateSelectors())) {
+        delegateSelectors.addAll(k8sDelegateManifestConfig.getGitConfig().getDelegateSelectors());
       }
-      if (k8SManifestConfig.getHelmChartConfigParams() != null) {
-        SettingValue connectorConfig = k8SManifestConfig.getHelmChartConfigParams().getConnectorConfig();
+      if (k8sDelegateManifestConfig.getHelmChartConfigParams() != null) {
+        SettingValue connectorConfig = k8sDelegateManifestConfig.getHelmChartConfigParams().getConnectorConfig();
         if (connectorConfig != null) {
           if (connectorConfig instanceof AwsConfig) {
             AwsConfig awsConfig = (AwsConfig) connectorConfig;

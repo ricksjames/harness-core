@@ -64,7 +64,7 @@ import software.wings.helpers.ext.helm.request.HelmChartCollectionParams;
 import software.wings.helpers.ext.helm.request.HelmChartConfigParams;
 import software.wings.helpers.ext.helm.request.HelmCommandRequest;
 import software.wings.helpers.ext.helm.request.HelmInstallCommandRequest;
-import software.wings.helpers.ext.k8s.request.K8sManifestConfig;
+import software.wings.helpers.ext.k8s.request.K8sDelegateManifestConfig;
 import software.wings.helpers.ext.k8s.request.K8sValuesLocation;
 import software.wings.service.intfc.security.EncryptionService;
 import software.wings.settings.SettingValue;
@@ -121,7 +121,7 @@ public class HelmTaskHelper {
     waitForDirectoryToBeAccessibleOutOfProcess(dest.getPath(), 10);
   }
 
-  public static void handleIncorrectConfiguration(K8sManifestConfig sourceRepoConfig) {
+  public static void handleIncorrectConfiguration(K8sDelegateManifestConfig sourceRepoConfig) {
     if (sourceRepoConfig == null) {
       throw new InvalidRequestException("Source Config can not be null", USER);
     }

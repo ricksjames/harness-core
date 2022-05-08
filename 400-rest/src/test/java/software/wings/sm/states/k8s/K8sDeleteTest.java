@@ -61,7 +61,7 @@ import software.wings.beans.command.CommandUnit;
 import software.wings.beans.command.K8sDummyCommandUnit;
 import software.wings.common.VariableProcessor;
 import software.wings.expression.ManagerExpressionEvaluator;
-import software.wings.helpers.ext.k8s.request.K8sManifestConfig;
+import software.wings.helpers.ext.k8s.request.K8sDelegateManifestConfig;
 import software.wings.helpers.ext.k8s.request.K8sDeleteTaskParameters;
 import software.wings.helpers.ext.k8s.request.K8sTaskParameters;
 import software.wings.helpers.ext.k8s.request.K8sValuesLocation;
@@ -233,7 +233,7 @@ public class K8sDeleteTest extends CategoryTest {
         .thenReturn(aGcpKubernetesInfrastructureMapping().build());
 
     doReturn(RELEASE_NAME).when(k8sDelete).fetchReleaseName(any(), any());
-    doReturn(K8sManifestConfig.builder().build()).when(k8sDelete).createDelegateManifestConfig(any(), any());
+    doReturn(K8sDelegateManifestConfig.builder().build()).when(k8sDelete).createDelegateManifestConfig(any(), any());
     doReturn(emptyList()).when(k8sDelete).fetchRenderedValuesFiles(any(), any());
     doReturn(ExecutionResponse.builder().build()).when(k8sDelete).queueK8sDelegateTask(any(), any(), any());
     ApplicationManifest applicationManifest =

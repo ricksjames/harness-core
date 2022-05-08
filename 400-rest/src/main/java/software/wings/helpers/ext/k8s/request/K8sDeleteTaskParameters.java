@@ -33,7 +33,7 @@ import lombok.EqualsAndHashCode;
 @TargetModule(_950_DELEGATE_TASKS_BEANS)
 @OwnedBy(CDP)
 public class K8sDeleteTaskParameters extends K8sTaskParameters implements ManifestAwareTaskParams {
-  @Expression(ALLOW_SECRETS) private K8sManifestConfig k8SManifestConfig;
+  @Expression(ALLOW_SECRETS) private K8sDelegateManifestConfig k8sDelegateManifestConfig;
   @Expression(ALLOW_SECRETS) private List<String> valuesYamlList;
   private String resources;
   private boolean deleteNamespacesForRelease;
@@ -41,15 +41,15 @@ public class K8sDeleteTaskParameters extends K8sTaskParameters implements Manife
 
   @Builder
   public K8sDeleteTaskParameters(String accountId, String appId, String commandName, String activityId,
-                                 K8sTaskType k8sTaskType, K8sClusterConfig k8sClusterConfig, String workflowExecutionId, String releaseName,
-                                 Integer timeoutIntervalInMin, K8sManifestConfig k8SManifestConfig, List<String> valuesYamlList,
-                                 String resources, boolean deleteNamespacesForRelease, HelmVersion helmVersion, String filePaths,
-                                 Set<String> delegateSelectors, boolean useLatestChartMuseumVersion, boolean useLatestKustomizeVersion,
-                                 boolean useNewKubectlVersion) {
+      K8sTaskType k8sTaskType, K8sClusterConfig k8sClusterConfig, String workflowExecutionId, String releaseName,
+      Integer timeoutIntervalInMin, K8sDelegateManifestConfig k8sDelegateManifestConfig, List<String> valuesYamlList,
+      String resources, boolean deleteNamespacesForRelease, HelmVersion helmVersion, String filePaths,
+      Set<String> delegateSelectors, boolean useLatestChartMuseumVersion, boolean useLatestKustomizeVersion,
+      boolean useNewKubectlVersion) {
     super(accountId, appId, commandName, activityId, k8sClusterConfig, workflowExecutionId, releaseName,
         timeoutIntervalInMin, k8sTaskType, helmVersion, delegateSelectors, useLatestChartMuseumVersion,
         useLatestKustomizeVersion, useNewKubectlVersion);
-    this.k8SManifestConfig = k8SManifestConfig;
+    this.k8sDelegateManifestConfig = k8sDelegateManifestConfig;
     this.valuesYamlList = valuesYamlList;
     this.resources = resources;
     this.filePaths = filePaths;
@@ -61,7 +61,7 @@ public class K8sDeleteTaskParameters extends K8sTaskParameters implements Manife
     List<ExecutionCapability> capabilities =
         new ArrayList<>(super.fetchRequiredExecutionCapabilities(maskingEvaluator));
 
-    Set<String> delegateSelectors = getDelegateSelectorsFromConfigs(k8SManifestConfig);
+    Set<String> delegateSelectors = getDelegateSelectorsFromConfigs(k8sDelegateManifestConfig);
     if (isNotEmpty(delegateSelectors)) {
       capabilities.add(SelectorCapability.builder().selectors(delegateSelectors).build());
     }

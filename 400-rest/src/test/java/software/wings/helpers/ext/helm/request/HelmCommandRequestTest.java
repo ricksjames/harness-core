@@ -25,7 +25,7 @@ import software.wings.WingsBaseTest;
 import software.wings.beans.AwsConfig;
 import software.wings.beans.GcpConfig;
 import software.wings.beans.GitConfig;
-import software.wings.helpers.ext.k8s.request.K8sManifestConfig;
+import software.wings.helpers.ext.k8s.request.K8sDelegateManifestConfig;
 import software.wings.service.impl.ContainerServiceParams;
 
 import java.util.Collections;
@@ -62,7 +62,7 @@ public class HelmCommandRequestTest extends WingsBaseTest {
     HelmInstallCommandRequest installCommandRequest =
         HelmInstallCommandRequest.builder()
             .sourceRepoConfig(
-                K8sManifestConfig.builder()
+                K8sDelegateManifestConfig.builder()
                     .helmChartConfigParams(
                         HelmChartConfigParams.builder()
                             .connectorConfig(GcpConfig.builder()
@@ -79,7 +79,7 @@ public class HelmCommandRequestTest extends WingsBaseTest {
 
     // delegate selector in aws config
     installCommandRequest.setRepoConfig(
-        K8sManifestConfig.builder()
+        K8sDelegateManifestConfig.builder()
             .helmChartConfigParams(HelmChartConfigParams.builder()
                                        .connectorConfig(AwsConfig.builder().tag("aws-delegagte").build())
                                        .build())
