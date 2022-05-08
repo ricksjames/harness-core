@@ -3,7 +3,8 @@ name: rule
 identifier: rule
 orgIdentifier: $orgIdentifier
 projectIdentifier: $projectIdentifier
-type: slo
+type: ServiceLevelObjective
 spec:
-  type: slo
-  errorBudgetRemainingPercentageThreshold: 10
+  - type: slo
+    specType: errorBudgetRemainingPercentage
+    threshold: 10

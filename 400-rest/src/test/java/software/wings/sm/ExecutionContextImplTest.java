@@ -11,6 +11,7 @@ import static io.harness.data.structure.UUIDGenerator.generateUuid;
 import static io.harness.rule.OwnerRule.ABOSII;
 import static io.harness.rule.OwnerRule.ANSHUL;
 import static io.harness.rule.OwnerRule.BRETT;
+import static io.harness.rule.OwnerRule.FERNANDOD;
 import static io.harness.rule.OwnerRule.GARVIT;
 import static io.harness.rule.OwnerRule.GEORGE;
 import static io.harness.rule.OwnerRule.HINGER;
@@ -97,7 +98,7 @@ import software.wings.beans.NameValuePair;
 import software.wings.beans.Service;
 import software.wings.beans.ServiceTemplate;
 import software.wings.beans.ServiceVariable;
-import software.wings.beans.ServiceVariable.Type;
+import software.wings.beans.ServiceVariableType;
 import software.wings.beans.SettingAttribute;
 import software.wings.beans.Variable;
 import software.wings.beans.appmanifest.HelmChart;
@@ -480,7 +481,7 @@ public class ExecutionContextImplTest extends WingsBaseTest {
 
     ServiceVariable serviceVariable = ServiceVariable.builder()
                                           .serviceId(svc.getUuid())
-                                          .type(Type.TEXT)
+                                          .type(ServiceVariableType.TEXT)
                                           .name("REV")
                                           .value("${artifact.buildNo}".toCharArray())
                                           .build();
@@ -569,7 +570,7 @@ public class ExecutionContextImplTest extends WingsBaseTest {
 
     ServiceVariable serviceVariable = ServiceVariable.builder()
                                           .serviceId(svc1.getUuid())
-                                          .type(Type.TEXT)
+                                          .type(ServiceVariableType.TEXT)
                                           .name(svcVarName)
                                           .value(svcVarValue.toCharArray())
                                           .build();
@@ -1263,5 +1264,43 @@ public class ExecutionContextImplTest extends WingsBaseTest {
 
     assertThat(stateName).isEqualTo("abc");
     assertThat(stateType).isEqualTo("SHELL_SCRIPT");
+  }
+
+  @Test
+  @Owner(developers = FERNANDOD)
+  @Category(UnitTests.class)
+  public void shouldNormalizeStateNameWithParentheses() {
+    ExecutionContextImpl executionContext = createExecutionContextToNormalizeStateName();
+    assertThat(executionContext.normalizeStateName("Refresh (http)")).isEqualTo("Refresh____http__");
+  }
+
+  @Test
+  @Owner(developers = FERNANDOD)
+  @Category(UnitTests.class)
+  public void shouldNormalizeStateNameWithDash() {
+    ExecutionContextImpl executionContext = createExecutionContextToNormalizeStateName();
+    assertThat(executionContext.normalizeStateName("Refresh em-ma")).isEqualTo("Refresh__em__ma");
+  }
+
+  @Test
+  @Owner(developers = FERNANDOD)
+  @Category(UnitTests.class)
+  public void shouldNormalizeStateName() {
+    // [\\(\\)-+*/\\\\ &$\"'.|]
+    ExecutionContextImpl executionContext = createExecutionContextToNormalizeStateName();
+    // VALIDATE . &
+    assertThat(executionContext.normalizeStateName("1. Drop & Copy")).isEqualTo("1____Drop______Copy");
+    // VALIDATE $ | ' /
+    assertThat(executionContext.normalizeStateName("$MONEY | NOTHING / I'LL"))
+        .isEqualTo("__MONEY______NOTHING______I__LL");
+    // VALIDATE + * \ "
+    assertThat(executionContext.normalizeStateName("1+1=2 \\ 2*0=0 \\ \"CORRECT\""))
+        .isEqualTo("1__1=2______2__0=0________CORRECT__");
+  }
+
+  private ExecutionContextImpl createExecutionContextToNormalizeStateName() {
+    StateExecutionInstance stateExecutionInstance = new StateExecutionInstance();
+    ExecutionContextImpl executionContext = new ExecutionContextImpl(stateExecutionInstance);
+    return executionContext;
   }
 }
