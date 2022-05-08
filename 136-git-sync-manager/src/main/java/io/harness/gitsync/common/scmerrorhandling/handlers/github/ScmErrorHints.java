@@ -5,7 +5,7 @@
  * https://polyformproject.org/wp-content/uploads/2020/05/PolyForm-Free-Trial-1.0.0.txt.
  */
 
-package io.harness.gitsync.common.scmerrorhandling.exceptions.bitbucket;
+package io.harness.gitsync.common.scmerrorhandling.handlers.github;
 
 import static io.harness.annotations.dev.HarnessTeam.PL;
 
@@ -15,7 +15,9 @@ import lombok.experimental.UtilityClass;
 
 @UtilityClass
 @OwnedBy(PL)
-public class BitbucketScmExceptionHints {
-  public static final String INVALID_CREDENTIALS = "Please check your bitbucket credentials.";
-  public static final String REPO_NOT_FOUND = "Please check your bitbucket repository.";
+public class ScmErrorHints {
+  public static final String INVALID_CREDENTIALS = "Please check your Github credentials if they are valid or not.";
+  public static final String REPO_NOT_FOUND = "Please check if requested Github repository exists or not.";
+  public static final String FILE_NOT_FOUND =
+      "Please check the requested file path / branch / Github repo name if they exist or not.";
 }

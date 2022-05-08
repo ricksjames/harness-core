@@ -5,7 +5,7 @@
  * https://polyformproject.org/wp-content/uploads/2020/05/PolyForm-Free-Trial-1.0.0.txt.
  */
 
-package io.harness.gitsync.common.scmerrorhandling.exceptions.github;
+package io.harness.gitsync.common.scmerrorhandling.handlers.github;
 
 import static io.harness.annotations.dev.HarnessTeam.PL;
 
@@ -15,7 +15,8 @@ import lombok.experimental.UtilityClass;
 
 @UtilityClass
 @OwnedBy(PL)
-public class GithubScmExceptionHints {
-  public static final String INVALID_CREDENTIALS = "Please check your github credentials.";
-  public static final String REPO_NOT_FOUND = "Please check your github repository.";
+public class ScmErrorExplanations {
+  public static final String FILE_NOT_FOUND = "The requested file path doesn't exist in git. Possible reasons can be:\n"
+      + "1. The requested file path doesn't exist for given branch and repo\n"
+      + "2. The given branch or repo is invalid";
 }

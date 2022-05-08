@@ -16,8 +16,6 @@ import io.harness.exception.ScmException;
 import io.harness.exception.ScmResourceNotFoundException;
 import io.harness.exception.ScmUnauthorizedException;
 import io.harness.exception.WingsException;
-import io.harness.gitsync.common.scmerrorhandling.exceptions.github.GithubScmExceptionExplanations;
-import io.harness.gitsync.common.scmerrorhandling.exceptions.github.GithubScmExceptionHints;
 import io.harness.gitsync.common.scmerrorhandling.handlers.ScmApiErrorHandler;
 
 import lombok.extern.slf4j.Slf4j;
@@ -25,17 +23,21 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @OwnedBy(PL)
 public class GithubListBranchesScmApiErrorHandler implements ScmApiErrorHandler {
+  public static final String LIST_BRANCH_WITH_INVALID_CREDS =
+      "Couldn't list branches from Github as the credentials provided in the connector are invalid or have expired.";
+  public static final String LIST_BRANCH_WHEN_REPO_NOT_EXIST =
+      "Couldn't list branches as given Github repo does not exist or has been deleted.";
+
   @Override
   public void handleError(int statusCode, String errorMessage) throws WingsException {
     switch (statusCode) {
       case 401:
       case 403:
-        throw NestedExceptionUtils.hintWithExplanationException(GithubScmExceptionHints.INVALID_CREDENTIALS,
-            GithubScmExceptionExplanations.LIST_BRANCH_WITH_INVALID_CRED, new ScmUnauthorizedException(errorMessage));
+        throw NestedExceptionUtils.hintWithExplanationException(ScmErrorHints.INVALID_CREDENTIALS,
+            LIST_BRANCH_WITH_INVALID_CREDS, new ScmUnauthorizedException(errorMessage));
       case 404:
-        throw NestedExceptionUtils.hintWithExplanationException(GithubScmExceptionHints.REPO_NOT_FOUND,
-            GithubScmExceptionExplanations.LIST_BRANCH_WHEN_REPO_NOT_EXIST,
-            new ScmResourceNotFoundException(errorMessage));
+        throw NestedExceptionUtils.hintWithExplanationException(ScmErrorHints.REPO_NOT_FOUND,
+            LIST_BRANCH_WHEN_REPO_NOT_EXIST, new ScmResourceNotFoundException(errorMessage));
       default:
         log.error(String.format("Error while listing github branches: [%s: %s]", statusCode, errorMessage));
         throw new ScmException(UNEXPECTED);
