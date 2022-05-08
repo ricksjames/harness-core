@@ -62,8 +62,8 @@ public class LogDashboardServiceImpl implements LogDashboardService {
   @Inject private CVNGParallelExecutor cvngParallelExecutor;
   @Inject private VerificationTaskService verificationTaskService;
 
-  @Deprecated
   @Override
+  @Deprecated
   public PageResponse<AnalyzedLogDataDTO> getAllLogsData(MonitoredServiceParams monitoredServiceParams,
       TimeRangeParams timeRangeParams, LiveMonitoringLogAnalysisFilter liveMonitoringLogAnalysisFilter,
       PageParams pageParams) {
@@ -103,12 +103,10 @@ public class LogDashboardServiceImpl implements LogDashboardService {
         monitoredServiceParams.getServiceIdentifier(), monitoredServiceParams.getEnvironmentIdentifier(), tags,
         timeRangeParams.getStartTime(), timeRangeParams.getEndTime(), cvConfigIds, pageParams.getPage(),
         pageParams.getSize(), monitoredServiceLogAnalysisFilter);
-
-    // Add filering for angle and id in getradarchartlog.
   }
 
-  @Deprecated
   @Override
+  @Deprecated
   public List<LiveMonitoringLogAnalysisClusterDTO> getLogAnalysisClusters(MonitoredServiceParams monitoredServiceParams,
       TimeRangeParams timeRangeParams, LiveMonitoringLogAnalysisFilter liveMonitoringLogAnalysisFilter) {
     List<LiveMonitoringLogAnalysisClusterDTO> liveMonitoringLogAnalysisClusterDTOS = new ArrayList<>();
@@ -205,6 +203,7 @@ public class LogDashboardServiceImpl implements LogDashboardService {
 
     List<LiveMonitoringLogAnalysisRadarChartClusterDTO> sortedList =
         liveMonitoringLogAnalysisRadarChartClusterDTOS.stream()
+            .filter(cluster -> tags.contains(cluster.getClusterType()))
             .sorted(Comparator.comparing(LiveMonitoringLogAnalysisRadarChartClusterDTO::getClusterId))
             .collect(Collectors.toList());
 
@@ -214,12 +213,13 @@ public class LogDashboardServiceImpl implements LogDashboardService {
                            -> liveMonitoringLogAnalysisRadarChartClusterDTO.getClusterId().equals(
                                monitoredServiceLogAnalysisFilter.getClusterId()))
                        .collect(Collectors.toList());
-      Preconditions.checkState(liveMonitoringLogAnalysisRadarChartClusterDTOS.size() <= 1,
-          "clusterId filter should result in one or zero cluster");
+      Preconditions.checkState(sortedList.size() <= 1, "clusterId filter should result in one or zero cluster");
     }
 
-    setAngleAndRadiusForRadarChartCluster(
-        sortedList.stream().filter(cluster -> tags.contains(cluster.getClusterType())).collect(Collectors.toList()));
+    if (sortedList.size() > 0) {
+      setAngleAndRadiusForRadarChartCluster(
+          sortedList.stream().filter(cluster -> tags.contains(cluster.getClusterType())).collect(Collectors.toList()));
+    }
 
     return filterClusterByAngle(sortedList, monitoredServiceLogAnalysisFilter);
   }
@@ -375,7 +375,6 @@ public class LogDashboardServiceImpl implements LogDashboardService {
         cvngParallelExecutor.executeParallel(logDataCallables);
     logDataResults.forEach(result -> logDataToBeReturned.addAll(result));
 
-    // sorting.
     List<AnalyzedRadarChartLogDataDTO> sortedList = new ArrayList<>();
     // create the sorted set first. Then form the page response.
     logDataToBeReturned.stream()
@@ -393,7 +392,6 @@ public class LogDashboardServiceImpl implements LogDashboardService {
             .sorted(Comparator.comparing(x -> x.getLogData().getClusterId()))
             .collect(Collectors.toList());
 
-    // before sorting set radius and angle so that filtering based on angle remove the correct things.
     if (monitoredServiceLogAnalysisFilter.hasClusterIdFilter()) {
       sortedAnalyzedRadarChartLogDataDTOS = sortedAnalyzedRadarChartLogDataDTOS.stream()
                                                 .filter(analyzedRadarChartLogDataDTO
@@ -404,11 +402,13 @@ public class LogDashboardServiceImpl implements LogDashboardService {
           sortedAnalyzedRadarChartLogDataDTOS.size() <= 1, "clusterId filter should result in one or zero cluster");
     }
 
-    setAngleAndRadiusForRadarChartData(
-        sortedAnalyzedRadarChartLogDataDTOS.stream()
-            .filter(analyzedRadarChartLogDataDTO
-                -> tags.contains(analyzedRadarChartLogDataDTO.getLogData().getClusterType()))
-            .collect(Collectors.toList()));
+    if (sortedAnalyzedRadarChartLogDataDTOS.size() > 0) {
+      setAngleAndRadiusForRadarChartData(
+          sortedAnalyzedRadarChartLogDataDTOS.stream()
+              .filter(analyzedRadarChartLogDataDTO
+                  -> tags.contains(analyzedRadarChartLogDataDTO.getLogData().getClusterType()))
+              .collect(Collectors.toList()));
+    }
 
     sortedAnalyzedRadarChartLogDataDTOS =
         filterDataByAngle(sortedAnalyzedRadarChartLogDataDTOS, monitoredServiceLogAnalysisFilter);
@@ -486,11 +486,13 @@ public class LogDashboardServiceImpl implements LogDashboardService {
       if (LogAnalysisTag.getAnomalousTags().contains(analysisResult.getTag())) {
         analysisResult.setRiskScore(1.0);
       }
+
       AnalyzedRadarChartLogDataDTO.LogData data =
           AnalyzedRadarChartLogDataDTO.LogData.builder()
               .text(cluster.getText())
               .label(cluster.getLabel())
-              .clusterId(UUID.nameUUIDFromBytes((cluster.getVerificationTaskId() + ":" + cluster.getLabel()).getBytes())
+              .clusterId(UUID.nameUUIDFromBytes(
+                                 (cluster.getVerificationTaskId() + ":" + cluster.getLabel()).getBytes(Charsets.UTF_8))
                              .toString())
               .count(trendMap.values().stream().collect(Collectors.summingInt(Integer::intValue)))
               .trend(frequencies)
