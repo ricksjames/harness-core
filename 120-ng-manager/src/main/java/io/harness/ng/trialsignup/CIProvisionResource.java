@@ -20,6 +20,7 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
+import java.util.List;
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -57,6 +58,15 @@ public class CIProvisionResource {
   @ApiOperation(value = "Provision resources for signup", nickname = "getDelegateInstallStatus")
   public ResponseDTO<ProvisionResponse.DelegateStatus> getDelegateInstallStatus(
       @NotNull @QueryParam(NGCommonEntityConstants.ACCOUNT_KEY) String accountId) {
-    return null;
+    return ResponseDTO.newResponse(provisionService.getDelegateInstallStatus(accountId));
+  }
+
+  @GET
+  @Path("fetch-repo-list")
+  @ApiOperation(value = "Get all repositories of the user from scm", nickname = "getAllUserRepos")
+  public ResponseDTO<List<UserRepoResponse>> getAllUserRepos(
+      @NotNull @QueryParam(NGCommonEntityConstants.ACCOUNT_KEY) String accountId,
+      @NotNull @QueryParam("repoRef") String repoRef) {
+    return ResponseDTO.newResponse(provisionService.getAllUserRepos(accountId, repoRef));
   }
 }
