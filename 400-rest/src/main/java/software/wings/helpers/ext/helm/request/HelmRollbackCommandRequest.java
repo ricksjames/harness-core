@@ -20,7 +20,7 @@ import io.harness.security.encryption.EncryptedDataDetail;
 import software.wings.beans.GitConfig;
 import software.wings.beans.GitFileConfig;
 import software.wings.beans.container.HelmChartSpecification;
-import software.wings.helpers.ext.k8s.request.K8sDelegateManifestConfig;
+import software.wings.helpers.ext.k8s.request.K8sManifestConfig;
 import software.wings.service.impl.ContainerServiceParams;
 
 import java.util.List;
@@ -47,14 +47,14 @@ public class HelmRollbackCommandRequest extends HelmCommandRequest {
 
   @Builder
   public HelmRollbackCommandRequest(String accountId, String appId, String kubeConfigLocation, String commandName,
-      String activityId, ContainerServiceParams containerServiceParams, String releaseName, int newReleaseVersion,
-      int prevReleaseVersion, int rollbackVersion, long timeoutInMillis, HelmChartSpecification chartSpecification,
-      String repoName, GitConfig gitConfig, List<EncryptedDataDetail> encryptedDataDetails,
-      LogCallback executionLogCallback, String commandFlags, HelmCommandFlag helmCommandFlag,
-      K8sDelegateManifestConfig sourceRepoConfig, HelmVersion helmVersion, String ocPath, String workingDir,
-      GitFileConfig gitFileConfig, List<String> variableOverridesYamlFiles, boolean k8SteadyStateCheckEnabled,
-      boolean mergeCapabilities, boolean isGitHostConnectivityCheck, boolean useLatestChartMuseumVersion,
-      boolean useNewKubectlVersion) {
+                                    String activityId, ContainerServiceParams containerServiceParams, String releaseName, int newReleaseVersion,
+                                    int prevReleaseVersion, int rollbackVersion, long timeoutInMillis, HelmChartSpecification chartSpecification,
+                                    String repoName, GitConfig gitConfig, List<EncryptedDataDetail> encryptedDataDetails,
+                                    LogCallback executionLogCallback, String commandFlags, HelmCommandFlag helmCommandFlag,
+                                    K8sManifestConfig sourceRepoConfig, HelmVersion helmVersion, String ocPath, String workingDir,
+                                    GitFileConfig gitFileConfig, List<String> variableOverridesYamlFiles, boolean k8SteadyStateCheckEnabled,
+                                    boolean mergeCapabilities, boolean isGitHostConnectivityCheck, boolean useLatestChartMuseumVersion,
+                                    boolean useNewKubectlVersion) {
     super(HelmCommandType.ROLLBACK, accountId, appId, kubeConfigLocation, commandName, activityId,
         containerServiceParams, releaseName, chartSpecification, repoName, gitConfig, encryptedDataDetails,
         executionLogCallback, commandFlags, helmCommandFlag, sourceRepoConfig, helmVersion, ocPath, workingDir,

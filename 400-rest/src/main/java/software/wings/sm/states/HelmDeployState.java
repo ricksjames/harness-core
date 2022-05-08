@@ -141,7 +141,7 @@ import software.wings.helpers.ext.helm.response.HelmInstallCommandResponse;
 import software.wings.helpers.ext.helm.response.HelmReleaseHistoryCommandResponse;
 import software.wings.helpers.ext.helm.response.HelmValuesFetchTaskResponse;
 import software.wings.helpers.ext.helm.response.ReleaseInfo;
-import software.wings.helpers.ext.k8s.request.K8sDelegateManifestConfig;
+import software.wings.helpers.ext.k8s.request.K8sManifestConfig;
 import software.wings.helpers.ext.k8s.request.K8sValuesLocation;
 import software.wings.service.impl.ContainerServiceParams;
 import software.wings.service.impl.GitConfigHelperService;
@@ -458,11 +458,11 @@ public class HelmDeployState extends State {
   }
 
   protected HelmCommandRequest getHelmCommandRequest(ExecutionContext context,
-      HelmChartSpecification helmChartSpecification, ContainerServiceParams containerServiceParams, String releaseName,
-      String accountId, String appId, String activityId, ImageDetails imageDetails, String repoName,
-      GitConfig gitConfig, List<EncryptedDataDetail> encryptedDataDetails, String commandFlags,
-      K8sDelegateManifestConfig manifestConfig, Map<K8sValuesLocation, ApplicationManifest> appManifestMap,
-      HelmVersion helmVersion, HelmCommandFlag helmCommandFlag) {
+                                                     HelmChartSpecification helmChartSpecification, ContainerServiceParams containerServiceParams, String releaseName,
+                                                     String accountId, String appId, String activityId, ImageDetails imageDetails, String repoName,
+                                                     GitConfig gitConfig, List<EncryptedDataDetail> encryptedDataDetails, String commandFlags,
+                                                     K8sManifestConfig manifestConfig, Map<K8sValuesLocation, ApplicationManifest> appManifestMap,
+                                                     HelmVersion helmVersion, HelmCommandFlag helmCommandFlag) {
     List<String> helmValueOverridesYamlFilesEvaluated =
         getValuesYamlOverrides(context, containerServiceParams, imageDetails, appManifestMap);
 
@@ -996,7 +996,7 @@ public class HelmDeployState extends State {
     HelmChartSpecification helmChartSpecification =
         serviceResourceService.getHelmChartSpecification(context.getAppId(), serviceElement.getUuid());
 
-    K8sDelegateManifestConfig manifestConfig = null;
+    K8sManifestConfig manifestConfig = null;
     ApplicationManifest appManifest = applicationManifestService.getAppManifest(
         app.getUuid(), null, serviceElement.getUuid(), AppManifestKind.K8S_MANIFEST);
 
@@ -1022,7 +1022,7 @@ public class HelmDeployState extends State {
           if (null != sourceRepoGitConfig) {
             gitConfigHelperService.convertToRepoGitConfig(sourceRepoGitConfig, sourceRepoGitFileConfig.getRepoName());
           }
-          manifestConfig = K8sDelegateManifestConfig.builder()
+          manifestConfig = K8sManifestConfig.builder()
                                .gitFileConfig(sourceRepoGitFileConfig)
                                .gitConfig(sourceRepoGitConfig)
                                .encryptedDataDetails(fetchEncryptedDataDetail(context, sourceRepoGitConfig))
@@ -1061,7 +1061,7 @@ public class HelmDeployState extends State {
             helmChartConfigTaskParams.setCheckIncorrectChartVersion(
                 featureFlagService.isEnabled(HELM_CHART_VERSION_STRICT_MATCH, context.getAccountId()));
 
-            manifestConfig = K8sDelegateManifestConfig.builder()
+            manifestConfig = K8sManifestConfig.builder()
                                  .helmChartConfigParams(helmChartConfigTaskParams)
                                  .manifestStoreTypes(HelmChartRepo)
                                  .helmCommandFlag(helmCommandFlag)
@@ -1080,7 +1080,7 @@ public class HelmDeployState extends State {
                             ? null
                             : helmDeployStateExecutionData.getZippedManifestFileId())
                     .build();
-            manifestConfig = K8sDelegateManifestConfig.builder()
+            manifestConfig = K8sManifestConfig.builder()
                                  .customManifestEnabled(true)
                                  .customManifestSource(customManifestSource)
                                  .manifestStoreTypes(CUSTOM)
@@ -1633,7 +1633,7 @@ public class HelmDeployState extends State {
   }
 
   private void setHelmExecutionSummary(ExecutionContext context, String releaseName,
-      HelmChartSpecification helmChartSpec, K8sDelegateManifestConfig repoConfig) {
+      HelmChartSpecification helmChartSpec, K8sManifestConfig repoConfig) {
     try {
       if (!HELM_DEPLOY.name().equals(this.getStateType())) {
         return;

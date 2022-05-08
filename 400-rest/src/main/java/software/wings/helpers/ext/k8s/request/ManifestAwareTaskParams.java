@@ -25,10 +25,10 @@ import lombok.NonNull;
 @OwnedBy(CDP)
 @TargetModule(HarnessModule._950_DELEGATE_TASKS_BEANS)
 public interface ManifestAwareTaskParams {
-  K8sDelegateManifestConfig getK8sDelegateManifestConfig();
+  K8sManifestConfig getK8sDelegateManifestConfig();
 
   @NonNull
-  default Set<String> getDelegateSelectorsFromConfigs(K8sDelegateManifestConfig k8sDelegateManifestConfig) {
+  default Set<String> getDelegateSelectorsFromConfigs(K8sManifestConfig k8sDelegateManifestConfig) {
     Set<String> delegateSelectors = new HashSet<>();
 
     if (k8sDelegateManifestConfig != null) {

@@ -69,7 +69,7 @@ import software.wings.beans.Service;
 import software.wings.beans.appmanifest.AppManifestKind;
 import software.wings.beans.appmanifest.ApplicationManifest;
 import software.wings.beans.command.CommandUnit;
-import software.wings.helpers.ext.k8s.request.K8sDelegateManifestConfig;
+import software.wings.helpers.ext.k8s.request.K8sManifestConfig;
 import software.wings.helpers.ext.k8s.request.K8sRollingDeployTaskParameters;
 import software.wings.helpers.ext.k8s.request.K8sTaskParameters;
 import software.wings.helpers.ext.k8s.request.K8sValuesLocation;
@@ -133,7 +133,7 @@ public class K8sRollingDeployTest extends CategoryTest {
         .thenReturn(aGcpKubernetesInfrastructureMapping().build());
 
     doReturn(RELEASE_NAME).when(k8sRollingDeploy).fetchReleaseName(any(), any());
-    doReturn(K8sDelegateManifestConfig.builder().build())
+    doReturn(K8sManifestConfig.builder().build())
         .when(k8sRollingDeploy)
         .createDelegateManifestConfig(any(), any());
     doReturn(emptyList()).when(k8sRollingDeploy).fetchRenderedValuesFiles(any(), any());
@@ -173,7 +173,7 @@ public class K8sRollingDeployTest extends CategoryTest {
 
     doReturn(null).when(k8sStateHelper).getResourcesFromSweepingOutput(any(), anyString());
     doReturn(true).when(k8sStateHelper).isExportManifestsEnabled(any());
-    doReturn(K8sDelegateManifestConfig.builder().build())
+    doReturn(K8sManifestConfig.builder().build())
         .when(k8sRollingDeploy)
         .createDelegateManifestConfig(any(), any());
     doReturn(emptyList()).when(k8sRollingDeploy).fetchRenderedValuesFiles(any(), any());
@@ -203,7 +203,7 @@ public class K8sRollingDeployTest extends CategoryTest {
     doReturn(true).when(k8sStateHelper).isExportManifestsEnabled(any());
     doReturn(kubernetesResources).when(k8sStateHelper).getResourcesFromSweepingOutput(any(), anyString());
     doReturn(RELEASE_NAME).when(k8sRollingDeploy).fetchReleaseName(any(), any());
-    doReturn(K8sDelegateManifestConfig.builder().build())
+    doReturn(K8sManifestConfig.builder().build())
         .when(k8sRollingDeploy)
         .createDelegateManifestConfig(any(), any());
     doReturn(emptyList()).when(k8sRollingDeploy).fetchRenderedValuesFiles(any(), any());
@@ -240,7 +240,7 @@ public class K8sRollingDeployTest extends CategoryTest {
     when(k8sStateHelper.fetchContainerInfrastructureMapping(context))
         .thenReturn(aGcpKubernetesInfrastructureMapping().build());
     doReturn(RELEASE_NAME).when(k8sRollingDeploy).fetchReleaseName(any(), any());
-    doReturn(K8sDelegateManifestConfig.builder().build())
+    doReturn(K8sManifestConfig.builder().build())
         .when(k8sRollingDeploy)
         .createDelegateManifestConfig(any(), any());
     doReturn(emptyList()).when(k8sRollingDeploy).fetchRenderedValuesFiles(any(), any());

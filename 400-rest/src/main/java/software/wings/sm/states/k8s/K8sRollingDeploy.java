@@ -40,7 +40,7 @@ import software.wings.beans.Application;
 import software.wings.beans.ContainerInfrastructureMapping;
 import software.wings.beans.appmanifest.ApplicationManifest;
 import software.wings.beans.command.CommandUnit;
-import software.wings.helpers.ext.k8s.request.K8sDelegateManifestConfig;
+import software.wings.helpers.ext.k8s.request.K8sManifestConfig;
 import software.wings.helpers.ext.k8s.request.K8sRollingDeployTaskParameters;
 import software.wings.helpers.ext.k8s.request.K8sRollingDeployTaskParameters.K8sRollingDeployTaskParametersBuilder;
 import software.wings.helpers.ext.k8s.request.K8sTaskParameters;
@@ -144,7 +144,7 @@ public class K8sRollingDeploy extends AbstractK8sState {
       inCanaryFlow = k8sElement.isCanary();
     }
 
-    K8sDelegateManifestConfig k8sDelegateManifestConfig =
+    K8sManifestConfig k8sDelegateManifestConfig =
         createDelegateManifestConfig(context, appManifestMap.get(K8sValuesLocation.Service));
     k8sDelegateManifestConfig.setShouldSaveManifest(shouldSaveManifest(context));
 

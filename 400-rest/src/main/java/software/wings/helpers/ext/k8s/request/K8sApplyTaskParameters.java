@@ -34,7 +34,7 @@ import lombok.EqualsAndHashCode;
 @TargetModule(HarnessModule._950_DELEGATE_TASKS_BEANS)
 @OwnedBy(CDP)
 public class K8sApplyTaskParameters extends K8sTaskParameters implements ManifestAwareTaskParams {
-  @Expression(ALLOW_SECRETS) private K8sDelegateManifestConfig k8sDelegateManifestConfig;
+  @Expression(ALLOW_SECRETS) private K8sManifestConfig k8sDelegateManifestConfig;
   @Expression(ALLOW_SECRETS) private List<String> valuesYamlList;
 
   private String filePaths;
@@ -47,12 +47,12 @@ public class K8sApplyTaskParameters extends K8sTaskParameters implements Manifes
 
   @Builder
   public K8sApplyTaskParameters(String accountId, String appId, String commandName, String activityId,
-      K8sTaskType k8sTaskType, K8sClusterConfig k8sClusterConfig, String workflowExecutionId, String releaseName,
-      Integer timeoutIntervalInMin, K8sDelegateManifestConfig k8sDelegateManifestConfig, List<String> valuesYamlList,
-      String filePaths, boolean skipSteadyStateCheck, boolean skipDryRun, HelmVersion helmVersion,
-      Set<String> delegateSelectors, boolean skipRendering, boolean exportManifests, boolean inheritManifests,
-      List<KubernetesResource> kubernetesResources, boolean useLatestChartMuseumVersion,
-      boolean useLatestKustomizeVersion, boolean useNewKubectlVersion) {
+                                K8sTaskType k8sTaskType, K8sClusterConfig k8sClusterConfig, String workflowExecutionId, String releaseName,
+                                Integer timeoutIntervalInMin, K8sManifestConfig k8sDelegateManifestConfig, List<String> valuesYamlList,
+                                String filePaths, boolean skipSteadyStateCheck, boolean skipDryRun, HelmVersion helmVersion,
+                                Set<String> delegateSelectors, boolean skipRendering, boolean exportManifests, boolean inheritManifests,
+                                List<KubernetesResource> kubernetesResources, boolean useLatestChartMuseumVersion,
+                                boolean useLatestKustomizeVersion, boolean useNewKubectlVersion) {
     super(accountId, appId, commandName, activityId, k8sClusterConfig, workflowExecutionId, releaseName,
         timeoutIntervalInMin, k8sTaskType, helmVersion, delegateSelectors, useLatestChartMuseumVersion,
         useLatestKustomizeVersion, useNewKubectlVersion);

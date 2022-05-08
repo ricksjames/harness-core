@@ -65,7 +65,7 @@ import software.wings.delegatetasks.k8s.K8sTestHelper;
 import software.wings.helpers.ext.container.ContainerDeploymentDelegateHelper;
 import software.wings.helpers.ext.k8s.request.K8sApplyTaskParameters;
 import software.wings.helpers.ext.k8s.request.K8sClusterConfig;
-import software.wings.helpers.ext.k8s.request.K8sDelegateManifestConfig;
+import software.wings.helpers.ext.k8s.request.K8sManifestConfig;
 import software.wings.helpers.ext.k8s.request.K8sTaskParameters;
 import software.wings.helpers.ext.k8s.response.K8sApplyResponse;
 import software.wings.helpers.ext.k8s.response.K8sTaskExecutionResponse;
@@ -165,7 +165,7 @@ public class K8sApplyTaskHandlerTest extends WingsBaseTest {
     doReturn(false)
         .when(k8sTaskHelper)
         .fetchManifestFilesAndWriteToDirectory(
-            any(K8sDelegateManifestConfig.class), anyString(), any(ExecutionLogCallback.class), anyLong());
+            any(K8sManifestConfig.class), anyString(), any(ExecutionLogCallback.class), anyLong());
 
     final K8sTaskExecutionResponse response =
         k8sApplyTaskHandler.executeTask(K8sApplyTaskParameters.builder().releaseName("release-name").build(),
@@ -201,7 +201,7 @@ public class K8sApplyTaskHandlerTest extends WingsBaseTest {
         K8sDelegateTaskParams.builder().build(), Mockito.mock(ExecutionLogCallback.class));
 
     verify(k8sTaskHelper, times(1))
-        .getResourcesFromManifests(any(K8sDelegateTaskParams.class), any(K8sDelegateManifestConfig.class), anyString(),
+        .getResourcesFromManifests(any(K8sDelegateTaskParams.class), any(K8sManifestConfig.class), anyString(),
             eq(asList("a", "b", "c")), anyList(), anyString(), anyString(), any(ExecutionLogCallback.class),
             any(K8sTaskParameters.class), eq(true));
 
@@ -209,7 +209,7 @@ public class K8sApplyTaskHandlerTest extends WingsBaseTest {
         K8sDelegateTaskParams.builder().build(), Mockito.mock(ExecutionLogCallback.class));
 
     verify(k8sTaskHelper, times(1))
-        .getResourcesFromManifests(any(K8sDelegateTaskParams.class), any(K8sDelegateManifestConfig.class), anyString(),
+        .getResourcesFromManifests(any(K8sDelegateTaskParams.class), any(K8sManifestConfig.class), anyString(),
             eq(asList("a")), anyList(), anyString(), anyString(), any(ExecutionLogCallback.class),
             any(K8sTaskParameters.class), anyBoolean());
 
@@ -217,7 +217,7 @@ public class K8sApplyTaskHandlerTest extends WingsBaseTest {
         K8sDelegateTaskParams.builder().build(), Mockito.mock(ExecutionLogCallback.class));
 
     verify(k8sTaskHelper, times(1))
-        .getResourcesFromManifests(any(K8sDelegateTaskParams.class), any(K8sDelegateManifestConfig.class), anyString(),
+        .getResourcesFromManifests(any(K8sDelegateTaskParams.class), any(K8sManifestConfig.class), anyString(),
             eq(asList("b")), anyList(), anyString(), anyString(), any(ExecutionLogCallback.class),
             any(K8sTaskParameters.class), anyBoolean());
   }
@@ -232,7 +232,7 @@ public class K8sApplyTaskHandlerTest extends WingsBaseTest {
 
     doReturn(asList(ManifestFile.builder().build()))
         .when(k8sTaskHelper)
-        .renderTemplateForGivenFiles(any(K8sDelegateTaskParams.class), any(K8sDelegateManifestConfig.class),
+        .renderTemplateForGivenFiles(any(K8sDelegateTaskParams.class), any(K8sManifestConfig.class),
             anyString(), eq(asList("a", "b", "c")), anyList(), anyString(), anyString(),
             any(ExecutionLogCallback.class), any(K8sTaskParameters.class), anyBoolean());
 
@@ -255,7 +255,7 @@ public class K8sApplyTaskHandlerTest extends WingsBaseTest {
     doReturn(true)
         .when(k8sTaskHelper)
         .fetchManifestFilesAndWriteToDirectory(
-            any(K8sDelegateManifestConfig.class), anyString(), any(ExecutionLogCallback.class), anyLong());
+            any(K8sManifestConfig.class), anyString(), any(ExecutionLogCallback.class), anyLong());
     doReturn(false).when(handler).init(
         any(K8sApplyTaskParameters.class), any(K8sDelegateTaskParams.class), any(ExecutionLogCallback.class));
 
@@ -284,7 +284,7 @@ public class K8sApplyTaskHandlerTest extends WingsBaseTest {
     doReturn(true)
         .when(k8sTaskHelper)
         .fetchManifestFilesAndWriteToDirectory(
-            any(K8sDelegateManifestConfig.class), anyString(), any(ExecutionLogCallback.class), anyLong());
+            any(K8sManifestConfig.class), anyString(), any(ExecutionLogCallback.class), anyLong());
     doReturn(true).when(handler).init(
         any(K8sApplyTaskParameters.class), any(K8sDelegateTaskParams.class), any(ExecutionLogCallback.class));
 
@@ -445,7 +445,7 @@ public class K8sApplyTaskHandlerTest extends WingsBaseTest {
     doReturn(true)
         .when(k8sTaskHelper)
         .fetchManifestFilesAndWriteToDirectory(
-            any(K8sDelegateManifestConfig.class), anyString(), any(ExecutionLogCallback.class), anyLong());
+            any(K8sManifestConfig.class), anyString(), any(ExecutionLogCallback.class), anyLong());
     doReturn(true).when(handler).init(
         any(K8sApplyTaskParameters.class), any(K8sDelegateTaskParams.class), any(ExecutionLogCallback.class));
     doReturn(true)
@@ -602,7 +602,7 @@ public class K8sApplyTaskHandlerTest extends WingsBaseTest {
     doReturn(true)
         .when(k8sTaskHelper)
         .fetchManifestFilesAndWriteToDirectory(
-            any(K8sDelegateManifestConfig.class), anyString(), any(ExecutionLogCallback.class), anyLong());
+            any(K8sManifestConfig.class), anyString(), any(ExecutionLogCallback.class), anyLong());
     doReturn(true).when(handler).init(
         any(K8sApplyTaskParameters.class), any(K8sDelegateTaskParams.class), any(ExecutionLogCallback.class));
     doReturn(true)

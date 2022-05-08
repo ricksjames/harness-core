@@ -33,7 +33,7 @@ public class K8sRollingDeployTaskParametersTest extends CategoryTest {
         K8sRollingDeployTaskParameters.builder()
             .k8sClusterConfig(K8sClusterConfig.builder().build())
             .k8sDelegateManifestConfig(
-                K8sDelegateManifestConfig.builder()
+                K8sManifestConfig.builder()
                     .gitConfig(GitConfig.builder().delegateSelectors(Collections.singletonList("primary")).build())
                     .build())
             .build();
@@ -52,7 +52,7 @@ public class K8sRollingDeployTaskParametersTest extends CategoryTest {
         K8sRollingDeployTaskParameters.builder()
             .k8sClusterConfig(K8sClusterConfig.builder().build())
             .k8sDelegateManifestConfig(
-                K8sDelegateManifestConfig.builder()
+                K8sManifestConfig.builder()
                     .gitConfig(GitConfig.builder().delegateSelectors(Arrays.asList("primary", "delegate")).build())
                     .build())
             .build();
@@ -71,7 +71,7 @@ public class K8sRollingDeployTaskParametersTest extends CategoryTest {
         K8sRollingDeployTaskParameters.builder()
             .k8sClusterConfig(K8sClusterConfig.builder().build())
             .k8sDelegateManifestConfig(
-                K8sDelegateManifestConfig.builder().gitConfig(GitConfig.builder().build()).build())
+                K8sManifestConfig.builder().gitConfig(GitConfig.builder().build()).build())
             .build();
     assertThat(parameters.fetchRequiredExecutionCapabilities(null)
                    .stream()

@@ -65,7 +65,7 @@ import software.wings.beans.command.CommandUnit;
 import software.wings.common.VariableProcessor;
 import software.wings.expression.ManagerExpressionEvaluator;
 import software.wings.helpers.ext.k8s.request.K8sBlueGreenDeployTaskParameters;
-import software.wings.helpers.ext.k8s.request.K8sDelegateManifestConfig;
+import software.wings.helpers.ext.k8s.request.K8sManifestConfig;
 import software.wings.helpers.ext.k8s.request.K8sTaskParameters;
 import software.wings.helpers.ext.k8s.request.K8sValuesLocation;
 import software.wings.helpers.ext.k8s.response.K8sBlueGreenDeployResponse;
@@ -128,7 +128,7 @@ public class K8sBlueGreenDeployTest extends CategoryTest {
     when(k8sStateHelper.fetchContainerInfrastructureMapping(context))
         .thenReturn(aGcpKubernetesInfrastructureMapping().build());
     doReturn(RELEASE_NAME).when(k8sBlueGreenDeploy).fetchReleaseName(any(), any());
-    doReturn(K8sDelegateManifestConfig.builder().build())
+    doReturn(K8sManifestConfig.builder().build())
         .when(k8sBlueGreenDeploy)
         .createDelegateManifestConfig(any(), any());
     doReturn(emptyList()).when(k8sBlueGreenDeploy).fetchRenderedValuesFiles(any(), any());
@@ -173,7 +173,7 @@ public class K8sBlueGreenDeployTest extends CategoryTest {
         .thenReturn(aGcpKubernetesInfrastructureMapping().build());
     doReturn(kubernetesResources).when(k8sStateHelper).getResourcesFromSweepingOutput(any(), anyString());
     doReturn(RELEASE_NAME).when(k8sBlueGreenDeploy).fetchReleaseName(any(), any());
-    doReturn(K8sDelegateManifestConfig.builder().build())
+    doReturn(K8sManifestConfig.builder().build())
         .when(k8sBlueGreenDeploy)
         .createDelegateManifestConfig(any(), any());
     doReturn(emptyList()).when(k8sBlueGreenDeploy).fetchRenderedValuesFiles(any(), any());
@@ -219,7 +219,7 @@ public class K8sBlueGreenDeployTest extends CategoryTest {
         .thenReturn(aGcpKubernetesInfrastructureMapping().build());
     doReturn(kubernetesResources).when(k8sStateHelper).getResourcesFromSweepingOutput(any(), anyString());
     doReturn(RELEASE_NAME).when(k8sBlueGreenDeploy).fetchReleaseName(any(), any());
-    doReturn(K8sDelegateManifestConfig.builder().build())
+    doReturn(K8sManifestConfig.builder().build())
         .when(k8sBlueGreenDeploy)
         .createDelegateManifestConfig(any(), any());
     doReturn(emptyList()).when(k8sBlueGreenDeploy).fetchRenderedValuesFiles(any(), any());

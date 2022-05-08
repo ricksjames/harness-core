@@ -45,7 +45,7 @@ import software.wings.delegatetasks.aws.AwsCommandHelper;
 import software.wings.helpers.ext.container.ContainerDeploymentManagerHelper;
 import software.wings.helpers.ext.k8s.request.K8sCanaryDeployTaskParameters;
 import software.wings.helpers.ext.k8s.request.K8sCanaryDeployTaskParameters.K8sCanaryDeployTaskParametersBuilder;
-import software.wings.helpers.ext.k8s.request.K8sDelegateManifestConfig;
+import software.wings.helpers.ext.k8s.request.K8sManifestConfig;
 import software.wings.helpers.ext.k8s.request.K8sTaskParameters;
 import software.wings.helpers.ext.k8s.request.K8sValuesLocation;
 import software.wings.helpers.ext.k8s.response.K8sCanaryDeployResponse;
@@ -162,7 +162,7 @@ public class K8sCanaryDeploy extends AbstractK8sState {
     ContainerInfrastructureMapping infraMapping = k8sStateHelper.fetchContainerInfrastructureMapping(context);
     storePreviousHelmDeploymentInfo(context, appManifestMap.get(K8sValuesLocation.Service));
 
-    K8sDelegateManifestConfig k8sDelegateManifestConfig =
+    K8sManifestConfig k8sDelegateManifestConfig =
         createDelegateManifestConfig(context, appManifestMap.get(K8sValuesLocation.Service));
     k8sDelegateManifestConfig.setShouldSaveManifest(shouldSaveManifest(context));
     K8sCanaryDeployTaskParametersBuilder builder = K8sCanaryDeployTaskParameters.builder();

@@ -27,7 +27,7 @@ import software.wings.beans.container.HelmChartSpecification;
 import software.wings.helpers.ext.helm.request.HelmCommandRequest;
 import software.wings.helpers.ext.helm.request.HelmInstallCommandRequest;
 import software.wings.helpers.ext.helm.request.HelmRollbackCommandRequest;
-import software.wings.helpers.ext.k8s.request.K8sDelegateManifestConfig;
+import software.wings.helpers.ext.k8s.request.K8sManifestConfig;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -52,7 +52,7 @@ public class HelmCommandDataMapperTest extends CategoryTest {
                                                 .kubeConfigLocation("kube-config")
                                                 .helmVersion(HelmVersion.V2)
                                                 .releaseName("best-release-ever")
-                                                .sourceRepoConfig(K8sDelegateManifestConfig.builder().build())
+                                                .sourceRepoConfig(K8sManifestConfig.builder().build())
                                                 .variableOverridesYamlFiles(yamlList)
                                                 .executionLogCallback(logCallback)
                                                 .workingDir("working-dir")
@@ -95,7 +95,7 @@ public class HelmCommandDataMapperTest extends CategoryTest {
                                                 .kubeConfigLocation("kube-config")
                                                 .helmVersion(HelmVersion.V2)
                                                 .releaseName("best-release-ever")
-                                                .sourceRepoConfig(K8sDelegateManifestConfig.builder().build())
+                                                .sourceRepoConfig(K8sManifestConfig.builder().build())
                                                 .variableOverridesYamlFiles(yamlList)
                                                 .executionLogCallback(logCallback)
                                                 .workingDir("working-dir")

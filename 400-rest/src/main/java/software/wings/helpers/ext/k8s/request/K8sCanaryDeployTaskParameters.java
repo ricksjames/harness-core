@@ -38,7 +38,7 @@ import lombok.EqualsAndHashCode;
 @TargetModule(HarnessModule._950_DELEGATE_TASKS_BEANS)
 public class K8sCanaryDeployTaskParameters extends K8sTaskParameters implements ManifestAwareTaskParams {
   private Boolean skipVersioningForAllK8sObjects;
-  @Expression(ALLOW_SECRETS) private K8sDelegateManifestConfig k8sDelegateManifestConfig;
+  @Expression(ALLOW_SECRETS) private K8sManifestConfig k8sDelegateManifestConfig;
   @Expression(ALLOW_SECRETS) private List<String> valuesYamlList;
   private Integer instances;
   private InstanceUnitType instanceUnitType;
@@ -50,12 +50,12 @@ public class K8sCanaryDeployTaskParameters extends K8sTaskParameters implements 
 
   @Builder
   public K8sCanaryDeployTaskParameters(String accountId, String appId, String commandName, String activityId,
-      K8sTaskType k8sTaskType, K8sClusterConfig k8sClusterConfig, String workflowExecutionId, String releaseName,
-      Integer timeoutIntervalInMin, K8sDelegateManifestConfig k8sDelegateManifestConfig, List<String> valuesYamlList,
-      Integer instances, InstanceUnitType instanceUnitType, Integer maxInstances, boolean skipDryRun,
-      HelmVersion helmVersion, Boolean skipVersioningForAllK8sObjects, Set<String> delegateSelectors,
-      boolean exportManifests, boolean inheritManifests, List<KubernetesResource> kubernetesResources,
-      boolean useLatestChartMuseumVersion, boolean useLatestKustomizeVersion, boolean useNewKubectlVersion) {
+                                       K8sTaskType k8sTaskType, K8sClusterConfig k8sClusterConfig, String workflowExecutionId, String releaseName,
+                                       Integer timeoutIntervalInMin, K8sManifestConfig k8sDelegateManifestConfig, List<String> valuesYamlList,
+                                       Integer instances, InstanceUnitType instanceUnitType, Integer maxInstances, boolean skipDryRun,
+                                       HelmVersion helmVersion, Boolean skipVersioningForAllK8sObjects, Set<String> delegateSelectors,
+                                       boolean exportManifests, boolean inheritManifests, List<KubernetesResource> kubernetesResources,
+                                       boolean useLatestChartMuseumVersion, boolean useLatestKustomizeVersion, boolean useNewKubectlVersion) {
     super(accountId, appId, commandName, activityId, k8sClusterConfig, workflowExecutionId, releaseName,
         timeoutIntervalInMin, k8sTaskType, helmVersion, delegateSelectors, useLatestChartMuseumVersion,
         useLatestKustomizeVersion, useNewKubectlVersion);
