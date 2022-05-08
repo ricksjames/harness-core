@@ -14,5 +14,5 @@ public enum ScmApis {
   CREATE_FILE,
   UPDATE_FILE,
   CREATE_BRANCH,
-  ;
+  LIST_BRANCHES;
 }
