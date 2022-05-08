@@ -34,7 +34,7 @@ import lombok.EqualsAndHashCode;
 @TargetModule(HarnessModule._950_DELEGATE_TASKS_BEANS)
 @OwnedBy(CDP)
 public class K8sRollingDeployTaskParameters extends K8sTaskParameters implements ManifestAwareTaskParams {
-  @Expression(ALLOW_SECRETS) private K8sDelegateManifestConfig k8sDelegateManifestConfig;
+  @Expression(ALLOW_SECRETS) private K8sManifestConfig k8SManifestConfig;
   @Expression(ALLOW_SECRETS) private List<String> valuesYamlList;
   private boolean isInCanaryWorkflow;
   private boolean skipDryRun;
@@ -48,17 +48,17 @@ public class K8sRollingDeployTaskParameters extends K8sTaskParameters implements
 
   @Builder
   public K8sRollingDeployTaskParameters(String accountId, String appId, String commandName, String activityId,
-      K8sTaskType k8sTaskType, K8sClusterConfig k8sClusterConfig, String workflowExecutionId, String releaseName,
-      Integer timeoutIntervalInMin, K8sDelegateManifestConfig k8sDelegateManifestConfig, List<String> valuesYamlList,
-      boolean isInCanaryWorkflow, boolean skipDryRun, HelmVersion helmVersion, boolean localOverrideFeatureFlag,
-      Boolean skipVersioningForAllK8sObjects, Set<String> delegateSelectors, boolean isPruningEnabled,
-      boolean exportManifests, boolean inheritManifests, List<KubernetesResource> kubernetesResources,
-      boolean useLatestChartMuseumVersion, boolean useLatestKustomizeVersion, boolean useNewKubectlVersion,
-      boolean skipAddingSelectorToDeployment) {
+                                        K8sTaskType k8sTaskType, K8sClusterConfig k8sClusterConfig, String workflowExecutionId, String releaseName,
+                                        Integer timeoutIntervalInMin, K8sManifestConfig k8SManifestConfig, List<String> valuesYamlList,
+                                        boolean isInCanaryWorkflow, boolean skipDryRun, HelmVersion helmVersion, boolean localOverrideFeatureFlag,
+                                        Boolean skipVersioningForAllK8sObjects, Set<String> delegateSelectors, boolean isPruningEnabled,
+                                        boolean exportManifests, boolean inheritManifests, List<KubernetesResource> kubernetesResources,
+                                        boolean useLatestChartMuseumVersion, boolean useLatestKustomizeVersion, boolean useNewKubectlVersion,
+                                        boolean skipAddingSelectorToDeployment) {
     super(accountId, appId, commandName, activityId, k8sClusterConfig, workflowExecutionId, releaseName,
         timeoutIntervalInMin, k8sTaskType, helmVersion, delegateSelectors, useLatestChartMuseumVersion,
         useLatestKustomizeVersion, useNewKubectlVersion);
-    this.k8sDelegateManifestConfig = k8sDelegateManifestConfig;
+    this.k8SManifestConfig = k8SManifestConfig;
     this.valuesYamlList = valuesYamlList;
     this.isInCanaryWorkflow = isInCanaryWorkflow;
     this.skipDryRun = skipDryRun;
@@ -76,7 +76,7 @@ public class K8sRollingDeployTaskParameters extends K8sTaskParameters implements
     List<ExecutionCapability> capabilities =
         new ArrayList<>(super.fetchRequiredExecutionCapabilities(maskingEvaluator));
 
-    Set<String> delegateSelectors = getDelegateSelectorsFromConfigs(k8sDelegateManifestConfig);
+    Set<String> delegateSelectors = getDelegateSelectorsFromConfigs(k8SManifestConfig);
     if (isNotEmpty(delegateSelectors)) {
       capabilities.add(SelectorCapability.builder().selectors(delegateSelectors).build());
     }

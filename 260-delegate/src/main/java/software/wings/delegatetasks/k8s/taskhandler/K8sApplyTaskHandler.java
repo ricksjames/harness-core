@@ -102,7 +102,7 @@ public class K8sApplyTaskHandler extends K8sTaskHandler {
       executionLogCallback.saveExecutionLog(color("\nStarting Kubernetes Apply", LogColor.White, LogWeight.Bold));
 
       success =
-          k8sTaskHelper.fetchManifestFilesAndWriteToDirectory(k8sApplyTaskParameters.getK8sDelegateManifestConfig(),
+          k8sTaskHelper.fetchManifestFilesAndWriteToDirectory(k8sApplyTaskParameters.getK8SManifestConfig(),
               k8sApplyHandlerConfig.getManifestFilesDirectory(), executionLogCallback, timeoutInMillis);
       if (!success) {
         return getFailureResponse();
@@ -179,7 +179,7 @@ public class K8sApplyTaskHandler extends K8sTaskHandler {
       executionLogCallback.saveExecutionLog(sb.toString());
 
       k8sApplyHandlerConfig.setResources(k8sTaskHelper.getResourcesFromManifests(k8sDelegateTaskParams,
-          k8sApplyTaskParameters.getK8sDelegateManifestConfig(), k8sApplyHandlerConfig.getManifestFilesDirectory(),
+          k8sApplyTaskParameters.getK8SManifestConfig(), k8sApplyHandlerConfig.getManifestFilesDirectory(),
           applyFilePaths, k8sApplyTaskParameters.getValuesYamlList(), k8sApplyHandlerConfig.getReleaseName(),
           k8sApplyHandlerConfig.getKubernetesConfig().getNamespace(), executionLogCallback, k8sApplyTaskParameters,
           k8sApplyTaskParameters.isSkipRendering()));

@@ -20,7 +20,7 @@ import io.harness.security.encryption.EncryptedDataDetail;
 import software.wings.beans.GitConfig;
 import software.wings.beans.GitFileConfig;
 import software.wings.beans.container.HelmChartSpecification;
-import software.wings.helpers.ext.k8s.request.K8sDelegateManifestConfig;
+import software.wings.helpers.ext.k8s.request.K8sManifestConfig;
 import software.wings.service.impl.ContainerServiceParams;
 
 import java.util.List;
@@ -50,14 +50,14 @@ public class HelmInstallCommandRequest extends HelmCommandRequest {
 
   @Builder
   public HelmInstallCommandRequest(String accountId, String appId, String kubeConfigLocation, String commandName,
-      String activityId, ContainerServiceParams containerServiceParams, String releaseName,
-      HelmChartSpecification chartSpecification, int newReleaseVersion, int prevReleaseVersion, String namespace,
-      long timeoutInMillis, Map<String, String> valueOverrides, List<String> variableOverridesYamlFiles,
-      String repoName, GitConfig gitConfig, GitFileConfig gitFileConfig, List<EncryptedDataDetail> encryptedDataDetails,
-      LogCallback executionLogCallback, String commandFlags, HelmCommandFlag helmCommandFlag,
-      K8sDelegateManifestConfig sourceRepoConfig, HelmVersion helmVersion, String ocPath, String workingDir,
-      boolean k8SteadyStateCheckEnabled, boolean mergeCapabilities, boolean isGitHostConnectivityCheck,
-      boolean useLatestChartMuseumVersion, boolean optimizedFilesFetch, boolean useNewKubectlVersion) {
+                                   String activityId, ContainerServiceParams containerServiceParams, String releaseName,
+                                   HelmChartSpecification chartSpecification, int newReleaseVersion, int prevReleaseVersion, String namespace,
+                                   long timeoutInMillis, Map<String, String> valueOverrides, List<String> variableOverridesYamlFiles,
+                                   String repoName, GitConfig gitConfig, GitFileConfig gitFileConfig, List<EncryptedDataDetail> encryptedDataDetails,
+                                   LogCallback executionLogCallback, String commandFlags, HelmCommandFlag helmCommandFlag,
+                                   K8sManifestConfig sourceRepoConfig, HelmVersion helmVersion, String ocPath, String workingDir,
+                                   boolean k8SteadyStateCheckEnabled, boolean mergeCapabilities, boolean isGitHostConnectivityCheck,
+                                   boolean useLatestChartMuseumVersion, boolean optimizedFilesFetch, boolean useNewKubectlVersion) {
     super(HelmCommandType.INSTALL, accountId, appId, kubeConfigLocation, commandName, activityId,
         containerServiceParams, releaseName, chartSpecification, repoName, gitConfig, encryptedDataDetails,
         executionLogCallback, commandFlags, helmCommandFlag, sourceRepoConfig, helmVersion, ocPath, workingDir,

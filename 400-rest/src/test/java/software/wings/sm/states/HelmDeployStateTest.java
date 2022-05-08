@@ -188,7 +188,7 @@ import software.wings.helpers.ext.helm.request.HelmValuesFetchTaskParameters;
 import software.wings.helpers.ext.helm.response.HelmInstallCommandResponse;
 import software.wings.helpers.ext.helm.response.HelmReleaseHistoryCommandResponse;
 import software.wings.helpers.ext.helm.response.HelmValuesFetchTaskResponse;
-import software.wings.helpers.ext.k8s.request.K8sDelegateManifestConfig;
+import software.wings.helpers.ext.k8s.request.K8sManifestConfig;
 import software.wings.helpers.ext.k8s.request.K8sValuesLocation;
 import software.wings.helpers.ext.url.SubdomainUrlHelperIntfc;
 import software.wings.infra.GoogleKubernetesEngine;
@@ -1374,7 +1374,7 @@ public class HelmDeployStateTest extends CategoryTest {
         HelmChartSpecification.builder().build(), ContainerServiceParams.builder().build(), "release-name",
         WingsTestConstants.ACCOUNT_ID, WingsTestConstants.APP_ID, WingsTestConstants.ACTIVITY_ID,
         ImageDetails.builder().build(), "repo", GitConfig.builder().build(), Collections.emptyList(), null,
-        K8sDelegateManifestConfig.builder().build(), Collections.emptyMap(), HelmVersion.V3, null);
+        K8sManifestConfig.builder().build(), Collections.emptyMap(), HelmVersion.V3, null);
   }
 
   @Test

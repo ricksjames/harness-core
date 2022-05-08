@@ -72,7 +72,7 @@ import software.wings.helpers.ext.container.ContainerDeploymentDelegateHelper;
 import software.wings.helpers.ext.helm.HelmHelper;
 import software.wings.helpers.ext.helm.request.HelmChartConfigParams;
 import software.wings.helpers.ext.k8s.request.K8sClusterConfig;
-import software.wings.helpers.ext.k8s.request.K8sDelegateManifestConfig;
+import software.wings.helpers.ext.k8s.request.K8sManifestConfig;
 import software.wings.helpers.ext.k8s.request.K8sDeleteTaskParameters;
 import software.wings.helpers.ext.k8s.request.K8sTaskParameters;
 import software.wings.helpers.ext.k8s.response.K8sTaskExecutionResponse;
@@ -154,12 +154,12 @@ public class K8sTaskHelper {
   }
 
   public List<FileData> renderTemplate(K8sDelegateTaskParams k8sDelegateTaskParams,
-      K8sDelegateManifestConfig k8sDelegateManifestConfig, String manifestFilesDirectory,
-      List<String> manifestOverrideFiles, String releaseName, String namespace,
-      ExecutionLogCallback executionLogCallback, K8sTaskParameters k8sTaskParameters) throws Exception {
-    StoreType storeType = k8sDelegateManifestConfig.getManifestStoreTypes();
+                                       K8sManifestConfig k8SManifestConfig, String manifestFilesDirectory,
+                                       List<String> manifestOverrideFiles, String releaseName, String namespace,
+                                       ExecutionLogCallback executionLogCallback, K8sTaskParameters k8sTaskParameters) throws Exception {
+    StoreType storeType = k8SManifestConfig.getManifestStoreTypes();
     long timeoutInMillis = K8sTaskHelperBase.getTimeoutMillisFromMinutes(k8sTaskParameters.getTimeoutIntervalInMin());
-    HelmCommandFlag helmCommandFlag = k8sDelegateManifestConfig.getHelmCommandFlag();
+    HelmCommandFlag helmCommandFlag = k8SManifestConfig.getHelmCommandFlag();
 
     switch (storeType) {
       case Local:
@@ -176,14 +176,14 @@ public class K8sTaskHelper {
       case HelmChartRepo:
         manifestFilesDirectory = Paths
                                      .get(getChartDirectory(manifestFilesDirectory,
-                                         k8sDelegateManifestConfig.getHelmChartConfigParams().getChartName()))
+                                         k8SManifestConfig.getHelmChartConfigParams().getChartName()))
                                      .toString();
         return k8sTaskHelperBase.renderTemplateForHelm(k8sDelegateTaskParams.getHelmPath(), manifestFilesDirectory,
             manifestOverrideFiles, releaseName, namespace, executionLogCallback, k8sTaskParameters.getHelmVersion(),
             timeoutInMillis, helmCommandFlag);
 
       case KustomizeSourceRepo:
-        KustomizeConfig kustomizeConfig = k8sDelegateManifestConfig.getKustomizeConfig();
+        KustomizeConfig kustomizeConfig = k8SManifestConfig.getKustomizeConfig();
         String pluginRootDir = kustomizeConfig != null ? kustomizeConfig.getPluginRootDir() : null;
         String kustomizeDirPath = kustomizeConfig != null ? kustomizeConfig.getKustomizeDirPath() : null;
 
@@ -195,12 +195,12 @@ public class K8sTaskHelper {
             pluginRootDir, kustomizeDirPath, executionLogCallback);
       case OC_TEMPLATES:
         return openShiftDelegateService.processTemplatization(manifestFilesDirectory, k8sDelegateTaskParams.getOcPath(),
-            k8sDelegateManifestConfig.getGitFileConfig().getFilePath(), executionLogCallback, manifestOverrideFiles);
+            k8SManifestConfig.getGitFileConfig().getFilePath(), executionLogCallback, manifestOverrideFiles);
 
       case CUSTOM:
         // Creating a new branch for check if custom manifest feature is enabled, can be merged with Local & Remote
         // once FF is removed
-        if (k8sDelegateManifestConfig.isCustomManifestEnabled()) {
+        if (k8SManifestConfig.isCustomManifestEnabled()) {
           List<FileData> customManifestFiles = k8sTaskHelperBase.readManifestFilesFromDirectory(manifestFilesDirectory);
           return k8sTaskHelperBase.renderManifestFilesForGoTemplate(
               k8sDelegateTaskParams, customManifestFiles, manifestOverrideFiles, executionLogCallback, timeoutInMillis);
@@ -208,10 +208,10 @@ public class K8sTaskHelper {
 
       // fallthrough to ignore branch if FF is not enabled
       case CUSTOM_OPENSHIFT_TEMPLATE:
-        if (k8sDelegateManifestConfig.isCustomManifestEnabled()) {
+        if (k8SManifestConfig.isCustomManifestEnabled()) {
           return openShiftDelegateService.processTemplatization(manifestFilesDirectory,
               k8sDelegateTaskParams.getOcPath(),
-              k8sDelegateManifestConfig.getCustomManifestSource().getFilePaths().get(0), executionLogCallback,
+              k8SManifestConfig.getCustomManifestSource().getFilePaths().get(0), executionLogCallback,
               manifestOverrideFiles);
         }
 
@@ -224,13 +224,13 @@ public class K8sTaskHelper {
   }
 
   public List<FileData> renderTemplateForGivenFiles(K8sDelegateTaskParams k8sDelegateTaskParams,
-      K8sDelegateManifestConfig k8sDelegateManifestConfig, String manifestFilesDirectory,
-      @NotEmpty List<String> filesList, List<String> manifestOverrideFiles, String releaseName, String namespace,
-      ExecutionLogCallback executionLogCallback, K8sTaskParameters k8sTaskParameters, boolean skipRendering)
+                                                    K8sManifestConfig k8SManifestConfig, String manifestFilesDirectory,
+                                                    @NotEmpty List<String> filesList, List<String> manifestOverrideFiles, String releaseName, String namespace,
+                                                    ExecutionLogCallback executionLogCallback, K8sTaskParameters k8sTaskParameters, boolean skipRendering)
       throws Exception {
-    StoreType storeType = k8sDelegateManifestConfig.getManifestStoreTypes();
+    StoreType storeType = k8SManifestConfig.getManifestStoreTypes();
     long timeoutInMillis = K8sTaskHelperBase.getTimeoutMillisFromMinutes(k8sTaskParameters.getTimeoutIntervalInMin());
-    HelmCommandFlag helmCommandFlag = k8sDelegateManifestConfig.getHelmCommandFlag();
+    HelmCommandFlag helmCommandFlag = k8SManifestConfig.getHelmCommandFlag();
 
     switch (storeType) {
       case Local:
@@ -250,13 +250,13 @@ public class K8sTaskHelper {
 
       case HelmChartRepo:
         manifestFilesDirectory =
-            Paths.get(manifestFilesDirectory, k8sDelegateManifestConfig.getHelmChartConfigParams().getChartName())
+            Paths.get(manifestFilesDirectory, k8SManifestConfig.getHelmChartConfigParams().getChartName())
                 .toString();
         return k8sTaskHelperBase.renderTemplateForHelmChartFiles(k8sDelegateTaskParams.getHelmPath(),
             manifestFilesDirectory, filesList, manifestOverrideFiles, releaseName, namespace, executionLogCallback,
             k8sTaskParameters.getHelmVersion(), timeoutInMillis, helmCommandFlag);
       case KustomizeSourceRepo:
-        KustomizeConfig kustomizeConfig = k8sDelegateManifestConfig.getKustomizeConfig();
+        KustomizeConfig kustomizeConfig = k8SManifestConfig.getKustomizeConfig();
         String pluginRootDir = kustomizeConfig != null ? kustomizeConfig.getPluginRootDir() : null;
         return kustomizeTaskHelper.buildForApply(k8sDelegateTaskParams.getKustomizeBinaryPath(), pluginRootDir,
             manifestFilesDirectory, filesList, k8sTaskParameters.isUseLatestKustomizeVersion(), manifestOverrideFiles,
@@ -270,12 +270,12 @@ public class K8sTaskHelper {
   }
 
   public List<KubernetesResource> getResourcesFromManifests(K8sDelegateTaskParams k8sDelegateTaskParams,
-      K8sDelegateManifestConfig k8sDelegateManifestConfig, String manifestFilesDirectory,
-      @NotEmpty List<String> filesList, List<String> valuesFiles, String releaseName, String namespace,
-      ExecutionLogCallback executionLogCallback, K8sTaskParameters k8sTaskParameters, boolean skipRendering)
+                                                            K8sManifestConfig k8SManifestConfig, String manifestFilesDirectory,
+                                                            @NotEmpty List<String> filesList, List<String> valuesFiles, String releaseName, String namespace,
+                                                            ExecutionLogCallback executionLogCallback, K8sTaskParameters k8sTaskParameters, boolean skipRendering)
       throws Exception {
     List<FileData> manifestFiles =
-        renderTemplateForGivenFiles(k8sDelegateTaskParams, k8sDelegateManifestConfig, manifestFilesDirectory, filesList,
+        renderTemplateForGivenFiles(k8sDelegateTaskParams, k8SManifestConfig, manifestFilesDirectory, filesList,
             valuesFiles, releaseName, namespace, executionLogCallback, k8sTaskParameters, skipRendering);
     if (isEmpty(manifestFiles)) {
       return new ArrayList<>();
@@ -300,8 +300,8 @@ public class K8sTaskHelper {
         + (isBlank(gitFileConfig.getFilePath()) ? "." : gitFileConfig.getFilePath()));
   }
 
-  private boolean downloadManifestFilesFromGit(K8sDelegateManifestConfig delegateManifestConfig,
-      String manifestFilesDirectory, ExecutionLogCallback executionLogCallback) {
+  private boolean downloadManifestFilesFromGit(K8sManifestConfig delegateManifestConfig,
+                                               String manifestFilesDirectory, ExecutionLogCallback executionLogCallback) {
     String latestCommitSha = null;
     if (isBlank(delegateManifestConfig.getGitFileConfig().getFilePath())) {
       delegateManifestConfig.getGitFileConfig().setFilePath(StringUtils.EMPTY);
@@ -347,8 +347,8 @@ public class K8sTaskHelper {
     }
   }
 
-  private boolean downloadManifestFilesFromCustomSource(K8sDelegateManifestConfig delegateManifestConfig,
-      String manifestFilesDirectory, ExecutionLogCallback executionLogCallback) {
+  private boolean downloadManifestFilesFromCustomSource(K8sManifestConfig delegateManifestConfig,
+                                                        String manifestFilesDirectory, ExecutionLogCallback executionLogCallback) {
     try {
       customManifestService.downloadCustomSource(
           delegateManifestConfig.getCustomManifestSource(), manifestFilesDirectory, executionLogCallback);
@@ -375,8 +375,8 @@ public class K8sTaskHelper {
     }
   }
 
-  private boolean downloadZippedManifestFilesFormCustomSource(K8sDelegateManifestConfig delegateManifestConfig,
-      String manifestFilesDirectory, ExecutionLogCallback executionLogCallback) {
+  private boolean downloadZippedManifestFilesFormCustomSource(K8sManifestConfig delegateManifestConfig,
+                                                              String manifestFilesDirectory, ExecutionLogCallback executionLogCallback) {
     String tempWorkingDir = null;
     try {
       tempWorkingDir = customManifestService.getWorkingDirectory();
@@ -411,8 +411,8 @@ public class K8sTaskHelper {
     }
   }
 
-  public boolean fetchManifestFilesAndWriteToDirectory(K8sDelegateManifestConfig delegateManifestConfig,
-      String manifestFilesDirectory, ExecutionLogCallback executionLogCallback, long timeoutInMillis) {
+  public boolean fetchManifestFilesAndWriteToDirectory(K8sManifestConfig delegateManifestConfig,
+                                                       String manifestFilesDirectory, ExecutionLogCallback executionLogCallback, long timeoutInMillis) {
     StoreType storeType = delegateManifestConfig.getManifestStoreTypes();
     switch (storeType) {
       case Local:
@@ -448,7 +448,7 @@ public class K8sTaskHelper {
     return false;
   }
 
-  public HelmChartInfo getHelmChartDetails(K8sDelegateManifestConfig delegateManifestConfig, String workingDirectory) {
+  public HelmChartInfo getHelmChartDetails(K8sManifestConfig delegateManifestConfig, String workingDirectory) {
     HelmChartInfo helmChartInfo = null;
     try {
       if (delegateManifestConfig != null) {
@@ -501,8 +501,8 @@ public class K8sTaskHelper {
         delegateLogService, request.getAccountId(), request.getAppId(), request.getActivityId(), commandUnit);
   }
 
-  private boolean downloadFilesFromChartRepo(K8sDelegateManifestConfig delegateManifestConfig,
-      String destinationDirectory, ExecutionLogCallback executionLogCallback, long timeoutInMillis) {
+  private boolean downloadFilesFromChartRepo(K8sManifestConfig delegateManifestConfig,
+                                             String destinationDirectory, ExecutionLogCallback executionLogCallback, long timeoutInMillis) {
     HelmChartConfigParams helmChartConfigParams = delegateManifestConfig.getHelmChartConfigParams();
 
     try {

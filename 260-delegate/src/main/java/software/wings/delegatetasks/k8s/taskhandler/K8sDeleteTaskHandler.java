@@ -114,7 +114,7 @@ public class K8sDeleteTaskHandler extends K8sTaskHandler {
     logCallback.saveExecutionLog(color("\nStarting Kubernetes Delete", LogColor.White, LogWeight.Bold));
 
     boolean success =
-        k8sTaskHelper.fetchManifestFilesAndWriteToDirectory(k8sDeleteTaskParameters.getK8sDelegateManifestConfig(),
+        k8sTaskHelper.fetchManifestFilesAndWriteToDirectory(k8sDeleteTaskParameters.getK8SManifestConfig(),
             manifestFilesDirectory, logCallback, steadyStateTimeoutInMillis);
     if (!success) {
       return k8sTaskHelper.getK8sTaskExecutionResponse(
@@ -222,7 +222,7 @@ public class K8sDeleteTaskHandler extends K8sTaskHandler {
       executionLogCallback.saveExecutionLog(sb.toString());
 
       resources = k8sTaskHelper.getResourcesFromManifests(k8sDelegateTaskParams,
-          k8sDeleteTaskParameters.getK8sDelegateManifestConfig(), manifestFilesDirectory, deleteFilePaths,
+          k8sDeleteTaskParameters.getK8SManifestConfig(), manifestFilesDirectory, deleteFilePaths,
           k8sDeleteTaskParameters.getValuesYamlList(), releaseName, kubernetesConfig.getNamespace(),
           executionLogCallback, k8sDeleteTaskParameters, false);
 

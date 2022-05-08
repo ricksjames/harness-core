@@ -40,7 +40,7 @@ import software.wings.beans.settings.helm.GCSHelmRepoConfig;
 import software.wings.beans.settings.helm.HelmRepoConfig;
 import software.wings.beans.settings.helm.HttpHelmRepoConfig;
 import software.wings.helpers.ext.helm.request.HelmChartConfigParams;
-import software.wings.helpers.ext.k8s.request.K8sDelegateManifestConfig;
+import software.wings.helpers.ext.k8s.request.K8sManifestConfig;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
@@ -121,7 +121,7 @@ public class HelmHelper {
   }
 
   public HelmExecutionSummary prepareHelmExecutionSummary(
-      String releaseName, HelmChartSpecification helmChartSpec, K8sDelegateManifestConfig delegateManifestConfig) {
+      String releaseName, HelmChartSpecification helmChartSpec, K8sManifestConfig delegateManifestConfig) {
     HelmChartInfo helmChartInfo = HelmChartInfo.builder().build();
 
     if (helmChartSpec != null) {
