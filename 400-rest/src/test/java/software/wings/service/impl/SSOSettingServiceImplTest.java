@@ -234,6 +234,7 @@ public class SSOSettingServiceImplTest extends WingsBaseTest {
   public void createLDAPSettingWithSecret() {
     LdapSettings ldapSettings = createLDAOSSOProviderWithSecret();
     ldapSettings.setCronExpression("0 0/15 * 1/1 * ? *");
+    ldapSettings.getConnectionSettings().setPasswordType(LdapAuthType.SECRET_REF);
     EncryptedDataDetail encryptedDataDetail = mock(EncryptedDataDetail.class);
     List<EncryptedDataDetail> encryptedDataDetails = Arrays.asList(encryptedDataDetail);
     when(secretManager.getEncryptionDetails(any(), any(), any())).thenReturn(encryptedDataDetails);
@@ -307,9 +308,10 @@ public class SSOSettingServiceImplTest extends WingsBaseTest {
   @Test
   @Owner(developers = BOOPESH)
   @Category(UnitTests.class)
-  public void updateLDAPSettingWithSecrettoInlinePassword() {
+  public void updateLDAPSettingWithSecretToInlinePassword() {
     LdapSettings ldapSettings = createLDAOSSOProviderWithSecret();
     ldapSettings.setCronExpression("0 0/15 * 1/1 * ? *");
+    ldapSettings.getConnectionSettings().setPasswordType(LdapAuthType.SECRET_REF);
     EncryptedDataDetail encryptedDataDetail = mock(EncryptedDataDetail.class);
     List<EncryptedDataDetail> encryptedDataDetails = Arrays.asList(encryptedDataDetail);
     when(secretManager.getEncryptionDetails(any(), any(), any())).thenReturn(encryptedDataDetails);
