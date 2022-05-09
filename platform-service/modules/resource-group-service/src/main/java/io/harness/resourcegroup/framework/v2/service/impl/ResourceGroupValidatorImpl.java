@@ -7,8 +7,6 @@
 
 package io.harness.resourcegroup.framework.v2.service.impl;
 
-import static io.harness.data.structure.EmptyPredicate.isEmpty;
-
 import io.harness.beans.Scope;
 import io.harness.exception.InvalidRequestException;
 import io.harness.resourcegroup.beans.ScopeFilterType;
@@ -20,6 +18,8 @@ import io.harness.resourcegroup.v2.remote.dto.ResourceGroupRequest;
 import io.harness.utils.ScopeUtils;
 
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import static io.harness.data.structure.EmptyPredicate.isEmpty;
 
 public class ResourceGroupValidatorImpl implements ResourceGroupValidator {
   private boolean isCurrentOnlyScopeSelector(Scope scope, ScopeSelector scopeSelector) {

@@ -7,11 +7,6 @@
 
 package io.harness.accesscontrol.resources.resourcegroups;
 
-import static io.harness.accesscontrol.scopes.core.Scope.PATH_DELIMITER;
-import static io.harness.accesscontrol.scopes.core.Scope.SCOPE_DELIMITER;
-import static io.harness.data.structure.EmptyPredicate.isEmpty;
-import static io.harness.data.structure.EmptyPredicate.isNotEmpty;
-
 import io.harness.accesscontrol.scopes.core.Scope;
 import io.harness.accesscontrol.scopes.harness.HarnessScopeParams;
 import io.harness.accesscontrol.scopes.harness.ScopeMapper;
@@ -19,6 +14,7 @@ import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.resourcegroup.beans.ScopeFilterType;
 import io.harness.resourcegroup.v2.model.ResourceFilter;
+import io.harness.resourcegroup.v2.model.ResourceSelector;
 import io.harness.resourcegroup.v2.model.ScopeSelector;
 import io.harness.resourcegroup.v2.remote.dto.ResourceGroupDTO;
 import io.harness.resourcegroup.v2.remote.dto.ResourceGroupResponse;
@@ -28,6 +24,11 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import static io.harness.accesscontrol.scopes.core.Scope.PATH_DELIMITER;
+import static io.harness.accesscontrol.scopes.core.Scope.SCOPE_DELIMITER;
+import static io.harness.data.structure.EmptyPredicate.isEmpty;
+import static io.harness.data.structure.EmptyPredicate.isNotEmpty;
 
 @OwnedBy(HarnessTeam.PL)
 public class ResourceGroupFactory {
@@ -92,7 +93,10 @@ public class ResourceGroupFactory {
                                 .concat(PATH_DELIMITER)
                                 .concat(ResourceGroup.ALL_RESOURCES_IDENTIFIER));
     } else {
-      resourceFilter.getResources().forEach(resourceSelector -> {
+      List<ResourceSelector> resources = resourceFilter.getResources();
+      resources.add(ResourceSelector.builder().resourceType("ORGANIZATION").build());
+      resources.add(ResourceSelector.builder().resourceType("PROJECT").build());
+      resources.forEach(resourceSelector -> {
         if (isEmpty(resourceSelector.getIdentifiers())) {
           resourceSelectors.add(PATH_DELIMITER.concat(resourceSelector.getResourceType())
                                     .concat(PATH_DELIMITER)
