@@ -8,6 +8,7 @@
 package io.harness.gitsync.common.impl;
 
 import static io.harness.data.structure.CollectionUtils.emptyIfNull;
+import static io.harness.data.structure.EmptyPredicate.isEmpty;
 import static io.harness.data.structure.EmptyPredicate.isNotEmpty;
 
 import io.harness.annotations.dev.HarnessTeam;
@@ -38,11 +39,11 @@ import io.harness.product.ci.scm.proto.CreateBranchResponse;
 import io.harness.product.ci.scm.proto.CreateFileResponse;
 import io.harness.product.ci.scm.proto.CreatePRResponse;
 import io.harness.product.ci.scm.proto.FileContent;
+import io.harness.product.ci.scm.proto.GetUserRepoResponse;
 import io.harness.product.ci.scm.proto.GetUserReposResponse;
 import io.harness.product.ci.scm.proto.ListBranchesWithDefaultResponse;
-import io.harness.product.ci.scm.proto.UpdateFileResponse;
-import io.harness.product.ci.scm.proto.GetUserRepoResponse;
 import io.harness.product.ci.scm.proto.Repository;
+import io.harness.product.ci.scm.proto.UpdateFileResponse;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Inject;
@@ -212,6 +213,12 @@ public class ScmFacilitatorServiceImpl implements ScmFacilitatorService {
   @Override
   public ScmGetFileResponseDTO getFile(ScmGetFileRequestDTO scmGetFileRequestDTO) {
     Scope scope = scmGetFileRequestDTO.getScope();
+    String branchName = scmGetFileRequestDTO.getBranchName();
+    if (isEmpty(branchName) && isEmpty(scmGetFileRequestDTO.getCommitId())) {
+      branchName = getDefaultBranch(scope.getAccountIdentifier(), scope.getOrgIdentifier(),
+          scope.getProjectIdentifier(), scmGetFileRequestDTO.getConnectorRef(), scmGetFileRequestDTO.getRepoName());
+    }
+    final String branch = branchName;
     ScmConnector scmConnector =
         gitSyncConnectorHelper.getScmConnectorForGivenRepo(scope.getAccountIdentifier(), scope.getOrgIdentifier(),
             scope.getProjectIdentifier(), scmGetFileRequestDTO.getConnectorRef(), scmGetFileRequestDTO.getRepoName());
@@ -219,8 +226,7 @@ public class ScmFacilitatorServiceImpl implements ScmFacilitatorService {
     FileContent fileContent = scmOrchestratorService.processScmRequestUsingConnectorSettings(scmClientFacilitatorService
         -> scmClientFacilitatorService.getFile(scope.getAccountIdentifier(), scope.getOrgIdentifier(),
             scope.getProjectIdentifier(), scmGetFileRequestDTO.getConnectorRef(), scmGetFileRequestDTO.getRepoName(),
-            scmGetFileRequestDTO.getBranchName(), scmGetFileRequestDTO.getFilePath(),
-            scmGetFileRequestDTO.getCommitId()),
+            branch, scmGetFileRequestDTO.getFilePath(), scmGetFileRequestDTO.getCommitId()),
         scmConnector);
 
     if (isFailureResponse(fileContent.getStatus())) {
