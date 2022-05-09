@@ -104,6 +104,7 @@ public class HarnessToGitPushInfoGrpcService extends HarnessToGitPushInfoService
          MdcContextSetter ignore1 = new MdcContextSetter(request.getContextMapMap())) {
       setPrincipal(request.getScopeIdentifiers().getAccountIdentifier(), request.getPrincipal());
       getFileResponse = harnessToGitHelperService.getFile(request);
+      log.info("Git Sync Service getFile ops response : {}", getFileResponse);
     } catch (Exception ex) {
       log.error("Faced exception during getFile GIT call", ex);
       final String errorMessage = ExceptionUtils.getMessage(ex);
@@ -123,6 +124,7 @@ public class HarnessToGitPushInfoGrpcService extends HarnessToGitPushInfoService
          MdcContextSetter ignore1 = new MdcContextSetter(request.getContextMapMap())) {
       setPrincipal(request.getScopeIdentifiers().getAccountIdentifier(), request.getPrincipal());
       createFileResponse = harnessToGitHelperService.createFile(request);
+      log.info("Git Sync Service createFile ops response : {}", createFileResponse);
     } catch (Exception ex) {
       log.error("Faced exception during createFile GIT call", ex);
       final String errorMessage = ExceptionUtils.getMessage(ex);
@@ -142,6 +144,7 @@ public class HarnessToGitPushInfoGrpcService extends HarnessToGitPushInfoService
          MdcContextSetter ignore1 = new MdcContextSetter(request.getContextMapMap())) {
       setPrincipal(request.getScopeIdentifiers().getAccountIdentifier(), request.getPrincipal());
       updateFileResponse = harnessToGitHelperService.updateFile(request);
+      log.info("Git Sync Service updateFile ops response : {}", updateFileResponse);
     } catch (Exception ex) {
       log.error("Faced exception during updateFile GIT call", ex);
       final String errorMessage = ExceptionUtils.getMessage(ex);
@@ -161,6 +164,7 @@ public class HarnessToGitPushInfoGrpcService extends HarnessToGitPushInfoService
          MdcContextSetter ignore1 = new MdcContextSetter(request.getContextMapMap())) {
       setPrincipal(request.getScopeIdentifiers().getAccountIdentifier(), request.getPrincipal());
       createPRResponse = harnessToGitHelperService.createPullRequest(request);
+      log.info("Git Sync Service createPullRequest ops response : {}", createPRResponse);
     } catch (Exception ex) {
       log.error("Faced exception during createPullRequest GIT call", ex);
       final String errorMessage = ExceptionUtils.getMessage(ex);
