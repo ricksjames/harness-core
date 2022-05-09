@@ -32,6 +32,7 @@ import io.harness.cvng.analysis.entities.LogAnalysisCluster.Frequency;
 import io.harness.cvng.analysis.entities.LogAnalysisResult;
 import io.harness.cvng.analysis.entities.LogAnalysisResult.AnalysisResult;
 import io.harness.cvng.analysis.entities.LogAnalysisResult.LogAnalysisTag;
+import io.harness.cvng.analysis.entities.LogAnalysisResult.RadarChartTag;
 import io.harness.cvng.analysis.services.api.LogAnalysisService;
 import io.harness.cvng.beans.DataSourceType;
 import io.harness.cvng.core.beans.params.PageParams;
@@ -169,8 +170,8 @@ public class LogDashboardServiceImplTest extends CvNextGenTestBase {
   public void testGetAllRadarChartLogsData_anomalousLogs() {
     String cvConfigId = generateUuid();
     String errorTrackingCvConfigId = generateUuid();
-    Instant startTime = Instant.now().minus(10, ChronoUnit.MINUTES);
-    Instant endTime = Instant.now().minus(5, ChronoUnit.MINUTES);
+    Instant startTime = clock.instant().minus(10, ChronoUnit.MINUTES);
+    Instant endTime = clock.instant().minus(5, ChronoUnit.MINUTES);
     PageParams pageParams = PageParams.builder().page(0).size(10).build();
 
     List<Long> labelList = Arrays.asList(1234l, 123455l, 12334l, 12345l);
@@ -184,7 +185,7 @@ public class LogDashboardServiceImplTest extends CvNextGenTestBase {
 
     MonitoredServiceLogAnalysisFilter monitoredServiceLogAnalysisFilter =
         MonitoredServiceLogAnalysisFilter.builder()
-            .clusterTypes(LogAnalysisTag.getAnomalousTags().stream().collect(Collectors.toList()))
+            .clusterTypes(LogAnalysisResult.RadarChartTag.getAnomalousTags().stream().collect(Collectors.toList()))
             .startTimeMillis(startTime.toEpochMilli())
             .endTimeMillis(endTime.toEpochMilli())
             .build();
@@ -260,8 +261,8 @@ public class LogDashboardServiceImplTest extends CvNextGenTestBase {
   public void testGetAllRadarChartLogsData_anomalousLogsValidatePagination() {
     String cvConfigId = generateUuid();
     String errorTrackingCvConfigId = generateUuid();
-    Instant startTime = Instant.now().minus(10, ChronoUnit.MINUTES);
-    Instant endTime = Instant.now().minus(5, ChronoUnit.MINUTES);
+    Instant startTime = clock.instant().minus(10, ChronoUnit.MINUTES);
+    Instant endTime = clock.instant().minus(5, ChronoUnit.MINUTES);
 
     PageParams pageParams = PageParams.builder().page(0).size(1).build();
 
@@ -276,7 +277,7 @@ public class LogDashboardServiceImplTest extends CvNextGenTestBase {
 
     MonitoredServiceLogAnalysisFilter monitoredServiceLogAnalysisFilter =
         MonitoredServiceLogAnalysisFilter.builder()
-            .clusterTypes(LogAnalysisTag.getAnomalousTags().stream().collect(Collectors.toList()))
+            .clusterTypes(LogAnalysisResult.RadarChartTag.getAnomalousTags().stream().collect(Collectors.toList()))
             .startTimeMillis(startTime.toEpochMilli())
             .endTimeMillis(endTime.toEpochMilli())
             .build();
@@ -331,8 +332,8 @@ public class LogDashboardServiceImplTest extends CvNextGenTestBase {
   @Category(UnitTests.class)
   public void testGetAllRadarChartLogsData_anomalousLogsNoCvConfigForCategory() {
     String cvConfigId = generateUuid();
-    Instant startTime = Instant.now().minus(10, ChronoUnit.MINUTES);
-    Instant endTime = Instant.now().minus(5, ChronoUnit.MINUTES);
+    Instant startTime = clock.instant().minus(10, ChronoUnit.MINUTES);
+    Instant endTime = clock.instant().minus(5, ChronoUnit.MINUTES);
     PageParams pageParams = PageParams.builder().page(0).size(1).build();
     List<Long> labelList = Arrays.asList(1234l, 12345l, 123455l, 12334l);
     List<LogAnalysisResult> resultList = buildLogAnalysisResults(cvConfigId, true, startTime, endTime, labelList);
@@ -345,7 +346,7 @@ public class LogDashboardServiceImplTest extends CvNextGenTestBase {
 
     MonitoredServiceLogAnalysisFilter monitoredServiceLogAnalysisFilter =
         MonitoredServiceLogAnalysisFilter.builder()
-            .clusterTypes(LogAnalysisTag.getAnomalousTags().stream().collect(Collectors.toList()))
+            .clusterTypes(RadarChartTag.getAnomalousTags().stream().collect(Collectors.toList()))
             .startTimeMillis(startTime.toEpochMilli())
             .endTimeMillis(endTime.toEpochMilli())
             .build();
@@ -399,8 +400,8 @@ public class LogDashboardServiceImplTest extends CvNextGenTestBase {
   @Category(UnitTests.class)
   public void testGetAllRadarChartLogsData() {
     String cvConfigId = generateUuid();
-    Instant startTime = Instant.now().minus(10, ChronoUnit.MINUTES);
-    Instant endTime = Instant.now().minus(5, ChronoUnit.MINUTES);
+    Instant startTime = clock.instant().minus(10, ChronoUnit.MINUTES);
+    Instant endTime = clock.instant().minus(5, ChronoUnit.MINUTES);
     PageParams pageParams = PageParams.builder().page(0).size(10).build();
     List<Long> labelList = Arrays.asList(1234l, 12345l, 123455l, 12334l);
     List<LogAnalysisResult> resultList = buildLogAnalysisResults(cvConfigId, false, startTime, endTime, labelList);
@@ -423,7 +424,7 @@ public class LogDashboardServiceImplTest extends CvNextGenTestBase {
     assertThat(pageResponse.getContent()).isNotEmpty();
     boolean containsKnown = false;
     for (AnalyzedRadarChartLogDataDTO analyzedLogDataDTO : pageResponse.getContent()) {
-      if (analyzedLogDataDTO.getLogData().getClusterType().equals(LogAnalysisTag.KNOWN)) {
+      if (analyzedLogDataDTO.getLogData().getClusterType().equals(RadarChartTag.KNOWN_EVENT)) {
         containsKnown = true;
         break;
       }
@@ -682,8 +683,8 @@ public class LogDashboardServiceImplTest extends CvNextGenTestBase {
   @Category(UnitTests.class)
   public void testGetLogAnalysisRadarChartClusters_AllClusters() {
     String cvConfigId = generateUuid();
-    Instant startTime = Instant.now().minus(10, ChronoUnit.MINUTES);
-    Instant endTime = Instant.now().minus(5, ChronoUnit.MINUTES);
+    Instant startTime = clock.instant().minus(10, ChronoUnit.MINUTES);
+    Instant endTime = clock.instant().minus(5, ChronoUnit.MINUTES);
     List<Long> labelList = Arrays.asList(1234l, 12345l, 123455l, 12334l);
     List<LogAnalysisResult> resultList = buildLogAnalysisResults(cvConfigId, false, startTime, endTime, labelList);
     when(mockCvConfigService.list(builderFactory.getContext().getMonitoredServiceParams()))
@@ -707,8 +708,8 @@ public class LogDashboardServiceImplTest extends CvNextGenTestBase {
       assertThat(liveMonitoringLogAnalysisRadarChartClusterDTO.getRadius()).isNotNull();
       assertThat(liveMonitoringLogAnalysisRadarChartClusterDTO.getAngle()).isNotNull();
       assertThat(liveMonitoringLogAnalysisRadarChartClusterDTO.getClusterType())
-          .isIn(LogAnalysisTag.UNKNOWN, LogAnalysisTag.KNOWN);
-      if (liveMonitoringLogAnalysisRadarChartClusterDTO.getClusterType().equals(LogAnalysisTag.UNKNOWN)) {
+          .isIn(RadarChartTag.UNKNOWN_EVENT, RadarChartTag.KNOWN_EVENT);
+      if (liveMonitoringLogAnalysisRadarChartClusterDTO.getClusterType().equals(RadarChartTag.UNKNOWN_EVENT)) {
         assertThat(liveMonitoringLogAnalysisRadarChartClusterDTO.getRisk()).isEqualTo(Risk.UNHEALTHY);
       } else {
         assertThat(liveMonitoringLogAnalysisRadarChartClusterDTO.getRisk()).isEqualTo(Risk.HEALTHY);
@@ -759,8 +760,8 @@ public class LogDashboardServiceImplTest extends CvNextGenTestBase {
   @Category(UnitTests.class)
   public void testGetLogAnalysisRadarChartClusters_filterByCLusterTypes() {
     String cvConfigId = generateUuid();
-    Instant startTime = Instant.now().minus(10, ChronoUnit.MINUTES);
-    Instant endTime = Instant.now().minus(5, ChronoUnit.MINUTES);
+    Instant startTime = clock.instant().minus(10, ChronoUnit.MINUTES);
+    Instant endTime = clock.instant().minus(5, ChronoUnit.MINUTES);
     List<Long> labelList = Arrays.asList(1234l, 12345l, 123455l, 12334l);
 
     List<LogAnalysisResult> resultList = buildLogAnalysisResults(cvConfigId, false, startTime, endTime, labelList);
@@ -773,7 +774,7 @@ public class LogDashboardServiceImplTest extends CvNextGenTestBase {
 
     MonitoredServiceLogAnalysisFilter monitoredServiceLogAnalysisFilter =
         MonitoredServiceLogAnalysisFilter.builder()
-            .clusterTypes(Arrays.asList(LogAnalysisTag.KNOWN))
+            .clusterTypes(Arrays.asList(RadarChartTag.KNOWN_EVENT))
             .startTimeMillis(startTime.toEpochMilli())
             .endTimeMillis(endTime.toEpochMilli())
             .build();
@@ -787,7 +788,7 @@ public class LogDashboardServiceImplTest extends CvNextGenTestBase {
       assertThat(liveMonitoringLogAnalysisRadarChartClusterDTO.getText()).isNotEmpty();
       assertThat(liveMonitoringLogAnalysisRadarChartClusterDTO.getRadius()).isNotNull();
       assertThat(liveMonitoringLogAnalysisRadarChartClusterDTO.getAngle()).isNotNull();
-      assertThat(liveMonitoringLogAnalysisRadarChartClusterDTO.getClusterType()).isEqualTo(LogAnalysisTag.KNOWN);
+      assertThat(liveMonitoringLogAnalysisRadarChartClusterDTO.getClusterType()).isEqualTo(RadarChartTag.KNOWN_EVENT);
       assertThat(liveMonitoringLogAnalysisRadarChartClusterDTO.getRisk()).isEqualTo(Risk.HEALTHY);
     }
   }
@@ -844,8 +845,8 @@ public class LogDashboardServiceImplTest extends CvNextGenTestBase {
   @Category(UnitTests.class)
   public void testGetLogAnalysisRadarChartClusters_filterByHealthSources() {
     String cvConfigId = generateUuid();
-    Instant startTime = Instant.now().minus(10, ChronoUnit.MINUTES);
-    Instant endTime = Instant.now().minus(5, ChronoUnit.MINUTES);
+    Instant startTime = clock.instant().minus(10, ChronoUnit.MINUTES);
+    Instant endTime = clock.instant().minus(5, ChronoUnit.MINUTES);
     List<Long> labelList = Arrays.asList(1234l, 12345l, 123455l, 12334l);
     List<LogAnalysisResult> resultList = buildLogAnalysisResults(cvConfigId, false, startTime, endTime, labelList);
     List<String> healthSourceIds = Arrays.asList(cvConfigId);
@@ -870,8 +871,8 @@ public class LogDashboardServiceImplTest extends CvNextGenTestBase {
       assertThat(liveMonitoringLogAnalysisRadarChartClusterDTO.getRadius()).isNotNull();
       assertThat(liveMonitoringLogAnalysisRadarChartClusterDTO.getAngle()).isNotNull();
       assertThat(liveMonitoringLogAnalysisRadarChartClusterDTO.getClusterType())
-          .isIn(LogAnalysisTag.UNKNOWN, LogAnalysisTag.KNOWN);
-      if (liveMonitoringLogAnalysisRadarChartClusterDTO.getClusterType().equals(LogAnalysisTag.UNKNOWN)) {
+          .isIn(RadarChartTag.UNKNOWN_EVENT, RadarChartTag.KNOWN_EVENT);
+      if (liveMonitoringLogAnalysisRadarChartClusterDTO.getClusterType().equals(RadarChartTag.UNKNOWN_EVENT)) {
         assertThat(liveMonitoringLogAnalysisRadarChartClusterDTO.getRisk()).isEqualTo(Risk.UNHEALTHY);
       } else {
         assertThat(liveMonitoringLogAnalysisRadarChartClusterDTO.getRisk()).isEqualTo(Risk.HEALTHY);
@@ -894,8 +895,8 @@ public class LogDashboardServiceImplTest extends CvNextGenTestBase {
   @Category(UnitTests.class)
   public void testGetAllLogsData_AllLogsFilteredUsingHealthSources() {
     String cvConfigId = generateUuid();
-    Instant startTime = Instant.now().minus(10, ChronoUnit.MINUTES);
-    Instant endTime = Instant.now().minus(5, ChronoUnit.MINUTES);
+    Instant startTime = clock.instant().minus(10, ChronoUnit.MINUTES);
+    Instant endTime = clock.instant().minus(5, ChronoUnit.MINUTES);
     TimeRangeParams timeRangeParams = TimeRangeParams.builder().startTime(startTime).endTime(endTime).build();
     PageParams pageParams = PageParams.builder().page(0).size(10).build();
     List<Long> labelList = Arrays.asList(1234l, 12345l, 123455l, 12334l);
@@ -933,8 +934,8 @@ public class LogDashboardServiceImplTest extends CvNextGenTestBase {
   @Category(UnitTests.class)
   public void testGetAllRadarChartLogsData_AllLogsFilteredUsingHealthSources() {
     String cvConfigId = generateUuid();
-    Instant startTime = Instant.now().minus(10, ChronoUnit.MINUTES);
-    Instant endTime = Instant.now().minus(5, ChronoUnit.MINUTES);
+    Instant startTime = clock.instant().minus(10, ChronoUnit.MINUTES);
+    Instant endTime = clock.instant().minus(5, ChronoUnit.MINUTES);
     PageParams pageParams = PageParams.builder().page(0).size(10).build();
     List<Long> labelList = Arrays.asList(1234l, 12345l, 123455l, 12334l);
     List<LogAnalysisResult> resultList = buildLogAnalysisResults(cvConfigId, false, startTime, endTime, labelList);
@@ -948,7 +949,7 @@ public class LogDashboardServiceImplTest extends CvNextGenTestBase {
     MonitoredServiceLogAnalysisFilter monitoredServiceLogAnalysisFilter =
         MonitoredServiceLogAnalysisFilter.builder()
             .healthSourceIdentifiers(healthSourceIds)
-            .clusterTypes(Arrays.asList(LogAnalysisTag.values()))
+            .clusterTypes(Arrays.asList(RadarChartTag.values()))
             .startTimeMillis(startTime.toEpochMilli())
             .endTimeMillis(endTime.toEpochMilli())
             .build();
@@ -961,7 +962,7 @@ public class LogDashboardServiceImplTest extends CvNextGenTestBase {
     assertThat(pageResponse.getContent()).isNotEmpty();
     boolean containsKnown = false;
     for (AnalyzedRadarChartLogDataDTO analyzedRadarChartLogDataDTO : pageResponse.getContent()) {
-      if (analyzedRadarChartLogDataDTO.getLogData().getClusterType().equals(LogAnalysisTag.KNOWN)) {
+      if (analyzedRadarChartLogDataDTO.getLogData().getClusterType().equals(RadarChartTag.KNOWN_EVENT)) {
         containsKnown = true;
         break;
       }
@@ -1185,7 +1186,7 @@ public class LogDashboardServiceImplTest extends CvNextGenTestBase {
     assertThat(pageResponse.getContent().size()).isEqualTo(3);
 
     monitoredServiceLogAnalysisFilter = MonitoredServiceLogAnalysisFilter.builder()
-                                            .clusterTypes(Arrays.asList(LogAnalysisTag.KNOWN))
+                                            .clusterTypes(Arrays.asList(RadarChartTag.KNOWN_EVENT))
                                             .startTimeMillis(startTime.toEpochMilli())
                                             .endTimeMillis(endTime.toEpochMilli())
                                             .build();
@@ -1197,7 +1198,7 @@ public class LogDashboardServiceImplTest extends CvNextGenTestBase {
     assertThat(pageResponse.getContent().size()).isEqualTo(1);
 
     monitoredServiceLogAnalysisFilter = MonitoredServiceLogAnalysisFilter.builder()
-                                            .clusterTypes(Arrays.asList(LogAnalysisTag.UNKNOWN))
+                                            .clusterTypes(Arrays.asList(RadarChartTag.UNKNOWN_EVENT))
                                             .startTimeMillis(startTime.toEpochMilli())
                                             .endTimeMillis(endTime.toEpochMilli())
                                             .build();
@@ -1209,7 +1210,7 @@ public class LogDashboardServiceImplTest extends CvNextGenTestBase {
     assertThat(pageResponse.getContent().size()).isEqualTo(1);
 
     monitoredServiceLogAnalysisFilter = MonitoredServiceLogAnalysisFilter.builder()
-                                            .clusterTypes(Arrays.asList(LogAnalysisTag.UNEXPECTED))
+                                            .clusterTypes(Arrays.asList(RadarChartTag.UNEXPECTED_FREQUENCY))
                                             .startTimeMillis(startTime.toEpochMilli())
                                             .endTimeMillis(endTime.toEpochMilli())
                                             .build();
@@ -1351,7 +1352,7 @@ public class LogDashboardServiceImplTest extends CvNextGenTestBase {
     assertThat(response.size()).isEqualTo(3);
 
     monitoredServiceLogAnalysisFilter = MonitoredServiceLogAnalysisFilter.builder()
-                                            .clusterTypes(Arrays.asList(LogAnalysisTag.KNOWN))
+                                            .clusterTypes(Arrays.asList(RadarChartTag.KNOWN_EVENT))
                                             .startTimeMillis(startTime.toEpochMilli())
                                             .endTimeMillis(endTime.toEpochMilli())
                                             .build();
@@ -1362,7 +1363,7 @@ public class LogDashboardServiceImplTest extends CvNextGenTestBase {
     assertThat(response.size()).isEqualTo(1);
 
     monitoredServiceLogAnalysisFilter = MonitoredServiceLogAnalysisFilter.builder()
-                                            .clusterTypes(Arrays.asList(LogAnalysisTag.UNKNOWN))
+                                            .clusterTypes(Arrays.asList(RadarChartTag.UNKNOWN_EVENT))
                                             .startTimeMillis(startTime.toEpochMilli())
                                             .endTimeMillis(endTime.toEpochMilli())
                                             .build();
@@ -1373,7 +1374,7 @@ public class LogDashboardServiceImplTest extends CvNextGenTestBase {
     assertThat(response.size()).isEqualTo(1);
 
     monitoredServiceLogAnalysisFilter = MonitoredServiceLogAnalysisFilter.builder()
-                                            .clusterTypes(Arrays.asList(LogAnalysisTag.UNEXPECTED))
+                                            .clusterTypes(Arrays.asList(RadarChartTag.UNEXPECTED_FREQUENCY))
                                             .startTimeMillis(startTime.toEpochMilli())
                                             .endTimeMillis(endTime.toEpochMilli())
                                             .build();
@@ -1389,8 +1390,8 @@ public class LogDashboardServiceImplTest extends CvNextGenTestBase {
   @Category(UnitTests.class)
   public void testGetRadarChartLogCluster_filterWithClusterId() {
     String cvConfigId = generateUuid();
-    Instant startTime = Instant.now().minus(10, ChronoUnit.MINUTES);
-    Instant endTime = Instant.now().minus(5, ChronoUnit.MINUTES);
+    Instant startTime = clock.instant().minus(10, ChronoUnit.MINUTES);
+    Instant endTime = clock.instant().minus(5, ChronoUnit.MINUTES);
     List<Long> labelList = Arrays.asList(1234l, 12345l, 123455l, 12334l);
     List<LogAnalysisResult> resultList = buildLogAnalysisResults(cvConfigId, false, startTime, endTime, labelList);
     List<String> healthSourceIds = Arrays.asList(cvConfigId);
@@ -1420,8 +1421,8 @@ public class LogDashboardServiceImplTest extends CvNextGenTestBase {
       assertThat(liveMonitoringLogAnalysisRadarChartClusterDTO.getRadius()).isNotNull();
       assertThat(liveMonitoringLogAnalysisRadarChartClusterDTO.getAngle()).isNotNull();
       assertThat(liveMonitoringLogAnalysisRadarChartClusterDTO.getClusterType())
-          .isIn(LogAnalysisTag.UNKNOWN, LogAnalysisTag.KNOWN);
-      if (liveMonitoringLogAnalysisRadarChartClusterDTO.getClusterType().equals(LogAnalysisTag.UNKNOWN)) {
+          .isIn(RadarChartTag.UNKNOWN_EVENT, RadarChartTag.KNOWN_EVENT);
+      if (liveMonitoringLogAnalysisRadarChartClusterDTO.getClusterType().equals(RadarChartTag.UNKNOWN_EVENT)) {
         assertThat(liveMonitoringLogAnalysisRadarChartClusterDTO.getRisk()).isEqualTo(Risk.UNHEALTHY);
       } else {
         assertThat(liveMonitoringLogAnalysisRadarChartClusterDTO.getRisk()).isEqualTo(Risk.HEALTHY);
@@ -1434,8 +1435,8 @@ public class LogDashboardServiceImplTest extends CvNextGenTestBase {
   @Category(UnitTests.class)
   public void testGetRadarChartLogCluster_filterWithAngle() {
     String cvConfigId = generateUuid();
-    Instant startTime = Instant.now().minus(10, ChronoUnit.MINUTES);
-    Instant endTime = Instant.now().minus(5, ChronoUnit.MINUTES);
+    Instant startTime = clock.instant().minus(10, ChronoUnit.MINUTES);
+    Instant endTime = clock.instant().minus(5, ChronoUnit.MINUTES);
     List<Long> labelList = Arrays.asList(1234l, 12345l, 123455l, 12334l);
     List<LogAnalysisResult> resultList = buildLogAnalysisResults(cvConfigId, false, startTime, endTime, labelList);
     List<String> healthSourceIds = Arrays.asList(cvConfigId);
@@ -1461,8 +1462,8 @@ public class LogDashboardServiceImplTest extends CvNextGenTestBase {
       assertThat(liveMonitoringLogAnalysisRadarChartClusterDTO.getRadius()).isNotNull();
       assertThat(liveMonitoringLogAnalysisRadarChartClusterDTO.getAngle()).isNotNull();
       assertThat(liveMonitoringLogAnalysisRadarChartClusterDTO.getClusterType())
-          .isIn(LogAnalysisTag.UNKNOWN, LogAnalysisTag.KNOWN);
-      if (liveMonitoringLogAnalysisRadarChartClusterDTO.getClusterType().equals(LogAnalysisTag.UNKNOWN)) {
+          .isIn(RadarChartTag.UNKNOWN_EVENT, RadarChartTag.KNOWN_EVENT);
+      if (liveMonitoringLogAnalysisRadarChartClusterDTO.getClusterType().equals(RadarChartTag.UNKNOWN_EVENT)) {
         assertThat(liveMonitoringLogAnalysisRadarChartClusterDTO.getRisk()).isEqualTo(Risk.UNHEALTHY);
       } else {
         assertThat(liveMonitoringLogAnalysisRadarChartClusterDTO.getRisk()).isEqualTo(Risk.HEALTHY);
@@ -1475,8 +1476,8 @@ public class LogDashboardServiceImplTest extends CvNextGenTestBase {
   @Category(UnitTests.class)
   public void testGetAllRadarChartLogsData_filterWithClusterId() {
     String cvConfigId = generateUuid();
-    Instant startTime = Instant.now().minus(10, ChronoUnit.MINUTES);
-    Instant endTime = Instant.now().minus(5, ChronoUnit.MINUTES);
+    Instant startTime = clock.instant().minus(10, ChronoUnit.MINUTES);
+    Instant endTime = clock.instant().minus(5, ChronoUnit.MINUTES);
     PageParams pageParams = PageParams.builder().page(0).size(10).build();
     List<Long> labelList = Arrays.asList(1234l, 12345l, 123455l, 12334l);
     List<LogAnalysisResult> resultList = buildLogAnalysisResults(cvConfigId, false, startTime, endTime, labelList);
@@ -1513,8 +1514,8 @@ public class LogDashboardServiceImplTest extends CvNextGenTestBase {
   @Category(UnitTests.class)
   public void testGetAllRadarChartLogsData_filterWithAngle() {
     String cvConfigId = generateUuid();
-    Instant startTime = Instant.now().minus(10, ChronoUnit.MINUTES);
-    Instant endTime = Instant.now().minus(5, ChronoUnit.MINUTES);
+    Instant startTime = clock.instant().minus(10, ChronoUnit.MINUTES);
+    Instant endTime = clock.instant().minus(5, ChronoUnit.MINUTES);
     PageParams pageParams = PageParams.builder().page(0).size(10).build();
     List<Long> labelList = Arrays.asList(1234l, 12345l, 123455l, 12334l);
     List<LogAnalysisResult> resultList = buildLogAnalysisResults(cvConfigId, false, startTime, endTime, labelList);
