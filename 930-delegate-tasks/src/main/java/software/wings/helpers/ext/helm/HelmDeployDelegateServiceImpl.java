@@ -1,6 +1,7 @@
 package software.wings.helpers.ext.helm;
 
 import io.harness.delegate.task.helm.HelmCommandResponse;
+import software.wings.delegatetasks.helm.HelmCommandRequestPrams;
 import software.wings.helpers.ext.helm.request.HelmInstallCommandRequestParams;
 import software.wings.helpers.ext.helm.request.HelmReleaseHistoryCommandRequestParams;
 import software.wings.helpers.ext.helm.request.HelmRollbackCommandRequestParams;
@@ -23,6 +24,11 @@ public class HelmDeployDelegateServiceImpl implements HelmDeployDelegateService{
 
     @Override
     public HelmReleaseHistoryCommandResponse releaseHistory(HelmReleaseHistoryCommandRequestParams helmCommandRequest) {
+        return null;
+    }
+
+    @Override
+    public HelmCommandResponse ensureHelmInstalled(HelmCommandRequestPrams commandRequest) {
         return null;
     }
 }

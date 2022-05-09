@@ -38,6 +38,7 @@ import software.wings.helpers.ext.helm.HelmDeployDelegateService;
 import software.wings.helpers.ext.helm.HelmDeployService;
 import software.wings.helpers.ext.helm.request.HelmCommandRequest;
 import software.wings.helpers.ext.helm.request.HelmInstallCommandRequest;
+import software.wings.helpers.ext.helm.request.HelmInstallCommandRequestParams;
 import software.wings.helpers.ext.helm.request.HelmReleaseHistoryCommandRequest;
 
 import com.google.inject.Inject;
@@ -45,7 +46,9 @@ import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.NotImplementedException;
+import software.wings.helpers.ext.helm.request.HelmReleaseHistoryCommandRequestParams;
 import software.wings.helpers.ext.helm.request.HelmRollbackCommandRequest;
+import software.wings.helpers.ext.helm.request.HelmRollbackCommandRequestParams;
 
 /**
  * Created by anubhaw on 3/22/18.
@@ -75,7 +78,7 @@ public class HelmCommandTask extends AbstractDelegateRunnableTask {
   @Override
   public HelmCommandExecutionResponse run(TaskParameters parameters) {
     HelmCommandRequest helmCommandRequest = (HelmCommandRequest) parameters;
-    HelmCommandResponse commandResponse;
+    HelmCommandResponse commandResponse = null;
 
     try {
       init(helmCommandRequest, getExecutionLogCallback(helmCommandRequest, HelmDummyCommandUnitConstants.Init));
@@ -88,13 +91,13 @@ public class HelmCommandTask extends AbstractDelegateRunnableTask {
 
       switch (helmCommandRequest.getHelmCommandType()) {
         case INSTALL:
-          commandResponse = helmDeployService.deploy((HelmInstallCommandRequest) helmCommandRequest);
+          //commandResponse = helmDeployDelegateService.deploy((HelmInstallCommandRequestParams) helmCommandRequest);
           break;
         case ROLLBACK:
-          commandResponse = helmDeployService.rollback((HelmRollbackCommandRequest) helmCommandRequest);
+          //commandResponse = helmDeployDelegateService.rollback((HelmRollbackCommandRequestParams) helmCommandRequest);
           break;
         case RELEASE_HISTORY:
-          commandResponse = helmDeployService.releaseHistory((HelmReleaseHistoryCommandRequest) helmCommandRequest);
+          //commandResponse = helmDeployDelegateService.releaseHistory((HelmReleaseHistoryCommandRequestParams) helmCommandRequest);
           break;
         default:
           throw new HarnessException("Operation not supported");

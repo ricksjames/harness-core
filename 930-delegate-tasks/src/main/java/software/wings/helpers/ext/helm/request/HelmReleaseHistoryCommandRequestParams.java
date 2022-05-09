@@ -12,45 +12,35 @@ import io.harness.security.encryption.EncryptedDataDetail;
 
 import software.wings.beans.GitConfig;
 import software.wings.beans.GitFileConfig;
+import software.wings.delegatetasks.helm.HelmCommandRequestPrams;
 import software.wings.helpers.ext.k8s.request.K8sDelegateManifestConfig;
 import software.wings.service.impl.ContainerServiceParams;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.util.List;
 import lombok.Builder;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 
-public class HelmReleaseHistoryCommandRequestParams {
-  private HelmCommandRequestNG.HelmCommandType helmCommandType;
-  private String accountId;
-  private String appId;
-  private String kubeConfigLocation;
-  private String commandName;
-  private String activityId;
-  private ContainerServiceParams containerServiceParams;
-  private String releaseName;
-  private String chartUrl;
-  private String chartName;
-  private String chartVersion;
-  private String repoName;
-  private GitConfig gitConfig;
-  private List<EncryptedDataDetail> encryptedDataDetails;
-  @JsonIgnore private transient LogCallback executionLogCallback;
-  @Expression(ALLOW_SECRETS) private String commandFlags;
-  @Expression(ALLOW_SECRETS) private HelmCommandFlag helmCommandFlag;
-  private K8sDelegateManifestConfig repoConfig;
-  @Builder.Default private HelmVersion helmVersion = V2;
-  private String ocPath;
-  private String workingDir;
-  @Expression(ALLOW_SECRETS) private List<String> variableOverridesYamlFiles;
-  private GitFileConfig gitFileConfig;
-  private boolean k8SteadyStateCheckEnabled;
-  private boolean mergeCapabilities; // HELM_MERGE_CAPABILITIES
-  private boolean isGitHostConnectivityCheck;
-  private boolean useNewKubectlVersion;
-  private boolean useLatestChartMuseumVersion;
+@EqualsAndHashCode(callSuper = false)
+public class HelmReleaseHistoryCommandRequestParams extends HelmCommandRequestPrams {
+  public HelmReleaseHistoryCommandRequestParams(HelmCommandRequestNG.HelmCommandType helmCommandType, String accountId,
+      String appId, String kubeConfigLocation, String commandName, String activityId,
+      ContainerServiceParams containerServiceParams, String releaseName, String chartUrl, String chartName,
+      String chartVersion, String repoName, GitConfig gitConfig, List<EncryptedDataDetail> encryptedDataDetails,
+      LogCallback executionLogCallback, String commandFlags, HelmCommandFlag helmCommandFlag,
+      K8sDelegateManifestConfig repoConfig, HelmVersion helmVersion, String ocPath, String workingDir,
+      List<String> variableOverridesYamlFiles, GitFileConfig gitFileConfig, boolean k8SteadyStateCheckEnabled,
+      boolean mergeCapabilities, boolean isGitHostConnectivityCheck, boolean useNewKubectlVersion,
+      boolean useLatestChartMuseumVersion) {
+    super(helmCommandType, accountId, appId, kubeConfigLocation, commandName, activityId, containerServiceParams,
+        releaseName, chartUrl, chartName, chartVersion, repoName, gitConfig, encryptedDataDetails, executionLogCallback,
+        commandFlags, helmCommandFlag, repoConfig, helmVersion, ocPath, workingDir, variableOverridesYamlFiles,
+        gitFileConfig, k8SteadyStateCheckEnabled, mergeCapabilities, isGitHostConnectivityCheck, useNewKubectlVersion,
+        useLatestChartMuseumVersion);
+  }
 
   public HelmReleaseHistoryCommandRequestParams(boolean mergeCapabilities) {
-    helmCommandType = HelmCommandRequestNG.HelmCommandType.RELEASE_HISTORY;
-    this.mergeCapabilities = mergeCapabilities;
+    super(HelmCommandRequestNG.HelmCommandType.RELEASE_HISTORY, mergeCapabilities);
   }
 }

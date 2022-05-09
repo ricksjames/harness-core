@@ -1,6 +1,7 @@
 package software.wings.helpers.ext.helm;
 
 import io.harness.delegate.task.helm.HelmCommandResponse;
+import software.wings.delegatetasks.helm.HelmCommandRequestPrams;
 import software.wings.helpers.ext.helm.request.HelmInstallCommandRequestParams;
 import software.wings.helpers.ext.helm.request.HelmReleaseHistoryCommandRequestParams;
 import software.wings.helpers.ext.helm.request.HelmRollbackCommandRequestParams;
@@ -33,6 +34,8 @@ public interface HelmDeployDelegateService {
      * @return the helm release history command response
      */
     HelmReleaseHistoryCommandResponse releaseHistory(HelmReleaseHistoryCommandRequestParams helmCommandRequest);
+
+    HelmCommandResponse ensureHelmInstalled(HelmCommandRequestPrams commandRequest);
 
 
 }
