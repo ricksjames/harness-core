@@ -111,9 +111,8 @@ public class PMSPipelineDtoMapper {
   public PMSPipelineSummaryResponseDTO preparePipelineSummaryForListView(PipelineEntity pipelineEntity) {
     EntityGitDetails entityGitDetails = pipelineEntity.getStoreType() == null
         ? EntityGitDetailsMapper.mapEntityGitDetails(pipelineEntity)
-        : pipelineEntity.getStoreType() == StoreType.REMOTE
-        ? GitAwareContextHelper.getEntityGitDetailsFromScmGitMetadata()
-        : null;
+        : pipelineEntity.getStoreType() == StoreType.REMOTE ? GitAwareContextHelper.getEntityGitDetails(pipelineEntity)
+                                                            : null;
     return PMSPipelineSummaryResponseDTO.builder()
         .identifier(pipelineEntity.getIdentifier())
         .description(pipelineEntity.getDescription())
