@@ -24,6 +24,7 @@ import lombok.EqualsAndHashCode;
 
 @EqualsAndHashCode(callSuper = false)
 public class HelmReleaseHistoryCommandRequestParams extends HelmCommandRequestPrams {
+  @Builder
   public HelmReleaseHistoryCommandRequestParams(HelmCommandRequestNG.HelmCommandType helmCommandType, String accountId,
       String appId, String kubeConfigLocation, String commandName, String activityId,
       ContainerServiceParams containerServiceParams, String releaseName, String chartUrl, String chartName,

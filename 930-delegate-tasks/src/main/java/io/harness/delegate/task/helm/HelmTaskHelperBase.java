@@ -39,6 +39,7 @@ import static io.harness.k8s.kubectl.Utils.encloseWithQuotesIfNeeded;
 import static io.harness.logging.LogLevel.INFO;
 import static io.harness.logging.LogLevel.WARN;
 
+import static java.util.Collections.singletonList;
 import static software.wings.beans.LogColor.White;
 import static software.wings.beans.LogHelper.color;
 import static software.wings.beans.LogWeight.Bold;
@@ -77,8 +78,13 @@ import io.harness.logging.LogCallback;
 import io.harness.security.encryption.SecretDecryptionService;
 import io.harness.utils.FieldWithPlainTextOrSecretValueHelper;
 
+import software.wings.annotation.EncryptableSetting;
 import software.wings.beans.LogColor;
 import software.wings.beans.LogWeight;
+import software.wings.beans.settings.helm.AmazonS3HelmRepoConfig;
+import software.wings.beans.settings.helm.GCSHelmRepoConfig;
+import software.wings.beans.settings.helm.HelmRepoConfig;
+import software.wings.beans.settings.helm.HttpHelmRepoConfig;
 import software.wings.delegatetasks.ExceptionMessageSanitizer;
 
 import com.esotericsoftware.yamlbeans.YamlException;
@@ -93,6 +99,7 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -112,6 +119,11 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.zeroturnaround.exec.ProcessExecutor;
 import org.zeroturnaround.exec.ProcessResult;
+import software.wings.helpers.ext.chartmuseum.ChartMuseumClient;
+import software.wings.helpers.ext.helm.request.HelmChartConfigParams;
+import software.wings.helpers.ext.k8s.request.K8sValuesLocation;
+import software.wings.service.intfc.security.EncryptionService;
+import software.wings.settings.SettingValue;
 
 @Singleton
 @Slf4j
@@ -124,6 +136,9 @@ public class HelmTaskHelperBase {
   @Inject private K8sGlobalConfigService k8sGlobalConfigService;
   @Inject private NGChartMuseumService ngChartMuseumService;
   @Inject private SecretDecryptionService decryptionService;
+  @Inject private ChartMuseumClient chartMuseumClient;
+  @Inject private EncryptionService encryptionService;
+
   private String randPrefix;
 
   public void initHelm(String workingDirectory, HelmVersion helmVersion, long timeoutInMillis) throws IOException {
@@ -1090,4 +1105,245 @@ public class HelmTaskHelperBase {
             format("Store type: %s not supported for helm values fetch task NG", helmStoreDelegateConfig.getType()));
     }
   }
+
+  public Map<String, List<String>> getValuesYamlFromChart(HelmChartConfigParams helmChartConfigParams,
+                                                          long timeoutInMillis, HelmCommandFlag helmCommandFlag, Map<String, List<String>> mapK8sValuesLocationToFilePaths)
+          throws Exception {
+    String workingDirectory = createNewDirectoryAtPath(Paths.get(WORKING_DIR_BASE).toString());
+    Map<String, List<String>> mapK8sValuesLocationToContents = new HashMap<>();
+    try {
+      fetchChartFiles(helmChartConfigParams, workingDirectory, timeoutInMillis, helmCommandFlag);
+    } catch (HelmClientException ex) {
+      throw new HelmClientRuntimeException((HelmClientException) ExceptionMessageSanitizer.sanitizeException(ex));
+    }
+
+    try {
+      // Fetch chart version in case it is not specified in service to display in execution logs
+      if (isBlank(helmChartConfigParams.getChartVersion())) {
+        try {
+          helmChartConfigParams.setChartVersion(getHelmChartInfoFromChartsYamlFile(
+                  Paths.get(workingDirectory, helmChartConfigParams.getChartName(), CHARTS_YAML_KEY).toString())
+                  .getVersion());
+        } catch (Exception e) {
+          log.info("Unable to fetch chart version", ExceptionMessageSanitizer.sanitizeException(e));
+        }
+      }
+
+      if (isEmpty(mapK8sValuesLocationToFilePaths)) {
+        String fileContent = new String(
+                Files.readAllBytes(
+                        Paths.get(getChartDirectory(workingDirectory, helmChartConfigParams.getChartName()), VALUES_YAML)),
+                StandardCharsets.UTF_8);
+        mapK8sValuesLocationToContents.put(K8sValuesLocation.Service.name(), singletonList(fileContent));
+        return mapK8sValuesLocationToContents;
+      }
+
+      mapK8sValuesLocationToFilePaths.forEach((key, value) -> {
+        final List<String> valuesYamlContents = mapK8sValuesLocationToContents.containsKey(key)
+                ? mapK8sValuesLocationToContents.get(key)
+                : new ArrayList<>();
+
+        value.forEach(filePath -> {
+          try {
+            String fileContent = new String(
+                    Files.readAllBytes(
+                            Paths.get(getChartDirectory(workingDirectory, helmChartConfigParams.getChartName()), filePath)),
+                    StandardCharsets.UTF_8);
+            valuesYamlContents.add(fileContent);
+          } catch (Exception ex) {
+            Exception sanitizedException = ExceptionMessageSanitizer.sanitizeException(ex);
+            String msg = format("Required values yaml file with path %s not found", filePath);
+            log.error(msg, sanitizedException);
+            throw new InvalidArgumentsException(msg, sanitizedException, USER);
+          }
+          mapK8sValuesLocationToContents.put(key, valuesYamlContents);
+        });
+      });
+
+      if (mapK8sValuesLocationToFilePaths.entrySet().stream().anyMatch(
+              entry -> mapK8sValuesLocationToContents.get(entry.getKey()).size() != entry.getValue().size())) {
+        throw new InvalidArgumentsException("Could not find all required values yaml files in helm repo");
+      }
+
+      return mapK8sValuesLocationToContents;
+    } catch (InvalidArgumentsException ex) {
+      throw ExceptionMessageSanitizer.sanitizeException(ex);
+    } catch (Exception ex) {
+      log.info("values yaml file not found", ExceptionMessageSanitizer.sanitizeException(ex));
+      return null;
+    } finally {
+      cleanup(workingDirectory);
+    }
+  }
+  private void fetchChartFiles(HelmChartConfigParams helmChartConfigParams, String destinationDirectory,
+                               long timeoutInMillis, HelmCommandFlag helmCommandFlag) throws Exception {
+    HelmRepoConfig helmRepoConfig = helmChartConfigParams.getHelmRepoConfig();
+
+    initHelm(destinationDirectory, helmChartConfigParams.getHelmVersion(), timeoutInMillis);
+
+    if (helmRepoConfig == null) {
+      fetchChartFromEmptyHelmRepoConfig(helmChartConfigParams, destinationDirectory, timeoutInMillis, helmCommandFlag);
+    } else {
+      decryptConnectorConfig(helmChartConfigParams);
+
+      if (helmRepoConfig instanceof AmazonS3HelmRepoConfig || helmRepoConfig instanceof GCSHelmRepoConfig) {
+        fetchChartUsingChartMuseumServer(helmChartConfigParams, helmChartConfigParams.getConnectorConfig(),
+                destinationDirectory, timeoutInMillis, helmCommandFlag);
+      } else if (helmRepoConfig instanceof HttpHelmRepoConfig) {
+        fetchChartFromHttpServer(helmChartConfigParams, destinationDirectory, timeoutInMillis, helmCommandFlag);
+      }
+    }
+  }
+
+  /*
+  This method is called in case the helm has empty repository connector and the chartName has <REPO_NAME/CHART_NAME>
+  value. In that case, we want to use the default "$HELM_HOME" path. That is why :-
+  1.) We are not adding repo if the URL is empty
+  2.) Passing null directoryPath in the helmFetchCommand so that it picks up default helm
+  Ruckus is one of the customer that is using this mechanism
+   */
+  private void fetchChartFromEmptyHelmRepoConfig(HelmChartConfigParams helmChartConfigParams, String chartDirectory,
+                                                 long timeoutInMillis, HelmCommandFlag helmCommandFlag) {
+    try {
+      String helmFetchCommand;
+      if (isNotBlank(helmChartConfigParams.getChartUrl())) {
+        addRepo(helmChartConfigParams.getRepoName(), null, helmChartConfigParams.getChartUrl(), null, null,
+                chartDirectory, helmChartConfigParams.getHelmVersion(), timeoutInMillis);
+        helmFetchCommand = getHelmFetchCommand(helmChartConfigParams.getChartName(),
+                helmChartConfigParams.getChartVersion(), helmChartConfigParams.getRepoName(), chartDirectory,
+                helmChartConfigParams.getHelmVersion(), helmCommandFlag);
+      } else {
+        helmFetchCommand = getHelmFetchCommand(helmChartConfigParams.getChartName(),
+                helmChartConfigParams.getChartVersion(), helmChartConfigParams.getRepoName(), null,
+                helmChartConfigParams.getHelmVersion(), helmCommandFlag);
+      }
+      executeFetchChartFromRepo(helmChartConfigParams.getChartName(), chartDirectory,
+              helmChartConfigParams.getRepoDisplayName(), helmFetchCommand, timeoutInMillis, "", false);
+
+    } finally {
+      if (isNotBlank(helmChartConfigParams.getChartUrl())) {
+        removeRepo(helmChartConfigParams.getRepoName(), chartDirectory, helmChartConfigParams.getHelmVersion(),
+                timeoutInMillis);
+      }
+    }
+  }
+
+
+  public void decryptConnectorConfig(HelmChartConfigParams helmChartConfigParams) {
+    encryptionService.decrypt(
+            helmChartConfigParams.getHelmRepoConfig(), helmChartConfigParams.getEncryptedDataDetails(), false);
+    ExceptionMessageSanitizer.storeAllSecretsForSanitizing(
+            helmChartConfigParams.getHelmRepoConfig(), helmChartConfigParams.getEncryptedDataDetails());
+
+    SettingValue connectorConfig = helmChartConfigParams.getConnectorConfig();
+    if (connectorConfig != null) {
+      encryptionService.decrypt(
+              (EncryptableSetting) connectorConfig, helmChartConfigParams.getConnectorEncryptedDataDetails(), false);
+      ExceptionMessageSanitizer.storeAllSecretsForSanitizing(
+              (EncryptableSetting) connectorConfig, helmChartConfigParams.getConnectorEncryptedDataDetails());
+    }
+  }
+
+  private void fetchChartUsingChartMuseumServer(HelmChartConfigParams helmChartConfigParams,
+                                                SettingValue connectorConfig, String chartDirectory, long timeoutInMillis, HelmCommandFlag helmCommandFlag)
+          throws Exception {
+    ChartMuseumServer chartMuseumServer = null;
+    String resourceDirectory = null;
+    boolean useRepoFlags = false;
+    /*
+     repoName will be a combination of the connectorId and bucket name;
+     this way, parallel deployments with charts in different buckets will work fine
+     */
+    final String modifiedRepoName =
+            helmChartConfigParams.getRepoName() + "-" + helmChartConfigParams.getHelmRepoConfig().getBucketName();
+
+    String cacheDir = "";
+    if (helmChartConfigParams.isUseRepoFlags()) {
+      if (helmChartConfigParams.isDeleteRepoCacheDir()) {
+        cacheDir = Paths
+                .get(RESOURCE_DIR_BASE, modifiedRepoName,
+                        RandomStringUtils.randomAlphabetic(5).toLowerCase(Locale.ROOT), "cache")
+                .toAbsolutePath()
+                .normalize()
+                .toString();
+      } else {
+        cacheDir = Paths.get(RESOURCE_DIR_BASE, modifiedRepoName, "cache").toAbsolutePath().normalize().toString();
+      }
+    }
+
+    try {
+      resourceDirectory = createNewDirectoryAtPath(RESOURCE_DIR_BASE);
+      chartMuseumServer = chartMuseumClient.startChartMuseumServer(helmChartConfigParams.getHelmRepoConfig(),
+              connectorConfig, resourceDirectory, helmChartConfigParams.getBasePath(),
+              helmChartConfigParams.isUseLatestChartMuseumVersion());
+
+      addChartMuseumRepo(modifiedRepoName, helmChartConfigParams.getRepoDisplayName(),
+              chartMuseumServer.getPort(), chartDirectory, helmChartConfigParams.getHelmVersion(), timeoutInMillis,
+              cacheDir);
+      fetchChartFromRepo(modifiedRepoName, helmChartConfigParams.getRepoDisplayName(),
+              helmChartConfigParams.getChartName(), helmChartConfigParams.getChartVersion(), chartDirectory,
+              helmChartConfigParams.getHelmVersion(), helmCommandFlag, timeoutInMillis, false, cacheDir);
+    } finally {
+      if (chartMuseumServer != null) {
+        chartMuseumClient.stopChartMuseumServer(chartMuseumServer.getStartedProcess());
+      }
+      removeRepo(modifiedRepoName, chartDirectory, helmChartConfigParams.getHelmVersion(), timeoutInMillis,
+              useRepoFlags, EMPTY);
+      if (helmChartConfigParams.isUseRepoFlags() && helmChartConfigParams.isDeleteRepoCacheDir()) {
+        try {
+          FileUtils.forceDelete(new File(cacheDir));
+        } catch (IOException ie) {
+          log.error("Deletion of charts folder failed due to : {}",
+                  ExceptionMessageSanitizer.sanitizeException(ie).getMessage());
+        }
+      }
+      cleanup(resourceDirectory);
+    }
+  }
+
+  private void addRepo(String repoName, Object o, String chartUrl, Object o1, Object o2, String chartDirectory, HelmVersion helmVersion, long timeoutInMillis) {
+  }
+
+  public void fetchChartFromHttpServer(HelmChartConfigParams helmChartConfigParams, String chartDirectory,
+                                       long timeoutInMillis, HelmCommandFlag helmCommandFlag) {
+    HttpHelmRepoConfig httpHelmRepoConfig = (HttpHelmRepoConfig) helmChartConfigParams.getHelmRepoConfig();
+
+    String cacheDir = "";
+    if (helmChartConfigParams.isUseRepoFlags()) {
+      if (helmChartConfigParams.isDeleteRepoCacheDir()) {
+        cacheDir = Paths
+                .get(RESOURCE_DIR_BASE, helmChartConfigParams.getRepoName(),
+                        RandomStringUtils.randomAlphabetic(5).toLowerCase(Locale.ROOT), "cache")
+                .toAbsolutePath()
+                .normalize()
+                .toString();
+      } else {
+        cacheDir = Paths.get(RESOURCE_DIR_BASE, helmChartConfigParams.getRepoName(), "cache")
+                .toAbsolutePath()
+                .normalize()
+                .toString();
+      }
+    }
+    try {
+      addRepo(helmChartConfigParams.getRepoName(), helmChartConfigParams.getRepoDisplayName(),
+              httpHelmRepoConfig.getChartRepoUrl(), httpHelmRepoConfig.getUsername(), httpHelmRepoConfig.getPassword(),
+              chartDirectory, helmChartConfigParams.getHelmVersion(), timeoutInMillis, cacheDir);
+      fetchChartFromRepo(helmChartConfigParams.getRepoName(),
+              helmChartConfigParams.getRepoDisplayName(), helmChartConfigParams.getChartName(),
+              helmChartConfigParams.getChartVersion(), chartDirectory, helmChartConfigParams.getHelmVersion(),
+              helmCommandFlag, timeoutInMillis, helmChartConfigParams.isCheckIncorrectChartVersion(), cacheDir);
+    } finally {
+      if (helmChartConfigParams.isUseRepoFlags() && helmChartConfigParams.isDeleteRepoCacheDir()) {
+        try {
+          FileUtils.forceDelete(new File(cacheDir));
+        } catch (IOException ie) {
+          log.error("Deletion of charts folder failed due to : {}",
+                  ExceptionMessageSanitizer.sanitizeException(ie).getMessage());
+        }
+      }
+    }
+  }
+
+
+
 }

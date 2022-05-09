@@ -10,6 +10,7 @@ import io.harness.k8s.model.HelmVersion;
 import io.harness.logging.LogCallback;
 import io.harness.security.encryption.EncryptedDataDetail;
 
+import lombok.Builder;
 import software.wings.beans.GitConfig;
 import software.wings.beans.GitFileConfig;
 import software.wings.delegatetasks.helm.HelmCommandRequestPrams;
@@ -23,7 +24,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 @Data
-@EqualsAndHashCode(callSuper = false)
+@EqualsAndHashCode(callSuper = true)
 public class HelmInstallCommandRequestParams extends HelmCommandRequestPrams {
   private Integer newReleaseVersion;
   private Integer prevReleaseVersion;
@@ -32,12 +33,13 @@ public class HelmInstallCommandRequestParams extends HelmCommandRequestPrams {
   private Map<String, String> valueOverrides;
   private boolean optimizedFilesFetch;
 
-  private HelmCommandRequestNG.HelmCommandType helmCommandType;
+
 
   public HelmInstallCommandRequestParams(boolean mergeCapabilities) {
     super(HelmCommandRequestNG.HelmCommandType.INSTALL, mergeCapabilities);
   }
 
+  @Builder
   public HelmInstallCommandRequestParams(HelmCommandRequestNG.HelmCommandType helmCommandType, String accountId,
       String appId, String kubeConfigLocation, String commandName, String activityId,
       ContainerServiceParams containerServiceParams, String releaseName, String chartUrl, String chartName,

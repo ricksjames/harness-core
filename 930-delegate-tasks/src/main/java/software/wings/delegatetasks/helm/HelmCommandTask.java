@@ -35,7 +35,6 @@ import software.wings.delegatetasks.ExceptionMessageSanitizer;
 import software.wings.helpers.ext.container.ContainerDeploymentDelegateHelper;
 import software.wings.helpers.ext.helm.HelmCommandExecutionResponse;
 import software.wings.helpers.ext.helm.HelmDeployDelegateService;
-import software.wings.helpers.ext.helm.HelmDeployService;
 import software.wings.helpers.ext.helm.request.HelmInstallCommandRequestParams;
 
 import com.google.inject.Inject;
@@ -43,8 +42,7 @@ import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.NotImplementedException;
-import software.wings.helpers.ext.helm.request.HelmReleaseHistoryCommandRequestParams;
-import software.wings.helpers.ext.helm.request.HelmRollbackCommandRequest;
+import software.wings.helpers.ext.helm.request.HelmReleaseHistoryCommandRequestParams;;
 import software.wings.helpers.ext.helm.request.HelmRollbackCommandRequestParams;
 
 /**
@@ -58,7 +56,6 @@ public class HelmCommandTask extends AbstractDelegateRunnableTask {
   //@Inject private HelmDeployService helmDeployService;
   @Inject private HelmDeployDelegateService helmDeployDelegateService;
   @Inject private ContainerDeploymentDelegateHelper containerDeploymentDelegateHelper;
-  @Inject private HelmCommandHelper helmCommandHelper;
   @Inject private K8sGlobalConfigService k8sGlobalConfigService;
 
   public HelmCommandTask(DelegateTaskPackage delegateTaskPackage, ILogStreamingTaskClient logStreamingTaskClient,

@@ -24,7 +24,7 @@ import io.harness.delegate.task.helm.HelmCommandFlag;
 import io.harness.expression.Expression;
 import io.harness.expression.ExpressionEvaluator;
 
-import software.wings.delegatetasks.validation.capabilities.HelmCommandCapability;
+import software.wings.delegatetasks.validation.capabilities.HelmCommandDelegateCapability;
 import software.wings.service.impl.ContainerServiceParams;
 
 import java.util.ArrayList;
@@ -77,8 +77,8 @@ public class HelmValuesFetchTaskParameters implements TaskParameters, ActivityAc
                              .criteria("helmcommand")
                              .build());
       } else {
-        capabilities.add(HelmCommandCapability.builder()
-                             .commandRequest(HelmInstallCommandRequest.builder()
+        capabilities.add(HelmCommandDelegateCapability.builder()
+                             .commandRequest(HelmInstallCommandRequestParams.builder()
                                                  .commandFlags(getHelmCommandFlags())
                                                  .helmCommandFlag(getHelmCommandFlag())
                                                  .helmVersion(getHelmChartConfigTaskParams().getHelmVersion())

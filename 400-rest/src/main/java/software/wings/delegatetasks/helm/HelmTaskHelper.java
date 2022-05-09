@@ -133,40 +133,6 @@ public class HelmTaskHelper {
     }
   }
 
-  private void fetchChartFiles(HelmChartConfigParams helmChartConfigParams, String destinationDirectory,
-      long timeoutInMillis, HelmCommandFlag helmCommandFlag) throws Exception {
-    HelmRepoConfig helmRepoConfig = helmChartConfigParams.getHelmRepoConfig();
-
-    initHelm(destinationDirectory, helmChartConfigParams.getHelmVersion(), timeoutInMillis);
-
-    if (helmRepoConfig == null) {
-      fetchChartFromEmptyHelmRepoConfig(helmChartConfigParams, destinationDirectory, timeoutInMillis, helmCommandFlag);
-    } else {
-      decryptConnectorConfig(helmChartConfigParams);
-
-      if (helmRepoConfig instanceof AmazonS3HelmRepoConfig || helmRepoConfig instanceof GCSHelmRepoConfig) {
-        fetchChartUsingChartMuseumServer(helmChartConfigParams, helmChartConfigParams.getConnectorConfig(),
-            destinationDirectory, timeoutInMillis, helmCommandFlag);
-      } else if (helmRepoConfig instanceof HttpHelmRepoConfig) {
-        fetchChartFromHttpServer(helmChartConfigParams, destinationDirectory, timeoutInMillis, helmCommandFlag);
-      }
-    }
-  }
-
-  public void decryptConnectorConfig(HelmChartConfigParams helmChartConfigParams) {
-    encryptionService.decrypt(
-        helmChartConfigParams.getHelmRepoConfig(), helmChartConfigParams.getEncryptedDataDetails(), false);
-    ExceptionMessageSanitizer.storeAllSecretsForSanitizing(
-        helmChartConfigParams.getHelmRepoConfig(), helmChartConfigParams.getEncryptedDataDetails());
-
-    SettingValue connectorConfig = helmChartConfigParams.getConnectorConfig();
-    if (connectorConfig != null) {
-      encryptionService.decrypt(
-          (EncryptableSetting) connectorConfig, helmChartConfigParams.getConnectorEncryptedDataDetails(), false);
-      ExceptionMessageSanitizer.storeAllSecretsForSanitizing(
-          (EncryptableSetting) connectorConfig, helmChartConfigParams.getConnectorEncryptedDataDetails());
-    }
-  }
 
   public void downloadChartFiles(HelmChartConfigParams helmChartConfigParams, String destinationDirectory,
       long timeoutInMillis, HelmCommandFlag helmCommandFlag) throws Exception {
@@ -174,6 +140,27 @@ public class HelmTaskHelper {
 
     fetchChartFiles(helmChartConfigParams, workingDirectory, timeoutInMillis, helmCommandFlag);
   }
+
+  private void fetchChartFiles(HelmChartConfigParams helmChartConfigParams, String destinationDirectory,
+                               long timeoutInMillis, HelmCommandFlag helmCommandFlag) throws Exception {
+    HelmRepoConfig helmRepoConfig = helmChartConfigParams.getHelmRepoConfig();
+
+    initHelm(destinationDirectory, helmChartConfigParams.getHelmVersion(), timeoutInMillis);
+
+    if (helmRepoConfig == null) {
+      fetchChartFromEmptyHelmRepoConfig(helmChartConfigParams, destinationDirectory, timeoutInMillis, helmCommandFlag);
+    } else {
+      helmTaskHelperBase.decryptConnectorConfig(helmChartConfigParams);
+
+      if (helmRepoConfig instanceof AmazonS3HelmRepoConfig || helmRepoConfig instanceof GCSHelmRepoConfig) {
+        fetchChartUsingChartMuseumServer(helmChartConfigParams, helmChartConfigParams.getConnectorConfig(),
+                destinationDirectory, timeoutInMillis, helmCommandFlag);
+      } else if (helmRepoConfig instanceof HttpHelmRepoConfig) {
+        helmTaskHelperBase.fetchChartFromHttpServer(helmChartConfigParams, destinationDirectory, timeoutInMillis, helmCommandFlag);
+      }
+    }
+  }
+
 
   public void downloadChartFiles(HelmChartSpecification helmChartSpecification, String destinationDirectory,
       HelmCommandRequest helmCommandRequest, long timeoutInMillis, HelmCommandFlag helmCommandFlag) throws Exception {
@@ -202,75 +189,7 @@ public class HelmTaskHelper {
     unzipManifestFiles(destDir, zipInputStream);
   }
 
-  public Map<String, List<String>> getValuesYamlFromChart(HelmChartConfigParams helmChartConfigParams,
-      long timeoutInMillis, HelmCommandFlag helmCommandFlag, Map<String, List<String>> mapK8sValuesLocationToFilePaths)
-      throws Exception {
-    String workingDirectory = createNewDirectoryAtPath(Paths.get(WORKING_DIR_BASE).toString());
-    Map<String, List<String>> mapK8sValuesLocationToContents = new HashMap<>();
-    try {
-      fetchChartFiles(helmChartConfigParams, workingDirectory, timeoutInMillis, helmCommandFlag);
-    } catch (HelmClientException ex) {
-      throw new HelmClientRuntimeException((HelmClientException) ExceptionMessageSanitizer.sanitizeException(ex));
-    }
 
-    try {
-      // Fetch chart version in case it is not specified in service to display in execution logs
-      if (isBlank(helmChartConfigParams.getChartVersion())) {
-        try {
-          helmChartConfigParams.setChartVersion(getHelmChartInfoFromChartsYamlFile(
-              Paths.get(workingDirectory, helmChartConfigParams.getChartName(), CHARTS_YAML_KEY).toString())
-                                                    .getVersion());
-        } catch (Exception e) {
-          log.info("Unable to fetch chart version", ExceptionMessageSanitizer.sanitizeException(e));
-        }
-      }
-
-      if (isEmpty(mapK8sValuesLocationToFilePaths)) {
-        String fileContent = new String(
-            Files.readAllBytes(
-                Paths.get(getChartDirectory(workingDirectory, helmChartConfigParams.getChartName()), VALUES_YAML)),
-            StandardCharsets.UTF_8);
-        mapK8sValuesLocationToContents.put(K8sValuesLocation.Service.name(), singletonList(fileContent));
-        return mapK8sValuesLocationToContents;
-      }
-
-      mapK8sValuesLocationToFilePaths.forEach((key, value) -> {
-        final List<String> valuesYamlContents = mapK8sValuesLocationToContents.containsKey(key)
-            ? mapK8sValuesLocationToContents.get(key)
-            : new ArrayList<>();
-
-        value.forEach(filePath -> {
-          try {
-            String fileContent = new String(
-                Files.readAllBytes(
-                    Paths.get(getChartDirectory(workingDirectory, helmChartConfigParams.getChartName()), filePath)),
-                StandardCharsets.UTF_8);
-            valuesYamlContents.add(fileContent);
-          } catch (Exception ex) {
-            Exception sanitizedException = ExceptionMessageSanitizer.sanitizeException(ex);
-            String msg = format("Required values yaml file with path %s not found", filePath);
-            log.error(msg, sanitizedException);
-            throw new InvalidArgumentsException(msg, sanitizedException, USER);
-          }
-          mapK8sValuesLocationToContents.put(key, valuesYamlContents);
-        });
-      });
-
-      if (mapK8sValuesLocationToFilePaths.entrySet().stream().anyMatch(
-              entry -> mapK8sValuesLocationToContents.get(entry.getKey()).size() != entry.getValue().size())) {
-        throw new InvalidArgumentsException("Could not find all required values yaml files in helm repo");
-      }
-
-      return mapK8sValuesLocationToContents;
-    } catch (InvalidArgumentsException ex) {
-      throw ExceptionMessageSanitizer.sanitizeException(ex);
-    } catch (Exception ex) {
-      log.info("values yaml file not found", ExceptionMessageSanitizer.sanitizeException(ex));
-      return null;
-    } finally {
-      cleanup(workingDirectory);
-    }
-  }
 
   private void fetchChartUsingChartMuseumServer(HelmChartConfigParams helmChartConfigParams,
       SettingValue connectorConfig, String chartDirectory, long timeoutInMillis, HelmCommandFlag helmCommandFlag)
@@ -416,45 +335,6 @@ public class HelmTaskHelper {
         repoName, repoDisplayName, chartRepoUrl, username, password, chartDirectory, helmVersion, timeoutInMillis, "");
   }
 
-  private void fetchChartFromHttpServer(HelmChartConfigParams helmChartConfigParams, String chartDirectory,
-      long timeoutInMillis, HelmCommandFlag helmCommandFlag) {
-    HttpHelmRepoConfig httpHelmRepoConfig = (HttpHelmRepoConfig) helmChartConfigParams.getHelmRepoConfig();
-
-    String cacheDir = "";
-    if (helmChartConfigParams.isUseRepoFlags()) {
-      if (helmChartConfigParams.isDeleteRepoCacheDir()) {
-        cacheDir = Paths
-                       .get(RESOURCE_DIR_BASE, helmChartConfigParams.getRepoName(),
-                           RandomStringUtils.randomAlphabetic(5).toLowerCase(Locale.ROOT), "cache")
-                       .toAbsolutePath()
-                       .normalize()
-                       .toString();
-      } else {
-        cacheDir = Paths.get(RESOURCE_DIR_BASE, helmChartConfigParams.getRepoName(), "cache")
-                       .toAbsolutePath()
-                       .normalize()
-                       .toString();
-      }
-    }
-    try {
-      helmTaskHelperBase.addRepo(helmChartConfigParams.getRepoName(), helmChartConfigParams.getRepoDisplayName(),
-          httpHelmRepoConfig.getChartRepoUrl(), httpHelmRepoConfig.getUsername(), httpHelmRepoConfig.getPassword(),
-          chartDirectory, helmChartConfigParams.getHelmVersion(), timeoutInMillis, cacheDir);
-      helmTaskHelperBase.fetchChartFromRepo(helmChartConfigParams.getRepoName(),
-          helmChartConfigParams.getRepoDisplayName(), helmChartConfigParams.getChartName(),
-          helmChartConfigParams.getChartVersion(), chartDirectory, helmChartConfigParams.getHelmVersion(),
-          helmCommandFlag, timeoutInMillis, helmChartConfigParams.isCheckIncorrectChartVersion(), cacheDir);
-    } finally {
-      if (helmChartConfigParams.isUseRepoFlags() && helmChartConfigParams.isDeleteRepoCacheDir()) {
-        try {
-          FileUtils.forceDelete(new File(cacheDir));
-        } catch (IOException ie) {
-          log.error("Deletion of charts folder failed due to : {}",
-              ExceptionMessageSanitizer.sanitizeException(ie).getMessage());
-        }
-      }
-    }
-  }
 
   public void addHelmRepo(HelmRepoConfig helmRepoConfig, SettingValue connectorConfig, String repoName,
       String repoDisplayName, String workingDirectory, String basePath, HelmVersion helmVersion,
@@ -546,7 +426,7 @@ public class HelmTaskHelper {
     HelmRepoConfig helmRepoConfig = helmChartConfigParams.getHelmRepoConfig();
     String workingDirectory = createDirectory(Paths.get(destinationDirectory).toString());
     initHelm(workingDirectory, helmChartConfigParams.getHelmVersion(), timeoutInMillis);
-    decryptConnectorConfig(helmChartConfigParams);
+    helmTaskHelperBase.decryptConnectorConfig(helmChartConfigParams);
 
     if (helmRepoConfig instanceof HttpHelmRepoConfig) {
       return fetchVersionsFromHttp(helmChartCollectionParams, destinationDirectory, timeoutInMillis, workingDirectory);

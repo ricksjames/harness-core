@@ -24,6 +24,7 @@ public class HelmRollbackCommandRequestParams extends HelmCommandRequestPrams {
   private Integer newReleaseVersion;
   private Integer prevReleaseVersion;
 
+  @Builder
   public HelmRollbackCommandRequestParams(HelmCommandRequestNG.HelmCommandType helmCommandType, String accountId,
       String appId, String kubeConfigLocation, String commandName, String activityId,
       ContainerServiceParams containerServiceParams, String releaseName, String chartUrl, String chartName,

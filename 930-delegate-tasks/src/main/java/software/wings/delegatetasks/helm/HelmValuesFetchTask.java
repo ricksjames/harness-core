@@ -32,6 +32,7 @@ import io.harness.delegate.clienttools.ClientTool;
 import io.harness.delegate.clienttools.InstallUtils;
 import io.harness.delegate.task.AbstractDelegateRunnableTask;
 import io.harness.delegate.task.TaskParameters;
+import io.harness.delegate.task.helm.HelmTaskHelperBase;
 import io.harness.k8s.model.HelmVersion;
 import io.harness.logging.CommandExecutionStatus;
 import io.harness.secret.SecretSanitizerThreadLocal;
@@ -59,7 +60,7 @@ import org.zeroturnaround.exec.ProcessExecutor;
 @TargetModule(HarnessModule._930_DELEGATE_TASKS)
 @OwnedBy(CDP)
 public class HelmValuesFetchTask extends AbstractDelegateRunnableTask {
-  @Inject private HelmTaskHelper helmTaskHelper;
+  @Inject private HelmTaskHelperBase helmTaskHelper;
   @Inject private DelegateLogService delegateLogService;
 
   public HelmValuesFetchTask(DelegateTaskPackage delegateTaskPackage, ILogStreamingTaskClient logStreamingTaskClient,
@@ -89,7 +90,7 @@ public class HelmValuesFetchTask extends AbstractDelegateRunnableTask {
           helmChartConfigParams, taskParams.getTimeoutInMillis(), taskParams.getHelmCommandFlag(),
           ((HelmValuesFetchTaskParameters) parameters).getMapK8sValuesLocationToFilePaths());
 
-      helmTaskHelper.printHelmChartInfoInExecutionLogs(helmChartConfigParams, executionLogCallback);
+      //helmTaskHelper.printHelmChartInfoInExecutionLogs(helmChartConfigParams, executionLogCallback);
 
       if (EmptyPredicate.isEmpty(mapK8sValuesLocationToContent)
           || mapK8sValuesLocationToContent.values().stream().allMatch(Objects::isNull)) {
