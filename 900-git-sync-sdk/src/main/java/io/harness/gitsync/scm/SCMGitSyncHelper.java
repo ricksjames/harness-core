@@ -135,6 +135,7 @@ public class SCMGitSyncHelper {
             .setScopeIdentifiers(ScopeIdentifierMapper.getScopeIdentifiersFromScope(scope))
             .putAllContextMap(contextMap)
             .setBaseBranchName(gitRequest.getBaseBranch())
+            .setPrincipal(getPrincipal())
             .build();
 
     final CreateFileResponse createFileResponse = GitSyncGrpcClientUtils.retryAndProcessException(
@@ -164,6 +165,7 @@ public class SCMGitSyncHelper {
             .setBaseBranchName(gitRequest.getBaseBranch())
             .setOldCommitId(emptyIfNull(gitRequest.getOldCommitId()))
             .setOldFileSha(gitRequest.getOldFileSha())
+            .setPrincipal(getPrincipal())
             .build();
 
     final UpdateFileResponse updateFileResponse = GitSyncGrpcClientUtils.retryAndProcessException(
@@ -188,6 +190,7 @@ public class SCMGitSyncHelper {
             .setTargetBranch(targetBranch)
             .setTitle(title)
             .putAllContextMap(contextMap)
+            .setPrincipal(getPrincipal())
             .build();
 
     final CreatePRResponse createPRResponse = GitSyncGrpcClientUtils.retryAndProcessException(
