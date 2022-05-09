@@ -106,11 +106,13 @@ public class SCMGitSyncHelper {
             .setFilePath(filePath)
             .putAllContextMap(contextMap)
             .setScopeIdentifiers(ScopeIdentifierMapper.getScopeIdentifiersFromScope(scope))
+            .setPrincipal(getPrincipal())
             .build();
     final GetFileResponse getFileResponse = GitSyncGrpcClientUtils.retryAndProcessException(
         harnessToGitPushInfoServiceBlockingStub::getFile, getFileRequest);
 
     if (isFailureResponse(getFileResponse.getStatusCode())) {
+      log.error("Git SDK getFile Failure: {}", getFileResponse);
       scmErrorHandler.processAndThrowException(
           getFileResponse.getStatusCode(), getScmErrorDetails(getFileResponse.getError()));
     }
