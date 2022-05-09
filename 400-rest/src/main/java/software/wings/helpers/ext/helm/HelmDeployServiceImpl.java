@@ -66,7 +66,6 @@ import software.wings.beans.GitFileConfig;
 import software.wings.beans.appmanifest.ManifestFile;
 import software.wings.beans.appmanifest.StoreType;
 import software.wings.beans.command.ExecutionLogCallback;
-import software.wings.beans.command.HelmDummyCommandUnit;
 import software.wings.beans.command.HelmDummyCommandUnitConstants;
 import software.wings.beans.container.HelmChartSpecification;
 import software.wings.beans.yaml.GitFetchFilesResult;
@@ -215,7 +214,8 @@ public class HelmDeployServiceImpl implements HelmDeployService {
           executionLogCallback, commandRequest.getTimeoutInMillis());
       commandResponse.setContainerInfoList(containerInfos);
 
-      executionLogCallback = markDoneAndStartNew(commandRequest, executionLogCallback, HelmDummyCommandUnitConstants.WrapUp);
+      executionLogCallback =
+          markDoneAndStartNew(commandRequest, executionLogCallback, HelmDummyCommandUnitConstants.WrapUp);
       return commandResponse;
     } catch (UncheckedTimeoutException e) {
       String msg = TIMED_OUT_IN_STEADY_STATE;
@@ -785,7 +785,6 @@ public class HelmDeployServiceImpl implements HelmDeployService {
         .releaseInfoList(releaseInfoList)
         .build();
   }
-
   private List<ReleaseInfo> parseHelmReleaseCommandOutput(String listReleaseOutput, HelmCommandType helmCommandType)
       throws IOException {
     if (isEmpty(listReleaseOutput)) {
