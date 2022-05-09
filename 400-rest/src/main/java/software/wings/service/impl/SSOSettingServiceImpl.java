@@ -265,6 +265,7 @@ public class SSOSettingServiceImpl implements SSOSettingService {
   public LdapSettings createLdapSettings(
       @GetAccountId(LdapSettingsAccountIdExtractor.class) @NotNull LdapSettings settings) {
     LdapSettings savedSettings;
+    validateLdapSettings(settings);
     if (getLdapSettingsByAccountId(settings.getAccountId()) != null) {
       throw new InvalidRequestException("Ldap settings already exist for this account.");
     }
@@ -276,11 +277,7 @@ public class SSOSettingServiceImpl implements SSOSettingService {
       settings.setCronExpression(ldapSyncJobConfig.getDefaultCronExpression());
     }
     updateNextIterations(settings);
-    try {
-      savedSettings = wingsPersistence.saveAndGet(LdapSettings.class, settings);
-    } catch (NullPointerException e) {
-      throw new InvalidRequestException("Please turn on the Feature Flag : LDAP_SECRET_AUTH");
-    }
+    savedSettings = wingsPersistence.saveAndGet(LdapSettings.class, settings);
     LdapGroupSyncJob.add(jobScheduler, savedSettings.getAccountId(), savedSettings.getUuid());
     ldapGroupScheduledHandler.wakeup();
     auditServiceHelper.reportForAuditingUsingAccountId(settings.getAccountId(), null, settings, Event.Type.CREATE);
@@ -294,6 +291,7 @@ public class SSOSettingServiceImpl implements SSOSettingService {
   public LdapSettings updateLdapSettings(
       @GetAccountId(LdapSettingsAccountIdExtractor.class) @NotNull LdapSettings settings) {
     LdapSettings savedSettings;
+    validateLdapSettings(settings);
     LdapSettings oldSettings = getLdapSettingsByAccountId(settings.getAccountId());
     if (oldSettings == null) {
       throw new InvalidRequestException("No existing Ldap settings found for this account.");
@@ -316,17 +314,20 @@ public class SSOSettingServiceImpl implements SSOSettingService {
     oldSettings.setDefaultCronExpression(ldapSyncJobConfig.getDefaultCronExpression());
     oldSettings.setCronExpression(settings.getCronExpression());
     updateNextIterations(oldSettings);
-    try {
-      savedSettings = wingsPersistence.saveAndGet(LdapSettings.class, settings);
-    } catch (NullPointerException e) {
-      throw new InvalidRequestException("Please turn on the Feature Flag : LDAP_SECRET_AUTH");
-    }
+    savedSettings = wingsPersistence.saveAndGet(LdapSettings.class, settings);
     auditServiceHelper.reportForAuditingUsingAccountId(
         settings.getAccountId(), oldSettings, savedSettings, Event.Type.UPDATE);
     log.info("Auditing updation of LDAP for account={}", savedSettings.getAccountId());
     LdapGroupSyncJob.add(jobScheduler, savedSettings.getAccountId(), savedSettings.getUuid());
     ldapGroupScheduledHandler.wakeup();
     return savedSettings;
+  }
+
+  private void validateLdapSettings(LdapSettings settings) {
+    if (!featureFlagService.isEnabled(FeatureName.LDAP_SECRET_AUTH, settings.getAccountId())
+        && isNotEmpty(settings.getConnectionSettings().getBindSecret())) {
+      throw new InvalidRequestException("Please turn on the Feature Flag : LDAP_SECRET_AUTH");
+    }
   }
 
   @Override
