@@ -828,6 +828,7 @@
 7260:software.wings.api.k8s.K8sSwapServiceElement
 7261:software.wings.beans.SlackMessage
 7262:software.wings.service.impl.SlackMessageSenderImpl
+7263:software.wings.beans.SlackMessageJSON
 7264:software.wings.api.pcf.PcfPluginExecutionSummary
 7265:software.wings.api.pcf.PcfPluginStateExecutionData
 7266:software.wings.service.impl.aws.model.AwsS3Request
@@ -2184,6 +2185,7 @@
 563530:io.harness.delegate.beans.executioncapability.ServerlessInstallationCapability
 563531:io.harness.delegate.task.artifacts.artifactory.ArtifactoryBaseArtifactDelegateRequest
 563532:io.harness.delegate.task.k8s.AzureK8sInfraDelegateConfig
+563533:io.harness.delegate.beans.azure.response.AzureAcrTokenTaskResponse
 600001:io.harness.ng.core.dto.secrets.WinRmCredentialsSpecDTO
 600002:io.harness.secretmanagerclient.WinRmAuthScheme
 600003:io.harness.ng.core.dto.secrets.NTLMConfigDTO
