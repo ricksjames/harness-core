@@ -142,8 +142,8 @@ public class SCMGitSyncHelper {
         harnessToGitPushInfoServiceBlockingStub::createFile, createFileRequest);
 
     if (isFailureResponse(createFileResponse.getStatusCode())) {
-      scmErrorHandler.processAndThrowException(createFileResponse.getStatusCode(),
-          ScmErrorDetails.builder().errorMessage(createFileResponse.getError().getErrorMessage()).build());
+      scmErrorHandler.processAndThrowException(
+          createFileResponse.getStatusCode(), getScmErrorDetails(createFileResponse.getError()));
     }
 
     return ScmCreateFileGitResponse.builder().gitMetaData(getGitMetaData(createFileResponse.getGitMetaData())).build();
@@ -172,8 +172,8 @@ public class SCMGitSyncHelper {
         harnessToGitPushInfoServiceBlockingStub::updateFile, updateFileRequest);
 
     if (isFailureResponse(updateFileResponse.getStatusCode())) {
-      scmErrorHandler.processAndThrowException(updateFileResponse.getStatusCode(),
-          ScmErrorDetails.builder().errorMessage(updateFileResponse.getError().getErrorMessage()).build());
+      scmErrorHandler.processAndThrowException(
+          updateFileResponse.getStatusCode(), getScmErrorDetails(updateFileResponse.getError()));
     }
 
     return ScmUpdateFileGitResponse.builder().gitMetaData(getGitMetaData(updateFileResponse.getGitMetaData())).build();
@@ -197,8 +197,8 @@ public class SCMGitSyncHelper {
         harnessToGitPushInfoServiceBlockingStub::createPullRequest, createPRRequest);
 
     if (isFailureResponse(createPRResponse.getStatusCode())) {
-      scmErrorHandler.processAndThrowException(createPRResponse.getStatusCode(),
-          ScmErrorDetails.builder().errorMessage(createPRResponse.getError().getErrorMessage()).build());
+      scmErrorHandler.processAndThrowException(
+          createPRResponse.getStatusCode(), getScmErrorDetails(createPRResponse.getError()));
     }
 
     return ScmCreatePRResponse.builder().prNumber(createPRResponse.getPrNumber()).build();
@@ -325,7 +325,11 @@ public class SCMGitSyncHelper {
   }
 
   private ScmErrorDetails getScmErrorDetails(ErrorDetails errorDetails) {
-    return ScmErrorDetails.builder().errorMessage(errorDetails.getErrorMessage()).build();
+    return ScmErrorDetails.builder()
+        .errorMessage(errorDetails.getErrorMessage())
+        .explanationMessage(errorDetails.getExplanationMessage())
+        .hintMessage(errorDetails.getHintMessage())
+        .build();
   }
 
   private boolean isFailureResponse(int statusCode) {
