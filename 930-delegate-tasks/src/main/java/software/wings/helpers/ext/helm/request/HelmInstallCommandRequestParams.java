@@ -22,6 +22,7 @@ import java.util.Map;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+@Data
 @EqualsAndHashCode(callSuper = false)
 public class HelmInstallCommandRequestParams extends HelmCommandRequestPrams {
   private Integer newReleaseVersion;

@@ -36,10 +36,7 @@ import software.wings.helpers.ext.container.ContainerDeploymentDelegateHelper;
 import software.wings.helpers.ext.helm.HelmCommandExecutionResponse;
 import software.wings.helpers.ext.helm.HelmDeployDelegateService;
 import software.wings.helpers.ext.helm.HelmDeployService;
-import software.wings.helpers.ext.helm.request.HelmCommandRequest;
-import software.wings.helpers.ext.helm.request.HelmInstallCommandRequest;
 import software.wings.helpers.ext.helm.request.HelmInstallCommandRequestParams;
-import software.wings.helpers.ext.helm.request.HelmReleaseHistoryCommandRequest;
 
 import com.google.inject.Inject;
 import java.util.function.BooleanSupplier;
@@ -58,7 +55,7 @@ import software.wings.helpers.ext.helm.request.HelmRollbackCommandRequestParams;
 @OwnedBy(CDP)
 public class HelmCommandTask extends AbstractDelegateRunnableTask {
   @Inject private DelegateLogService delegateLogService;
-  @Inject private HelmDeployService helmDeployService;
+  //@Inject private HelmDeployService helmDeployService;
   @Inject private HelmDeployDelegateService helmDeployDelegateService;
   @Inject private ContainerDeploymentDelegateHelper containerDeploymentDelegateHelper;
   @Inject private HelmCommandHelper helmCommandHelper;
@@ -77,7 +74,7 @@ public class HelmCommandTask extends AbstractDelegateRunnableTask {
 
   @Override
   public HelmCommandExecutionResponse run(TaskParameters parameters) {
-    HelmCommandRequest helmCommandRequest = (HelmCommandRequest) parameters;
+    HelmCommandRequestPrams helmCommandRequest = (HelmCommandRequestPrams) parameters;
     HelmCommandResponse commandResponse = null;
 
     try {
@@ -87,17 +84,17 @@ public class HelmCommandTask extends AbstractDelegateRunnableTask {
           getExecutionLogCallback(helmCommandRequest, HelmDummyCommandUnitConstants.Prepare));
 
       helmCommandRequest.getExecutionLogCallback().saveExecutionLog(
-          helmCommandHelper.getDeploymentMessage(helmCommandRequest), LogLevel.INFO, CommandExecutionStatus.RUNNING);
+          getDeploymentMessage(helmCommandRequest), LogLevel.INFO, CommandExecutionStatus.RUNNING);
 
       switch (helmCommandRequest.getHelmCommandType()) {
         case INSTALL:
-          //commandResponse = helmDeployDelegateService.deploy((HelmInstallCommandRequestParams) helmCommandRequest);
+          commandResponse = helmDeployDelegateService.deploy((HelmInstallCommandRequestParams) helmCommandRequest);
           break;
         case ROLLBACK:
-          //commandResponse = helmDeployDelegateService.rollback((HelmRollbackCommandRequestParams) helmCommandRequest);
+          commandResponse = helmDeployDelegateService.rollback((HelmRollbackCommandRequestParams) helmCommandRequest);
           break;
         case RELEASE_HISTORY:
-          //commandResponse = helmDeployDelegateService.releaseHistory((HelmReleaseHistoryCommandRequestParams) helmCommandRequest);
+          commandResponse = helmDeployDelegateService.releaseHistory((HelmReleaseHistoryCommandRequestParams) helmCommandRequest);
           break;
         default:
           throw new HarnessException("Operation not supported");
@@ -132,7 +129,7 @@ public class HelmCommandTask extends AbstractDelegateRunnableTask {
     return helmCommandExecutionResponse;
   }
 
-  private void init(HelmCommandRequest helmCommandRequest, LogCallback executionLogCallback) throws Exception {
+  private void init(HelmCommandRequestPrams helmCommandRequest, LogCallback executionLogCallback) throws Exception {
     helmCommandRequest.setExecutionLogCallback(executionLogCallback);
     executionLogCallback.saveExecutionLog("Creating KubeConfig", LogLevel.INFO, CommandExecutionStatus.RUNNING);
     String configLocation = containerDeploymentDelegateHelper.createAndGetKubeConfigLocation(
@@ -146,19 +143,32 @@ public class HelmCommandTask extends AbstractDelegateRunnableTask {
     executionLogCallback.saveExecutionLog("\nDone.", LogLevel.INFO, CommandExecutionStatus.SUCCESS);
   }
 
-  protected LogCallback getExecutionLogCallback(HelmCommandRequest helmCommandRequest, String name) {
+  protected LogCallback getExecutionLogCallback(HelmCommandRequestPrams helmCommandRequest, String name) {
     return isAsync() ? new ExecutionLogCallback(delegateLogService, helmCommandRequest.getAccountId(),
                helmCommandRequest.getAppId(), helmCommandRequest.getActivityId(), name)
                      : new NoopExecutionCallback();
   }
 
-  private void ensureHelmInstalled(HelmCommandRequest helmCommandRequest) {
+  private void ensureHelmInstalled(HelmCommandRequestPrams helmCommandRequest) {
     LogCallback executionLogCallback = helmCommandRequest.getExecutionLogCallback();
 
     executionLogCallback.saveExecutionLog("Finding helm version", LogLevel.INFO, CommandExecutionStatus.RUNNING);
 
-    HelmCommandResponse helmCommandResponse = helmDeployService.ensureHelmInstalled(helmCommandRequest);
+    HelmCommandResponse helmCommandResponse = helmDeployDelegateService.ensureHelmInstalled(helmCommandRequest);
     log.info(helmCommandResponse.getOutput());
     executionLogCallback.saveExecutionLog(helmCommandResponse.getOutput());
+  }
+
+  String getDeploymentMessage(HelmCommandRequestPrams helmCommandRequest) {
+    switch (helmCommandRequest.getHelmCommandType()) {
+      case INSTALL:
+        return "Installing";
+      case ROLLBACK:
+        return "Rolling back";
+      case RELEASE_HISTORY:
+        return "Getting release history";
+      default:
+        return "Unsupported operation";
+    }
   }
 }

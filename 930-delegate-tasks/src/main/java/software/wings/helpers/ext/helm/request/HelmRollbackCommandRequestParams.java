@@ -18,6 +18,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+@Data
 @EqualsAndHashCode(callSuper = false)
 public class HelmRollbackCommandRequestParams extends HelmCommandRequestPrams {
   private Integer newReleaseVersion;
