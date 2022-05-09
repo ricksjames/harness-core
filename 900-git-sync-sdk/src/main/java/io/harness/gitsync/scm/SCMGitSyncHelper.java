@@ -144,6 +144,7 @@ public class SCMGitSyncHelper {
         harnessToGitPushInfoServiceBlockingStub::createFile, createFileRequest);
 
     if (isFailureResponse(createFileResponse.getStatusCode())) {
+      log.error("Git SDK createFile Failure: {}", createFileResponse);
       scmErrorHandler.processAndThrowException(
           createFileResponse.getStatusCode(), getScmErrorDetails(createFileResponse.getError()));
     }
@@ -174,6 +175,7 @@ public class SCMGitSyncHelper {
         harnessToGitPushInfoServiceBlockingStub::updateFile, updateFileRequest);
 
     if (isFailureResponse(updateFileResponse.getStatusCode())) {
+      log.error("Git SDK updateFile Failure: {}", updateFileResponse);
       scmErrorHandler.processAndThrowException(
           updateFileResponse.getStatusCode(), getScmErrorDetails(updateFileResponse.getError()));
     }
@@ -199,6 +201,7 @@ public class SCMGitSyncHelper {
         harnessToGitPushInfoServiceBlockingStub::createPullRequest, createPRRequest);
 
     if (isFailureResponse(createPRResponse.getStatusCode())) {
+      log.error("Git SDK createPullRequest Failure: {}", createPRResponse);
       scmErrorHandler.processAndThrowException(
           createPRResponse.getStatusCode(), getScmErrorDetails(createPRResponse.getError()));
     }
