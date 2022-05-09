@@ -91,7 +91,7 @@ public class LogDashboardServiceImpl implements LogDashboardService {
             .build();
     List<LogAnalysisTag> logAnalysisTagList = new ArrayList<>();
     if (!Objects.isNull(monitoredServiceLogAnalysisFilter.getClusterTypes())) {
-      for (LogAnalysisResult.RadarChartTag radarChartTag : monitoredServiceLogAnalysisFilter.getClusterTypes()) {
+      for (RadarChartTag radarChartTag : monitoredServiceLogAnalysisFilter.getClusterTypes()) {
         logAnalysisTagList.add(LogAnalysisResult.RadarChartTagToLogAnalysisTag(radarChartTag));
       }
     }
@@ -169,7 +169,7 @@ public class LogDashboardServiceImpl implements LogDashboardService {
             .build();
     List<LogAnalysisTag> logAnalysisTagList = new ArrayList<>();
     if (!Objects.isNull(monitoredServiceLogAnalysisFilter.getClusterTypes())) {
-      for (LogAnalysisResult.RadarChartTag radarChartTag : monitoredServiceLogAnalysisFilter.getClusterTypes()) {
+      for (RadarChartTag radarChartTag : monitoredServiceLogAnalysisFilter.getClusterTypes()) {
         logAnalysisTagList.add(LogAnalysisResult.RadarChartTagToLogAnalysisTag(radarChartTag));
       }
     }
@@ -262,7 +262,7 @@ public class LogDashboardServiceImpl implements LogDashboardService {
     }
   }
 
-  private double getRandomRadiusInExpectedRange(LogAnalysisResult.RadarChartTag tag, Random random) {
+  private double getRandomRadiusInExpectedRange(RadarChartTag tag, Random random) {
     if (tag.equals(LogAnalysisTag.KNOWN)) {
       return random.nextDouble() * 0.5 + 0.5;
     } else {
