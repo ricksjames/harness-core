@@ -178,7 +178,7 @@ public class VariableServiceImplTest extends CategoryTest {
     when(variableRepository.save(variable)).thenReturn(variable);
     when(transactionTemplate.execute(any()))
         .thenAnswer(invocationOnMock
-            -> invocationOnMock.getArgumentAt(0, TransactionCallback.class)
+            -> invocationOnMock.getArgument(0, TransactionCallback.class)
                    .doInTransaction(new SimpleTransactionStatus()));
 
     variableService.create(accountIdentifier, variableDTO);
@@ -205,7 +205,7 @@ public class VariableServiceImplTest extends CategoryTest {
     when(variableRepository.save(variable)).thenThrow(new DuplicateKeyException(""));
     when(transactionTemplate.execute(any()))
         .thenAnswer(invocationOnMock
-            -> invocationOnMock.getArgumentAt(0, TransactionCallback.class)
+            -> invocationOnMock.getArgument(0, TransactionCallback.class)
                    .doInTransaction(new SimpleTransactionStatus()));
     variableService.create(accountIdentifier, variableDTO);
   }
