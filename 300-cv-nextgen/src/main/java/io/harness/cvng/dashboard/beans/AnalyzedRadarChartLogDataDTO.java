@@ -8,7 +8,7 @@
 package io.harness.cvng.dashboard.beans;
 
 import io.harness.cvng.analysis.beans.Risk;
-import io.harness.cvng.analysis.entities.LogAnalysisResult;
+import io.harness.cvng.analysis.entities.LogAnalysisResult.RadarChartTag;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.util.List;
@@ -39,7 +39,7 @@ public class AnalyzedRadarChartLogDataDTO implements Comparable<AnalyzedRadarCha
     double riskScore;
     Risk riskStatus;
     List<AnalyzedLogDataDTO.FrequencyDTO> trend;
-    LogAnalysisResult.LogAnalysisTag clusterType;
+    RadarChartTag clusterType;
   }
 
   @Data

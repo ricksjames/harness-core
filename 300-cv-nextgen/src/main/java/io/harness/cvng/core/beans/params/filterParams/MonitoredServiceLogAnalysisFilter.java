@@ -25,7 +25,7 @@ import lombok.experimental.SuperBuilder;
 @Value
 @NoArgsConstructor
 public class MonitoredServiceLogAnalysisFilter extends LogAnalysisFilter {
-  @QueryParam("clusterTypes") List<LogAnalysisResult.LogAnalysisTag> clusterTypes;
+  @QueryParam("clusterTypes") List<LogAnalysisResult.RadarChartTag> clusterTypes;
   @NotNull @QueryParam("startTime") Long startTimeMillis;
   @NotNull @QueryParam("endTime") Long endTimeMillis;
   @QueryParam("minAngle") Double minAngle;

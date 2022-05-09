@@ -7,7 +7,9 @@
 
 package io.harness.cvng.analysis.beans;
 
+import io.harness.cvng.analysis.entities.LogAnalysisResult;
 import io.harness.cvng.analysis.entities.LogAnalysisResult.LogAnalysisTag;
+import io.harness.cvng.analysis.entities.LogAnalysisResult.RadarChartTag;
 
 import lombok.Builder;
 import lombok.Data;
@@ -20,12 +22,12 @@ public class LiveMonitoringLogAnalysisRadarChartClusterDTO {
   Risk risk;
   Double angle;
   Double radius;
-  LogAnalysisTag clusterType;
+  RadarChartTag clusterType;
 
   public static class LiveMonitoringLogAnalysisRadarChartClusterDTOBuilder {
-    public LiveMonitoringLogAnalysisRadarChartClusterDTOBuilder tag(LogAnalysisTag clusterType) {
+    public LiveMonitoringLogAnalysisRadarChartClusterDTOBuilder clusterType(RadarChartTag clusterType) {
       this.clusterType = clusterType;
-      if (LogAnalysisTag.getAnomalousTags().contains(clusterType)) {
+      if (LogAnalysisTag.getAnomalousTags().contains(LogAnalysisResult.RadarChartTagToLogAnalysisTag(clusterType))) {
         this.risk(Risk.UNHEALTHY);
       } else {
         this.risk(Risk.HEALTHY);
