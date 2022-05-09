@@ -7,8 +7,6 @@
 
 package io.harness.gitsync.common.scmerrorhandling;
 
-import static io.harness.eraro.Status.BAD_REQUEST;
-
 import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.eraro.ErrorCode;
@@ -23,8 +21,6 @@ public class ScmErrorCodeToHttpStatusCodeMapping {
 
   public int getHttpStatusCode(ErrorCode errorCode) {
     switch (errorCode) {
-      case BAD_REQUEST:
-        return 400;
       case SCM_UNAUTHORIZED:
         return 401;
       case SCM_CONFLICT_ERROR:
