@@ -49,6 +49,7 @@ import io.harness.pms.helpers.TriggeredByHelper;
 import io.harness.pms.merger.helpers.InputSetMergeHelper;
 import io.harness.pms.pipeline.PipelineEntity;
 import io.harness.pms.pipeline.service.PMSPipelineService;
+import io.harness.pms.pipeline.service.PMSPipelineServiceHelper;
 import io.harness.pms.pipeline.service.PMSPipelineTemplateHelper;
 import io.harness.pms.pipeline.service.PMSYamlSchemaService;
 import io.harness.pms.pipeline.service.PipelineEnforcementService;
@@ -81,6 +82,7 @@ import org.powermock.modules.junit4.PowerMockRunner;
 public class ExecutionHelperTest extends CategoryTest {
   @InjectMocks ExecutionHelper executionHelper;
   @Mock PMSPipelineService pmsPipelineService;
+  @Mock PMSPipelineServiceHelper pmsPipelineServiceHelper;
   @Mock TriggeredByHelper triggeredByHelper;
   @Mock PlanExecutionService planExecutionService;
   @Mock PrincipalInfoHelper principalInfoHelper;
@@ -114,7 +116,8 @@ public class ExecutionHelperTest extends CategoryTest {
       + "      description: <+input>\n"
       + "  - stage:\n"
       + "      identifier: s2\n"
-      + "      description: <+input>\n";
+      + "      description: <+input>\n"
+      + "  allowStageExecutions: true\n";
   String pipelineYamlWithExpressions = "pipeline:\n"
       + "  stages:\n"
       + "  - stage:\n"
@@ -122,7 +125,8 @@ public class ExecutionHelperTest extends CategoryTest {
       + "      description: \"desc\"\n"
       + "  - stage:\n"
       + "      identifier: \"s2\"\n"
-      + "      description: \"<+pipeline.stages.s1.description>\"\n";
+      + "      description: \"<+pipeline.stages.s1.description>\"\n"
+      + "  allowStageExecutions: true\n";
   Map<String, String> expressionValues = Collections.singletonMap("<+pipeline.stages.s1.description>", "desc");
   String mergedPipelineYaml = "pipeline:\n"
       + "  stages:\n"
@@ -131,12 +135,14 @@ public class ExecutionHelperTest extends CategoryTest {
       + "      description: \"desc\"\n"
       + "  - stage:\n"
       + "      identifier: \"s2\"\n"
-      + "      description: \"desc\"\n";
+      + "      description: \"desc\"\n"
+      + "  allowStageExecutions: true\n";
   String mergedPipelineYamlForS2 = "pipeline:\n"
       + "  stages:\n"
       + "  - stage:\n"
       + "      identifier: \"s2\"\n"
-      + "      description: \"desc\"\n";
+      + "      description: \"desc\"\n"
+      + "  allowStageExecutions: true\n";
   String originalExecutionId = "originalExecutionId";
   String generatedExecutionId = "newExecId";
 
@@ -255,7 +261,7 @@ public class ExecutionHelperTest extends CategoryTest {
     assertThat(planExecutionMetadata.getYaml()).isEqualTo(mergedPipelineYaml);
     assertThat(planExecutionMetadata.getStagesExecutionMetadata().isStagesExecution()).isEqualTo(false);
     assertThat(planExecutionMetadata.getProcessedYaml()).isEqualTo(YamlUtils.injectUuid(mergedPipelineYaml));
-    verify(pmsPipelineService, times(1))
+    verify(pmsPipelineServiceHelper, times(1))
         .fetchExpandedPipelineJSONFromYaml(accountId, orgId, projectId, mergedPipelineYaml);
 
     buildExecutionMetadataVerifications();
@@ -296,7 +302,7 @@ public class ExecutionHelperTest extends CategoryTest {
     verify(pipelineRbacServiceImpl, times(0))
         .extractAndValidateStaticallyReferredEntities(accountId, orgId, projectId, pipelineId, pipelineYaml);
     verify(planExecutionMetadataService, times(0)).findByPlanExecutionId(anyString());
-    verify(pmsPipelineService, times(1))
+    verify(pmsPipelineServiceHelper, times(1))
         .fetchExpandedPipelineJSONFromYaml(accountId, orgId, projectId, mergedPipelineYaml);
   }
 
@@ -307,7 +313,7 @@ public class ExecutionHelperTest extends CategoryTest {
     buildExecutionArgsMocks();
 
     TemplateMergeResponseDTO templateMergeResponseDTO =
-        TemplateMergeResponseDTO.builder().mergedPipelineYaml(mergedPipelineYaml).build();
+        TemplateMergeResponseDTO.builder().mergedPipelineYaml(mergedPipelineYamlForS2).build();
     String mergedYaml = InputSetMergeHelper.mergeInputSetIntoPipeline(pipelineEntity.getYaml(), runtimeInputYaml, true);
     doReturn(templateMergeResponseDTO)
         .when(pipelineTemplateHelper)
@@ -328,7 +334,7 @@ public class ExecutionHelperTest extends CategoryTest {
         .isEqualTo(Collections.singletonList("s2"));
     assertThat(planExecutionMetadata.getStagesExecutionMetadata().getExpressionValues()).isNull();
     assertThat(planExecutionMetadata.getProcessedYaml()).isEqualTo(YamlUtils.injectUuid(mergedPipelineYamlForS2));
-    verify(pmsPipelineService, times(1))
+    verify(pmsPipelineServiceHelper, times(1))
         .fetchExpandedPipelineJSONFromYaml(accountId, orgId, projectId, mergedPipelineYamlForS2);
 
     buildExecutionMetadataVerifications();
@@ -370,7 +376,7 @@ public class ExecutionHelperTest extends CategoryTest {
         .extractAndValidateStaticallyReferredEntities(
             accountId, orgId, projectId, pipelineId, pipelineYamlWithExpressions);
     verify(planExecutionMetadataService, times(0)).findByPlanExecutionId(anyString());
-    verify(pmsPipelineService, times(1))
+    verify(pmsPipelineServiceHelper, times(1))
         .fetchExpandedPipelineJSONFromYaml(accountId, orgId, projectId, mergedPipelineYamlForS2);
   }
 

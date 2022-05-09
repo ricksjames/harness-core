@@ -9,6 +9,7 @@ package software.wings.resources;
 
 import static io.harness.rule.OwnerRule.ANUBHAW;
 import static io.harness.rule.OwnerRule.GARVIT;
+import static io.harness.rule.OwnerRule.INDER;
 import static io.harness.rule.OwnerRule.SRINIVAS;
 
 import static software.wings.beans.artifact.Artifact.Builder.anArtifact;
@@ -41,6 +42,7 @@ import io.harness.rest.RestResponse;
 import io.harness.rule.Owner;
 
 import software.wings.beans.artifact.Artifact;
+import software.wings.beans.artifact.ArtifactView;
 import software.wings.exception.WingsExceptionMapper;
 import software.wings.service.intfc.AlertService;
 import software.wings.service.intfc.AppService;
@@ -57,9 +59,11 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.InvocationTargetException;
 import javax.ws.rs.core.GenericType;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import org.apache.commons.beanutils.BeanUtils;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -121,11 +125,13 @@ public class ArtifactResourceTest extends CategoryTest {
    * @throws IOException Signals that an I/O exception has occurred.
    */
   @Before
-  public void setUp() throws IOException {
+  public void setUp() throws IOException, InvocationTargetException, IllegalAccessException {
     reset(ARTIFACT_SERVICE);
     when(ARTIFACT_SERVICE.create(any(Artifact.class))).thenReturn(ACTUAL);
     when(ARTIFACT_SERVICE.update(any(Artifact.class))).thenReturn(ACTUAL);
-    when(ARTIFACT_SERVICE.getWithServices(ARTIFACT_ID, APP_ID)).thenReturn(ACTUAL);
+    ArtifactView artifactView = new ArtifactView();
+    BeanUtils.copyProperties(artifactView, ACTUAL);
+    when(ARTIFACT_SERVICE.getWithServices(ARTIFACT_ID, APP_ID)).thenReturn(artifactView);
     when(ARTIFACT_SERVICE.delete(ACCOUNT_ID, ARTIFACT_ID)).thenReturn(true);
 
     tempFile = tempFolder.newFile();
@@ -194,11 +200,11 @@ public class ArtifactResourceTest extends CategoryTest {
   @Owner(developers = GARVIT)
   @Category(UnitTests.class)
   public void shouldGetArtifact() {
-    RestResponse<Artifact> restResponse = RESOURCES.client()
-                                              .target("/artifacts/" + ARTIFACT_ID + "?appId=" + APP_ID)
-                                              .request()
-                                              .get(new GenericType<RestResponse<Artifact>>() {});
-    assertThat(restResponse.getResource()).isInstanceOf(Artifact.class);
+    RestResponse<ArtifactView> restResponse = RESOURCES.client()
+                                                  .target("/artifacts/" + ARTIFACT_ID + "?appId=" + APP_ID)
+                                                  .request()
+                                                  .get(new GenericType<RestResponse<ArtifactView>>() {});
+    assertThat(restResponse.getResource()).isInstanceOf(ArtifactView.class);
     verify(ARTIFACT_SERVICE).getWithServices(ARTIFACT_ID, APP_ID);
   }
 
@@ -268,5 +274,19 @@ public class ArtifactResourceTest extends CategoryTest {
     Response response = RESOURCES.client().target("/artifacts/" + ARTIFACT_ID + "?appId=" + APP_ID).request().delete();
     verify(ARTIFACT_SERVICE).delete(ACCOUNT_ID, ARTIFACT_ID);
     assertThat(response.getStatus()).isEqualTo(200);
+  }
+
+  @Test
+  @Owner(developers = INDER)
+  @Category(UnitTests.class)
+  public void shouldListArtifactsWithCollectionEnabled() throws IOException {
+    RESOURCES.client()
+        .target("/artifacts/collection-enabled-artifacts?appId=" + APP_ID + "&serviceId=" + SERVICE_ID)
+        .request()
+        .get(new GenericType<RestResponse<PageResponse<Artifact>>>() {});
+    PageRequest<Artifact> expectedPageRequest = new PageRequest<>();
+    expectedPageRequest.addFilter("appId", Operator.EQ, APP_ID);
+    expectedPageRequest.setOffset("0");
+    verify(ARTIFACT_SERVICE).listArtifactsForServiceWithCollectionEnabled(APP_ID, SERVICE_ID, expectedPageRequest);
   }
 }

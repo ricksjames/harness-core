@@ -14,6 +14,7 @@ import static io.harness.rule.OwnerRule.AADITI;
 import static io.harness.rule.OwnerRule.ANUBHAW;
 import static io.harness.rule.OwnerRule.GARVIT;
 import static io.harness.rule.OwnerRule.HARSH;
+import static io.harness.rule.OwnerRule.INDER;
 import static io.harness.rule.OwnerRule.SRINIVAS;
 
 import static software.wings.beans.artifact.Artifact.Builder.anArtifact;
@@ -69,7 +70,9 @@ import software.wings.beans.artifact.Artifact.ArtifactKeys;
 import software.wings.beans.artifact.Artifact.Builder;
 import software.wings.beans.artifact.Artifact.ContentStatus;
 import software.wings.beans.artifact.ArtifactFile;
+import software.wings.beans.artifact.ArtifactStream.ArtifactStreamKeys;
 import software.wings.beans.artifact.ArtifactStreamAttributes;
+import software.wings.beans.artifact.ArtifactView;
 import software.wings.beans.artifact.ArtifactoryArtifactStream;
 import software.wings.beans.artifact.BambooArtifactStream;
 import software.wings.beans.artifact.CustomArtifactStream;
@@ -95,6 +98,7 @@ import com.google.common.collect.Lists;
 import com.google.common.io.Files;
 import com.google.inject.Inject;
 import java.io.File;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -302,7 +306,8 @@ public class ArtifactServiceTest extends WingsBaseTest {
     Artifact savedArtifact = artifactService.create(artifactBuilder.but().build(), true);
 
     savedArtifact.setDisplayName("ARTIFACT_DISPLAY_NAME");
-    assertThat(artifactService.update(savedArtifact)).isEqualTo(savedArtifact);
+    Artifact updatedArtifact = artifactService.update(savedArtifact);
+    assertThat(updatedArtifact).isEqualTo(savedArtifact);
   }
 
   @Test
@@ -592,7 +597,7 @@ public class ArtifactServiceTest extends WingsBaseTest {
     Artifact savedArtifact = artifactService.create(artifactBuilder.but().build(), true);
     Artifact updatedArtifact = artifactService.get(savedArtifact.getUuid());
     assertThat(updatedArtifact).isEqualTo(savedArtifact);
-    assertThat(updatedArtifact).extracting(Artifact::getServices).isNotNull();
+    //    assertThat(updatedArtifact).extracting(Artifact::getServices).isNotNull();
   }
 
   @Test
@@ -1368,7 +1373,7 @@ public class ArtifactServiceTest extends WingsBaseTest {
         true);
     when(artifactStreamServiceBindingService.listServices(APP_ID, ARTIFACT_STREAM_ID))
         .thenReturn(asList(Service.builder().name("Service1").build()));
-    Artifact artifact = artifactService.getWithServices(artifact1.getUuid(), APP_ID);
+    ArtifactView artifact = artifactService.getWithServices(artifact1.getUuid(), APP_ID);
     assertThat(artifact.getServices()).isNotEmpty();
     assertThat(artifact.getServices()).extracting(Service::getName).containsExactly("Service1");
   }
@@ -1446,5 +1451,36 @@ public class ArtifactServiceTest extends WingsBaseTest {
     Artifact latestArtifact = artifactService.getArtifactByBuildNumberAndSourceName(
         jenkinsArtifactStream, savedArtifact.getBuildNo(), false, jenkinsArtifactStream.getSourceName());
     assertThat(latestArtifact).isNotNull().extracting(Artifact::getUuid).isEqualTo(savedArtifact.getUuid());
+  }
+
+  @Test
+  @Owner(developers = INDER)
+  @Category(UnitTests.class)
+  public void shouldListArtifactsForServiceWithCollectionEnabled() {
+    constructArtifacts();
+    CustomArtifactStream customArtifactStream =
+        CustomArtifactStream.builder().uuid(ARTIFACT_STREAM_ID).name("test").build();
+    persistence.save(customArtifactStream);
+
+    CustomArtifactStream customArtifactStream2 =
+        CustomArtifactStream.builder().uuid(ARTIFACT_STREAM_ID + "1").name("test1").build();
+    customArtifactStream2.setCollectionEnabled(false);
+    persistence.save(customArtifactStream2);
+    when(artifactStreamService.get(ARTIFACT_STREAM_ID + "1")).thenReturn(customArtifactStream2);
+    artifactService.create(artifactBuilder.withArtifactStreamId(ARTIFACT_STREAM_ID + "1").build(), true);
+
+    List<String> projections = new ArrayList<>();
+    projections.add(ArtifactStreamKeys.uuid);
+    projections.add(ArtifactStreamKeys.collectionEnabled);
+    when(artifactStreamService.getArtifactStreamsForService(APP_ID, SERVICE_ID, projections))
+        .thenReturn(asList(customArtifactStream, customArtifactStream2));
+    List<Artifact> artifacts = artifactService.listArtifactsForServiceWithCollectionEnabled(
+        APP_ID, SERVICE_ID, aPageRequest().addFilter(ArtifactKeys.accountId, EQ, ACCOUNT_ID).build());
+
+    assertThat(artifacts)
+        .hasSize(4)
+        .extracting(Artifact::getBuildNo)
+        .containsSequence("todolist-1.0-1.x86_64.rpm", "todolist-1.0-10.x86_64.rpm", "todolist-1.0-5.x86_64.rpm",
+            "todolist-1.0-15.x86_64.rpm");
   }
 }
