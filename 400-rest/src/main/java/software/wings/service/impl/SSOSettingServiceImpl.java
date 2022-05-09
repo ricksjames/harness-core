@@ -264,6 +264,7 @@ public class SSOSettingServiceImpl implements SSOSettingService {
   @RestrictedApi(LdapFeature.class)
   public LdapSettings createLdapSettings(
       @GetAccountId(LdapSettingsAccountIdExtractor.class) @NotNull LdapSettings settings) {
+    validateLdapSetting(settings);
     if (getLdapSettingsByAccountId(settings.getAccountId()) != null) {
       throw new InvalidRequestException("Ldap settings already exist for this account.");
     }
@@ -289,6 +290,7 @@ public class SSOSettingServiceImpl implements SSOSettingService {
   public LdapSettings updateLdapSettings(
       @GetAccountId(LdapSettingsAccountIdExtractor.class) @NotNull LdapSettings settings) {
     LdapSettings oldSettings = getLdapSettingsByAccountId(settings.getAccountId());
+    validateLdapSetting(settings);
     if (oldSettings == null) {
       throw new InvalidRequestException("No existing Ldap settings found for this account.");
     }
@@ -317,6 +319,14 @@ public class SSOSettingServiceImpl implements SSOSettingService {
     LdapGroupSyncJob.add(jobScheduler, savedSettings.getAccountId(), savedSettings.getUuid());
     ldapGroupScheduledHandler.wakeup();
     return savedSettings;
+  }
+
+  private void validateLdapSetting(LdapSettings settings) {
+    if (!featureFlagService.isEnabled(FeatureName.LDAP_SECRET_AUTH, settings.getAccountId())
+        && settings.getConnectionSettings().getBindSecret() != null
+        && isNotEmpty(settings.getConnectionSettings().getBindSecret())) {
+      throw new InvalidRequestException("Please turn on FF (LDAP_SECRET_AUTH) to use secrets ");
+    }
   }
 
   @Override
