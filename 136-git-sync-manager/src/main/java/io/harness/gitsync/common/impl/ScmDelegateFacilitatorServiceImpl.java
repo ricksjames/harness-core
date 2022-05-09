@@ -79,6 +79,7 @@ import io.harness.product.ci.scm.proto.FileBatchContentResponse;
 import io.harness.product.ci.scm.proto.FileContent;
 import io.harness.product.ci.scm.proto.FindCommitResponse;
 import io.harness.product.ci.scm.proto.GetLatestCommitResponse;
+import io.harness.product.ci.scm.proto.GetUserRepoResponse;
 import io.harness.product.ci.scm.proto.GetUserReposResponse;
 import io.harness.product.ci.scm.proto.ListBranchesResponse;
 import io.harness.product.ci.scm.proto.ListBranchesWithDefaultResponse;
@@ -645,7 +646,7 @@ public class ScmDelegateFacilitatorServiceImpl extends AbstractScmClientFacilita
     final List<EncryptedDataDetail> encryptionDetails =
         getEncryptedDataDetails(accountIdentifier, orgIdentifier, projectIdentifier, scmConnector);
     final ScmGitRefTaskParams scmGitRefTaskParams = ScmGitRefTaskParams.builder()
-                                                        .gitRefType(GitRefType.REPOSITORY)
+                                                        .gitRefType(GitRefType.REPOSITORY_LIST)
                                                         .scmConnector(scmConnector)
                                                         .encryptedDataDetails(encryptionDetails)
                                                         .pageRequest(pageRequest)
@@ -693,6 +694,30 @@ public class ScmDelegateFacilitatorServiceImpl extends AbstractScmClientFacilita
   @Override
   public CreateBranchResponse createBranch(String branch, String baseBranch, ScmConnector scmConnector) {
     return null;
+  }
+
+  @Override
+  public GetUserRepoResponse getRepoDetails(
+          String accountIdentifier, String orgIdentifier, String projectIdentifier, ScmConnector scmConnector) {
+    final List<EncryptedDataDetail> encryptionDetails =
+            getEncryptedDataDetails(accountIdentifier, orgIdentifier, projectIdentifier, scmConnector);
+    final ScmGitRefTaskParams scmGitRefTaskParams = ScmGitRefTaskParams.builder()
+            .gitRefType(GitRefType.REPOSITORY_DETAILS)
+            .scmConnector(scmConnector)
+            .encryptedDataDetails(encryptionDetails)
+            .build();
+    DelegateTaskRequest delegateTaskRequest = getDelegateTaskRequest(
+            accountIdentifier, orgIdentifier, projectIdentifier, scmGitRefTaskParams, TaskType.SCM_GIT_REF_TASK);
+    final DelegateResponseData delegateResponseData = executeDelegateSyncTask(delegateTaskRequest);
+    ScmGitRefTaskResponseData scmGitRefTaskResponseData = (ScmGitRefTaskResponseData) delegateResponseData;
+    try {
+      return GetUserRepoResponse.parseFrom(scmGitRefTaskResponseData.getGetUserRepoResponse());
+    } catch (InvalidProtocolBufferException e) {
+      String errorMsg =
+              String.format(errorMessage, "getting repo details", accountIdentifier, orgIdentifier, projectIdentifier);
+      log.error(errorMsg, e);
+      throw new UnexpectedException(errorMsg);
+    }
   }
 
   // ------------------------------- PRIVATE METHODS -------------------------------
