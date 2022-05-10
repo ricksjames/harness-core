@@ -68,6 +68,7 @@ import software.wings.beans.settings.azureartifacts.AzureArtifactsPATConfig;
 import software.wings.beans.trigger.WebHookTriggerResponseData;
 import software.wings.beans.trigger.WebhookTriggerParameters;
 import software.wings.beans.yaml.GitFetchFilesFromMultipleRepoResult;
+import software.wings.delegatetasks.BambooTask;
 import software.wings.delegatetasks.DelegateStateType;
 import software.wings.delegatetasks.buildsource.BuildCollectParameters;
 import software.wings.delegatetasks.collect.artifacts.AzureArtifactsCollectionTaskParameters;
@@ -246,5 +247,6 @@ public class DelegateTasksKryoRegistrar implements KryoRegistrar {
     kryo.register(HelmCollectChartResponse.class, 71111);
     kryo.register(HelmChartCollectionParams.HelmChartCollectionType.class, 400134);
     kryo.register(AzureVMSSCommandRequest.class, 8035);
+    kryo.register(BambooTask.BambooExecutionResponse.class, 5374);
   }
 }
