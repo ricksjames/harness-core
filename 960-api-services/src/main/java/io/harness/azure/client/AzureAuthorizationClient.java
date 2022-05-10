@@ -44,7 +44,7 @@ public interface AzureAuthorizationClient {
    *  connection can't be made
    * @param azureConfig all information required for Azure connection
    */
-  boolean validateAzureConnection(AzureConfig azureConfig);
+  void validateAzureConnection(AzureConfig azureConfig);
 
   /**
    * Authenticate within Azure and get access token in return
