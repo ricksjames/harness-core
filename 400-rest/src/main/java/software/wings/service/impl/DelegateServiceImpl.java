@@ -298,9 +298,9 @@ import org.mongodb.morphia.query.UpdateOperations;
 @ValidateOnExecution
 // For testing since this class should probably be 20 classes, and it's hard to test it
 @lombok.Builder
-@AllArgsConstructor
 // For guice injection (since we wrongly use field injection, but this is not fixable for class at this size
 @NoArgsConstructor
+@AllArgsConstructor
 @Slf4j
 @TargetModule(HarnessModule._420_DELEGATE_SERVICE)
 @BreakDependencyOn("software.wings.beans.Event")

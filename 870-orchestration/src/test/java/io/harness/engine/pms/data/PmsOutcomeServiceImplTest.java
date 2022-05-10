@@ -25,7 +25,6 @@ import io.harness.category.element.UnitTests;
 import io.harness.data.OutcomeInstance;
 import io.harness.engine.expressions.ExpressionEvaluatorProvider;
 import io.harness.expression.EngineExpressionEvaluator;
-import io.harness.expression.VariableResolverTracker;
 import io.harness.pms.contracts.ambiance.Ambiance;
 import io.harness.pms.contracts.ambiance.Level;
 import io.harness.pms.contracts.data.StepOutcomeRef;
