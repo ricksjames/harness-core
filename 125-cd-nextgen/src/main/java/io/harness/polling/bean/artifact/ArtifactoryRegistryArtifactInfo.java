@@ -23,8 +23,10 @@ import lombok.Value;
 public class ArtifactoryRegistryArtifactInfo implements ArtifactInfo {
   String connectorRef;
   String repository;
+  String artifactPath;
   String artifactDirectory;
   String repositoryFormat;
+  String repositoryUrl;
 
   @Override
   public ArtifactSourceType getType() {
@@ -34,8 +36,8 @@ public class ArtifactoryRegistryArtifactInfo implements ArtifactInfo {
   @Override
   public ArtifactConfig toArtifactConfig() {
     return ArtifactoryRegistryArtifactConfig.builder()
-        .connectorRef(returnParameterFieldOnlyIfNotNull(connectorRef))
-        .repository(returnParameterFieldOnlyIfNotNull(repository))
+        .connectorRef(returnParameterFieldOnlyIfNotNull(connectorRef)).artifactPath(returnParameterFieldOnlyIfNotNull(artifactPath))
+        .repository(returnParameterFieldOnlyIfNotNull(repository)).repositoryUrl(returnParameterFieldOnlyIfNotNull(repositoryUrl))
         .artifactDirectory(returnParameterFieldOnlyIfNotNull(artifactDirectory))
         .repositoryFormat(returnParameterFieldOnlyIfNotNull(repositoryFormat))
         .build();

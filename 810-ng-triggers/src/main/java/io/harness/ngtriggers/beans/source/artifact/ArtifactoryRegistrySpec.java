@@ -29,6 +29,7 @@ public class ArtifactoryRegistrySpec implements ArtifactTypeSpec {
   String artifactPath;
   String repository;
   String repositoryFormat;
+  String repositoryUrl;
 
   @Override
   public String fetchConnectorRef() {

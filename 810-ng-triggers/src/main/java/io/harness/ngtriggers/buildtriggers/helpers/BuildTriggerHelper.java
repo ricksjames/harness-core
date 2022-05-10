@@ -270,14 +270,22 @@ public class BuildTriggerHelper {
       throw new InvalidRequestException(error);
     }
 
-    error = checkFiledValueError("artifactDirectory", artifactoryRegistryPayload.getArtifactDirectory());
+    error = checkFiledValueError("repositoryFormat", artifactoryRegistryPayload.getRepositoryFormat());
     if (isNotBlank(error)) {
       throw new InvalidRequestException(error);
     }
 
-    error = checkFiledValueError("repositoryFormat", artifactoryRegistryPayload.getRepositoryFormat());
-    if (isNotBlank(error)) {
-      throw new InvalidRequestException(error);
+    String repositoryFormat = artifactoryRegistryPayload.getRepositoryFormat();
+    if(repositoryFormat.equals("generic")) {
+      error = checkFiledValueError("artifactDirectory", artifactoryRegistryPayload.getArtifactDirectory());
+      if (isNotBlank(error)) {
+        throw new InvalidRequestException(error);
+      }
+    } else {
+      error = checkFiledValueError("artifactPath", artifactoryRegistryPayload.getArtifactPath());
+      if (isNotBlank(error)) {
+        throw new InvalidRequestException(error);
+      }
     }
   }
 

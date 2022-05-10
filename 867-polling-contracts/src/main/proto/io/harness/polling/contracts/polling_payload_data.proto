@@ -21,6 +21,7 @@ message PollingPayloadData {
     GcrPayload gcrPayload = 8;
     Nexus3RegistryPayload nexus3RegistryPayload = 9;
     ArtifactoryRegistryPayload artifactoryRegistryPayload = 10;
+    ArtifactoryGenericRegistryPayload artifactoryGenericRegistryPayload = 11;
   }
 }
 
@@ -83,6 +84,14 @@ message Nexus3RegistryPayload {
 }
 
 message ArtifactoryRegistryPayload {
+  string repository = 1;
+  string artifactDirectory = 2;
+  string repositoryFormat = 3;
+  string artifactPath = 4;
+  string repositoryUrl = 5;
+}
+
+message ArtifactoryGenericRegistryPayload {
   string repository = 1;
   string artifactDirectory = 2;
   string repositoryFormat = 3;

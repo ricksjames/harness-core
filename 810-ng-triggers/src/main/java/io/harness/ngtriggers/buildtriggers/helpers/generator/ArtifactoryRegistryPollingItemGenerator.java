@@ -37,12 +37,14 @@ public class ArtifactoryRegistryPollingItemGenerator implements PollingItemGener
         String repository = buildTriggerHelper.validateAndFetchFromJsonNode(buildTriggerOpsData, "spec.repository");
         String artifactDirectory = buildTriggerHelper.validateAndFetchFromJsonNode(buildTriggerOpsData, "spec.artifactDirectory");
         String repositoryFormat = buildTriggerHelper.validateAndFetchFromJsonNode(buildTriggerOpsData, "spec.repositoryFormat");
+        String artifactPath = buildTriggerHelper.validateAndFetchFromJsonNode(buildTriggerOpsData, "spec.artifactPath");
+        String repositoryUrl = buildTriggerHelper.validateAndFetchFromJsonNode(buildTriggerOpsData, "spec.repositoryUrl");
 
         return builder
                 .setPollingPayloadData(PollingPayloadData.newBuilder()
                         .setConnectorRef(connectorRef)
                         .setType(Type.ARTIFACTORY)
-                        .setArtifactoryRegistryPayload(ArtifactoryRegistryPayload.newBuilder()
+                        .setArtifactoryRegistryPayload(ArtifactoryRegistryPayload.newBuilder().setArtifactPath(artifactPath).setRepositoryUrl(repositoryUrl)
                                 .setRepository(repository).setArtifactDirectory(artifactDirectory).setRepositoryFormat(repositoryFormat).build())
                         .build())
                 .build();
