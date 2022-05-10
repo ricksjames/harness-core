@@ -22,7 +22,7 @@ public class RecommendationQueryHelper {
     if (ccmFilter == null) {
       return null;
     }
-    boolean areK8sRecommendationPropertiesPresent = (ccmFilter.getK8sRecommendationFilterPropertiesDTO() != null);
+    boolean areK8sRecommendationPropertiesPresent = ccmFilter.getK8sRecommendationFilterPropertiesDTO() != null;
     return K8sRecommendationFilterDTO.builder()
         .ids(
             areK8sRecommendationPropertiesPresent ? ccmFilter.getK8sRecommendationFilterPropertiesDTO().getIds() : null)
