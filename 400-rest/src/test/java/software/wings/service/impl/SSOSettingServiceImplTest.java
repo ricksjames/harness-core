@@ -35,7 +35,6 @@ import software.wings.WingsBaseTest;
 import software.wings.annotation.EncryptableSetting;
 import software.wings.beans.alert.Alert;
 import software.wings.beans.alert.AlertType;
-import software.wings.beans.sso.LdapAuthType;
 import software.wings.beans.sso.LdapConnectionSettings;
 import software.wings.beans.sso.LdapGroupSettings;
 import software.wings.beans.sso.LdapSettings;
