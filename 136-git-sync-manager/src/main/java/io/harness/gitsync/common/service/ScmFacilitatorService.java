@@ -37,7 +37,7 @@ public interface ScmFacilitatorService {
 
   ScmCreatePRResponseDTO createPR(ScmCreatePRRequestDTO scmCreatePRRequestDTO);
 
-  ScmGetFileResponseDTO getFile(ScmGetFileRequestDTO scmGetFileRequestDTO);
+  ScmGetFileResponseDTO getFileByBranch(ScmGetFileRequestDTO scmGetFileRequestDTO);
 
   void createBranch(ScmCreateBranchRequestDTO scmCreateBranchRequestDTO);
 

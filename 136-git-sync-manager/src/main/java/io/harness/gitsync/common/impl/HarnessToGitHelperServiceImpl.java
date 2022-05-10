@@ -345,10 +345,9 @@ public class HarnessToGitHelperServiceImpl implements HarnessToGitHelperService 
   @Override
   public GetFileResponse getFile(GetFileRequest getFileRequest) {
     try {
-      ScmGetFileResponseDTO scmGetFileResponseDTO = scmFacilitatorService.getFile(
+      ScmGetFileResponseDTO scmGetFileResponseDTO = scmFacilitatorService.getFileByBranch(
           ScmGetFileRequestDTO.builder()
               .branchName(getFileRequest.getBranchName())
-              .commitId(getFileRequest.getCommitId())
               .connectorRef(getFileRequest.getConnectorRef())
               .filePath(getFileRequest.getFilePath())
               .repoName(getFileRequest.getRepoName())

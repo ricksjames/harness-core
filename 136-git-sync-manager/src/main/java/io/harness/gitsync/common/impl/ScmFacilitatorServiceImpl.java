@@ -211,14 +211,13 @@ public class ScmFacilitatorServiceImpl implements ScmFacilitatorService {
   }
 
   @Override
-  public ScmGetFileResponseDTO getFile(ScmGetFileRequestDTO scmGetFileRequestDTO) {
+  public ScmGetFileResponseDTO getFileByBranch(ScmGetFileRequestDTO scmGetFileRequestDTO) {
     Scope scope = scmGetFileRequestDTO.getScope();
-    String branchName = scmGetFileRequestDTO.getBranchName();
-    if (isEmpty(branchName) && isEmpty(scmGetFileRequestDTO.getCommitId())) {
-      branchName = getDefaultBranch(scope.getAccountIdentifier(), scope.getOrgIdentifier(),
-          scope.getProjectIdentifier(), scmGetFileRequestDTO.getConnectorRef(), scmGetFileRequestDTO.getRepoName());
-    }
-    final String branch = branchName;
+    String branchName = isEmpty(scmGetFileRequestDTO.getBranchName())
+        ? getDefaultBranch(scope.getAccountIdentifier(), scope.getOrgIdentifier(), scope.getProjectIdentifier(),
+            scmGetFileRequestDTO.getConnectorRef(), scmGetFileRequestDTO.getRepoName())
+        : scmGetFileRequestDTO.getBranchName();
+
     ScmConnector scmConnector =
         gitSyncConnectorHelper.getScmConnectorForGivenRepo(scope.getAccountIdentifier(), scope.getOrgIdentifier(),
             scope.getProjectIdentifier(), scmGetFileRequestDTO.getConnectorRef(), scmGetFileRequestDTO.getRepoName());
@@ -226,7 +225,7 @@ public class ScmFacilitatorServiceImpl implements ScmFacilitatorService {
     FileContent fileContent = scmOrchestratorService.processScmRequestUsingConnectorSettings(scmClientFacilitatorService
         -> scmClientFacilitatorService.getFile(scope.getAccountIdentifier(), scope.getOrgIdentifier(),
             scope.getProjectIdentifier(), scmGetFileRequestDTO.getConnectorRef(), scmGetFileRequestDTO.getRepoName(),
-            branch, scmGetFileRequestDTO.getFilePath(), scmGetFileRequestDTO.getCommitId()),
+            branchName, scmGetFileRequestDTO.getFilePath(), null),
         scmConnector);
 
     if (isFailureResponse(fileContent.getStatus())) {
@@ -266,9 +265,9 @@ public class ScmFacilitatorServiceImpl implements ScmFacilitatorService {
 
   @Override
   public String getDefaultBranch(
-          String accountIdentifier, String orgIdentifier, String projectIdentifier, String connectorRef, String repoName) {
+      String accountIdentifier, String orgIdentifier, String projectIdentifier, String connectorRef, String repoName) {
     Repository repoDetails =
-            getRepoDetails(accountIdentifier, orgIdentifier, projectIdentifier, connectorRef, repoName);
+        getRepoDetails(accountIdentifier, orgIdentifier, projectIdentifier, connectorRef, repoName);
     return repoDetails.getBranch();
   }
 

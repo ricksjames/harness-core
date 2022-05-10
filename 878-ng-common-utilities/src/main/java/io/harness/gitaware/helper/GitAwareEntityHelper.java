@@ -33,14 +33,13 @@ public class GitAwareEntityHelper {
   public GitAware fetchEntityFromRemote(
       GitAware entity, Scope scope, GitContextRequestParams gitContextRequestParams, Map<String, String> contextMap) {
     ScmGetFileResponse scmGetFileResponse =
-        scmGitSyncHelper.getFile(Scope.builder()
-                                     .accountIdentifier(scope.getAccountIdentifier())
-                                     .orgIdentifier(scope.getOrgIdentifier())
-                                     .projectIdentifier(scope.getProjectIdentifier())
-                                     .build(),
+        scmGitSyncHelper.getFileByBranch(Scope.builder()
+                                             .accountIdentifier(scope.getAccountIdentifier())
+                                             .orgIdentifier(scope.getOrgIdentifier())
+                                             .projectIdentifier(scope.getProjectIdentifier())
+                                             .build(),
             gitContextRequestParams.getRepoName(), gitContextRequestParams.getBranchName(),
-            gitContextRequestParams.getFilePath(), gitContextRequestParams.getCommitId(),
-            gitContextRequestParams.getConnectorRef(), contextMap);
+            gitContextRequestParams.getFilePath(), gitContextRequestParams.getConnectorRef(), contextMap);
     entity.setData(scmGetFileResponse.getFileContent());
     // Check if this looks good to all
     GitAwareContextHelper.updateScmGitMetaData(scmGetFileResponse.getGitMetaData());

@@ -237,7 +237,7 @@ public class SCMGitSyncHelperTest extends GitSdkTestBase {
         .thenReturn(successfulGetFileResponse);
 
     ScmGetFileResponse scmGetFileResponse =
-        scmGitSyncHelper.getFile(getDefaultScope(), repo, branch, filePath, commitId, connectorRef, contextMap);
+        scmGitSyncHelper.getFileByBranch(getDefaultScope(), repo, branch, filePath, connectorRef, contextMap);
     assertThat(scmGetFileResponse).isNotNull();
     assertThat(scmGetFileResponse.getFileContent()).isEqualTo(fileContent);
     assertThat(scmGetFileResponse.getGitMetaData().getRepoName()).isEqualTo(repo);
@@ -257,7 +257,7 @@ public class SCMGitSyncHelperTest extends GitSdkTestBase {
         .thenReturn(successfulGetFileResponse);
 
     assertThatThrownBy(
-        () -> scmGitSyncHelper.getFile(getDefaultScope(), repo, branch, filePath, commitId, connectorRef, contextMap))
+        () -> scmGitSyncHelper.getFileByBranch(getDefaultScope(), repo, branch, filePath, connectorRef, contextMap))
         .isInstanceOf(ScmInternalServerErrorException.class)
         .hasMessage(error);
   }

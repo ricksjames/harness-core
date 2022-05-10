@@ -95,13 +95,12 @@ public class SCMGitSyncHelper {
     return ScmGitUtils.createScmPushResponse(yaml, gitBranchInfo, pushFileResponse, entityDetail, changeType);
   }
 
-  public ScmGetFileResponse getFile(Scope scope, String repoName, String branchName, String filePath, String commitId,
+  public ScmGetFileResponse getFileByBranch(Scope scope, String repoName, String branchName, String filePath,
       String connectorRef, Map<String, String> contextMap) {
     final GetFileRequest getFileRequest =
         GetFileRequest.newBuilder()
             .setRepoName(repoName)
             .setConnectorRef(connectorRef)
-            .setCommitId(Strings.nullToEmpty(commitId))
             .setBranchName(Strings.nullToEmpty(branchName))
             .setFilePath(filePath)
             .putAllContextMap(contextMap)

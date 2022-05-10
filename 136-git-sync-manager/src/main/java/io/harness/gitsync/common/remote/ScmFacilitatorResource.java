@@ -282,21 +282,20 @@ public class ScmFacilitatorResource {
       @Parameter(description = "Repo Name") @QueryParam("RepoName") @NotBlank @NotNull String repoName,
       @Parameter(description = GitSyncApiConstants.BRANCH_PARAM_MESSAGE) @QueryParam(
           YamlConstants.BRANCH) String branch,
-      @Parameter(description = "File Path") @QueryParam(YamlConstants.FILE_PATH) @NotBlank @NotNull String filePath,
-      @Parameter(description = "Commit Id") @QueryParam(YamlConstants.COMMIT_ID) String commitId,
+      @Parameter(description = "File Path") @QueryParam(YamlConstants.FILE_PATH) @NotBlank @NotNull String filePath, ,
       @Parameter(description = "Connector Ref") @QueryParam("ConnectorRef") String connectorRef) {
-    return ResponseDTO.newResponse(scmFacilitatorService.getFile(ScmGetFileRequestDTO.builder()
-                                                                     .scope(Scope.builder()
-                                                                                .accountIdentifier(accountIdentifier)
-                                                                                .orgIdentifier(orgIdentifier)
-                                                                                .projectIdentifier(projectIdentifier)
-                                                                                .build())
-                                                                     .repoName(repoName)
-                                                                     .branchName(branch)
-                                                                     .filePath(filePath)
-                                                                     .commitId(commitId)
-                                                                     .connectorRef(connectorRef)
-                                                                     .build()));
+    return ResponseDTO.newResponse(
+        scmFacilitatorService.getFileByBranch(ScmGetFileRequestDTO.builder()
+                                                  .scope(Scope.builder()
+                                                             .accountIdentifier(accountIdentifier)
+                                                             .orgIdentifier(orgIdentifier)
+                                                             .projectIdentifier(projectIdentifier)
+                                                             .build())
+                                                  .repoName(repoName)
+                                                  .branchName(branch)
+                                                  .filePath(filePath)
+                                                  .connectorRef(connectorRef)
+                                                  .build()));
   }
 
   // API just for testing purpose, not exposed to customer
