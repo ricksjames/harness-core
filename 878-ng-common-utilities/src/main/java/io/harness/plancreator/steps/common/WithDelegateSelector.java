@@ -10,7 +10,6 @@ package io.harness.plancreator.steps.common;
 import io.harness.plancreator.steps.TaskSelectorYaml;
 import io.harness.pms.yaml.ParameterField;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.util.List;
 
 public interface WithDelegateSelector {
