@@ -13,7 +13,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import io.harness.CategoryTest;
 import io.harness.category.element.UnitTests;
@@ -82,8 +87,7 @@ public class GcpKmsEncryptorTest extends CategoryTest {
     doReturn(keyManagementServiceClient).when(gcpKmsEncryptor).getClientInternal(any());
 
     // Encryption Test
-    when(keyManagementServiceClient.encrypt(eq(resourceName), any(ByteString.class)))
-        .thenReturn(encryptResponse);
+    when(keyManagementServiceClient.encrypt(eq(resourceName), any(ByteString.class))).thenReturn(encryptResponse);
     EncryptedRecord encryptedRecord =
         gcpKmsEncryptor.encryptSecret(gcpKmsConfig.getAccountId(), plainTextValue, gcpKmsConfig);
     assertThat(encryptedRecord).isNotNull();
@@ -117,8 +121,7 @@ public class GcpKmsEncryptorTest extends CategoryTest {
     doReturn(keyManagementServiceClient).when(gcpKmsEncryptor).getClientInternal(any());
 
     // Encryption Test
-    when(keyManagementServiceClient.encrypt(eq(resourceName), any(ByteString.class)))
-        .thenThrow(new RuntimeException());
+    when(keyManagementServiceClient.encrypt(eq(resourceName), any(ByteString.class))).thenThrow(new RuntimeException());
     try {
       gcpKmsEncryptor.encryptSecret(gcpKmsConfig.getAccountId(), plainTextValue, gcpKmsConfig);
       fail("Method call should have thrown an exception");

@@ -15,7 +15,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyList;
-import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
@@ -117,7 +116,7 @@ public class ServiceNowApprovalHelperServiceImplTest extends CategoryTest {
 
     ArgumentCaptor<TaskDetails> taskDetailsArgumentCaptor = ArgumentCaptor.forClass(TaskDetails.class);
     when(StepUtils.prepareTaskRequest(
-             any(), taskDetailsArgumentCaptor.capture(), anyList(), anyList(), anyString(), anyBoolean()))
+             any(), taskDetailsArgumentCaptor.capture(), anyList(), anyList(), any(), anyBoolean()))
         .thenReturn(null);
 
     serviceNowApprovalHelperService.handlePollingEvent(instance);

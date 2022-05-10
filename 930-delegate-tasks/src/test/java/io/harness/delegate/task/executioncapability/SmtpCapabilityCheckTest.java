@@ -33,7 +33,7 @@ public class SmtpCapabilityCheckTest {
   public void shouldPerformCapabilityCheck() {
     final SmtpCapability smtpCapability =
         SmtpCapability.builder().host("smtp.harness.com").port(25).username("user").useSSL(true).startTLS(true).build();
-    try (final MockedStatic<SmtpCapabilityCheck> capabilityCheck = mockStatic(SmtpCapabilityCheck.class)) {
+    try (MockedStatic<SmtpCapabilityCheck> capabilityCheck = mockStatic(SmtpCapabilityCheck.class)) {
       capabilityCheck.when(() -> SmtpCapabilityCheck.isCapable(true, true, "smtp.harness.com", 25, "user"))
           .thenReturn(true);
       final CapabilityResponse capabilityResponse = underTest.performCapabilityCheck(smtpCapability);

@@ -31,7 +31,6 @@ import io.kubernetes.client.openapi.ApiCallback;
 import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.Pair;
-import io.kubernetes.client.openapi.apis.VersionApi;
 import java.lang.reflect.Type;
 import java.util.function.Supplier;
 import okhttp3.Call;

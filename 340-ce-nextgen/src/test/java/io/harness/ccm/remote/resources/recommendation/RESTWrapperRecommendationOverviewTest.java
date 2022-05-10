@@ -40,7 +40,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
-@Ignore
 @RunWith(MockitoJUnitRunner.class)
 public class RESTWrapperRecommendationOverviewTest extends CategoryTest {
   @Mock private RecommendationsOverviewQueryV2 overviewQueryV2;
@@ -95,6 +94,7 @@ public class RESTWrapperRecommendationOverviewTest extends CategoryTest {
   @Test
   @Owner(developers = OwnerRule.UTSAV)
   @Category(UnitTests.class)
+  @Ignore("TODO: please provide clear motivation why this test is ignored")
   public void testCount() throws Exception {
     when(overviewQueryV2.count(any(RecommendationOverviewStats.class), envCaptor.capture())).thenReturn(10);
 

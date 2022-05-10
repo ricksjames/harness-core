@@ -541,29 +541,29 @@ public class EcsDelegateRegistrationTest {
     List<DelegateSequenceConfig> existingDelegateSequenceConfigs = new ArrayList<>();
 
     existingDelegateSequenceConfigs.add(aDelegateSequenceBuilder()
-            .withDelegateToken("abc")
-            .withHostName("hostname")
-            .withSequenceNum(0)
-            .withAccountId(ACCOUNT_ID)
-            .withLastUpdatedAt(System.currentTimeMillis())
-            .build());
+                                            .withDelegateToken("abc")
+                                            .withHostName("hostname")
+                                            .withSequenceNum(0)
+                                            .withAccountId(ACCOUNT_ID)
+                                            .withLastUpdatedAt(System.currentTimeMillis())
+                                            .build());
 
     existingDelegateSequenceConfigs.add(
-            aDelegateSequenceBuilder()
-                    .withDelegateToken("abc")
-                    .withHostName("hostname")
-                    .withSequenceNum(1)
-                    .withAccountId(ACCOUNT_ID)
-                    .withLastUpdatedAt(System.currentTimeMillis() - TimeUnit.SECONDS.toMillis(200))
-                    .build());
-
-    existingDelegateSequenceConfigs.add(aDelegateSequenceBuilder()
+        aDelegateSequenceBuilder()
             .withDelegateToken("abc")
             .withHostName("hostname")
-            .withSequenceNum(2)
+            .withSequenceNum(1)
             .withAccountId(ACCOUNT_ID)
-            .withLastUpdatedAt(System.currentTimeMillis())
+            .withLastUpdatedAt(System.currentTimeMillis() - TimeUnit.SECONDS.toMillis(200))
             .build());
+
+    existingDelegateSequenceConfigs.add(aDelegateSequenceBuilder()
+                                            .withDelegateToken("abc")
+                                            .withHostName("hostname")
+                                            .withSequenceNum(2)
+                                            .withAccountId(ACCOUNT_ID)
+                                            .withLastUpdatedAt(System.currentTimeMillis())
+                                            .build());
     return existingDelegateSequenceConfigs;
   }
 }

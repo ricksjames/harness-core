@@ -192,7 +192,7 @@ public class VariableServiceImplTest extends CategoryTest {
     when(organizationService.get(accountIdentifier, orgIdentifier)).thenReturn(Optional.of(organization));
     when(transactionTemplate.execute(any()))
         .thenAnswer(invocationOnMock
-            -> invocationOnMock.getArgumentAt(0, TransactionCallback.class)
+            -> invocationOnMock.getArgument(0, TransactionCallback.class)
                    .doInTransaction(new SimpleTransactionStatus()));
 
     variableService.create(accountIdentifier, variableDTO);
@@ -221,7 +221,7 @@ public class VariableServiceImplTest extends CategoryTest {
     when(organizationService.get(accountIdentifier, orgIdentifier)).thenReturn(Optional.of(organization));
     when(transactionTemplate.execute(any()))
         .thenAnswer(invocationOnMock
-            -> invocationOnMock.getArgumentAt(0, TransactionCallback.class)
+            -> invocationOnMock.getArgument(0, TransactionCallback.class)
                    .doInTransaction(new SimpleTransactionStatus()));
     variableService.create(accountIdentifier, variableDTO);
   }

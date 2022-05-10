@@ -24,7 +24,6 @@ import io.harness.rule.Owner;
 import software.wings.SecretManagementTestHelper;
 import software.wings.WingsBaseTest;
 import software.wings.beans.VaultConfig;
-import software.wings.beans.alert.KmsSetupAlert;
 import software.wings.service.intfc.AlertService;
 import software.wings.service.intfc.security.VaultService;
 
