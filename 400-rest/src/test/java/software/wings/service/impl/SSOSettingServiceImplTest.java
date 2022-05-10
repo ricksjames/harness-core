@@ -234,7 +234,7 @@ public class SSOSettingServiceImplTest extends WingsBaseTest {
   public void createLDAPSettingWithSecret() {
     LdapSettings ldapSettings = createLDAOSSOProviderWithSecret();
     ldapSettings.setCronExpression("0 0/15 * 1/1 * ? *");
-    ldapSettings.getConnectionSettings().setPasswordType(LdapAuthType.SECRET_REF);
+    ldapSettings.getConnectionSettings().setPasswordType(LdapConnectionSettings.SECRET);
     EncryptedDataDetail encryptedDataDetail = mock(EncryptedDataDetail.class);
     List<EncryptedDataDetail> encryptedDataDetails = Arrays.asList(encryptedDataDetail);
     when(secretManager.getEncryptionDetails(any(), any(), any())).thenReturn(encryptedDataDetails);
@@ -244,7 +244,7 @@ public class SSOSettingServiceImplTest extends WingsBaseTest {
         .thenReturn(null);
     when(featureFlagService.isEnabled(FeatureName.LDAP_SECRET_AUTH, ldapSettings.getAccountId())).thenReturn(true);
     LdapSettings createdLdapSetting = ssoSettingService.createLdapSettings(ldapSettings);
-    assertThat(createdLdapSetting.getConnectionSettings().getPasswordType()).isEqualTo(LdapAuthType.SECRET_REF);
+    assertThat(createdLdapSetting.getConnectionSettings().getPasswordType()).isEqualTo(LdapConnectionSettings.SECRET);
   }
 
   @Test
@@ -261,7 +261,8 @@ public class SSOSettingServiceImplTest extends WingsBaseTest {
         .thenReturn(null);
     when(featureFlagService.isEnabled(FeatureName.LDAP_SECRET_AUTH, ldapSettings.getAccountId())).thenReturn(true);
     LdapSettings createdLdapSetting = ssoSettingService.createLdapSettings(ldapSettings);
-    assertThat(createdLdapSetting.getConnectionSettings().getPasswordType()).isEqualTo(LdapAuthType.INLINE_SECRET);
+    assertThat(createdLdapSetting.getConnectionSettings().getPasswordType())
+        .isEqualTo(LdapConnectionSettings.INLINE_SECRET);
   }
 
   @Test
@@ -282,7 +283,7 @@ public class SSOSettingServiceImplTest extends WingsBaseTest {
     ldapSettings.getConnectionSettings().setBindSecret("randomuuid".toCharArray());
     ldapSettings.getConnectionSettings().setEncryptedBindSecret("randomuuid");
     LdapSettings updateLdapSetting = ssoSettingService.updateLdapSettings(ldapSettings);
-    assertThat(updateLdapSetting.getConnectionSettings().getPasswordType()).isEqualTo(LdapAuthType.SECRET_REF);
+    assertThat(updateLdapSetting.getConnectionSettings().getPasswordType()).isEqualTo(LdapConnectionSettings.SECRET);
   }
 
   @Test(expected = InvalidRequestException.class)
@@ -311,7 +312,7 @@ public class SSOSettingServiceImplTest extends WingsBaseTest {
   public void updateLDAPSettingWithSecretToInlinePassword() {
     LdapSettings ldapSettings = createLDAOSSOProviderWithSecret();
     ldapSettings.setCronExpression("0 0/15 * 1/1 * ? *");
-    ldapSettings.getConnectionSettings().setPasswordType(LdapAuthType.SECRET_REF);
+    ldapSettings.getConnectionSettings().setPasswordType(LdapConnectionSettings.SECRET);
     EncryptedDataDetail encryptedDataDetail = mock(EncryptedDataDetail.class);
     List<EncryptedDataDetail> encryptedDataDetails = Arrays.asList(encryptedDataDetail);
     when(secretManager.getEncryptionDetails(any(), any(), any())).thenReturn(encryptedDataDetails);
@@ -323,7 +324,8 @@ public class SSOSettingServiceImplTest extends WingsBaseTest {
     ssoSettingService.createLdapSettings(ldapSettings);
     ldapSettings.getConnectionSettings().setBindPassword("bindPassword");
     LdapSettings updatedLdapSetting = ssoSettingService.updateLdapSettings(ldapSettings);
-    assertThat(updatedLdapSetting.getConnectionSettings().getPasswordType()).isEqualTo(LdapAuthType.INLINE_SECRET);
+    assertThat(updatedLdapSetting.getConnectionSettings().getPasswordType())
+        .isEqualTo(LdapConnectionSettings.INLINE_SECRET);
   }
 
   public LdapSettings createLDAOSSOProvider() {
