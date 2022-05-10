@@ -53,6 +53,8 @@ export GOPATH=$GOPATH:/tmp/symportal
 
 if [ "$1" == "func" ]; then
 	echo "Generating function-wise coverage... "
+	ls $COVERAGE_OUT
+	pwd
 	go tool cover -func=$COVERAGE_OUT
 elif [ "$1" == "html" ]; then
 	echo "Generating HTML report... "
