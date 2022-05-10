@@ -50,4 +50,5 @@ public class PMSPipelineSummaryResponseDTO {
   EntityGitDetails gitDetails;
   EntityValidityDetails entityValidityDetails;
   StoreType storeType;
+  String connectorRef;
 }
