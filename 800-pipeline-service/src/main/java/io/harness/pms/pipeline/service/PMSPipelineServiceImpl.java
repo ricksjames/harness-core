@@ -10,7 +10,6 @@ package io.harness.pms.pipeline.service;
 import static io.harness.annotations.dev.HarnessTeam.PIPELINE;
 import static io.harness.exception.WingsException.USER_SRE;
 import static io.harness.pms.pipeline.service.PMSPipelineServiceStepHelper.LIBRARY;
-import static io.harness.telemetry.Destination.AMPLITUDE;
 
 import static java.lang.String.format;
 
@@ -45,12 +44,10 @@ import io.harness.pms.contracts.governance.GovernanceMetadata;
 import io.harness.pms.contracts.governance.PolicySetMetadata;
 import io.harness.pms.contracts.steps.StepInfo;
 import io.harness.pms.gitsync.PmsGitSyncBranchContextGuard;
-import io.harness.pms.instrumentaion.PipelineInstrumentationConstants;
 import io.harness.pms.pipeline.CommonStepInfo;
 import io.harness.pms.pipeline.ExecutionSummaryInfo;
 import io.harness.pms.pipeline.PipelineEntity;
 import io.harness.pms.pipeline.PipelineEntity.PipelineEntityKeys;
-import io.harness.pms.pipeline.PipelineEntityUtils;
 import io.harness.pms.pipeline.PipelineFilterPropertiesDto;
 import io.harness.pms.pipeline.StepCategory;
 import io.harness.pms.pipeline.StepPalleteFilterWrapper;
@@ -59,13 +56,10 @@ import io.harness.pms.pipeline.StepPalleteModuleInfo;
 import io.harness.pms.sdk.PmsSdkInstanceService;
 import io.harness.pms.yaml.YamlUtils;
 import io.harness.repositories.pipeline.PMSPipelineRepository;
-import io.harness.telemetry.TelemetryReporter;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import java.io.IOException;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -96,10 +90,6 @@ public class PMSPipelineServiceImpl implements PMSPipelineService {
   public static String PIPELINE_SAVE_ACTION_TYPE = "action";
   public static String CREATING_PIPELINE = "creating new pipeline";
   public static String UPDATING_PIPELINE = "updating existing pipeline";
-  public static String PIPELINE_NAME = "pipelineName";
-  public static String ACCOUNT_ID = "accountId";
-  public static String ORG_ID = "orgId";
-  public static String PROJECT_ID = "projectId";
 
   private static final String DUP_KEY_EXP_FORMAT_STRING =
       "Pipeline [%s] under Project[%s], Organization [%s] already exists";
@@ -113,7 +103,7 @@ public class PMSPipelineServiceImpl implements PMSPipelineService {
 
       PipelineEntity entityWithUpdatedInfo = pmsPipelineServiceHelper.updatePipelineInfo(pipelineEntity);
       PipelineEntity createdEntity = pmsPipelineRepository.save(entityWithUpdatedInfo);
-      sendPipelineSaveTelemetryEvent(createdEntity, CREATING_PIPELINE);
+      pmsPipelineServiceHelper.sendPipelineSaveTelemetryEvent(createdEntity, CREATING_PIPELINE);
       return createdEntity;
     } catch (DuplicateKeyException ex) {
       throw new DuplicateFieldException(format(DUP_KEY_EXP_FORMAT_STRING, pipelineEntity.getIdentifier(),
@@ -251,7 +241,7 @@ public class PMSPipelineServiceImpl implements PMSPipelineService {
             pipelineEntity.getIdentifier(), pipelineEntity.getProjectIdentifier(), pipelineEntity.getOrgIdentifier()));
       }
 
-      sendPipelineSaveTelemetryEvent(updatedResult, UPDATING_PIPELINE);
+      pmsPipelineServiceHelper.sendPipelineSaveTelemetryEvent(updatedResult, UPDATING_PIPELINE);
       return updatedResult;
     } catch (EventsFrameworkDownException ex) {
       log.error("Events framework is down for Pipeline Service.", ex);
@@ -417,19 +407,6 @@ public class PMSPipelineServiceImpl implements PMSPipelineService {
       pmsPipelineRepository.deletePipeline(pipelineEntity.withDeleted(true));
     }
     return true;
-  }
-
-  // TODO(Brijesh): Make this async.
-  private void sendPipelineSaveTelemetryEvent(PipelineEntity entity, String actionType) {
-    HashMap<String, Object> properties = new HashMap<>();
-    properties.put(PIPELINE_NAME, entity.getName());
-    properties.put(ORG_ID, entity.getOrgIdentifier());
-    properties.put(PROJECT_ID, entity.getProjectIdentifier());
-    properties.put(PIPELINE_SAVE_ACTION_TYPE, actionType);
-    properties.put(PipelineInstrumentationConstants.MODULE_NAME,
-        PipelineEntityUtils.getModuleNameFromPipelineEntity(entity, "cd"));
-    telemetryReporter.sendTrackEvent(PIPELINE_SAVE, null, entity.getAccountId(), properties,
-        Collections.singletonMap(AMPLITUDE, true), io.harness.telemetry.Category.GLOBAL);
   }
 
   @Override

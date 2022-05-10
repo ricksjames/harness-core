@@ -8,22 +8,21 @@
 package io.harness.gitsync.common.scmerrorhandling.handlers.github;
 
 import static io.harness.annotations.dev.HarnessTeam.PL;
-import static io.harness.eraro.ErrorCode.UNEXPECTED;
 import static io.harness.gitsync.common.scmerrorhandling.handlers.github.ScmErrorHints.INVALID_CREDENTIALS;
 
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.exception.NestedExceptionUtils;
 import io.harness.exception.SCMExceptionErrorMessages;
-import io.harness.exception.ScmException;
 import io.harness.exception.ScmResourceNotFoundException;
 import io.harness.exception.ScmUnauthorizedException;
+import io.harness.exception.ScmUnexpectedException;
 import io.harness.exception.WingsException;
 import io.harness.gitsync.common.scmerrorhandling.handlers.ScmApiErrorHandler;
 
 @OwnedBy(PL)
 public class GithubCreateBranchScmApiErrorHandler implements ScmApiErrorHandler {
-  public static final String GET_FILE_WITH_INVALID_CREDS =
-      "Couldn't fetch requested file from Github as the credentials provided in the connector are invalid or have expired.";
+  public static final String CREATE_BRANCH_WITH_INVALID_CREDS =
+      "The requested branch could not be created on Github. " + ScmErrorExplanations.INVALID_CONNECTOR_CREDS;
 
   @Override
   public void handleError(int statusCode, String errorMessage) throws WingsException {
@@ -31,13 +30,13 @@ public class GithubCreateBranchScmApiErrorHandler implements ScmApiErrorHandler 
       case 401:
       case 403:
         throw NestedExceptionUtils.hintWithExplanationException(
-            INVALID_CREDENTIALS, GET_FILE_WITH_INVALID_CREDS, new ScmUnauthorizedException(errorMessage));
+            INVALID_CREDENTIALS, CREATE_BRANCH_WITH_INVALID_CREDS, new ScmUnauthorizedException(errorMessage));
       case 404:
         throw NestedExceptionUtils.hintWithExplanationException(ScmErrorHints.FILE_NOT_FOUND,
             ScmErrorExplanations.FILE_NOT_FOUND,
             new ScmResourceNotFoundException(SCMExceptionErrorMessages.FILE_NOT_FOUND_ERROR));
       default:
-        throw new ScmException(UNEXPECTED);
+        throw new ScmUnexpectedException(errorMessage);
     }
   }
 }

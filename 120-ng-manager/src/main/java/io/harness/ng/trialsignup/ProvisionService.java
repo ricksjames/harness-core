@@ -282,7 +282,8 @@ public class ProvisionService {
     }
   }
 
-  public ScmConnectorResponse createDefaultScm(ScmConnectorDTO scmConnectorDTO, String accountIdentifier) {
+  public ScmConnectorResponse createDefaultScm(
+      String accountIdentifier, String orgIdentifier, String projectIdentifier, ScmConnectorDTO scmConnectorDTO) {
     ConnectorResponseDTO connectorResponseDTO = null;
     SecretResponseWrapper secretResponseWrapper = null;
     ScmConnectorResponse scmConnectorResponse = null;
@@ -303,17 +304,17 @@ public class ProvisionService {
     }
 
     Optional<SecretResponseWrapper> secretResponseWrapperOptional =
-        ngSecretService.get(accountIdentifier, null, null, secretDTOV2.getIdentifier());
+        ngSecretService.get(accountIdentifier, orgIdentifier, projectIdentifier, secretDTOV2.getIdentifier());
 
     if (secretResponseWrapperOptional.isPresent()) {
-      secretResponseWrapper =
-          ngSecretService.update(accountIdentifier, null, null, secretDTOV2.getIdentifier(), secretDTOV2);
+      secretResponseWrapper = ngSecretService.update(
+          accountIdentifier, orgIdentifier, projectIdentifier, secretDTOV2.getIdentifier(), secretDTOV2);
     } else {
       secretResponseWrapper = ngSecretService.create(accountIdentifier, secretDTOV2);
     }
 
     Optional<ConnectorResponseDTO> connectorResponseDTOOptional =
-        connectorService.get(accountIdentifier, null, null, connectorInfoDTO.getIdentifier());
+        connectorService.get(accountIdentifier, orgIdentifier, projectIdentifier, connectorInfoDTO.getIdentifier());
 
     if (!connectorResponseDTOOptional.isPresent()) {
       connectorResponseDTO =
@@ -322,8 +323,8 @@ public class ProvisionService {
       connectorService.update(ConnectorDTO.builder().connectorInfo(connectorInfoDTO).build(), accountIdentifier);
     }
 
-    ConnectorValidationResult connectorValidationResult =
-        connectorService.testConnection(accountIdentifier, null, null, connectorInfoDTO.getIdentifier());
+    ConnectorValidationResult connectorValidationResult = connectorService.testConnection(
+        accountIdentifier, orgIdentifier, projectIdentifier, connectorInfoDTO.getIdentifier());
 
     return ScmConnectorResponse.builder()
         .connectorResponseDTO(connectorResponseDTO)
@@ -332,8 +333,10 @@ public class ProvisionService {
         .build();
   }
 
-  public List<UserRepoResponse> getAllUserRepos(String accountId, String repoRef) {
-    Optional<ConnectorResponseDTO> connector = connectorService.getByRef(accountId, null, null, repoRef);
+  public List<UserRepoResponse> getAllUserRepos(
+      String accountId, String orgIdentifier, String projectIdentifier, String repoRef) {
+    Optional<ConnectorResponseDTO> connector =
+        connectorService.getByRef(accountId, orgIdentifier, projectIdentifier, repoRef);
     connector.orElseThrow(
         () -> new InvalidArgumentsException(format("connector %s was not found in account %s", repoRef, accountId)));
     ScmConnector decryptedConnector = gitSyncConnectorHelper.getDecryptedConnector(

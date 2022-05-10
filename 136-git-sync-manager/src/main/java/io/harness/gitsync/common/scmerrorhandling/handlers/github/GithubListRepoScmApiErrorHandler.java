@@ -8,12 +8,11 @@
 package io.harness.gitsync.common.scmerrorhandling.handlers.github;
 
 import static io.harness.annotations.dev.HarnessTeam.PL;
-import static io.harness.eraro.ErrorCode.UNEXPECTED;
 
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.exception.NestedExceptionUtils;
-import io.harness.exception.ScmException;
 import io.harness.exception.ScmUnauthorizedException;
+import io.harness.exception.ScmUnexpectedException;
 import io.harness.exception.WingsException;
 import io.harness.gitsync.common.scmerrorhandling.handlers.ScmApiErrorHandler;
 
@@ -23,7 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 @OwnedBy(PL)
 public class GithubListRepoScmApiErrorHandler implements ScmApiErrorHandler {
   public static final String LIST_REPO_WITH_INVALID_CREDS =
-      "Couldn't list repositories from Github as credentials provided in the connector are invalid or have expired.";
+      "Listing repositories from Github failed. " + ScmErrorExplanations.INVALID_CONNECTOR_CREDS;
 
   @Override
   public void handleError(int statusCode, String errorMessage) throws WingsException {
@@ -34,7 +33,7 @@ public class GithubListRepoScmApiErrorHandler implements ScmApiErrorHandler {
             LIST_REPO_WITH_INVALID_CREDS, new ScmUnauthorizedException(errorMessage));
       default:
         log.error(String.format("Error while listing github repos: [%s: %s]", statusCode, errorMessage));
-        throw new ScmException(UNEXPECTED);
+        throw new ScmUnexpectedException(errorMessage);
     }
   }
 }

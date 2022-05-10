@@ -8,15 +8,14 @@
 package io.harness.gitsync.common.scmerrorhandling.handlers.github;
 
 import static io.harness.annotations.dev.HarnessTeam.PL;
-import static io.harness.eraro.ErrorCode.UNEXPECTED;
 import static io.harness.gitsync.common.scmerrorhandling.handlers.github.ScmErrorHints.INVALID_CREDENTIALS;
 
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.exception.NestedExceptionUtils;
 import io.harness.exception.ScmConflictException;
-import io.harness.exception.ScmException;
 import io.harness.exception.ScmResourceNotFoundException;
 import io.harness.exception.ScmUnauthorizedException;
+import io.harness.exception.ScmUnexpectedException;
 import io.harness.exception.ScmUnprocessableEntityException;
 import io.harness.exception.WingsException;
 import io.harness.gitsync.common.scmerrorhandling.handlers.ScmApiErrorHandler;
@@ -24,7 +23,7 @@ import io.harness.gitsync.common.scmerrorhandling.handlers.ScmApiErrorHandler;
 @OwnedBy(PL)
 public class GithubCreateFileScmApiErrorHandler implements ScmApiErrorHandler {
   public static final String CREATE_FILE_WITH_INVALID_CREDS =
-      "Couldn't create file in Github as the credentials provided in the connector are invalid or have expired.";
+      "The requested file couldn't be created in Github. " + ScmErrorExplanations.INVALID_CONNECTOR_CREDS;
   public static final String CREATE_FILE_NOT_FOUND_ERROR_HINT = "Please check the following:\n"
       + "1. If requested Github repository exists or not.\n"
       + "2. If requested branch exists or not.";
@@ -58,7 +57,7 @@ public class GithubCreateFileScmApiErrorHandler implements ScmApiErrorHandler {
         throw NestedExceptionUtils.hintWithExplanationException(CREATE_FILE_UNPROCESSABLE_ENTITY_ERROR_HINT,
             CREATE_FILE_UNPROCESSABLE_ENTITY_ERROR_EXPLANATION, new ScmUnprocessableEntityException(errorMessage));
       default:
-        throw new ScmException(UNEXPECTED);
+        throw new ScmUnexpectedException(errorMessage);
     }
   }
 }
