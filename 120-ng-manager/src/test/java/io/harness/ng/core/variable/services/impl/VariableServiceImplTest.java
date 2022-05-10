@@ -410,7 +410,7 @@ public class VariableServiceImplTest extends CategoryTest {
     when(organizationService.get(accountIdentifier, orgIdentifier)).thenReturn(Optional.of(organization));
     when(transactionTemplate.execute(any()))
         .thenAnswer(invocationOnMock
-            -> invocationOnMock.getArgumentAt(0, TransactionCallback.class)
+            -> invocationOnMock.getArgument(0, TransactionCallback.class)
                    .doInTransaction(new SimpleTransactionStatus()));
 
     variableService.update(accountIdentifier, variableDTO);
@@ -444,7 +444,7 @@ public class VariableServiceImplTest extends CategoryTest {
         .thenReturn(Optional.of(variable_edited));
     when(transactionTemplate.execute(any()))
         .thenAnswer(invocationOnMock
-            -> invocationOnMock.getArgumentAt(0, TransactionCallback.class)
+            -> invocationOnMock.getArgument(0, TransactionCallback.class)
                    .doInTransaction(new SimpleTransactionStatus()));
     exceptionRule.expect(InvalidRequestException.class);
     exceptionRule.expectMessage("Variable Value Type cannot be changed");
@@ -469,7 +469,7 @@ public class VariableServiceImplTest extends CategoryTest {
         .thenReturn(Optional.of(variable));
     when(transactionTemplate.execute(any()))
         .thenAnswer(invocationOnMock
-            -> invocationOnMock.getArgumentAt(0, TransactionCallback.class)
+            -> invocationOnMock.getArgument(0, TransactionCallback.class)
                    .doInTransaction(new SimpleTransactionStatus()));
     exceptionRule.expect(InvalidRequestException.class);
     exceptionRule.expectMessage(String.format("Project %s specified without the org Identifier", projectIdentifier));
