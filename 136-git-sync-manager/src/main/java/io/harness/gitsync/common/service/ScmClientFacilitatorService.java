@@ -30,6 +30,7 @@ import io.harness.product.ci.scm.proto.CreatePRResponse;
 import io.harness.product.ci.scm.proto.CreateWebhookResponse;
 import io.harness.product.ci.scm.proto.DeleteFileResponse;
 import io.harness.product.ci.scm.proto.FileContent;
+import io.harness.product.ci.scm.proto.GetUserRepoResponse;
 import io.harness.product.ci.scm.proto.GetUserReposResponse;
 import io.harness.product.ci.scm.proto.ListBranchesWithDefaultResponse;
 import io.harness.product.ci.scm.proto.UpdateFileResponse;
@@ -95,4 +96,7 @@ public interface ScmClientFacilitatorService {
       ScmConnector scmConnector, PageRequestDTO pageRequest);
 
   CreateBranchResponse createBranch(String branch, String baseBranch, ScmConnector scmConnector);
+
+  GetUserRepoResponse getRepoDetails(
+      String accountIdentifier, String orgIdentifier, String projectIdentifier, ScmConnector scmConnector);
 }

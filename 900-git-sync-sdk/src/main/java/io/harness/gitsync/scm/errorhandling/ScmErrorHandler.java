@@ -13,6 +13,7 @@ import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.exception.ExplanationException;
 import io.harness.exception.HintException;
+import io.harness.exception.ScmBadRequestException;
 import io.harness.exception.ScmConflictException;
 import io.harness.exception.ScmException;
 import io.harness.exception.ScmInternalServerErrorException;
@@ -34,6 +35,8 @@ public class ScmErrorHandler {
   @SneakyThrows
   void handleError(int statusCode, ScmErrorDetails errorDetails) {
     switch (statusCode) {
+      case 400:
+        throw prepareException(new ScmBadRequestException(errorDetails.getErrorMessage()), errorDetails);
       case 401:
       case 403:
         throw prepareException(new ScmUnauthorizedException(errorDetails.getErrorMessage()), errorDetails);
