@@ -27,7 +27,8 @@ parent = f"projects/{PROJECTID}/locations/us-central1"
 
 
 def main(event, context):
-    """Triggered from a message on a Cloud Pub/Sub topic.
+    """
+    Triggered from a message on a Cloud Pub/Sub topic.
     Args:
          event (dict): Event payload.
          context (google.cloud.functions.Context): Metadata for the event.
@@ -74,7 +75,7 @@ def manage_inventory_data_scheduler_job(event, inventory_type):
     name = f"{parent}/jobs/ce-gcp-%s-data-%s" % (inventory_type, event["accountId"])
     topic_path = publisher.topic_path(PROJECTID, f"ce-gcp-{inventory_type}-inventory-data-scheduler")
 
-    schedule = "0 * * * *"  # Run every hour
+    schedule = "10 * * * *"  # Run every hour
     jsonData = {
         "accountId": event["accountId"],
         "projectId": event["gcpInfraProjectId"],
@@ -102,7 +103,7 @@ def manage_inventory_data_load_scheduler_job(event, inventory_type):
     name = f"{parent}/jobs/ce-gcp-%s-data-load-%s" % (inventory_type, event["accountId"])
     topic_path = publisher.topic_path(PROJECTID, f"ce-gcp-{inventory_type}-inventory-data-load-scheduler")
 
-    schedule = "15 * * * *"  # Run every hour
+    schedule = "25 * * * *"  # Run every hour
     jsonData = {
         "accountId": event["accountId"]
     }

@@ -17,7 +17,6 @@ import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.ccm.CENextGenConfiguration;
 import io.harness.ccm.bigQuery.BigQueryService;
-import io.harness.ccm.commons.beans.config.GcpConfig;
 import io.harness.ccm.service.intf.GCPEntityChangeEventService;
 import io.harness.connector.ConnectorDTO;
 import io.harness.connector.ConnectorInfoDTO;
@@ -28,20 +27,11 @@ import io.harness.eventsframework.entity_crud.EntityChangeDTO;
 import io.harness.exception.InvalidRequestException;
 import io.harness.remote.client.NGRestUtils;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.api.core.ApiFuture;
-import com.google.api.gax.core.FixedCredentialsProvider;
-import com.google.auth.oauth2.ServiceAccountCredentials;
-import com.google.cloud.pubsub.v1.Publisher;
 import com.google.common.collect.ImmutableMap;
 import com.google.inject.Inject;
-import com.google.protobuf.ByteString;
-import com.google.pubsub.v1.PubsubMessage;
-import com.google.pubsub.v1.TopicName;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -68,7 +58,9 @@ public class GCPEntityChangeEventServiceImpl implements GCPEntityChangeEventServ
     if (isVisibilityFeatureEnabled(gcpCloudCostConnectorDTO)) {
       updateEventData(CREATE_ACTION, identifier, accountIdentifier, gcpCloudCostConnectorDTO.getProjectId(),
           gcpCloudCostConnectorDTO.getServiceAccountEmail(), entityChangeEvents);
-      publishMessage(entityChangeEvents);
+      EntityChangeEventServiceHelper.publishMessage(entityChangeEvents, configuration.getGcpConfig().getGcpProjectId(),
+          configuration.getGcpConfig().getGcpGcpConnectorCrudPubSubTopic(),
+          bigQueryService.getCredentials(GOOGLE_CREDENTIALS_PATH));
     }
     log.info("GcpCloudCostConnectorDTO: {}", gcpCloudCostConnectorDTO);
     // todo: remove below log
@@ -87,7 +79,9 @@ public class GCPEntityChangeEventServiceImpl implements GCPEntityChangeEventServ
     if (isVisibilityFeatureEnabled(gcpCloudCostConnectorDTO)) {
       updateEventData(UPDATE_ACTION, identifier, accountIdentifier, gcpCloudCostConnectorDTO.getProjectId(),
           gcpCloudCostConnectorDTO.getServiceAccountEmail(), entityChangeEvents);
-      publishMessage(entityChangeEvents);
+      EntityChangeEventServiceHelper.publishMessage(entityChangeEvents, configuration.getGcpConfig().getGcpProjectId(),
+          configuration.getGcpConfig().getGcpGcpConnectorCrudPubSubTopic(),
+          bigQueryService.getCredentials(GOOGLE_CREDENTIALS_PATH));
     }
     // todo: remove below log
     log.info("UPDATE action event processed for id: {}, accountId: {}", identifier, accountIdentifier);
@@ -100,7 +94,9 @@ public class GCPEntityChangeEventServiceImpl implements GCPEntityChangeEventServ
     String accountIdentifier = entityChangeDTO.getAccountIdentifier().getValue();
     ArrayList<ImmutableMap<String, String>> entityChangeEvents = new ArrayList<>();
     updateEventData(DELETE_ACTION, identifier, accountIdentifier, "", "", entityChangeEvents);
-    publishMessage(entityChangeEvents);
+    EntityChangeEventServiceHelper.publishMessage(entityChangeEvents, configuration.getGcpConfig().getGcpProjectId(),
+        configuration.getGcpConfig().getGcpGcpConnectorCrudPubSubTopic(),
+        bigQueryService.getCredentials(GOOGLE_CREDENTIALS_PATH));
     // todo: remove below log
     log.info("DELETE action event processed for id: {}, accountId: {}", identifier, accountIdentifier);
     return true;
@@ -136,48 +132,6 @@ public class GCPEntityChangeEventServiceImpl implements GCPEntityChangeEventServ
     } catch (Exception e) {
       throw new InvalidRequestException(
           format("Error while getting connector information : [%s]", connectorIdentifierRef));
-    }
-  }
-
-  public void publishMessage(ArrayList<ImmutableMap<String, String>> entityChangeEvents) {
-    if (entityChangeEvents.isEmpty()) {
-      log.info("Visibility is not enabled. Not sending event");
-      return;
-    }
-    GcpConfig gcpConfig = configuration.getGcpConfig();
-    String harnessGcpProjectId = gcpConfig.getGcpProjectId();
-    String inventoryPubSubTopic = gcpConfig.getGcpGcpConnectorCrudPubSubTopic();
-    ServiceAccountCredentials sourceGcpCredentials = bigQueryService.getCredentials(GOOGLE_CREDENTIALS_PATH);
-    TopicName topicName = TopicName.of(harnessGcpProjectId, inventoryPubSubTopic);
-    Publisher publisher = null;
-    log.info("Publishing event to topic: {}", topicName);
-    try {
-      // Create a publisher instance with default settings bound to the topic
-      publisher = Publisher.newBuilder(topicName)
-                      .setCredentialsProvider(FixedCredentialsProvider.create(sourceGcpCredentials))
-                      .build();
-      ObjectMapper objectMapper = new ObjectMapper();
-      String message = objectMapper.writeValueAsString(entityChangeEvents);
-      ByteString data = ByteString.copyFromUtf8(message);
-      log.info("Sending event with data: {}", data);
-      PubsubMessage pubsubMessage = PubsubMessage.newBuilder().setData(data).build();
-
-      // Once published, returns a server-assigned message id (unique within the topic)
-      ApiFuture<String> messageIdFuture = publisher.publish(pubsubMessage);
-      String messageId = messageIdFuture.get();
-      log.info("Published event with data: {}, messageId: {}", message, messageId);
-    } catch (Exception e) {
-      log.error("Error occurred while sending event in pubsub\n", e);
-    }
-
-    if (publisher != null) {
-      // When finished with the publisher, shutdown to free up resources.
-      publisher.shutdown();
-      try {
-        publisher.awaitTermination(1, TimeUnit.MINUTES);
-      } catch (InterruptedException e) {
-        log.error("Error occurred while terminating pubsub publisher\n", e);
-      }
     }
   }
 }
