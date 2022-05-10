@@ -344,7 +344,7 @@ public class SSOSettingServiceImpl implements SSOSettingService {
       throw new InvalidRequestException(
           "Deleting SSO provider with linked user groups is not allowed. Unlink the user groups first.");
     }
-    if (settings.getConnectionSettings().getPasswordType().equals(LdapConnectionSettings.INLINE_SECRET)) {
+    if (LdapConnectionSettings.INLINE_SECRET.equals(settings.getConnectionSettings().getPasswordType())) {
       secretManager.deleteSecret(
           settings.getAccountId(), settings.getConnectionSettings().getEncryptedBindPassword(), new HashMap<>(), false);
     }

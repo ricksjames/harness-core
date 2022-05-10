@@ -44,7 +44,7 @@ public class SSOServiceHelper {
           secretManager.getEncryptionDetails((EncryptableSetting) connectionSettings, null, null);
       encryptionService.decrypt(connectionSettings, encryptionDetails, false);
       if (existingPasswordType != null) {
-        if (existingPasswordType.equals(LdapConnectionSettings.INLINE_SECRET)) {
+        if (LdapConnectionSettings.INLINE_SECRET.equals(existingPasswordType)) {
           // If the LDAP Setting was already used with Inline Password, and now when they have choosed Secret, hence
           // deleting the orphan secret
           String oldEncryptedBindPassword = connectionSettings.getEncryptedBindPassword();

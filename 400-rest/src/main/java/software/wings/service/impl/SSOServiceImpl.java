@@ -502,15 +502,14 @@ public class SSOServiceImpl implements SSOService {
       return false;
     }
     LdapSettings savedSettings = ssoSettingService.getLdapSettingsByUuid(settings.getUuid());
-    if (savedSettings.getConnectionSettings().getPasswordType().equals(LdapConnectionSettings.INLINE_SECRET)) {
+    if (LdapConnectionSettings.INLINE_SECRET.equals(savedSettings.getConnectionSettings().getPasswordType())) {
       settings.getConnectionSettings().setEncryptedBindPassword(
           savedSettings.getConnectionSettings().getEncryptedBindPassword());
-      return true;
     } else {
       settings.getConnectionSettings().setEncryptedBindSecret(
           savedSettings.getConnectionSettings().getEncryptedBindSecret());
-      return true;
     }
+    return true;
   }
 
   @Override

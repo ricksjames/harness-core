@@ -52,7 +52,7 @@ public class LdapConnectionSettings implements LdapConnectionConfig, Encryptable
   String bindDN = "";
   String bindPassword = "";
   String encryptedBindPassword;
-  @Attributes(title = "Bind Password Type", required = true, enums = {INLINE_SECRET, SECRET}) String passwordType;
+  @Attributes(title = "Bind Password Type", enums = {INLINE_SECRET, SECRET}) String passwordType;
   @Encrypted(fieldName = "bindSecret") private char[] bindSecret;
   @JsonIgnore @JsonView(JsonViews.Internal.class) @SchemaIgnore private String encryptedBindSecret;
   int connectTimeout = LdapConstants.DEFAULT_CONNECT_TIMEOUT;
