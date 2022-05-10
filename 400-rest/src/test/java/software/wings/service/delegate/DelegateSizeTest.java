@@ -35,7 +35,7 @@ public class DelegateSizeTest {
   @Owner(developers = MARKO)
   @Category(UnitTests.class)
   public void testFetchDefaultDelegateSize() {
-    try (final MockedStatic<DeployVariant> deployVariant = Mockito.mockStatic(DeployVariant.class)) {
+    try (MockedStatic<DeployVariant> deployVariant = Mockito.mockStatic(DeployVariant.class)) {
       deployVariant.when(() -> DeployVariant.isCommunity(null)).thenReturn(false);
       when(underTest.fetchDefaultDockerDelegateSize()).thenCallRealMethod();
       DelegateSizeDetails delegateSizeDetails = underTest.fetchDefaultDockerDelegateSize();
@@ -52,7 +52,7 @@ public class DelegateSizeTest {
   @Owner(developers = MARKO)
   @Category(UnitTests.class)
   public void testFetchDefaultCommunityDelegateSize() {
-    try (final MockedStatic<DeployVariant> deployVariant = Mockito.mockStatic(DeployVariant.class)) {
+    try (MockedStatic<DeployVariant> deployVariant = Mockito.mockStatic(DeployVariant.class)) {
       deployVariant.when(() -> DeployVariant.isCommunity(null)).thenReturn(true);
       when(underTest.fetchDefaultDockerDelegateSize()).thenCallRealMethod();
       DelegateSizeDetails delegateSizeDetails = underTest.fetchDefaultDockerDelegateSize();
