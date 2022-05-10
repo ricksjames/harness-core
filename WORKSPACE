@@ -24,7 +24,6 @@ http_archive(
     ],
 )
 
-
 load("@com_google_protobuf//:protobuf_deps.bzl", "protobuf_deps")
 
 protobuf_deps()
@@ -39,7 +38,6 @@ http_archive(
         # "https://github.com/bazelbuild/rules_go/releases/download/v0.29.0/rules_go-v0.29.0.zip",
     ],
 )
-
 
 http_archive(
     name = "bazel_gazelle",

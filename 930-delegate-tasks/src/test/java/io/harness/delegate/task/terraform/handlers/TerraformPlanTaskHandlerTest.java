@@ -91,8 +91,7 @@ public class TerraformPlanTaskHandlerTest extends CategoryTest {
   @Category(UnitTests.class)
   public void testPlan() throws IOException, TimeoutException, InterruptedException {
     when(secretDecryptionService.decrypt(any(), any())).thenReturn(null);
-    when(terraformBaseHelper.getGitBaseRequestForConfigFile(
-             any(), any(), any()))
+    when(terraformBaseHelper.getGitBaseRequestForConfigFile(any(), any(), any()))
         .thenReturn(mock(GitBaseRequest.class));
     when(terraformBaseHelper.fetchConfigFileAndPrepareScriptDir(
              any(), any(), any(), any(), any(), eq(logCallback), any(), any()))
@@ -120,8 +119,7 @@ public class TerraformPlanTaskHandlerTest extends CategoryTest {
   @Category(UnitTests.class)
   public void testPlanWithArtifactoryConfigAndVarFiles() throws IOException, TimeoutException, InterruptedException {
     when(secretDecryptionService.decrypt(any(), any())).thenReturn(null);
-    when(terraformBaseHelper.fetchConfigFileAndPrepareScriptDir(
-             any(), any(), any(), any(), eq(logCallback), any()))
+    when(terraformBaseHelper.fetchConfigFileAndPrepareScriptDir(any(), any(), any(), any(), eq(logCallback), any()))
         .thenReturn("sourceDir");
     doNothing().when(terraformBaseHelper).downloadTfStateFile(null, "accountId", null, "scriptDir");
     when(gitClientHelper.getRepoDirectory(any())).thenReturn("sourceDir");
