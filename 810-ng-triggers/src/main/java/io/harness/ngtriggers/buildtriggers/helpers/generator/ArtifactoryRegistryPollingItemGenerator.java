@@ -40,6 +40,9 @@ public class ArtifactoryRegistryPollingItemGenerator implements PollingItemGener
         String artifactPath = buildTriggerHelper.validateAndFetchFromJsonNode(buildTriggerOpsData, "spec.artifactPath");
         String repositoryUrl = buildTriggerHelper.validateAndFetchFromJsonNode(buildTriggerOpsData, "spec.repositoryUrl");
 
+        if(artifactPath.equals("<+trigger.artifact.build>")) {
+            artifactPath = "";
+        }
         return builder
                 .setPollingPayloadData(PollingPayloadData.newBuilder()
                         .setConnectorRef(connectorRef)
