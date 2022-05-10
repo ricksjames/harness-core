@@ -1,3 +1,10 @@
+/*
+ * Copyright 2022 Harness Inc. All rights reserved.
+ * Use of this source code is governed by the PolyForm Free Trial 1.0.0 license
+ * that can be found in the licenses directory at the root of this repository, also available at
+ * https://polyformproject.org/wp-content/uploads/2020/05/PolyForm-Free-Trial-1.0.0.txt.
+ */
+
 package io.harness.gitsync.common.impl;
 
 import static io.harness.annotations.dev.HarnessTeam.PL;
@@ -22,6 +29,7 @@ import io.harness.gitsync.common.helper.GitSyncConnectorHelper;
 import io.harness.gitsync.common.service.ScmOrchestratorService;
 import io.harness.ng.beans.PageRequest;
 import io.harness.product.ci.scm.proto.FileContent;
+import io.harness.product.ci.scm.proto.GetUserRepoResponse;
 import io.harness.product.ci.scm.proto.GetUserReposResponse;
 import io.harness.product.ci.scm.proto.ListBranchesWithDefaultResponse;
 import io.harness.product.ci.scm.proto.Repository;
@@ -79,8 +87,7 @@ public class ScmFacilitatorServiceImplTest extends GitSyncTestBase {
             Repository.newBuilder().setName("repo2").setNamespace("harness").build(),
             Repository.newBuilder().setName("repo3").setNamespace("harnessxy").build());
     GetUserReposResponse getUserReposResponse = GetUserReposResponse.newBuilder().addAllRepos(repositories).build();
-    when(scmOrchestratorService.processScmRequestUsingConnectorSettings(any(), any(), any(), any(), any()))
-        .thenReturn(getUserReposResponse);
+    when(scmOrchestratorService.processScmRequestUsingConnectorSettings(any(), any())).thenReturn(getUserReposResponse);
     List<GitRepositoryResponseDTO> repositoryResponseDTOList = scmFacilitatorService.listReposByRefConnector(
         accountIdentifier, orgIdentifier, projectIdentifier, connectorRef, pageRequest, "");
     assertThat(repositoryResponseDTOList.size()).isEqualTo(2);
@@ -96,12 +103,27 @@ public class ScmFacilitatorServiceImplTest extends GitSyncTestBase {
                                                                           .setDefaultBranch(defaultBranch)
                                                                           .addAllBranches(Arrays.asList(branch))
                                                                           .build();
-    when(scmOrchestratorService.processScmRequestUsingConnectorSettings(any(), any(), any(), any(), any()))
+    when(scmOrchestratorService.processScmRequestUsingConnectorSettings(any(), any()))
         .thenReturn(listBranchesWithDefaultResponse);
     GitBranchesResponseDTO gitBranchesResponseDTO = scmFacilitatorService.listBranchesV2(
         accountIdentifier, orgIdentifier, projectIdentifier, connectorRef, repoName, pageRequest, "");
     assertThat(gitBranchesResponseDTO.getDefaultBranch().getName()).isEqualTo(defaultBranch);
     assertThat(gitBranchesResponseDTO.getBranches().size()).isEqualTo(1);
     assertThat(gitBranchesResponseDTO.getBranches().get(0).getName()).isEqualTo(branch);
+  }
+
+  @Test
+  @Owner(developers = BHAVYA)
+  @Category(UnitTests.class)
+  public void testGetRepoDetails() {
+    GetUserRepoResponse getUserRepoResponse =
+        GetUserRepoResponse.newBuilder()
+            .setRepo(Repository.newBuilder().setName(repoName).setBranch(defaultBranch).build())
+            .build();
+    when(scmOrchestratorService.processScmRequestUsingConnectorSettings(any(), any())).thenReturn(getUserRepoResponse);
+    Repository repoDetails = scmFacilitatorService.getRepoDetails(
+        accountIdentifier, orgIdentifier, projectIdentifier, connectorRef, repoName);
+    assertThat(repoDetails.getName()).isEqualTo(repoName);
+    assertThat(repoDetails.getBranch()).isEqualTo(defaultBranch);
   }
 }
