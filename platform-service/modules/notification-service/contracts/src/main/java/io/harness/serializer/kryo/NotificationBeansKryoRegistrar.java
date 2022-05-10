@@ -7,7 +7,6 @@
 
 package io.harness.serializer.kryo;
 
-import io.harness.notification.SmtpConfig;
 import io.harness.serializer.KryoRegistrar;
 
 import software.wings.beans.NotificationChannelType;
@@ -19,7 +18,6 @@ import com.esotericsoftware.kryo.Kryo;
 public class NotificationBeansKryoRegistrar implements KryoRegistrar {
   @Override
   public void register(Kryo kryo) {
-    kryo.register(SmtpConfig.class, 55299);
     kryo.register(NotificationSettings.class, 5626);
     kryo.register(NotificationChannelType.class, 7115);
     kryo.register(SlackNotificationSetting.class, 7119);
