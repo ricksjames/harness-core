@@ -39,6 +39,7 @@ import io.harness.pms.yaml.YamlField;
 import io.harness.pms.yaml.YamlNode;
 import io.harness.pms.yaml.YamlUtils;
 import io.harness.stateutils.buildstate.ConnectorUtils;
+import io.harness.steps.CIStepSpecTypeConstants;
 import io.harness.steps.StepSpecTypeConstants;
 import io.harness.walktree.visitor.SimpleVisitorFactory;
 import io.harness.yaml.extended.ci.codebase.CodeBase;
@@ -57,7 +58,7 @@ public class CIStageFilterJsonCreator extends GenericStageFilterJsonCreator {
 
   @Override
   public Set<String> getSupportedStageTypes() {
-    return ImmutableSet.of(StepSpecTypeConstants.CI_STAGE, StepSpecTypeConstants.SECURITY_STAGE);
+    return ImmutableSet.of(CIStepSpecTypeConstants.CI_STAGE, StepSpecTypeConstants.SECURITY_STAGE);
   }
 
   @Override

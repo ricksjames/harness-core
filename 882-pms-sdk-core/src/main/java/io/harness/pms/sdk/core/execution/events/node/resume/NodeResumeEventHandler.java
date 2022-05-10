@@ -89,22 +89,6 @@ public class NodeResumeEventHandler extends PmsBaseEventHandler<NodeResumeEvent>
     String nodeExecutionId = AmbianceUtils.obtainCurrentRuntimeId(event.getAmbiance());
     Preconditions.checkArgument(isNotBlank(nodeExecutionId), "nodeExecutionId is null or empty");
     try {
-      if (event.getAsyncError()) {
-        log.info("Async Error for the Event Sending Error Response");
-        ErrorResponseData errorResponseData = (ErrorResponseData) response.values().iterator().next();
-        StepResponseProto stepResponse =
-            StepResponseProto.newBuilder()
-                .setStatus(Status.ERRORED)
-                .setFailureInfo(FailureInfo.newBuilder()
-                                    .addAllFailureTypes(EngineExceptionUtils.transformToOrchestrationFailureTypes(
-                                        errorResponseData.getFailureTypes()))
-                                    .setErrorMessage(errorResponseData.getErrorMessage())
-                                    .build())
-                .build();
-        sdkNodeExecutionService.handleStepResponse(event.getAmbiance(), stepResponse);
-        return;
-      }
-
       processor.handleResume(buildResumePackage(event, response));
     } catch (Exception ex) {
       log.error("Error while resuming execution", ex);

@@ -54,6 +54,7 @@ import io.harness.serializer.KryoSerializer;
 import io.harness.states.CISpecStep;
 import io.harness.states.IntegrationStageStepPMS;
 import io.harness.stateutils.buildstate.ConnectorUtils;
+import io.harness.steps.CIStepSpecTypeConstants;
 import io.harness.steps.StepSpecTypeConstants;
 import io.harness.yaml.extended.ci.codebase.CodeBase;
 import io.harness.yaml.utils.JsonPipelineUtils;
@@ -120,7 +121,7 @@ public class IntegrationStagePMSPlanCreator extends GenericStagePlanCreator {
 
   @Override
   public Set<String> getSupportedStageTypes() {
-    return ImmutableSet.of(StepSpecTypeConstants.CI_STAGE, StepSpecTypeConstants.SECURITY_STAGE);
+    return ImmutableSet.of(CIStepSpecTypeConstants.CI_STAGE, StepSpecTypeConstants.SECURITY_STAGE);
   }
 
   @Override

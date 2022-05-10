@@ -8,6 +8,7 @@
 package io.harness.beans.yaml;
 
 import static io.harness.annotations.dev.HarnessTeam.CI;
+import static io.harness.annotations.dev.HarnessTeam.PIPELINE;
 import static io.harness.rule.OwnerRule.ALEKSANDAR;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -17,21 +18,28 @@ import io.harness.annotations.dev.OwnedBy;
 import io.harness.beans.stages.IntegrationStageConfig;
 import io.harness.category.element.UnitTests;
 import io.harness.plancreator.execution.ExecutionWrapperConfig;
-import io.harness.plancreator.pipeline.PipelineConfig;
 import io.harness.plancreator.stages.StageElementWrapperConfig;
 import io.harness.plancreator.stages.stage.StageElementConfig;
 import io.harness.plancreator.steps.StepElementConfig;
 import io.harness.rule.Owner;
 import io.harness.utils.YamlPipelineUtils;
+import io.harness.yaml.core.VariableExpression;
 import io.harness.yaml.core.properties.CIProperties;
 import io.harness.yaml.core.properties.NGProperties;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.io.IOException;
 import java.net.URL;
 import java.util.List;
+import javax.validation.constraints.Size;
+import lombok.Builder;
+import lombok.Data;
+import lombok.Singular;
+import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.springframework.data.annotation.TypeAlias;
 
 @Slf4j
 @OwnedBy(CI)
@@ -65,5 +73,21 @@ public class CIPmsPipelineYamlTest extends CiBeansTestBase {
         }
       }
     }
+  }
+
+  @OwnedBy(PIPELINE)
+  @Value
+  @Builder
+  @TypeAlias("pipelineConfig")
+  private static class PipelineConfig {
+    @JsonProperty("pipeline") PipelineInfoConfig pipelineInfoConfig;
+  }
+
+  @Data
+  @Builder
+  private static class PipelineInfoConfig {
+    @VariableExpression NGProperties properties;
+
+    @Singular @Size(min = 1) @VariableExpression(skipVariableExpression = true) List<StageElementWrapperConfig> stages;
   }
 }

@@ -15,7 +15,7 @@ import static com.fasterxml.jackson.annotation.JsonTypeInfo.Id.NAME;
 import io.harness.annotation.RecasterAlias;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.plancreator.stages.stage.StageInfoConfig;
-import io.harness.steps.StepSpecTypeConstants;
+import io.harness.steps.CIStepSpecTypeConstants;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
@@ -30,7 +30,7 @@ import org.springframework.data.annotation.TypeAlias;
 @Data
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
-@JsonTypeName(StepSpecTypeConstants.CI_STAGE)
+@JsonTypeName(CIStepSpecTypeConstants.CI_STAGE)
 @TypeAlias("IntegrationStageNode")
 @OwnedBy(CI)
 @RecasterAlias("io.harness.beans.stages.IntegrationStageNode")
@@ -42,7 +42,7 @@ public class IntegrationStageNode extends IntegrationAbstractStageNode {
   IntegrationStageConfigImpl integrationStageConfig;
   @Override
   public String getType() {
-    return StepSpecTypeConstants.CI_STAGE;
+    return CIStepSpecTypeConstants.CI_STAGE;
   }
 
   @Override
@@ -51,7 +51,7 @@ public class IntegrationStageNode extends IntegrationAbstractStageNode {
   }
 
   public enum StepType {
-    CI(StepSpecTypeConstants.CI_STAGE);
+    CI(CIStepSpecTypeConstants.CI_STAGE);
     @Getter String name;
     StepType(String name) {
       this.name = name;
