@@ -115,8 +115,8 @@ public class LdapSettings extends SSOSettings implements ExecutionCapabilityDema
 
   public void encryptLdapInlineSecret(SecretManager secretManager) {
     if (isNotEmpty(connectionSettings.getBindPassword())
-        && !connectionSettings.getBindPassword().equals(LdapConstants.MASKED_STRING)) {
-      connectionSettings.setPasswordType(LdapAuthType.INLINE_SECRET);
+        && !LdapConstants.MASKED_STRING.equals(connectionSettings.getBindPassword())) {
+      connectionSettings.setPasswordType(LdapConnectionSettings.INLINE_SECRET);
       String oldEncryptedBindPassword = connectionSettings.getEncryptedBindPassword();
       if (isNotEmpty(oldEncryptedBindPassword)) {
         secretManager.deleteSecret(accountId, oldEncryptedBindPassword, new HashMap<>(), false);
@@ -138,10 +138,12 @@ public class LdapSettings extends SSOSettings implements ExecutionCapabilityDema
 
   public void decryptFields(
       @NotNull EncryptedDataDetail encryptedDataDetail, @NotNull EncryptionService encryptionService) {
-    if (connectionSettings.getPasswordType().equals(LdapAuthType.INLINE_SECRET)) {
+    if ((isEmpty(connectionSettings.getPasswordType())
+            && connectionSettings.getBindPassword().equals(LdapConstants.MASKED_STRING))
+        || LdapConnectionSettings.INLINE_SECRET.equals(connectionSettings.getPasswordType())) {
       String bindPassword = new String(encryptionService.getDecryptedValue(encryptedDataDetail, false));
       connectionSettings.setBindPassword(bindPassword);
-    } else {
+    } else if (LdapConnectionSettings.SECRET.equals(connectionSettings.getPasswordType())) {
       String bindSecret = new String(encryptionService.getDecryptedValue(encryptedDataDetail, false));
       connectionSettings.setBindSecret(bindSecret.toCharArray());
     }

@@ -39,7 +39,7 @@ import io.harness.security.encryption.EncryptedDataDetail;
 import software.wings.beans.Account;
 import software.wings.beans.Event;
 import software.wings.beans.SyncTaskContext;
-import software.wings.beans.sso.LdapAuthType;
+import software.wings.beans.sso.LdapConnectionSettings;
 import software.wings.beans.sso.LdapGroupResponse;
 import software.wings.beans.sso.LdapSettings;
 import software.wings.beans.sso.LdapTestResponse;
@@ -503,15 +503,14 @@ public class SSOServiceImpl implements SSOService {
       return false;
     }
     LdapSettings savedSettings = ssoSettingService.getLdapSettingsByUuid(settings.getUuid());
-    if (savedSettings.getConnectionSettings().getPasswordType().equals(LdapAuthType.INLINE_SECRET)) {
+    if (LdapConnectionSettings.INLINE_SECRET.equals(savedSettings.getConnectionSettings().getPasswordType())) {
       settings.getConnectionSettings().setEncryptedBindPassword(
           savedSettings.getConnectionSettings().getEncryptedBindPassword());
-      return true;
     } else {
       settings.getConnectionSettings().setEncryptedBindSecret(
           savedSettings.getConnectionSettings().getEncryptedBindSecret());
-      return true;
     }
+    return true;
   }
 
   @Override
