@@ -40,7 +40,7 @@ public class SSOServiceHelper {
     String existingPasswordType = "";
     existingPasswordType = connectionSettings.getPasswordType();
     if (isNotEmpty(connectionSettings.getBindSecret())) {
-      if ((!connectionSettings.getBindPassword().isEmpty())
+      if (isNotEmpty(connectionSettings.getBindPassword())
           && (!connectionSettings.getBindPassword().equals(LdapConstants.MASKED_STRING))) {
         throw new InvalidRequestException("Either Enter password or select a secret");
       }
