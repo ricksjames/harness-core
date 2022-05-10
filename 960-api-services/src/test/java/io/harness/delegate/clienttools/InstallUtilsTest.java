@@ -25,9 +25,7 @@ import static io.harness.rule.OwnerRule.MARKO;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
-import static org.powermock.api.mockito.PowerMockito.doNothing;
-import static org.powermock.api.mockito.PowerMockito.doReturn;
-import static org.powermock.api.mockito.PowerMockito.mockStatic;
+import static org.mockito.Mockito.mockStatic;
 
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.category.element.FunctionalTests;
@@ -36,16 +34,16 @@ import io.harness.delegate.configuration.DelegateConfiguration;
 import io.harness.rule.Owner;
 
 import java.nio.file.Paths;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
+import org.mockito.MockedStatic;
+import org.mockito.junit.MockitoJUnitRunner;
 
 @OwnedBy(DEL)
-@RunWith(PowerMockRunner.class)
-@PrepareForTest({InstallUtils.class})
+@RunWith(MockitoJUnitRunner.class)
 public class InstallUtilsTest {
   private static final String PWD = Paths.get(".").toAbsolutePath().normalize().toString();
 
@@ -66,12 +64,16 @@ public class InstallUtilsTest {
   private static final String DEFAULT_GOTEMPLATE_PATH = PWD + "/client-tools/go-template/v0.4/go-template";
   private static final String DEFAULT_KUBECTL_1_19_PATH = PWD + "/client-tools/kubectl/v1.19.2/kubectl";
   private static final String DEFAULT_KUBECTL_1_13_PATH = PWD + "/client-tools/kubectl/v1.13.2/kubectl";
-
+  MockedStatic<InstallUtils> installUtilsMockedStatic;
   @Before
   public void setUp() throws Exception {
-    mockStatic(InstallUtils.class, CALLS_REAL_METHODS);
-    doReturn(true).when(InstallUtils.class, "validateToolExists", any(), any());
-    doNothing().when(InstallUtils.class, "initTool", any(), any());
+    installUtilsMockedStatic = mockStatic(InstallUtils.class, CALLS_REAL_METHODS);
+    installUtilsMockedStatic.when(() -> InstallUtils.validateToolExists(any(), any())).thenReturn(true);
+  }
+
+  @After
+  public void close() {
+    installUtilsMockedStatic.close();
   }
 
   @Test

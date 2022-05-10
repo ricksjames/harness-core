@@ -2578,7 +2578,8 @@
     "CustomHealthKeyAndValue": {
       "type": "object",
       "required": [
-        "key"
+        "key",
+        "valueEncrypted"
       ],
       "properties": {
         "encryptedValueRef": {
