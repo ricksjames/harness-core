@@ -102,12 +102,12 @@ public class DelegateTaskRebroadcastIteratorTest extends WingsBaseTest {
     account.setUuid(generateUuid());
     persistence.save(account);
     DelegateTask delegateTask = DelegateTask.builder()
-            .accountId(account.getUuid())
-            .version(versionInfoManager.getVersionInfo().getVersion())
-            .status(DelegateTask.Status.QUEUED)
-            .expiry(System.currentTimeMillis() + 60000)
-            .data(TaskData.builder().taskType(TaskType.HTTP.name()).async(true).build())
-            .build();
+                                    .accountId(account.getUuid())
+                                    .version(versionInfoManager.getVersionInfo().getVersion())
+                                    .status(DelegateTask.Status.QUEUED)
+                                    .expiry(System.currentTimeMillis() + 60000)
+                                    .data(TaskData.builder().taskType(TaskType.HTTP.name()).async(true).build())
+                                    .build();
     verifyDelegateTaskRebroadcast(account, delegateTask);
   }
 

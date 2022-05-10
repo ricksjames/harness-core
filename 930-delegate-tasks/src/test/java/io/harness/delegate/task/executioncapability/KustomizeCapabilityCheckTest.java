@@ -35,8 +35,7 @@ public class KustomizeCapabilityCheckTest {
   @Owner(developers = OwnerRule.YOGESH)
   @Category(UnitTests.class)
   public void pluginsExist() {
-    try (MockedStatic<KustomizeCapabilityCheck> capabilityCheck =
-             Mockito.mockStatic(KustomizeCapabilityCheck.class)) {
+    try (MockedStatic<KustomizeCapabilityCheck> capabilityCheck = Mockito.mockStatic(KustomizeCapabilityCheck.class)) {
       capabilityCheck.when(() -> KustomizeCapabilityCheck.doesKustomizePluginDirExist("/plugins/kustomize"))
           .thenReturn(true);
       assertThat(underTest.performCapabilityCheck(capability))
@@ -48,8 +47,7 @@ public class KustomizeCapabilityCheckTest {
   @Owner(developers = OwnerRule.YOGESH)
   @Category(UnitTests.class)
   public void pluginsDoNotExist() {
-    try (MockedStatic<KustomizeCapabilityCheck> capabilityCheck =
-             Mockito.mockStatic(KustomizeCapabilityCheck.class)) {
+    try (MockedStatic<KustomizeCapabilityCheck> capabilityCheck = Mockito.mockStatic(KustomizeCapabilityCheck.class)) {
       capabilityCheck.when(() -> KustomizeCapabilityCheck.doesKustomizePluginDirExist("/plugins/kustomize"))
           .thenReturn(false);
       assertThat(underTest.performCapabilityCheck(capability))
