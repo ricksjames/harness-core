@@ -36,8 +36,13 @@ ln -s $PROJECT_ROOT /tmp/symportal/src/github.com/harness/harness-core
 COVERAGE_OUT="/tmp/symportal/coverage/combined_coverage.out"
 COVERAGE_HTML="/tmp/symportal/coverage/combined_coverage.html"
 
+
+#  /home/runner/.cache/bazel/_bazel_runner/f911b90fd3df6f759c49858faf58d7d9/execroot/harness_monorepo/bazel-out/k8-fastbuild/testlogs/product/ci/scm/parser/parser_test/coverage.dat
+#  /home/runner/work/harness-core/harness-core/bazel-testlogs/’
+#  bazel-out/k8-fastbuild/testlogs/product/ci/engine/new/executor/executor_test/coverage.dat
+
 echo "Merging coverage reports ... "
-if ! ((find $PROJECT_ROOT/bazel-testlogs/ -name coverage.dat | tr '\n' ' ' | xargs gocovmerge) | sed '/mock.go/d' >> $COVERAGE_OUT); then
+if ! ((find /home/runner/.cache/bazel/_bazel_runner/ -name coverage.dat | tr '\n' ' ' | xargs gocovmerge) | sed '/mock.go/d' >> $COVERAGE_OUT); then
 	printf "\e[31mFailed to merge coverage dat files. Please make sure you have run portal/tools/go/go_setup.sh.\n"
 	printf "\e[31mAlso ensure \$GOPATH/bin is added to \$PATH and contains the gocovmerge binary."
 	exit
