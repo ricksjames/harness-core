@@ -54,6 +54,7 @@ public class PlatformConfiguration extends Configuration {
   public static final String RESOURCEGROUP_PACKAGE = "io.harness.resourcegroup";
   public static final String ENFORCEMENT_PACKAGE = "io.harness.enforcement.client.resources";
 
+  
   @Setter
   @JsonProperty("notificationServiceConfig")
   @ConfigSecret
