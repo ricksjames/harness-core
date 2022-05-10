@@ -29,7 +29,6 @@ import io.harness.annotations.dev.OwnedBy;
 import io.harness.category.element.UnitTests;
 import io.harness.concurent.HTimeLimiterMocker;
 import io.harness.delegate.beans.DelegateConfiguration;
-import io.harness.delegate.message.MessageService;
 import io.harness.event.client.impl.tailer.ChronicleEventTailer;
 import io.harness.rest.RestResponse;
 import io.harness.rule.Owner;
@@ -61,7 +60,6 @@ import org.mockito.runners.MockitoJUnitRunner;
 @OwnedBy(HarnessTeam.DEL)
 public class WatcherServiceImplTest extends CategoryTest {
   @Mock private TimeLimiter timeLimiter;
-  @Mock private MessageService messageService;
   @Mock private WatcherConfiguration watcherConfiguration;
   @InjectMocks @Spy private WatcherServiceImpl watcherService;
 
@@ -286,12 +284,16 @@ public class WatcherServiceImplTest extends CategoryTest {
         RestResponse.Builder.aRestResponse().withResource(delegateConfiguration).build();
     HTimeLimiterMocker.mockCallInterruptible(timeLimiter, ofSeconds(15)).thenReturn(restResponse);
     ExecutionException ioException = new ExecutionException(new IOException("test"));
-    HTimeLimiterMocker.mockCallInterruptible(timeLimiter, ofMinutes(1)).thenThrow(ioException);
+    HTimeLimiterMocker.mockCallInterruptible(timeLimiter, ofMinutes(1)).thenAnswer(invocation -> {
+      throw ioException;
+    });
 
     boolean downloadSuccesful = watcherService.downloadRunScriptsBeforeRestartingDelegateAndWatcher();
     assertThat(downloadSuccesful).isFalse();
 
-    HTimeLimiterMocker.mockCallInterruptible(timeLimiter, ofMinutes(1)).thenThrow(Exception.class);
+    HTimeLimiterMocker.mockCallInterruptible(timeLimiter, ofMinutes(1)).thenAnswer(invocation -> {
+      throw new Exception();
+    });
     downloadSuccesful = watcherService.downloadRunScriptsBeforeRestartingDelegateAndWatcher();
     assertThat(downloadSuccesful).isFalse();
   }
