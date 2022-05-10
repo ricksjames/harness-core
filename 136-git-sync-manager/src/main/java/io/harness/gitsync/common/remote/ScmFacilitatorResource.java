@@ -282,7 +282,7 @@ public class ScmFacilitatorResource {
       @Parameter(description = "Repo Name") @QueryParam("RepoName") @NotBlank @NotNull String repoName,
       @Parameter(description = GitSyncApiConstants.BRANCH_PARAM_MESSAGE) @QueryParam(
           YamlConstants.BRANCH) String branch,
-      @Parameter(description = "File Path") @QueryParam(YamlConstants.FILE_PATH) @NotBlank @NotNull String filePath, ,
+      @Parameter(description = "File Path") @QueryParam(YamlConstants.FILE_PATH) @NotBlank @NotNull String filePath,
       @Parameter(description = "Connector Ref") @QueryParam("ConnectorRef") String connectorRef) {
     return ResponseDTO.newResponse(
         scmFacilitatorService.getFileByBranch(ScmGetFileRequestDTO.builder()
