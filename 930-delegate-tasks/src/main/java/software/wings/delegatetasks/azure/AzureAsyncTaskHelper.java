@@ -50,6 +50,7 @@ import com.microsoft.azure.management.containerregistry.Registry;
 import com.microsoft.azure.management.containerservice.KubernetesCluster;
 import com.microsoft.azure.management.resources.Subscription;
 import com.microsoft.azure.management.resources.fluentcore.arm.models.HasName;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -71,23 +72,27 @@ public class AzureAsyncTaskHelper {
 
   public ConnectorValidationResult getConnectorValidationResult(
       List<EncryptedDataDetail> encryptedDataDetails, AzureConnectorDTO connectorDTO) {
-    String errorMessage;
+    ConnectorValidationResult connectorValidationResult;
+    try {
+      AzureConfig azureConfig = AcrRequestResponseMapper.toAzureInternalConfig(connectorDTO.getCredential(),
+          encryptedDataDetails, connectorDTO.getCredential().getAzureCredentialType(),
+          connectorDTO.getAzureEnvironmentType(), secretDecryptionService);
 
-    AzureConfig azureConfig = AcrRequestResponseMapper.toAzureInternalConfig(connectorDTO.getCredential(),
-        encryptedDataDetails, connectorDTO.getCredential().getAzureCredentialType(),
-        connectorDTO.getAzureEnvironmentType(), secretDecryptionService);
-
-    if (azureAuthorizationClient.validateAzureConnection(azureConfig)) {
-      return ConnectorValidationResult.builder()
-          .status(ConnectivityStatus.SUCCESS)
-          .testedAt(System.currentTimeMillis())
-          .build();
+      azureAuthorizationClient.validateAzureConnection(azureConfig);
+      connectorValidationResult = ConnectorValidationResult.builder()
+                                      .status(ConnectivityStatus.SUCCESS)
+                                      .testedAt(System.currentTimeMillis())
+                                      .build();
+    } catch (Exception e) {
+      String errorMessage = e.getMessage();
+      connectorValidationResult = ConnectorValidationResult.builder()
+                                      .status(ConnectivityStatus.FAILURE)
+                                      .errors(Collections.singletonList(ngErrorHelper.createErrorDetail(errorMessage)))
+                                      .errorSummary(ngErrorHelper.getErrorSummary(errorMessage))
+                                      .testedAt(System.currentTimeMillis())
+                                      .build();
     }
-
-    errorMessage = "Testing connection to Azure has timed out.";
-
-    throw NestedExceptionUtils.hintWithExplanationException("Failed to validate connection for Azure connector",
-        "Please check you Azure connector configuration.", new AzureAuthenticationException(errorMessage));
+    return connectorValidationResult;
   }
 
   public AzureSubscriptionsResponse listSubscriptions(

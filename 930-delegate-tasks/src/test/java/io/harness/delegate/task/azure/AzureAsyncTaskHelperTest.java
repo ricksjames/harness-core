@@ -7,13 +7,12 @@
 
 package io.harness.delegate.task.azure;
 
+import static io.harness.exception.WingsException.USER;
 import static io.harness.rule.OwnerRule.BUHA;
 import static io.harness.rule.OwnerRule.MLUKIC;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -57,10 +56,7 @@ import io.harness.delegate.beans.connector.azureconnector.AzureUserAssignedMSIAu
 import io.harness.encryption.Scope;
 import io.harness.encryption.SecretRefData;
 import io.harness.errorhandling.NGErrorHelper;
-import io.harness.exception.AzureAuthenticationException;
-import io.harness.exception.ExplanationException;
-import io.harness.exception.HintException;
-import io.harness.exception.NestedExceptionUtils;
+import io.harness.exception.InvalidRequestException;
 import io.harness.k8s.model.KubernetesConfig;
 import io.harness.logging.CommandExecutionStatus;
 import io.harness.rule.Owner;
@@ -69,6 +65,7 @@ import io.harness.security.encryption.SecretDecryptionService;
 import software.wings.delegatetasks.azure.AzureAsyncTaskHelper;
 
 import com.google.common.io.Resources;
+import com.microsoft.aad.adal4j.AuthenticationException;
 import com.microsoft.azure.management.containerregistry.Registry;
 import com.microsoft.azure.management.containerservice.KubernetesCluster;
 import com.microsoft.azure.management.resources.Subscription;
@@ -114,8 +111,6 @@ public class AzureAsyncTaskHelperTest extends CategoryTest {
     AzureConnectorDTO azureConnectorDTO = getAzureConnectorDTOWithSecretType(AzureSecretType.SECRET_KEY);
     AzureConfig azureConfig = getAzureConfigSecret();
 
-    doReturn(true).when(azureAuthorizationClient).validateAzureConnection(azureConfig);
-
     ConnectorValidationResult result = azureAsyncTaskHelper.getConnectorValidationResult(null, azureConnectorDTO);
 
     assertThat(result.getStatus()).isEqualTo(ConnectivityStatus.SUCCESS);
@@ -130,8 +125,6 @@ public class AzureAsyncTaskHelperTest extends CategoryTest {
     AzureConnectorDTO azureConnectorDTO = getAzureConnectorDTOWithSecretType(AzureSecretType.KEY_CERT);
     AzureConfig azureConfig = getAzureConfigCert();
 
-    doReturn(true).when(azureAuthorizationClient).validateAzureConnection(azureConfig);
-
     ConnectorValidationResult result = azureAsyncTaskHelper.getConnectorValidationResult(null, azureConnectorDTO);
 
     assertThat(result.getStatus()).isEqualTo(ConnectivityStatus.SUCCESS);
@@ -145,21 +138,15 @@ public class AzureAsyncTaskHelperTest extends CategoryTest {
   public void testValidationFailedWithSecretKey() {
     AzureConnectorDTO azureConnectorDTO = getAzureConnectorDTOWithSecretType(AzureSecretType.SECRET_KEY);
     AzureConfig azureConfig = getAzureConfigSecret();
-    doThrow(NestedExceptionUtils.hintWithExplanationException("Failed to validate connection for Azure connector.",
-                "Please check your Azure connector configuration.",
-                new AzureAuthenticationException("Invalid Azure credentials.")))
+    doThrow(new AuthenticationException("Invalid Azure credentials."))
         .when(azureAuthorizationClient)
-        .validateAzureConnection(azureConfig);
-
-    assertThatThrownBy(() -> azureAsyncTaskHelper.getConnectorValidationResult(null, azureConnectorDTO))
-        .isInstanceOf(HintException.class)
-        .getCause()
-        .isInstanceOf(ExplanationException.class)
-        .getCause()
-        .isInstanceOf(AzureAuthenticationException.class);
+        .validateAzureConnection(any());
+    ConnectorValidationResult result = azureAsyncTaskHelper.getConnectorValidationResult(null, azureConnectorDTO);
 
     verify(secretDecryptionService).decrypt(any(), any());
     verify(azureAuthorizationClient).validateAzureConnection(azureConfig);
+    verify(ngErrorHelper).createErrorDetail("Invalid Azure credentials.");
+    assertThat(result.getStatus()).isEqualTo(ConnectivityStatus.FAILURE);
   }
 
   private AzureConnectorDTO getAzureConnectorDTOWithSecretType(AzureSecretType type) {
@@ -226,8 +213,6 @@ public class AzureAsyncTaskHelperTest extends CategoryTest {
 
     AzureConnectorDTO azureConnectorDTO = getAzureConnectorDTOWithMSI("testClientId");
 
-    doReturn(true).when(azureAuthorizationClient).validateAzureConnection(any());
-
     ConnectorValidationResult result = azureAsyncTaskHelper.getConnectorValidationResult(null, azureConnectorDTO);
 
     assertThat(result.getStatus()).isEqualTo(ConnectivityStatus.SUCCESS);
@@ -245,8 +230,6 @@ public class AzureAsyncTaskHelperTest extends CategoryTest {
                                     .build();
 
     AzureConnectorDTO azureConnectorDTO = getAzureConnectorDTOWithMSI(null);
-
-    doReturn(true).when(azureAuthorizationClient).validateAzureConnection(any());
 
     ConnectorValidationResult result = azureAsyncTaskHelper.getConnectorValidationResult(null, azureConnectorDTO);
 
@@ -267,18 +250,13 @@ public class AzureAsyncTaskHelperTest extends CategoryTest {
 
     AzureConnectorDTO azureConnectorDTO = getAzureConnectorDTOWithMSI("badTestClientId");
 
-    doThrow(NestedExceptionUtils.hintWithExplanationException("Failed to validate connection for Azure connector.",
-                "Please check your Azure connector configuration.",
-                new AzureAuthenticationException("Failed to connect to Azure cluster.")))
+    doThrow(new AuthenticationException("Failed to connect to Azure cluster."))
         .when(azureAuthorizationClient)
         .validateAzureConnection(azureConfig);
+    ConnectorValidationResult result = azureAsyncTaskHelper.getConnectorValidationResult(null, azureConnectorDTO);
 
-    assertThatThrownBy(() -> azureAsyncTaskHelper.getConnectorValidationResult(null, azureConnectorDTO))
-        .isInstanceOf(HintException.class)
-        .getCause()
-        .isInstanceOf(ExplanationException.class)
-        .getCause()
-        .isInstanceOf(AzureAuthenticationException.class);
+    verify(azureAuthorizationClient).validateAzureConnection(azureConfig);
+    assertThat(result.getStatus()).isEqualTo(ConnectivityStatus.FAILURE);
   }
 
   @Test
@@ -290,18 +268,13 @@ public class AzureAsyncTaskHelperTest extends CategoryTest {
                                   .azureAuthenticationType(AzureAuthenticationType.MANAGED_IDENTITY_SYSTEM_ASSIGNED)
                                   .build();
     AzureConnectorDTO azureConnectorDTO = getAzureConnectorDTOWithMSI(null);
-    doThrow(NestedExceptionUtils.hintWithExplanationException("Failed to validate connection for Azure connector.",
-                "Please check your Azure connector configuration.",
-                new AzureAuthenticationException("Failed to connect to Azure cluster.")))
+    doThrow(new InvalidRequestException("Failed to connect to Azure cluster.", USER))
         .when(azureAuthorizationClient)
         .validateAzureConnection(azureConfig);
+    ConnectorValidationResult result = azureAsyncTaskHelper.getConnectorValidationResult(null, azureConnectorDTO);
 
-    assertThatThrownBy(() -> azureAsyncTaskHelper.getConnectorValidationResult(null, azureConnectorDTO))
-        .isInstanceOf(HintException.class)
-        .getCause()
-        .isInstanceOf(ExplanationException.class)
-        .getCause()
-        .isInstanceOf(AzureAuthenticationException.class);
+    verify(azureAuthorizationClient).validateAzureConnection(azureConfig);
+    assertThat(result.getStatus()).isEqualTo(ConnectivityStatus.FAILURE);
   }
 
   @Test
