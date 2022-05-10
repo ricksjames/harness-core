@@ -29,6 +29,17 @@ delegateType: "${delegateType}"
 
 delegateDockerImage: ${delegateDockerImage}
 
+<#if nextGen == "true">
+nextGen: ${nextGen}
+delegateTags: ${delegateTags}
+delegateDescription: ${delegateDescription}
+permissionType: ${permissionType}
+delegateReplicas: ${delegateReplicas}
+delegateCpu: ${delegateCpu}
+delegateRam: ${delegateRam}
+namespace: ${delegateNamespace}
+</#if>
+
 managerHostAndPort: ${managerHostAndPort}
 <#if isImmutable == "false">
 watcherStorageUrl: ${watcherStorageUrl}

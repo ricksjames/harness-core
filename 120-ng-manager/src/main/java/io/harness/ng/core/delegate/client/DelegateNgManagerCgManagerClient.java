@@ -20,6 +20,7 @@ import io.harness.delegate.beans.DelegateTokenStatus;
 import io.harness.delegate.utils.DelegateMtlsApiConstants;
 import io.harness.rest.RestResponse;
 
+import java.io.File;
 import java.util.List;
 import java.util.Optional;
 import javax.validation.constraints.NotNull;
@@ -148,4 +149,14 @@ public interface DelegateNgManagerCgManagerClient {
   Call<RestResponse<Boolean>> isDomainPrefixAvailable(
       @Query(NGCommonEntityConstants.ACCOUNT_KEY) @NotNull String accountIdentifier,
       @Query(DelegateMtlsApiConstants.API_PARAM_DOMAIN_PREFIX_NAME) @NotNull String domainPrefix);
+
+  //------------------------ Delegate Setup New Apis -----------------------------------
+
+  @POST(DELEGATE_TOKEN_NG_API)
+  Call<RestResponse<File>> generateHelmValuesFile(
+          @Query(NGCommonEntityConstants.ACCOUNT_KEY) @NotNull String accountIdentifier,
+          @Query(NGCommonEntityConstants.ORG_KEY) String orgIdentifier,
+          @Query(NGCommonEntityConstants.PROJECT_KEY) String projectIdentifier,
+          @Body @NotNull DelegateSetupDetails delegateSetupDetails);
+
 }
