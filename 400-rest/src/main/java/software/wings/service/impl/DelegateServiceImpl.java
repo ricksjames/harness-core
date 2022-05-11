@@ -637,6 +637,7 @@ public class DelegateServiceImpl implements DelegateService {
   }
 
   private void validateDelegateToken(String accountId, DelegateSetupDetails delegateSetupDetails) {
+    /// whaat is delegate token ? why needed ?
     if (isBlank(delegateSetupDetails.getTokenName())) {
       throw new InvalidRequestException("Token name must be specified.", USER);
     }
@@ -1336,6 +1337,13 @@ public class DelegateServiceImpl implements DelegateService {
       if (mainConfiguration.getDeployMode() == DeployMode.KUBERNETES_ONPREM) {
         params.put("managerTarget", mainConfiguration.getGrpcOnpremDelegateClientConfig().getTarget());
         params.put("managerAuthority", mainConfiguration.getGrpcOnpremDelegateClientConfig().getAuthority());
+      }
+
+      if(isNgDelegate) {
+        params.put("nextGen", "true");
+      }
+      else {
+        params.put("nextGen", "false");
       }
 
       if (isNotBlank(templateParameters.getDelegateName())) {
@@ -3943,6 +3951,62 @@ public class DelegateServiceImpl implements DelegateService {
     File gzipKubernetesDelegateFile = File.createTempFile(DELEGATE_DIR, TAR_GZ);
     compressGzipFile(kubernetesDelegateFile, gzipKubernetesDelegateFile);
     return gzipKubernetesDelegateFile;
+  }
+
+  @Override
+  public File generateHelmValuesYaml(String accountId, DelegateSetupDetails delegateSetupDetails, String managerHost,
+      String verificationServiceUrl) throws IOException {
+    validateKubernetesSetupDetails(accountId, delegateSetupDetails);
+
+    String version;
+    if (mainConfiguration.getDeployMode() == DeployMode.KUBERNETES) {
+      List<String> delegateVersions = accountService.getDelegateConfiguration(accountId).getDelegateVersions();
+      version = delegateVersions.get(delegateVersions.size() - 1);
+    } else {
+      version = EMPTY_VERSION;
+    }
+
+    boolean isCiEnabled = accountService.isNextGenEnabled(accountId);
+
+    DelegateSizeDetails sizeDetails = fetchAvailableSizes()
+                                          .stream()
+                                          .filter(size -> size.getSize() == delegateSetupDetails.getSize())
+                                          .findFirst()
+                                          .orElse(null);
+
+    upsertDelegateGroup(delegateSetupDetails.getName(), accountId, delegateSetupDetails);
+
+    ImmutableMap<String, String> scriptParams = getJarAndScriptRunTimeParamMap(
+        TemplateParameters.builder()
+            .accountId(accountId) // present
+            .version(version) // present
+            .managerHost(managerHost) // present
+            .verificationHost(verificationServiceUrl) // present
+            .delegateName(delegateSetupDetails.getName()) // present
+            .delegateType(HELM_DELEGATE) // present
+            .ciEnabled(isCiEnabled) // needed
+            .delegateDescription(delegateSetupDetails.getDescription()) // needed
+            .delegateSize(sizeDetails.getSize().name()) // needed
+            .delegateReplicas(sizeDetails.getReplicas()) // needed
+            .delegateRam(sizeDetails.getRam() / sizeDetails.getReplicas()) // needed
+            .delegateCpu(sizeDetails.getCpu() / sizeDetails.getReplicas()) // needed
+            .delegateRequestsRam(sizeDetails.getRam() / sizeDetails.getReplicas()) // needed
+            .delegateRequestsCpu(sizeDetails.getCpu() / sizeDetails.getReplicas()) // needed
+            .delegateTags(isNotEmpty(delegateSetupDetails.getTags()) ? String.join(",", delegateSetupDetails.getTags())
+                                                                     : "") // needed
+            .delegateNamespace(delegateSetupDetails.getK8sConfigDetails().getNamespace()) // needed
+            .k8sPermissionsType(delegateSetupDetails.getK8sConfigDetails().getK8sPermissionType()) // needed
+            .logStreamingServiceBaseUrl(mainConfiguration.getLogStreamingServiceConfig().getBaseUrl()) // present
+            .delegateTokenName(delegateSetupDetails.getTokenName()) // present
+            .build(),
+        true);
+
+    File yaml = File.createTempFile(HARNESS_DELEGATE, YAML);
+    System.out.println("------------We have map with us ---------");
+    System.out.println(scriptParams.toString());
+    saveProcessedTemplate(scriptParams, yaml, "delegate-helm-values.yaml.ftl");
+    delegateTelemetryPublisher.sendTelemetryTrackEvents(accountId, HELM_DELEGATE, true, DELEGATE_CREATED_EVENT);
+    return yaml;
   }
 
   private ImmutableMap<String, String> getDockerScriptParametersForTemplate(String managerHost,

@@ -21,13 +21,24 @@ accountIdShort: ${kubernetesAccountLabel}
 
 delegateName: ${delegateName}
 
-# Id of the delegate profile that needs to run when the delegate is
-# coming up
-delegateProfile: "${delegateProfile}"
-
 delegateType: "${delegateType}"
 
 delegateDockerImage: ${delegateDockerImage}
+
+<#if nextGen == "true">
+nextGen: ${nextGen}
+delegateTags: ${delegateTags}
+delegateDescription: ${delegateDescription}
+k8sPermissionsType: ${k8sPermissionsType}
+delegateReplicas: ${delegateReplicas}
+delegateCpu: ${delegateCpu}
+delegateRam: ${delegateRam}
+delegateNamespace: ${delegateNamespace}
+</#if>
+
+<#if nextGen == "false">
+delegateProfile: "${delegateProfile}"
+</#if>
 
 managerHostAndPort: ${managerHostAndPort}
 <#if isImmutable == "false">
