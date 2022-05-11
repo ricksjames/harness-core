@@ -30,7 +30,6 @@ import io.harness.gitsync.common.scmerrorhandling.handlers.github.GithubListRepo
 import io.harness.gitsync.common.scmerrorhandling.handlers.github.GithubUpdateFileScmApiErrorHandler;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.inject.Inject;
 import java.util.Map;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
@@ -40,7 +39,6 @@ import org.apache.commons.lang3.tuple.Pair;
 @Slf4j
 @OwnedBy(PL)
 class ScmApiErrorHandlerFactory {
-  @Inject DefaultScmApiErrorHandler defaultScmApiErrorHandler;
   private final Map<Pair<ScmApis, RepoProviders>, Class<? extends ScmApiErrorHandler>> scmApiErrorHandlerMap =
       ImmutableMap.<Pair<ScmApis, RepoProviders>, Class<? extends ScmApiErrorHandler>>builder()
           .put(Pair.of(ScmApis.LIST_REPOSITORIES, RepoProviders.BITBUCKET), BitbucketListRepoScmApiErrorHandler.class)
@@ -68,6 +66,6 @@ class ScmApiErrorHandlerFactory {
       log.error(
           String.format("Error while getting handler for scmApi [%s] and repoProvider [%s]", scmApi, repoProvider), ex);
     }
-    return defaultScmApiErrorHandler;
+    return new DefaultScmApiErrorHandler();
   }
 }
