@@ -129,6 +129,9 @@
             "connectorRef": {
               "type": "string"
             },
+            "metadata": {
+              "type": "string"
+            },
             "registry": {
               "type": "string"
             },
@@ -383,6 +386,9 @@
     "ArtifactListConfig": {
       "type": "object",
       "properties": {
+        "metadata": {
+          "type": "string"
+        },
         "primary": {
           "$ref": "#/definitions/PrimaryArtifact"
         },
@@ -424,21 +430,19 @@
         {
           "type": "object",
           "required": [
+            "artifactPath",
             "connectorRef",
             "repository",
             "repositoryFormat"
           ],
           "properties": {
-            "artifactDirectory": {
-              "type": "string"
-            },
             "artifactPath": {
               "type": "string"
             },
-            "artifactPathFilter": {
+            "connectorRef": {
               "type": "string"
             },
-            "connectorRef": {
+            "metadata": {
               "type": "string"
             },
             "repository": {
@@ -447,8 +451,7 @@
             "repositoryFormat": {
               "type": "string",
               "enum": [
-                "docker",
-                "generic"
+                "docker"
               ]
             },
             "repositoryUrl": {
@@ -461,6 +464,20 @@
               "type": "string"
             }
           }
+        },
+        {
+          "oneOf": [
+            {
+              "required": [
+                "tagRegex"
+              ]
+            },
+            {
+              "required": [
+                "tag"
+              ]
+            }
+          ]
         }
       ],
       "$schema": "http://json-schema.org/draft-07/schema#"
@@ -555,6 +572,9 @@
                 "Branch",
                 "Commit"
               ]
+            },
+            "metadata": {
+              "type": "string"
             },
             "paths": {
               "oneOf": [
@@ -1141,6 +1161,9 @@
             "imagePath": {
               "type": "string"
             },
+            "metadata": {
+              "type": "string"
+            },
             "tag": {
               "type": "string"
             },
@@ -1394,6 +1417,9 @@
             "imagePath": {
               "type": "string"
             },
+            "metadata": {
+              "type": "string"
+            },
             "registryHostname": {
               "type": "string"
             },
@@ -1478,6 +1504,9 @@
                 "Commit"
               ]
             },
+            "metadata": {
+              "type": "string"
+            },
             "paths": {
               "oneOf": [
                 {
@@ -1560,6 +1589,9 @@
                 "Commit"
               ]
             },
+            "metadata": {
+              "type": "string"
+            },
             "paths": {
               "oneOf": [
                 {
@@ -1641,6 +1673,9 @@
                 "Branch",
                 "Commit"
               ]
+            },
+            "metadata": {
+              "type": "string"
             },
             "paths": {
               "oneOf": [
@@ -2047,30 +2082,12 @@
           "enum": [
             "KubernetesDirect",
             "KubernetesGcp",
-            "KubernetesAzure",
-            "Pdc",
-            "ServerlessAwsLambda"
+            "Pdc"
           ]
         }
       },
       "$schema": "http://json-schema.org/draft-07/schema#",
       "allOf": [
-        {
-          "if": {
-            "properties": {
-              "type": {
-                "const": "KubernetesAzure"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "spec": {
-                "$ref": "#/definitions/K8sAzureInfrastructure"
-              }
-            }
-          }
-        },
         {
           "if": {
             "properties": {
@@ -2115,22 +2132,6 @@
             "properties": {
               "spec": {
                 "$ref": "#/definitions/PdcInfrastructure"
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "type": {
-                "const": "ServerlessAwsLambda"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "spec": {
-                "$ref": "#/definitions/ServerlessAwsLambdaInfrastructure"
               }
             }
           }
@@ -2499,51 +2500,6 @@
                   "type": "string"
                 }
               ]
-            }
-          }
-        }
-      ],
-      "$schema": "http://json-schema.org/draft-07/schema#"
-    },
-    "K8sAzureInfrastructure": {
-      "allOf": [
-        {
-          "$ref": "#/definitions/Infrastructure"
-        },
-        {
-          "type": "object",
-          "required": [
-            "cluster",
-            "connectorRef",
-            "namespace",
-            "releaseName",
-            "resourceGroup",
-            "subscriptionId"
-          ],
-          "properties": {
-            "cluster": {
-              "type": "string",
-              "minLength": 1
-            },
-            "connectorRef": {
-              "type": "string",
-              "minLength": 1
-            },
-            "namespace": {
-              "type": "string",
-              "minLength": 1
-            },
-            "releaseName": {
-              "type": "string",
-              "minLength": 1
-            },
-            "resourceGroup": {
-              "type": "string",
-              "minLength": 1
-            },
-            "subscriptionId": {
-              "type": "string",
-              "minLength": 1
             }
           }
         }
@@ -2973,7 +2929,11 @@
         },
         {
           "type": "object",
-          "properties": { }
+          "properties": {
+            "metadata": {
+              "type": "string"
+            }
+          }
         }
       ],
       "$schema": "http://json-schema.org/draft-07/schema#"
@@ -3057,8 +3017,7 @@
             "KustomizePatches",
             "OpenshiftParam",
             "OpenshiftTemplate",
-            "Values",
-            "ServerlessAwsLambda"
+            "Values"
           ]
         }
       },
@@ -3156,22 +3115,6 @@
             "properties": {
               "spec": {
                 "$ref": "#/definitions/OpenshiftManifest"
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "type": {
-                "const": "ServerlessAwsLambda"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "spec": {
-                "$ref": "#/definitions/ServerlessAwsLambdaManifest"
               }
             }
           }
@@ -3292,28 +3235,6 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#"
     },
-    "ModuleSource": {
-      "type": "object",
-      "required": [
-        "useConnectorCredentials"
-      ],
-      "properties": {
-        "useConnectorCredentials": {
-          "oneOf": [
-            {
-              "$ref": "#/definitions/ParameterFieldBoolean"
-            },
-            {
-              "type": "string"
-            },
-            {
-              "type": "boolean"
-            }
-          ]
-        }
-      },
-      "$schema": "http://json-schema.org/draft-07/schema#"
-    },
     "NGVariable": {
       "type": "object",
       "discriminator": "type",
@@ -3382,7 +3303,11 @@
         },
         {
           "type": "object",
-          "properties": { }
+          "properties": {
+            "metadata": {
+              "type": "string"
+            }
+          }
         }
       ],
       "$schema": "http://json-schema.org/draft-07/schema#"
@@ -4546,132 +4471,6 @@
       },
       "$schema": "http://json-schema.org/draft-07/schema#"
     },
-    "ServerlessAwsLambdaDeployStepInfo": {
-      "allOf": [
-        {
-          "$ref": "#/definitions/StepSpecType"
-        },
-        {
-          "type": "object",
-          "properties": {
-            "commandOptions": {
-              "type": "string"
-            },
-            "delegateSelectors": {
-              "oneOf": [
-                {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                },
-                {
-                  "type": "string",
-                  "pattern": "^<\\+input>(\\.(allowedValues|regex)\\(.+?\\))*$",
-                  "minLength": 1
-                }
-              ]
-            }
-          }
-        }
-      ],
-      "$schema": "http://json-schema.org/draft-07/schema#"
-    },
-    "ServerlessAwsLambdaInfrastructure": {
-      "allOf": [
-        {
-          "$ref": "#/definitions/Infrastructure"
-        },
-        {
-          "type": "object",
-          "required": [
-            "connectorRef",
-            "region",
-            "stage"
-          ],
-          "properties": {
-            "connectorRef": {
-              "type": "string",
-              "minLength": 1
-            },
-            "metadata": {
-              "type": "string"
-            },
-            "region": {
-              "type": "string",
-              "minLength": 1
-            },
-            "stage": {
-              "type": "string",
-              "minLength": 1
-            }
-          }
-        }
-      ],
-      "$schema": "http://json-schema.org/draft-07/schema#"
-    },
-    "ServerlessAwsLambdaManifest": {
-      "allOf": [
-        {
-          "$ref": "#/definitions/ManifestAttributes"
-        },
-        {
-          "type": "object",
-          "properties": {
-            "configOverridePath": {
-              "type": "string"
-            },
-            "metadata": {
-              "type": "string"
-            },
-            "store": {
-              "$ref": "#/definitions/StoreConfigWrapper"
-            }
-          }
-        }
-      ],
-      "$schema": "http://json-schema.org/draft-07/schema#"
-    },
-    "ServerlessAwsLambdaRollbackStepInfo": {
-      "allOf": [
-        {
-          "$ref": "#/definitions/StepSpecType"
-        },
-        {
-          "type": "object",
-          "properties": {
-            "delegateSelectors": {
-              "oneOf": [
-                {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                },
-                {
-                  "type": "string",
-                  "pattern": "^<\\+input>(\\.(allowedValues|regex)\\(.+?\\))*$",
-                  "minLength": 1
-                }
-              ]
-            }
-          }
-        }
-      ],
-      "$schema": "http://json-schema.org/draft-07/schema#"
-    },
-    "ServerlessAwsLambdaServiceSpec": {
-      "allOf": [
-        {
-          "$ref": "#/definitions/ServiceSpec"
-        },
-        {
-          "type": "object",
-          "properties": { }
-        }
-      ],
-      "$schema": "http://json-schema.org/draft-07/schema#"
-    },
     "ServiceConfig": {
       "type": "object",
       "properties": {
@@ -4741,8 +4540,7 @@
             "Kubernetes",
             "NativeHelm",
             "Ssh",
-            "WinRm",
-            "ServerlessAwsLambda"
+            "WinRm"
           ]
         }
       },
@@ -4776,22 +4574,6 @@
             "properties": {
               "spec": {
                 "$ref": "#/definitions/NativeHelmServiceSpec"
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "type": {
-                "const": "ServerlessAwsLambda"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "spec": {
-                "$ref": "#/definitions/ServerlessAwsLambdaServiceSpec"
               }
             }
           }
@@ -4888,8 +4670,7 @@
           "type": "object",
           "required": [
             "connectorRef",
-            "ticketType",
-            "useServiceNowTemplate"
+            "ticketType"
           ],
           "properties": {
             "connectorRef": {
@@ -4956,8 +4737,7 @@
           "required": [
             "connectorRef",
             "ticketNumber",
-            "ticketType",
-            "useServiceNowTemplate"
+            "ticketType"
           ],
           "properties": {
             "connectorRef": {
@@ -5572,7 +5352,11 @@
         },
         {
           "type": "object",
-          "properties": { }
+          "properties": {
+            "metadata": {
+              "type": "string"
+            }
+          }
         }
       ],
       "$schema": "http://json-schema.org/draft-07/schema#"
@@ -6006,38 +5790,6 @@
             "properties": {
               "spec": {
                 "$ref": "#/definitions/PolicyStepInfo"
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "type": {
-                "const": "ServerlessAwsLambdaDeploy"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "spec": {
-                "$ref": "#/definitions/ServerlessAwsLambdaDeployStepInfo"
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "type": {
-                "const": "ServerlessAwsLambdaRollback"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "spec": {
-                "$ref": "#/definitions/ServerlessAwsLambdaRollbackStepInfo"
               }
             }
           }
@@ -6541,9 +6293,6 @@
         "store"
       ],
       "properties": {
-        "moduleSource": {
-          "$ref": "#/definitions/ModuleSource"
-        },
         "store": {
           "$ref": "#/definitions/StoreConfigWrapper"
         }
@@ -7004,7 +6753,11 @@
         },
         {
           "type": "object",
-          "properties": { }
+          "properties": {
+            "metadata": {
+              "type": "string"
+            }
+          }
         }
       ],
       "$schema": "http://json-schema.org/draft-07/schema#"

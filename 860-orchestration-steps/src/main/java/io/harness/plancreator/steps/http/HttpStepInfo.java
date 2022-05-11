@@ -105,9 +105,4 @@ public class HttpStepInfo extends HttpBaseStepInfo implements PMSStepInfo, Visit
         .url(getUrl())
         .build();
   }
-
-  @Override
-  public ParameterField<List<TaskSelectorYaml>> fetchDelegateSelectors() {
-    return getDelegateSelectors();
-  }
 }

@@ -108,9 +108,4 @@ public class TerraformDestroyStepInfo
     }
     return connectorRefMap;
   }
-
-  @Override
-  public ParameterField<List<TaskSelectorYaml>> fetchDelegateSelectors() {
-    return getDelegateSelectors();
-  }
 }

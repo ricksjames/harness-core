@@ -84,9 +84,4 @@ public class ServiceNowApprovalStepInfo implements PMSStepInfo, WithConnectorRef
     connectorRefMap.put(YAMLFieldNameConstants.CONNECTOR_REF, connectorRef);
     return connectorRefMap;
   }
-
-  @Override
-  public ParameterField<List<TaskSelectorYaml>> fetchDelegateSelectors() {
-    return getDelegateSelectors();
-  }
 }

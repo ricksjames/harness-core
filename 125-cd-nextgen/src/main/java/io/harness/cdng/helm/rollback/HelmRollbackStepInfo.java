@@ -62,9 +62,4 @@ public class HelmRollbackStepInfo extends HelmRollbackBaseStepInfo implements CD
   public SpecParameters getSpecParameters() {
     return HelmRollbackStepParams.infoBuilder().delegateSelectors(delegateSelectors).build();
   }
-
-  @Override
-  public ParameterField<List<TaskSelectorYaml>> fetchDelegateSelectors() {
-    return getDelegateSelectors();
-  }
 }
