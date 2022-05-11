@@ -87,6 +87,7 @@ import software.wings.beans.trigger.WebhookTriggerParameters;
 import software.wings.beans.yaml.GitFetchFilesFromMultipleRepoResult;
 import software.wings.delegatetasks.BambooTask;
 import software.wings.delegatetasks.DelegateStateType;
+import software.wings.delegatetasks.GcbDelegateResponse;
 import software.wings.delegatetasks.buildsource.BuildCollectParameters;
 import software.wings.delegatetasks.buildsource.BuildSourceExecutionResponse;
 import software.wings.delegatetasks.buildsource.BuildSourceParameters;
@@ -549,5 +550,6 @@ public class DelegateTasksKryoRegistrar implements KryoRegistrar {
     kryo.register(CollaborationProviderRequest.CommunicationType.class, 5307);
     kryo.register(CollaborationProviderRequest.class, 5306);
     kryo.register(CollaborationProviderResponse.class, 5308);
+    kryo.register(GcbDelegateResponse.class, 74090);
   }
 }
