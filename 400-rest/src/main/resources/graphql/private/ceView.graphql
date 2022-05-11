@@ -191,6 +191,7 @@ enum ViewFieldIdentifier {
   AZURE
   CUSTOM
   COMMON
+  BUSINESS_MAPPING
   LABEL
 }
 
@@ -201,6 +202,7 @@ enum ViewFieldIdentifierName {
   Azure
   Custom
   Common
+  CostCategories
   Label
 }
 
