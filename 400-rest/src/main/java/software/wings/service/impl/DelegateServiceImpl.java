@@ -637,7 +637,6 @@ public class DelegateServiceImpl implements DelegateService {
   }
 
   private void validateDelegateToken(String accountId, DelegateSetupDetails delegateSetupDetails) {
-    /// whaat is delegate token ? why needed ?
     if (isBlank(delegateSetupDetails.getTokenName())) {
       throw new InvalidRequestException("Token name must be specified.", USER);
     }
@@ -1315,6 +1314,7 @@ public class DelegateServiceImpl implements DelegateService {
                   delegateVersionService.getUpgraderImageTag(
                       templateParameters.getAccountId(), templateParameters.getDelegateType()))
               .put("accountId", templateParameters.getAccountId())
+              .put("nextGen", String.valueOf(isNgDelegate))
               .put("delegateToken", accountSecret != null ? accountSecret : EMPTY)
               .put("base64Secret", base64Secret)
               .put("hexkey", hexkey)
@@ -1337,13 +1337,6 @@ public class DelegateServiceImpl implements DelegateService {
       if (mainConfiguration.getDeployMode() == DeployMode.KUBERNETES_ONPREM) {
         params.put("managerTarget", mainConfiguration.getGrpcOnpremDelegateClientConfig().getTarget());
         params.put("managerAuthority", mainConfiguration.getGrpcOnpremDelegateClientConfig().getAuthority());
-      }
-
-      if(isNgDelegate) {
-        params.put("nextGen", "true");
-      }
-      else {
-        params.put("nextGen", "false");
       }
 
       if (isNotBlank(templateParameters.getDelegateName())) {
@@ -3954,7 +3947,7 @@ public class DelegateServiceImpl implements DelegateService {
   }
 
   @Override
-  public File generateHelmValuesYaml(String accountId, DelegateSetupDetails delegateSetupDetails, String managerHost,
+  public File generateNgHelmValuesYaml(String accountId, DelegateSetupDetails delegateSetupDetails, String managerHost,
       String verificationServiceUrl) throws IOException {
     validateKubernetesSetupDetails(accountId, delegateSetupDetails);
 
@@ -3978,32 +3971,30 @@ public class DelegateServiceImpl implements DelegateService {
 
     ImmutableMap<String, String> scriptParams = getJarAndScriptRunTimeParamMap(
         TemplateParameters.builder()
-            .accountId(accountId) // present
-            .version(version) // present
-            .managerHost(managerHost) // present
-            .verificationHost(verificationServiceUrl) // present
-            .delegateName(delegateSetupDetails.getName()) // present
-            .delegateType(HELM_DELEGATE) // present
-            .ciEnabled(isCiEnabled) // needed
-            .delegateDescription(delegateSetupDetails.getDescription()) // needed
-            .delegateSize(sizeDetails.getSize().name()) // needed
-            .delegateReplicas(sizeDetails.getReplicas()) // needed
-            .delegateRam(sizeDetails.getRam() / sizeDetails.getReplicas()) // needed
-            .delegateCpu(sizeDetails.getCpu() / sizeDetails.getReplicas()) // needed
-            .delegateRequestsRam(sizeDetails.getRam() / sizeDetails.getReplicas()) // needed
-            .delegateRequestsCpu(sizeDetails.getCpu() / sizeDetails.getReplicas()) // needed
-            .delegateTags(isNotEmpty(delegateSetupDetails.getTags()) ? String.join(",", delegateSetupDetails.getTags())
-                                                                     : "") // needed
-            .delegateNamespace(delegateSetupDetails.getK8sConfigDetails().getNamespace()) // needed
-            .k8sPermissionsType(delegateSetupDetails.getK8sConfigDetails().getK8sPermissionType()) // needed
-            .logStreamingServiceBaseUrl(mainConfiguration.getLogStreamingServiceConfig().getBaseUrl()) // present
-            .delegateTokenName(delegateSetupDetails.getTokenName()) // present
+            .accountId(accountId)
+            .version(version)
+            .managerHost(managerHost)
+            .verificationHost(verificationServiceUrl)
+            .delegateName(delegateSetupDetails.getName())
+            .delegateType(HELM_DELEGATE)
+            .ciEnabled(isCiEnabled)
+            .delegateDescription(delegateSetupDetails.getDescription())
+            .delegateSize(sizeDetails.getSize().name())
+            .delegateReplicas(sizeDetails.getReplicas())
+            .delegateRam(sizeDetails.getRam() / sizeDetails.getReplicas())
+            .delegateCpu(sizeDetails.getCpu() / sizeDetails.getReplicas())
+            .delegateRequestsRam(sizeDetails.getRam() / sizeDetails.getReplicas())
+            .delegateRequestsCpu(sizeDetails.getCpu() / sizeDetails.getReplicas())
+            .delegateTags(
+                isNotEmpty(delegateSetupDetails.getTags()) ? String.join(",", delegateSetupDetails.getTags()) : "")
+            .delegateNamespace(delegateSetupDetails.getK8sConfigDetails().getNamespace())
+            .k8sPermissionsType(delegateSetupDetails.getK8sConfigDetails().getK8sPermissionType())
+            .logStreamingServiceBaseUrl(mainConfiguration.getLogStreamingServiceConfig().getBaseUrl())
+            .delegateTokenName(delegateSetupDetails.getTokenName())
             .build(),
         true);
 
-    File yaml = File.createTempFile(HARNESS_DELEGATE, YAML);
-    System.out.println("------------We have map with us ---------");
-    System.out.println(scriptParams.toString());
+    File yaml = File.createTempFile(HARNESS_NG_DELEGATE, YAML);
     saveProcessedTemplate(scriptParams, yaml, "delegate-helm-values.yaml.ftl");
     delegateTelemetryPublisher.sendTelemetryTrackEvents(accountId, HELM_DELEGATE, true, DELEGATE_CREATED_EVENT);
     return yaml;

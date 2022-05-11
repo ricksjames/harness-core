@@ -83,8 +83,8 @@ public interface DelegateService extends OwnedByAccount {
   File generateKubernetesYaml(String accountId, DelegateSetupDetails delegateSetupDetails, String managerHost,
       String verificationServiceUrl, MediaType fileFormat) throws IOException;
 
-  File generateHelmValuesYaml(String accountId, DelegateSetupDetails delegateSetupDetails, String managerHost,
-                              String verificationServiceUrl) throws IOException;
+  File generateNgHelmValuesYaml(String accountId, DelegateSetupDetails delegateSetupDetails, String managerHost,
+                                String verificationServiceUrl) throws IOException;
 
   Delegate update(@Valid Delegate delegate);
 
@@ -205,7 +205,6 @@ public interface DelegateService extends OwnedByAccount {
 
   String createDelegateGroup(String accountId, DelegateSetupDetails delegateSetupDetails);
 
-  // wy validation is needed separately, we can use single API call and use validation while generating k8 yaml ?
   DelegateSetupDetails validateKubernetesYamlNg(String accountId, DelegateSetupDetails delegateSetupDetails);
 
   long getCountOfRegisteredDelegates(String accountId);

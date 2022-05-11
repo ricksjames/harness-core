@@ -81,7 +81,7 @@ public class DelegateSetupNgResource {
   @Timed
   @Path("generate-helm-values-yaml")
   @ExceptionMetered
-  @ApiOperation(value = "Generate helm values yaml file", nickname = "generateHelmValuesYaml")
+  @ApiOperation(value = "Generate helm values yaml file", nickname = "generateNgHelmValuesYaml")
   @Operation(operationId = "generateNgHelmValuesYaml",
       summary = "Generates helm values yaml file from the data specified in request body (Delegate setup details).",
       responses = { @ApiResponse(responseCode = "default", description = "Generated yaml file.") })

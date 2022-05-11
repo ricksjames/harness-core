@@ -34,9 +34,7 @@ delegateReplicas: ${delegateReplicas}
 delegateCpu: ${delegateCpu}
 delegateRam: ${delegateRam}
 delegateNamespace: ${delegateNamespace}
-</#if>
-
-<#if nextGen == "false">
+<#else>
 delegateProfile: "${delegateProfile}"
 </#if>
 

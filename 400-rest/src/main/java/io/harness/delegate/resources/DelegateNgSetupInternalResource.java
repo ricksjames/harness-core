@@ -60,6 +60,7 @@ public class DelegateNgSetupInternalResource {
   @Path("delegate-helm-values-yaml")
   @Timed
   @ExceptionMetered
+  @InternalApi
   public RestResponse<File> generateNgHelmValuesYaml(@Context HttpServletRequest request,
       @Parameter(description = NGCommonEntityConstants.ACCOUNT_PARAM_MESSAGE) @QueryParam(
           NGCommonEntityConstants.ACCOUNT_KEY) @NotNull String accountIdentifier,
@@ -70,8 +71,7 @@ public class DelegateNgSetupInternalResource {
       @RequestBody(
           required = true, description = "Delegate setup details, containing data to populate yaml file values.")
       DelegateSetupDetails delegateSetupDetails) throws IOException {
-    System.out.println("----------- Reached internal resource -------------");
-    File delegateFile = delegateService.generateHelmValuesYaml(accountIdentifier, delegateSetupDetails,
+    File delegateFile = delegateService.generateNgHelmValuesYaml(accountIdentifier, delegateSetupDetails,
         subdomainUrlHelper.getManagerUrl(request, accountIdentifier), getVerificationUrl(request));
     return new RestResponse<>(delegateFile);
   }
