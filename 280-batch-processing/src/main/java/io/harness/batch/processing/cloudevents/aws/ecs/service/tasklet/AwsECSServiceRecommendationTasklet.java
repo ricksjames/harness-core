@@ -119,7 +119,7 @@ public class AwsECSServiceRecommendationTasklet implements Tasklet {
         }
         Resource resource = serviceArnToResourceMapping.get(clusterIdAndServiceArn.getServiceArn());
         if (resource.getCpuUnits().equals(0.0) || resource.getMemoryMb().equals(0.0)) {
-          log.debug("Skipping ECS recommendation as one of the resource values is zero : {}, service arn: {}",
+          log.debug("Skipping ECS recommendation as resource value is zero for accountId : {}, service arn: {}",
               accountId, serviceArn);
           continue;
         }
