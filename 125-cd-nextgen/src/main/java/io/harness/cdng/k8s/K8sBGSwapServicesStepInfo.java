@@ -71,4 +71,9 @@ public class K8sBGSwapServicesStepInfo implements CDStepInfo, Visitable {
         .blueGreenSwapServicesFqn(blueGreenSwapServicesStepFqn)
         .build();
   }
+
+  @Override
+  public ParameterField<List<TaskSelectorYaml>> fetchDelegateSelectors() {
+    return getDelegateSelectors();
+  }
 }
