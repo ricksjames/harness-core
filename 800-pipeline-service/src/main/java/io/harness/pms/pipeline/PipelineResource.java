@@ -554,7 +554,16 @@ public class PipelineResource implements YamlSchemaResource {
       @PathParam(NGCommonEntityConstants.PIPELINE_KEY) @ResourceIdentifier @Parameter(
           description = PipelineResourceConstants.PIPELINE_ID_PARAM_MESSAGE) String pipelineId,
       @BeanParam GitImportInfoDTO gitImportInfoDTO, PipelineImportRequestDTO pipelineImportRequestDTO) {
-    return ResponseDTO.newResponse(null);
+    try {
+      String importedPipeline = pmsPipelineService.importPipelineFromRemote(
+          accountId, orgId, projectId, pipelineId, pipelineImportRequestDTO);
+      return ResponseDTO.newResponse(PMSPipelineResponseDTO.builder().yamlPipeline(importedPipeline).build());
+    } catch (InvalidYamlException e) {
+      return ResponseDTO.newResponse(PMSPipelineResponseDTO.builder()
+                                         .yamlPipeline(e.getYaml())
+                                         .yamlSchemaErrorWrapper((YamlSchemaErrorWrapperDTO) e.getMetadata())
+                                         .build());
+    }
   }
 
   @GET

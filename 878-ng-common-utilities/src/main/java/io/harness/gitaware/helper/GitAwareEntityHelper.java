@@ -46,6 +46,21 @@ public class GitAwareEntityHelper {
     return entity;
   }
 
+  public String fetchYAMLFromRemote(
+      Scope scope, GitContextRequestParams gitContextRequestParams, Map<String, String> contextMap) {
+    ScmGetFileResponse scmGetFileResponse =
+        scmGitSyncHelper.getFileByBranch(Scope.builder()
+                                             .accountIdentifier(scope.getAccountIdentifier())
+                                             .orgIdentifier(scope.getOrgIdentifier())
+                                             .projectIdentifier(scope.getProjectIdentifier())
+                                             .build(),
+            gitContextRequestParams.getRepoName(), gitContextRequestParams.getBranchName(),
+            gitContextRequestParams.getFilePath(), gitContextRequestParams.getConnectorRef(), contextMap);
+    // Check if this looks good to all
+    GitAwareContextHelper.updateScmGitMetaData(scmGetFileResponse.getGitMetaData());
+    return scmGetFileResponse.getFileContent();
+  }
+
   public ScmCreateFileGitResponse createEntityOnGit(GitAware gitAwareEntity, String yaml, Scope scope) {
     GitEntityInfo gitEntityInfo = GitAwareContextHelper.getGitEntityInfo();
 

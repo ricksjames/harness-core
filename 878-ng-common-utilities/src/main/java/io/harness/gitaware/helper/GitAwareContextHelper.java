@@ -84,7 +84,12 @@ public class GitAwareContextHelper {
   }
 
   public String getBranchInRequest() {
-    GitEntityInfo gitEntityInfo = GitContextHelper.getGitEntityInfo();
+    GitEntityInfo gitEntityInfo = GitAwareContextHelper.getGitEntityInfo();
     return gitEntityInfo == null ? "" : gitEntityInfo.getBranch();
+  }
+
+  public String getFilepathInRequest() {
+    GitEntityInfo gitEntityInfo = GitAwareContextHelper.getGitEntityInfo();
+    return gitEntityInfo == null ? "" : gitEntityInfo.getFilePath();
   }
 }

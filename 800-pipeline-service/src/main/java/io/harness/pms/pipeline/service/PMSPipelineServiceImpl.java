@@ -28,6 +28,7 @@ import io.harness.exception.HintException;
 import io.harness.exception.InvalidRequestException;
 import io.harness.exception.InvalidYamlException;
 import io.harness.exception.ScmException;
+import io.harness.exception.UnexpectedException;
 import io.harness.exception.ngexception.beans.yamlschema.YamlSchemaErrorDTO;
 import io.harness.exception.ngexception.beans.yamlschema.YamlSchemaErrorWrapperDTO;
 import io.harness.git.model.ChangeType;
@@ -49,11 +50,15 @@ import io.harness.pms.pipeline.ExecutionSummaryInfo;
 import io.harness.pms.pipeline.PipelineEntity;
 import io.harness.pms.pipeline.PipelineEntity.PipelineEntityKeys;
 import io.harness.pms.pipeline.PipelineFilterPropertiesDto;
+import io.harness.pms.pipeline.PipelineImportRequestDTO;
 import io.harness.pms.pipeline.StepCategory;
 import io.harness.pms.pipeline.StepPalleteFilterWrapper;
 import io.harness.pms.pipeline.StepPalleteInfo;
 import io.harness.pms.pipeline.StepPalleteModuleInfo;
+import io.harness.pms.pipeline.mappers.PMSPipelineDtoMapper;
 import io.harness.pms.sdk.PmsSdkInstanceService;
+import io.harness.pms.yaml.YAMLFieldNameConstants;
+import io.harness.pms.yaml.YamlField;
 import io.harness.pms.yaml.YamlUtils;
 import io.harness.repositories.pipeline.PMSPipelineRepository;
 
@@ -168,18 +173,7 @@ public class PMSPipelineServiceImpl implements PMSPipelineService {
               .build();
       throw new io.harness.yaml.validator.InvalidYamlException(errorMessage, errorWrapperDTO);
     }
-    GovernanceMetadata governanceMetadata = pmsPipelineServiceHelper.validatePipelineYamlAndSetTemplateRefIfAny(
-        pipelineEntity, pmsFeatureFlagService.isEnabled(accountId, FeatureName.OPA_PIPELINE_GOVERNANCE));
-    if (governanceMetadata.getDeny()) {
-      List<String> denyingPolicySetIds = governanceMetadata.getDetailsList()
-                                             .stream()
-                                             .filter(PolicySetMetadata::getDeny)
-                                             .map(PolicySetMetadata::getIdentifier)
-                                             .collect(Collectors.toList());
-      throw new PolicyEvaluationFailureException(
-          "Pipeline does not follow the Policies in these Policy Sets: " + denyingPolicySetIds.toString(),
-          governanceMetadata);
-    }
+    pmsPipelineServiceHelper.validatePipelineFromRemote(pipelineEntity);
     return optionalPipelineEntity;
   }
 
@@ -362,6 +356,59 @@ public class PMSPipelineServiceImpl implements PMSPipelineService {
       return pmsPipelineRepository.findAll(criteria, pageable, accountId, orgIdentifier, projectIdentifier, true);
     }
     return pmsPipelineRepository.findAll(criteria, pageable, accountId, orgIdentifier, projectIdentifier, false);
+  }
+
+  @Override
+  public String importPipelineFromRemote(String accountId, String orgIdentifier, String projectIdentifier,
+      String pipelineIdentifier, PipelineImportRequestDTO pipelineImportRequest) {
+    String importedPipeline =
+        pmsPipelineRepository.importPipelineFromRemote(accountId, orgIdentifier, projectIdentifier);
+    if (EmptyPredicate.isEmpty(importedPipeline)) {
+      String errorMessage = PipelineCRUDErrorResponse.errorMessageForEmptyYamlOnGit(
+          orgIdentifier, projectIdentifier, pipelineIdentifier, GitAwareContextHelper.getBranchInRequest());
+      throw PMSPipelineServiceHelper.buildInvalidYamlException(errorMessage);
+    }
+    YamlField pipelineYamlField;
+    try {
+      pipelineYamlField = YamlUtils.readTree(importedPipeline);
+    } catch (IOException e) {
+      String errorMessage = PipelineCRUDErrorResponse.errorMessageForNotAYAMLFile(
+          GitAwareContextHelper.getBranchInRequest(), GitAwareContextHelper.getFilepathInRequest());
+      throw PMSPipelineServiceHelper.buildInvalidYamlException(errorMessage);
+    }
+    YamlField pipelineInnerField = pipelineYamlField.getNode().getField(YAMLFieldNameConstants.PIPELINE);
+    if (pipelineInnerField == null) {
+      String errorMessage = PipelineCRUDErrorResponse.errorMessageForNotAPipelineYAML(
+          GitAwareContextHelper.getBranchInRequest(), GitAwareContextHelper.getFilepathInRequest());
+      throw PMSPipelineServiceHelper.buildInvalidYamlException(errorMessage);
+    }
+    String identifierFromGit = pipelineInnerField.getNode().getIdentifier();
+    if (!pipelineIdentifier.equals(identifierFromGit)) {
+      String errorMessage = PipelineCRUDErrorResponse.errorMessageForInvalidField(
+          YAMLFieldNameConstants.IDENTIFIER, identifierFromGit, pipelineIdentifier);
+      throw PMSPipelineServiceHelper.buildInvalidYamlException(errorMessage);
+    }
+
+    String nameFromGit = pipelineInnerField.getNode().getName();
+    if (!pipelineImportRequest.getPipelineName().equals(nameFromGit)) {
+      String errorMessage = PipelineCRUDErrorResponse.errorMessageForInvalidField(
+          YAMLFieldNameConstants.NAME, nameFromGit, pipelineImportRequest.getPipelineName());
+      throw PMSPipelineServiceHelper.buildInvalidYamlException(errorMessage);
+    }
+    if (EmptyPredicate.isNotEmpty(pipelineImportRequest.getPipelineDescription())) {
+      YamlUtils.setStringValueForField(
+          YAMLFieldNameConstants.DESCRIPTION, pipelineImportRequest.getPipelineDescription(), pipelineInnerField);
+      try {
+        return YamlUtils.writeYamlString(pipelineYamlField).replace("---\n", "");
+      } catch (IOException e) {
+        throw new UnexpectedException("Unexpected error when trying to set description");
+      }
+    }
+
+    PipelineEntity pipelineEntity =
+        PMSPipelineDtoMapper.toPipelineEntity(accountId, orgIdentifier, projectIdentifier, importedPipeline);
+    pmsPipelineServiceHelper.validatePipelineFromRemote(pipelineEntity);
+    return importedPipeline;
   }
 
   @Override

@@ -64,4 +64,6 @@ public interface PMSPipelineRepositoryCustom {
    * flows
    */
   PipelineEntity delete(String accountId, String orgIdentifier, String projectIdentifier, String pipelineIdentifier);
+
+  String importPipelineFromRemote(String accountId, String orgIdentifier, String projectIdentifier);
 }
