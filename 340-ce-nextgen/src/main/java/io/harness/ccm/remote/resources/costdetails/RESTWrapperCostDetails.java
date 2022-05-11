@@ -203,9 +203,9 @@ public class RESTWrapperCostDetails {
       throw new InvalidArgumentsException(e.getMessage());
     }
 
-    PerspectiveTimeSeriesData perspectiveTimeSeriesData =
-        perspectivesQuery.perspectiveTimeSeriesStats(aggregationList, filters, groupBy, sortList,
-            firstNonNull(limit, (int) DEFAULT_LIMIT), firstNonNull(offset, (int) DEFAULT_OFFSET), false, false, env);
+    PerspectiveTimeSeriesData perspectiveTimeSeriesData = perspectivesQuery.perspectiveTimeSeriesStats(aggregationList,
+        filters, groupBy, sortList, firstNonNull(limit, (int) DEFAULT_LIMIT),
+        firstNonNull(offset, (int) DEFAULT_OFFSET), false, false, false, env);
     return ResponseDTO.newResponse(perspectiveTimeSeriesData);
   }
 
