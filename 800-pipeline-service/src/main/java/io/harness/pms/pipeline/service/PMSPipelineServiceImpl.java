@@ -99,7 +99,13 @@ public class PMSPipelineServiceImpl implements PMSPipelineService {
           pipelineEntity.getIdentifier());
 
       PipelineEntity entityWithUpdatedInfo = pmsPipelineServiceHelper.updatePipelineInfo(pipelineEntity);
-      PipelineEntity createdEntity = pmsPipelineRepository.save(entityWithUpdatedInfo);
+      PipelineEntity createdEntity;
+      if (gitSyncSdkService.isGitSyncEnabled(pipelineEntity.getAccountId(), pipelineEntity.getOrgIdentifier(),
+              pipelineEntity.getProjectIdentifier())) {
+        createdEntity = pmsPipelineRepository.saveForOldGitSync(entityWithUpdatedInfo);
+      } else {
+        createdEntity = pmsPipelineRepository.save(entityWithUpdatedInfo);
+      }
       pmsPipelineServiceHelper.sendPipelineSaveTelemetryEvent(createdEntity, CREATING_PIPELINE);
       return createdEntity;
     } catch (DuplicateKeyException ex) {
@@ -129,9 +135,13 @@ public class PMSPipelineServiceImpl implements PMSPipelineService {
       String accountId, String orgIdentifier, String projectIdentifier, String identifier, boolean deleted) {
     Optional<PipelineEntity> optionalPipelineEntity;
     try {
-      optionalPipelineEntity =
-          pmsPipelineRepository.findByAccountIdAndOrgIdentifierAndProjectIdentifierAndIdentifierAndDeletedNot(
-              accountId, orgIdentifier, projectIdentifier, identifier, !deleted, false);
+      if (gitSyncSdkService.isGitSyncEnabled(accountId, orgIdentifier, projectIdentifier)) {
+        optionalPipelineEntity = pmsPipelineRepository.findForOldGitSync(
+            accountId, orgIdentifier, projectIdentifier, identifier, !deleted, false);
+      } else {
+        optionalPipelineEntity =
+            pmsPipelineRepository.find(accountId, orgIdentifier, projectIdentifier, identifier, !deleted, false);
+      }
     } catch (ExplanationException | HintException | ScmException e) {
       log.error(String.format("Error while retrieving pipeline [%s]", identifier), e);
       throw e;
@@ -177,19 +187,22 @@ public class PMSPipelineServiceImpl implements PMSPipelineService {
   public PipelineEntity updatePipelineYaml(PipelineEntity pipelineEntity, ChangeType changeType) {
     PMSPipelineServiceHelper.validatePresenceOfRequiredFields(pipelineEntity.getAccountId(),
         pipelineEntity.getOrgIdentifier(), pipelineEntity.getProjectIdentifier(), pipelineEntity.getIdentifier());
-    if (!GitAwareContextHelper.isOldFlow()) {
-      return makePipelineUpdateCall(pipelineEntity, null, changeType);
+    if (gitSyncSdkService.isGitSyncEnabled(
+            pipelineEntity.getAccountId(), pipelineEntity.getOrgIdentifier(), pipelineEntity.getProjectIdentifier())) {
+      return updatePipelineForOldGitSync(pipelineEntity, changeType);
     }
+    return makePipelineUpdateCall(pipelineEntity, null, changeType, false);
+  }
 
+  private PipelineEntity updatePipelineForOldGitSync(PipelineEntity pipelineEntity, ChangeType changeType) {
     if (GitContextHelper.getGitEntityInfo() != null && GitContextHelper.getGitEntityInfo().isNewBranch()) {
       // sending old entity as null here because a new mongo entity will be created. If audit trail needs to be added
       // to git synced projects, a get call needs to be added here to the base branch of this pipeline update
-      return makePipelineUpdateCall(pipelineEntity, null, changeType);
+      return makePipelineUpdateCall(pipelineEntity, null, changeType, true);
     }
     Optional<PipelineEntity> optionalOriginalEntity =
-        pmsPipelineRepository.findByAccountIdAndOrgIdentifierAndProjectIdentifierAndIdentifierAndDeletedNot(
-            pipelineEntity.getAccountId(), pipelineEntity.getOrgIdentifier(), pipelineEntity.getProjectIdentifier(),
-            pipelineEntity.getIdentifier(), true, false);
+        pmsPipelineRepository.findForOldGitSync(pipelineEntity.getAccountId(), pipelineEntity.getOrgIdentifier(),
+            pipelineEntity.getProjectIdentifier(), pipelineEntity.getIdentifier(), true, false);
     if (!optionalOriginalEntity.isPresent()) {
       throw new InvalidRequestException(PipelineCRUDErrorResponse.errorMessageForPipelineNotFound(
           pipelineEntity.getOrgIdentifier(), pipelineEntity.getProjectIdentifier(), pipelineEntity.getIdentifier()));
@@ -203,7 +216,7 @@ public class PMSPipelineServiceImpl implements PMSPipelineService {
                                     .withTemplateReference(pipelineEntity.getTemplateReference())
                                     .withAllowStageExecutions(pipelineEntity.getAllowStageExecutions());
 
-    return makePipelineUpdateCall(tempEntity, entityToUpdate, changeType);
+    return makePipelineUpdateCall(tempEntity, entityToUpdate, changeType, true);
   }
 
   @Override
@@ -222,15 +235,20 @@ public class PMSPipelineServiceImpl implements PMSPipelineService {
       throw new InvalidRequestException(
           PipelineCRUDErrorResponse.errorMessageForPipelineNotFound(orgId, projectId, pipelineId));
     }
-    return makePipelineUpdateCall(optionalPipelineEntity.get(), optionalPipelineEntity.get(), ChangeType.ADD);
+    return makePipelineUpdateCall(optionalPipelineEntity.get(), optionalPipelineEntity.get(), ChangeType.ADD, true);
   }
 
   private PipelineEntity makePipelineUpdateCall(
-      PipelineEntity pipelineEntity, PipelineEntity oldEntity, ChangeType changeType) {
+      PipelineEntity pipelineEntity, PipelineEntity oldEntity, ChangeType changeType, boolean isOldFlow) {
     try {
       PipelineEntity entityWithUpdatedInfo = pmsPipelineServiceHelper.updatePipelineInfo(pipelineEntity);
-      PipelineEntity updatedResult =
-          pmsPipelineRepository.updatePipelineYaml(entityWithUpdatedInfo, oldEntity, changeType);
+      PipelineEntity updatedResult;
+      if (isOldFlow) {
+        updatedResult =
+            pmsPipelineRepository.updatePipelineYamlForOldGitSync(entityWithUpdatedInfo, oldEntity, changeType);
+      } else {
+        updatedResult = pmsPipelineRepository.updatePipelineYaml(entityWithUpdatedInfo, oldEntity, changeType);
+      }
 
       if (updatedResult == null) {
         throw new InvalidRequestException(format(
@@ -288,16 +306,31 @@ public class PMSPipelineServiceImpl implements PMSPipelineService {
     PipelineEntity pipelineEntityUpdated = existingPipeline.withYaml(invalidYaml)
                                                .withObjectIdOfYaml(EntityObjectIdUtils.getObjectIdOfYaml(invalidYaml))
                                                .withIsEntityInvalid(true);
-    pmsPipelineRepository.updatePipelineYaml(pipelineEntityUpdated, existingPipeline, ChangeType.NONE);
+    pmsPipelineRepository.updatePipelineYamlForOldGitSync(pipelineEntityUpdated, existingPipeline, ChangeType.NONE);
     return true;
   }
 
   @Override
   public boolean delete(
       String accountId, String orgIdentifier, String projectIdentifier, String pipelineIdentifier, Long version) {
-    Optional<PipelineEntity> optionalPipelineEntity =
-        pmsPipelineRepository.findByAccountIdAndOrgIdentifierAndProjectIdentifierAndIdentifierAndDeletedNot(
-            accountId, orgIdentifier, projectIdentifier, pipelineIdentifier, true, true);
+    if (gitSyncSdkService.isGitSyncEnabled(accountId, orgIdentifier, projectIdentifier)) {
+      return deleteForOldGitSync(accountId, orgIdentifier, projectIdentifier, pipelineIdentifier, version);
+    }
+    PipelineEntity deletedEntity =
+        pmsPipelineRepository.delete(accountId, orgIdentifier, projectIdentifier, pipelineIdentifier);
+    if (deletedEntity.getDeleted()) {
+      return true;
+    } else {
+      throw new InvalidRequestException(
+          format("Pipeline [%s] under Project[%s], Organization [%s] could not be deleted.", pipelineIdentifier,
+              projectIdentifier, orgIdentifier));
+    }
+  }
+
+  private boolean deleteForOldGitSync(
+      String accountId, String orgIdentifier, String projectIdentifier, String pipelineIdentifier, Long version) {
+    Optional<PipelineEntity> optionalPipelineEntity = pmsPipelineRepository.findForOldGitSync(
+        accountId, orgIdentifier, projectIdentifier, pipelineIdentifier, true, true);
     if (!optionalPipelineEntity.isPresent()) {
       throw new InvalidRequestException(PipelineCRUDErrorResponse.errorMessageForPipelineNotFound(
           orgIdentifier, projectIdentifier, pipelineIdentifier));
@@ -306,7 +339,7 @@ public class PMSPipelineServiceImpl implements PMSPipelineService {
     PipelineEntity existingEntity = optionalPipelineEntity.get();
     PipelineEntity withDeleted = existingEntity.withDeleted(true);
     try {
-      PipelineEntity deletedEntity = pmsPipelineRepository.deletePipeline(withDeleted);
+      PipelineEntity deletedEntity = pmsPipelineRepository.deleteForOldGitSync(withDeleted);
       if (deletedEntity.getDeleted()) {
         return true;
       } else {
@@ -401,7 +434,7 @@ public class PMSPipelineServiceImpl implements PMSPipelineService {
     Page<PipelineEntity> pipelineEntities =
         pmsPipelineRepository.findAll(criteria, pageRequest, accountId, orgId, projectId, false);
     for (PipelineEntity pipelineEntity : pipelineEntities) {
-      pmsPipelineRepository.deletePipeline(pipelineEntity.withDeleted(true));
+      pmsPipelineRepository.deleteForOldGitSync(pipelineEntity.withDeleted(true));
     }
     return true;
   }
