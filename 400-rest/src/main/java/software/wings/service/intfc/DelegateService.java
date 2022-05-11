@@ -76,7 +76,7 @@ public interface DelegateService extends OwnedByAccount {
   DelegateSetupDetails validateKubernetesYaml(String accountId, DelegateSetupDetails delegateSetupDetails);
 
   File generateKubernetesYaml(String accountId, DelegateSetupDetails delegateSetupDetails, String managerHost,
-      String verificationServiceUrl, MediaType fileFormat) throws IOException;
+                              String verificationServiceUrl, MediaType fileFormat) throws IOException;
 
   Delegate update(@Valid Delegate delegate);
 
@@ -90,27 +90,27 @@ public interface DelegateService extends OwnedByAccount {
   Delegate updateScopes(@Valid Delegate delegate);
 
   DelegateScripts getDelegateScriptsNg(String accountId, String version, String managerHost, String verificationHost,
-      String delegateType) throws IOException;
+                                       String delegateType) throws IOException;
 
   DelegateScripts getDelegateScripts(String accountId, String version, String managerHost, String verificationHost,
-      String delegateName) throws IOException;
+                                     String delegateName) throws IOException;
 
   String getLatestDelegateVersion(String accountId);
 
   File downloadScripts(String managerHost, String verificationServiceUrl, String accountId, String delegateName,
-      String delegateProfile, String tokenName) throws IOException;
+                       String delegateProfile, String tokenName) throws IOException;
 
   File downloadDocker(String managerHost, String verificationServiceUrl, String accountId, String delegateName,
-      String delegateProfile, String tokenName) throws IOException;
+                      String delegateProfile, String tokenName) throws IOException;
 
   File downloadKubernetes(String managerHost, String verificationServiceUrl, String accountId, String delegateName,
-      String delegateProfile, String tokenName) throws IOException;
+                          String delegateProfile, String tokenName) throws IOException;
 
   File downloadCeKubernetesYaml(String managerHost, String verificationUrl, String accountId, String delegateName,
-      String delegateProfile, String tokenName) throws IOException;
+                                String delegateProfile, String tokenName) throws IOException;
 
   File downloadECSDelegate(String managerHost, String verificationUrl, String accountId, boolean awsVpcMode,
-      String hostname, String delegateGroupName, String delegateProfile, String tokenName) throws IOException;
+                           String hostname, String delegateGroupName, String delegateProfile, String tokenName) throws IOException;
   Delegate add(Delegate delegate);
 
   void delete(String accountId, String delegateId);
@@ -133,7 +133,7 @@ public interface DelegateService extends OwnedByAccount {
   DelegateProfileParams checkForProfile(String accountId, String delegateId, String profileId, long lastUpdatedAt);
 
   void saveProfileResult(String accountId, String delegateId, boolean error, FileBucket fileBucket,
-      InputStream uploadedInputStream, FormDataContentDisposition fileDetail);
+                         InputStream uploadedInputStream, FormDataContentDisposition fileDetail);
 
   String getProfileResult(String accountId, String delegateId);
 
@@ -156,7 +156,7 @@ public interface DelegateService extends OwnedByAccount {
   Delegate handleEcsDelegateRequest(Delegate delegate);
 
   File downloadDelegateValuesYamlFile(String managerHost, String verificationUrl, String accountId, String delegateName,
-      String delegateProfile, String tokenName) throws IOException;
+                                      String delegateProfile, String tokenName) throws IOException;
 
   List<Integer> getCountOfDelegatesForAccounts(List<String> collect);
 
@@ -193,7 +193,7 @@ public interface DelegateService extends OwnedByAccount {
   void validateDelegateSetupDetails(String accountId, DelegateSetupDetails delegateSetupDetails, String delegateType);
 
   File downloadNgDocker(String managerHost, String verificationServiceUrl, String accountId,
-      DelegateSetupDetails delegateSetupDetails) throws IOException;
+                        DelegateSetupDetails delegateSetupDetails) throws IOException;
 
   String createDelegateGroup(String accountId, DelegateSetupDetails delegateSetupDetails);
 
@@ -202,4 +202,6 @@ public interface DelegateService extends OwnedByAccount {
   long getCountOfRegisteredDelegates(String accountId);
 
   long getCountOfConnectedDelegates(String accountId);
+
+  List<Delegate> obtainDelegateDetails(String accountId, List<String> delegateIds);
 }
