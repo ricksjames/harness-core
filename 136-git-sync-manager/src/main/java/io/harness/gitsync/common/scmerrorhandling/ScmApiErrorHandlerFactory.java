@@ -59,18 +59,6 @@ class ScmApiErrorHandlerFactory {
           .put(Pair.of(ScmApis.CREATE_BRANCH, RepoProviders.GITHUB), GithubCreateBranchScmApiErrorHandler.class)
           .put(Pair.of(ScmApis.LIST_BRANCHES, RepoProviders.BITBUCKET), BitbucketListBranchesScmApiErrorHandler.class)
           .put(Pair.of(ScmApis.LIST_BRANCHES, RepoProviders.GITHUB), GithubListBranchesScmApiErrorHandler.class)
-          .put(Pair.of(ScmApis.GET_FILE, RepoProviders.BITBUCKET), BitbucketGetFileScmApiErrorHandler.class)
-          .put(Pair.of(ScmApis.GET_FILE, RepoProviders.GITHUB), GithubGetFileScmApiErrorHandler.class)
-          .put(Pair.of(ScmApis.CREATE_PULL_REQUEST, RepoProviders.BITBUCKET),
-              BitbucketCreatePullRequestScmApiErrorHandler.class)
-          .put(Pair.of(ScmApis.CREATE_PULL_REQUEST, RepoProviders.GITHUB),
-              GithubCreatePullRequestScmApiErrorHandler.class)
-          .put(Pair.of(ScmApis.CREATE_FILE, RepoProviders.BITBUCKET), BitbucketCreateFileScmApiErrorHandler.class)
-          .put(Pair.of(ScmApis.CREATE_FILE, RepoProviders.GITHUB), GithubCreateFileScmApiErrorHandler.class)
-          .put(Pair.of(ScmApis.UPDATE_FILE, RepoProviders.BITBUCKET), BitbucketUpdateFileScmApiErrorHandler.class)
-          .put(Pair.of(ScmApis.UPDATE_FILE, RepoProviders.GITHUB), GithubUpdateFileScmApiErrorHandler.class)
-          .put(Pair.of(ScmApis.CREATE_BRANCH, RepoProviders.BITBUCKET), BitbucketCreateBranchScmApiErrorHandler.class)
-          .put(Pair.of(ScmApis.CREATE_BRANCH, RepoProviders.GITHUB), GithubCreateBranchScmApiErrorHandler.class)
           .build();
 
   public ScmApiErrorHandler getHandler(ScmApis scmApi, RepoProviders repoProvider) {
