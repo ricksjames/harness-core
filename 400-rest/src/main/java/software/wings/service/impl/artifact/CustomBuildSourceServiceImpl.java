@@ -33,7 +33,6 @@ import software.wings.service.intfc.artifact.CustomBuildSourceService;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import java.time.Duration;
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import javax.validation.executable.ValidateOnExecution;
