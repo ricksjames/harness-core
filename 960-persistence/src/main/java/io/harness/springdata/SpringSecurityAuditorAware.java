@@ -1,3 +1,10 @@
+/*
+ * Copyright 2022 Harness Inc. All rights reserved.
+ * Use of this source code is governed by the PolyForm Free Trial 1.0.0 license
+ * that can be found in the licenses directory at the root of this repository, also available at
+ * https://polyformproject.org/wp-content/uploads/2020/05/PolyForm-Free-Trial-1.0.0.txt.
+ */
+
 package io.harness.springdata;
 
 import io.harness.annotations.dev.HarnessTeam;
@@ -10,16 +17,15 @@ import io.harness.security.dto.UserPrincipal;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.AuditorAware;
-import org.springframework.data.mongodb.config.EnableMongoAuditing;
 
-@EnableMongoAuditing
 @OwnedBy(HarnessTeam.CDP)
 @Slf4j
 public class SpringSecurityAuditorAware implements AuditorAware<EmbeddedUser> {
   @Override
   public Optional<EmbeddedUser> getCurrentAuditor() {
     try {
-      if (!PrincipalType.USER.equals(SecurityContextBuilder.getPrincipal().getType())) {
+      if (SecurityContextBuilder.getPrincipal() == null
+          || !PrincipalType.USER.equals(SecurityContextBuilder.getPrincipal().getType())) {
         return Optional.empty();
       }
       UserPrincipal principal = (UserPrincipal) SecurityContextBuilder.getPrincipal();
