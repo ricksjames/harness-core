@@ -56,7 +56,6 @@ import io.harness.pms.pipeline.StepPalleteModuleInfo;
 import io.harness.pms.sdk.PmsSdkInstanceService;
 import io.harness.pms.yaml.YamlUtils;
 import io.harness.repositories.pipeline.PMSPipelineRepository;
-import io.harness.telemetry.TelemetryReporter;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
@@ -85,11 +84,7 @@ public class PMSPipelineServiceImpl implements PMSPipelineService {
   @Inject private PMSPipelineServiceStepHelper pmsPipelineServiceStepHelper;
   @Inject private GitSyncSdkService gitSyncSdkService;
   @Inject private CommonStepInfo commonStepInfo;
-  @Inject private TelemetryReporter telemetryReporter;
-  @Inject private PipelineMetadataService pipelineMetadataService;
   @Inject private PmsFeatureFlagService pmsFeatureFlagService;
-  public static String PIPELINE_SAVE = "pipeline_save";
-  public static String PIPELINE_SAVE_ACTION_TYPE = "action";
   public static String CREATING_PIPELINE = "creating new pipeline";
   public static String UPDATING_PIPELINE = "updating existing pipeline";
 
