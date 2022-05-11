@@ -47,6 +47,15 @@ if [[ "${ENABLE_APPDYNAMICS}" == "true" ]] && [[ "${DISABLE_NEW_RELIC}" == "true
     echo "Using Appdynamics java agent"
 fi
 
+export ENABLE_OPENTELEMETRY="true"
+
+if [[ "${ENABLE_OPENTELEMETRY}" == "true" ]] ; then
+    echo "OpenTelemetry is enabled"
+    wget https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v1.13.0/opentelemetry-javaagent.jar -O /opt/harness/opentelemetry-javaagent.jar
+    JAVA_OPTS=$JAVA_OPTS" -agentpath:/opt/harness/opentelemetry-javaagent.jar -Dotel.service.name=manager"
+    echo "Using OpenTelemetry Java Agent"
+fi
+
 if [[ "${ENABLE_OVEROPS}" == "true" ]] ; then
     echo "OverOps is enabled"
     JAVA_OPTS=$JAVA_OPTS" -agentpath:/opt/harness/takipi/lib/libTakipiAgent.so -Dtakipi.etl -Dtakipi.application.name=${OVEROPS_APPLICATION_NAME} -Dtakipi.deployment.name=${OVEROPS_DEPLOYMENT_NAME}"

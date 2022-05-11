@@ -44,6 +44,15 @@ if [[ "${ENABLE_OVEROPS}" == "true" ]] ; then
     echo "Using Overops Java Agent"
 fi
 
+export ENABLE_OPENTELEMETRY="true"
+
+if [[ "${ENABLE_OPENTELEMETRY}" == "true" ]] ; then
+    echo "OpenTelemetry is enabled"
+    wget https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v1.13.0/opentelemetry-javaagent.jar -O /opt/harness/opentelemetry-javaagent.jar
+    JAVA_OPTS=$JAVA_OPTS" -agentpath:/opt/harness/opentelemetry-javaagent.jar -Dotel.service.name=ng-manager"
+    echo "Using OpenTelemetry Java Agent"
+fi
+
 JAVA_OPTS=$JAVA_OPTS" -Xbootclasspath/p:/opt/harness/alpn-boot-8.1.13.v20181017.jar"
 
 if [[ "${DEPLOY_MODE}" == "KUBERNETES" || "${DEPLOY_MODE}" == "KUBERNETES_ONPREM" || "${DEPLOY_VERSION}" == "COMMUNITY" ]]; then
