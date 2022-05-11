@@ -307,8 +307,8 @@ public class ArtifactCollectionState extends State {
               .filter(script
                   -> script.getAction() == null || script.getAction() == CustomArtifactStream.Action.FETCH_VERSIONS)
               .findFirst()
-              .orElse(null);
-      if (isEmpty(versionScript.getScriptString())) {
+              .orElse(CustomArtifactStream.Script.builder().build());
+      if (Boolean.FALSE.equals(artifactStream.getCollectionEnabled()) && isEmpty(versionScript.getScriptString())) {
         return saveCustomArtifactResponse(customArtifactStream, evaluatedBuildNo, timeout);
       }
       ArtifactStreamAttributes artifactStreamAttributes =

@@ -213,7 +213,7 @@ public class ArtifactCollectionServiceAsyncImpl implements ArtifactCollectionSer
             .filter(script
                 -> script.getAction() == null || script.getAction() == CustomArtifactStream.Action.FETCH_VERSIONS)
             .findFirst()
-            .orElse(null);
+            .orElse(CustomArtifactStream.Script.builder().build());
     if (isNotEmpty(versionScript.getScriptString())) {
       return null;
     }
