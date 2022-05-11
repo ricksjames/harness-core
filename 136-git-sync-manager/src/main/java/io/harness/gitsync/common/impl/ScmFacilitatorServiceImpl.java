@@ -190,6 +190,8 @@ public class ScmFacilitatorServiceImpl implements ScmFacilitatorService {
 
   @Override
   public ScmCreatePRResponseDTO createPR(ScmCreatePRRequestDTO scmCreatePRRequestDTO) {
+    scmCreatePRRequestDTO.validate();
+
     Scope scope = scmCreatePRRequestDTO.getScope();
     ScmConnector scmConnector =
         gitSyncConnectorHelper.getScmConnectorForGivenRepo(scope.getAccountIdentifier(), scope.getOrgIdentifier(),
