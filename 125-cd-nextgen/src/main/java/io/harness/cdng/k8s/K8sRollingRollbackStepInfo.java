@@ -68,4 +68,9 @@ public class K8sRollingRollbackStepInfo extends K8sRollingRollbackBaseStepInfo i
         .rollingStepFqn(rollingStepFqn)
         .build();
   }
+
+  @Override
+  public ParameterField<List<TaskSelectorYaml>> fetchDelegateSelectors() {
+    return getDelegateSelectors();
+  }
 }
