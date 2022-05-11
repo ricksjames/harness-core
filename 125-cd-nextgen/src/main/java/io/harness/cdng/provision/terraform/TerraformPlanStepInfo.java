@@ -101,4 +101,9 @@ public class TerraformPlanStepInfo extends TerraformPlanBaseStepInfo implements 
     connectorRefMap.put("configuration.secretManagerRef", terraformPlanExecutionData.getSecretManagerRef());
     return connectorRefMap;
   }
+
+  @Override
+  public ParameterField<List<TaskSelectorYaml>> fetchDelegateSelectors() {
+    return getDelegateSelectors();
+  }
 }
