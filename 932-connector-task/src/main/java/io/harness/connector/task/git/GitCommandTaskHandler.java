@@ -137,7 +137,7 @@ public class GitCommandTaskHandler {
     } catch (Exception e) {
       throw SCMRuntimeException.builder().message(e.getMessage()).errorCode(ErrorCode.UNEXPECTED).cause(e).build();
     }
-    if (reposResponse != null && reposResponse.getStatus() > 300) {
+    if (reposResponse != null && (reposResponse.getStatus() > 300 || isNotEmpty(reposResponse.getError()))) {
       ErrorCode errorCode = convertScmStatusCodeToErrorCode(reposResponse.getStatus());
       throw SCMRuntimeException.builder().errorCode(errorCode).message(reposResponse.getError()).build();
     }
