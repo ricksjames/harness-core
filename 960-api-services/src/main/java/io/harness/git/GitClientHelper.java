@@ -205,20 +205,14 @@ public class GitClientHelper {
 
   public static String getAzureRepoOrgAndProjectHTTP(String url) {
     String temp = StringUtils.substringBeforeLast(url, "/_git/");
-    return StringUtils.substringAfter(temp, "dev.azure.com/");
+    String orgAndProject = StringUtils.substringAfter(temp, "dev.azure.com/");
+    return StringUtils.substringBefore(orgAndProject, "/");
   }
 
   public static String getAzureRepoOrgAndProjectSSH(String url) {
     String temp = StringUtils.substringBeforeLast(url, "/");
-    return StringUtils.substringAfter(temp, "/");
-  }
-
-  public static String getAzureRepoOrg(String orgAndProject) {
+    String orgAndProject = StringUtils.substringAfter(temp, "/");
     return StringUtils.substringBefore(orgAndProject, "/");
-  }
-
-  public static String getAzureRepoProject(String orgAndProject) {
-    return StringUtils.substringAfter(orgAndProject, "/");
   }
 
   private static String getGitSCMHost(String url) {

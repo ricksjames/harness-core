@@ -84,24 +84,18 @@ public class ScmGitProviderMapper {
 
   private Provider mapToAzureRepoProvider(AzureRepoConnectorDTO azureRepoConnector, boolean debug) {
     boolean skipVerify = checkScmSkipVerify();
-    String org, project, orgAndProject;
+    String org;
     if (azureRepoConnector.getAuthentication().getAuthType() == GitAuthType.HTTP) {
-      orgAndProject = GitClientHelper.getAzureRepoOrgAndProjectHTTP(azureRepoConnector.getUrl());
+      org = GitClientHelper.getAzureRepoOrgAndProjectHTTP(azureRepoConnector.getUrl());
     } else {
-      orgAndProject = GitClientHelper.getAzureRepoOrgAndProjectSSH(azureRepoConnector.getUrl());
-    }
-    org = GitClientHelper.getAzureRepoOrg(orgAndProject);
-    if (azureRepoConnector.getConnectionType() == GitConnectionType.ACCOUNT) {
-      project = azureRepoConnector.getValidationProject(); // for testing
-    } else {
-      project = GitClientHelper.getAzureRepoProject(orgAndProject);
+      org = GitClientHelper.getAzureRepoOrgAndProjectSSH(azureRepoConnector.getUrl());
     }
     String azureRepoApiURL = GitClientHelper.getAzureRepoApiURL(azureRepoConnector.getUrl());
     AzureRepoApiAccessDTO apiAccess = azureRepoConnector.getApiAccess();
     AzureRepoTokenSpecDTO azureRepoUsernameTokenApiAccessDTO = (AzureRepoTokenSpecDTO) apiAccess.getSpec();
     String personalAccessToken = String.valueOf(azureRepoUsernameTokenApiAccessDTO.getTokenRef().getDecryptedValue());
     AzureProvider.Builder azureProvider =
-        AzureProvider.newBuilder().setOrganization(org).setProject(project).setPersonalAccessToken(personalAccessToken);
+        AzureProvider.newBuilder().setOrganization(org).setPersonalAccessToken(personalAccessToken);
     Provider.Builder builder =
         Provider.newBuilder().setDebug(debug).setAzure(azureProvider).setEndpoint(azureRepoApiURL);
     return builder.setSkipVerify(skipVerify).setAdditionalCertsPath(getAdditionalCertsPath()).build();
