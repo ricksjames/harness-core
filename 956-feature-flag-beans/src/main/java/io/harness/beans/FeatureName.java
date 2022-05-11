@@ -339,7 +339,7 @@ public enum FeatureName {
   NG_SVC_ENV_REDESIGN,
   NEW_PIPELINE_STUDIO,
   AZURE_REPO_CONNECTOR,
-  JDK11_DELEGATE;
+  USER_GROUP_AS_EXPRESSION;
 
   FeatureName() {
     scope = Scope.PER_ACCOUNT;
