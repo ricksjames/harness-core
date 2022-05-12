@@ -83,7 +83,7 @@ public class YamlSchemaProvider {
           }
         }
       } else {
-        addingScopeToSchema(secondLevelNodeProperties, secondLevelNode, orgIdentifier, projectIdentifier, scope,
+        addingScopeToSchema(secondLevelNode, secondLevelNodeProperties, orgIdentifier, projectIdentifier, scope,
             schemaDetailsForEntityType);
       }
     } catch (Exception e) {
