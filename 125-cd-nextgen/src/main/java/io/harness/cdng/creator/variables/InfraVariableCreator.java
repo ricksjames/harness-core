@@ -123,6 +123,10 @@ public class InfraVariableCreator {
           addVariablesForServerlessAwsInfra(infraDefNode, yamlPropertiesMap);
           break;
 
+        case InfrastructureKind.SSH_WINRM_AWS:
+          addVariablesForSshWinRmAwsInfra(infraDefNode, yamlPropertiesMap);
+          break;
+
         default:
           throw new InvalidRequestException("Invalid infra definition type");
       }
@@ -181,6 +185,20 @@ public class InfraVariableCreator {
     addVariableForYamlType(YamlTypes.ATTRIBUTE_FILTERS, infraSpecNode, yamlPropertiesMap);
     addVariableForYamlType(YamlTypes.HOST_FILTERS, infraSpecNode, yamlPropertiesMap);
     addVariableForYamlType(YamlTypes.DELEGATE_SELECTORS, infraSpecNode, yamlPropertiesMap);
+  }
+
+  private static void addVariablesForSshWinRmAwsInfra(
+      YamlField infraDefNode, Map<String, YamlProperties> yamlPropertiesMap) {
+    YamlField infraSpecNode = infraDefNode.getNode().getField(YamlTypes.SPEC);
+    if (infraSpecNode == null) {
+      return;
+    }
+
+    addVariableForYamlType(YamlTypes.CLOUD_PROVIDER, infraSpecNode, yamlPropertiesMap);
+    addVariableForYamlType(YamlTypes.REGION, infraSpecNode, yamlPropertiesMap);
+    addVariableForYamlType(YamlTypes.LOAD_BALANCER, infraSpecNode, yamlPropertiesMap);
+    addVariableForYamlType(YamlTypes.CONNECTOR_REF, infraSpecNode, yamlPropertiesMap);
+    addVariableForYamlType(YamlTypes.HOST_NAME_CONVENTION, infraSpecNode, yamlPropertiesMap);
   }
 
   private void addVariablesForServerlessAwsInfra(

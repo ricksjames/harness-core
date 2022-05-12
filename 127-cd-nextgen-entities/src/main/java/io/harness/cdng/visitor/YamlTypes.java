@@ -87,4 +87,8 @@ public interface YamlTypes {
 
   String SUBSCRIPTION = "subscription";
   String RESOURCE_GROUP = "resourceGroup";
+
+  String CLOUD_PROVIDER = "cloudProvider";
+  String LOAD_BALANCER = "loadBalancer";
+  String HOST_NAME_CONVENTION = "hostNameConvention";
 }
