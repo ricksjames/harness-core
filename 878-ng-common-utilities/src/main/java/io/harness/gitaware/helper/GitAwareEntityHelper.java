@@ -10,6 +10,7 @@ package io.harness.gitaware.helper;
 import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.beans.Scope;
+import io.harness.data.structure.EmptyPredicate;
 import io.harness.gitaware.dto.GitContextRequestParams;
 import io.harness.gitsync.interceptor.GitEntityInfo;
 import io.harness.gitsync.scm.SCMGitSyncHelper;
@@ -29,17 +30,25 @@ import java.util.Map;
 @Singleton
 public class GitAwareEntityHelper {
   @Inject SCMGitSyncHelper scmGitSyncHelper;
+  private static String DEFAULT = "__default__";
 
   public GitAware fetchEntityFromRemote(
       GitAware entity, Scope scope, GitContextRequestParams gitContextRequestParams, Map<String, String> contextMap) {
+    String repoName =
+        isNullOrDefault(gitContextRequestParams.getRepoName()) ? "" : gitContextRequestParams.getRepoName();
+    String branch =
+        isNullOrDefault(gitContextRequestParams.getBranchName()) ? "" : gitContextRequestParams.getBranchName();
+    String filePath =
+        isNullOrDefault(gitContextRequestParams.getFilePath()) ? "" : gitContextRequestParams.getFilePath();
+    String connectorRef =
+        isNullOrDefault(gitContextRequestParams.getConnectorRef()) ? "" : gitContextRequestParams.getConnectorRef();
     ScmGetFileResponse scmGetFileResponse =
         scmGitSyncHelper.getFileByBranch(Scope.builder()
                                              .accountIdentifier(scope.getAccountIdentifier())
                                              .orgIdentifier(scope.getOrgIdentifier())
                                              .projectIdentifier(scope.getProjectIdentifier())
                                              .build(),
-            gitContextRequestParams.getRepoName(), gitContextRequestParams.getBranchName(),
-            gitContextRequestParams.getFilePath(), gitContextRequestParams.getConnectorRef(), contextMap);
+            repoName, branch, filePath, connectorRef, contextMap);
     entity.setData(scmGetFileResponse.getFileContent());
     // Check if this looks good to all
     GitAwareContextHelper.updateScmGitMetaData(scmGetFileResponse.getGitMetaData());
@@ -48,14 +57,21 @@ public class GitAwareEntityHelper {
 
   public String fetchYAMLFromRemote(
       Scope scope, GitContextRequestParams gitContextRequestParams, Map<String, String> contextMap) {
+    String repoName =
+        isNullOrDefault(gitContextRequestParams.getRepoName()) ? "" : gitContextRequestParams.getRepoName();
+    String branch =
+        isNullOrDefault(gitContextRequestParams.getBranchName()) ? "" : gitContextRequestParams.getBranchName();
+    String filePath =
+        isNullOrDefault(gitContextRequestParams.getFilePath()) ? "" : gitContextRequestParams.getFilePath();
+    String connectorRef =
+        isNullOrDefault(gitContextRequestParams.getConnectorRef()) ? "" : gitContextRequestParams.getConnectorRef();
     ScmGetFileResponse scmGetFileResponse =
         scmGitSyncHelper.getFileByBranch(Scope.builder()
                                              .accountIdentifier(scope.getAccountIdentifier())
                                              .orgIdentifier(scope.getOrgIdentifier())
                                              .projectIdentifier(scope.getProjectIdentifier())
                                              .build(),
-            gitContextRequestParams.getRepoName(), gitContextRequestParams.getBranchName(),
-            gitContextRequestParams.getFilePath(), gitContextRequestParams.getConnectorRef(), contextMap);
+            repoName, branch, filePath, connectorRef, contextMap);
     // Check if this looks good to all
     GitAwareContextHelper.updateScmGitMetaData(scmGetFileResponse.getGitMetaData());
     return scmGetFileResponse.getFileContent();
@@ -99,5 +115,9 @@ public class GitAwareEntityHelper {
             .build();
 
     return scmGitSyncHelper.updateFile(scope, scmUpdateFileGitRequest, Collections.emptyMap());
+  }
+
+  private boolean isNullOrDefault(String val) {
+    return EmptyPredicate.isEmpty(val) || val.equals(DEFAULT);
   }
 }
