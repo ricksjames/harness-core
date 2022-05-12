@@ -1027,14 +1027,6 @@ public class DelegateServiceImpl implements DelegateService {
     return updatedDelegate;
   }
 
-  @Override
-  public List<Delegate> obtainDelegateDetails(String accountId, List<String> delegateIds) {
-    return persistence.createQuery(Delegate.class)
-        .filter(DelegateKeys.accountId, accountId)
-        .field(DelegateKeys.uuid).in(delegateIds)
-        .asList();
-  }
-
   private Delegate updateDelegate(Delegate delegate, UpdateOperations<Delegate> updateOperations) {
     Delegate previousDelegate = delegateCache.get(delegate.getAccountId(), delegate.getUuid(), false);
 
