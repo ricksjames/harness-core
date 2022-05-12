@@ -15,9 +15,11 @@ import io.harness.ccm.views.graphql.QLCEView;
 
 import com.google.cloud.bigquery.BigQuery;
 import java.util.List;
+import java.util.Map;
 
 public interface CEViewService {
   CEView save(CEView ceView);
+  CEView clone(String accountId, String perspectiveId, String clonePerspectiveName);
 
   double getActualCostForPerspectiveBudget(String accountId, String perspectiveId);
 
@@ -34,4 +36,5 @@ public interface CEViewService {
   Double getForecastCostForPerspective(String accountId, String perspectiveId);
 
   void updateDefaultClusterViewVisualization(String viewId);
+  Map<String, String> getPerspectiveIdToNameMapping(String accountId, List<String> perspectiveIds);
 }

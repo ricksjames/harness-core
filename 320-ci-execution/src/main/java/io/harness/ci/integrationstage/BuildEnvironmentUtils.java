@@ -40,6 +40,7 @@ import static io.harness.data.structure.EmptyPredicate.isEmpty;
 import static io.harness.data.structure.EmptyPredicate.isNotEmpty;
 
 import static java.lang.String.format;
+import static org.apache.commons.lang3.StringUtils.abbreviate;
 
 import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
@@ -57,10 +58,13 @@ import io.harness.beans.executionargs.CIExecutionArgs;
 
 import java.util.HashMap;
 import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
 
 @OwnedBy(HarnessTeam.CI)
+@Slf4j
 public class BuildEnvironmentUtils {
   private static final String REPO_SCM = "git";
+  private static final int MAX_ENV_VAR_LEN = 8191;
 
   public static Map<String, String> getBuildEnvironmentVariables(CIExecutionArgs ciExecutionArgs) {
     Map<String, String> envVarMap = new HashMap<>();
@@ -68,7 +72,11 @@ public class BuildEnvironmentUtils {
       return envVarMap;
     }
 
-    envVarMap.put(DRONE_BUILD_NUMBER, ciExecutionArgs.getBuildNumberDetails().getBuildNumber().toString());
+    try {
+      envVarMap.put(DRONE_BUILD_NUMBER, ciExecutionArgs.getRunSequence());
+    } catch (Exception ex) {
+      log.error("Failed to put build number env var", ex);
+    }
     if (ciExecutionArgs.getExecutionSource() == null) {
       return envVarMap;
     }
@@ -145,7 +153,7 @@ public class BuildEnvironmentUtils {
     setEnvironmentVariable(envVarMap, DRONE_COMMIT_REF, baseAttributes.getRef());
     setEnvironmentVariable(envVarMap, DRONE_COMMIT_BRANCH, baseAttributes.getTarget());
     setEnvironmentVariable(envVarMap, DRONE_COMMIT_LINK, baseAttributes.getLink());
-    setEnvironmentVariable(envVarMap, DRONE_COMMIT_MESSAGE, baseAttributes.getMessage());
+    setEnvironmentVariable(envVarMap, DRONE_COMMIT_MESSAGE, trimEnvVar(baseAttributes.getMessage()));
     setEnvironmentVariable(envVarMap, DRONE_COMMIT_AUTHOR, baseAttributes.getAuthorLogin());
     setEnvironmentVariable(envVarMap, DRONE_COMMIT_AUTHOR_EMAIL, baseAttributes.getAuthorEmail());
     setEnvironmentVariable(envVarMap, DRONE_COMMIT_AUTHOR_AVATAR, baseAttributes.getAuthorAvatar());
@@ -154,6 +162,18 @@ public class BuildEnvironmentUtils {
       envVarMap.put(DRONE_BUILD_ACTION, baseAttributes.getAction());
     }
     return envVarMap;
+  }
+
+  // Max length of environment variable allowed is 8191 characters in windows and 32768 in linux
+  private static String trimEnvVar(String value) {
+    if (isEmpty(value)) {
+      return "";
+    }
+    if (value.length() < MAX_ENV_VAR_LEN) {
+      return value;
+    }
+
+    return abbreviate(value, MAX_ENV_VAR_LEN);
   }
 
   private static void setBitbucketCloudCommitRef(PRWebhookEvent prWebhookEvent, Map<String, String> envVarMap) {

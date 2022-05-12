@@ -146,7 +146,6 @@ public class OrchestrationRegistrars {
           .addAll(WaitEngineRegistrars.kryoRegistrars)
           .addAll(OrchestrationBeansRegistrars.kryoRegistrars)
           .addAll(OrchestrationDelayRegistrars.kryoRegistrars)
-          .addAll(NGAuditCommonsRegistrars.kryoRegistrars)
           .addAll(LicenseBeanRegistrar.kryoRegistrars)
           .add(NGCoreKryoRegistrar.class)
           .add(ProjectAndOrgKryoRegistrar.class)
@@ -155,6 +154,7 @@ public class OrchestrationRegistrars {
           .add(DelegateServiceBeansKryoRegistrar.class)
           .add(CommonEntitiesKryoRegistrar.class)
           .addAll(DelegateTaskRegistrars.kryoRegistrars)
+          .addAll(AccessControlClientRegistrars.kryoRegistrars)
           .build();
 
   public static final ImmutableSet<Class<? extends MorphiaRegistrar>> morphiaRegistrars =
@@ -165,6 +165,7 @@ public class OrchestrationRegistrars {
           .addAll(OrchestrationBeansRegistrars.morphiaRegistrars)
           .addAll(OrchestrationDelayRegistrars.morphiaRegistrars)
           .addAll(NGCoreClientRegistrars.morphiaRegistrars)
+          .addAll(RbacCoreRegistrars.morphiaRegistrars)
           .add(OrchestrationMorphiaRegistrar.class)
           .addAll(DelegateTaskRegistrars.morphiaRegistrars)
           .build();

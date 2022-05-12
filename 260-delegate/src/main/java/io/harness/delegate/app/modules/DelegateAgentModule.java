@@ -8,7 +8,6 @@
 package io.harness.delegate.app.modules;
 
 import static io.harness.configuration.DeployMode.DEPLOY_MODE;
-import static io.harness.configuration.DeployMode.ONPREM;
 import static io.harness.configuration.DeployMode.isOnPrem;
 import static io.harness.delegate.service.DelegateAgentServiceImpl.getDelegateId;
 import static io.harness.grpc.utils.DelegateGrpcConfigExtractor.extractAuthority;
@@ -20,7 +19,6 @@ import io.harness.delegate.app.DelegateGrpcServiceModule;
 import io.harness.delegate.configuration.DelegateConfiguration;
 import io.harness.delegate.task.citasks.CITaskFactoryModule;
 import io.harness.delegate.task.k8s.apiclient.KubernetesApiClientFactoryModule;
-import io.harness.event.client.impl.EventPublisherConstants;
 import io.harness.event.client.impl.appender.AppenderModule;
 import io.harness.event.client.impl.appender.AppenderModule.Config;
 import io.harness.event.client.impl.tailer.DelegateTailerModule;
@@ -36,7 +34,6 @@ import software.wings.delegatetasks.k8s.client.KubernetesClientFactoryModule;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.inject.AbstractModule;
-import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -44,6 +41,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class DelegateAgentModule extends AbstractModule {
   private final DelegateConfiguration configuration;
+  private final boolean isImmutableDelegate;
 
   @Override
   protected void configure() {
@@ -55,26 +53,14 @@ public class DelegateAgentModule extends AbstractModule {
     install(new MetricRegistryModule(new MetricRegistry()));
 
     install(new DelegateManagerClientModule(configuration.getManagerUrl(), configuration.getVerificationServiceUrl(),
-        configuration.getCvNextGenUrl(), configuration.getAccountId(), configuration.getAccountSecret()));
+        configuration.getCvNextGenUrl(), configuration.getAccountId(), configuration.getDelegateToken()));
 
     install(new LogStreamingModule(configuration.getLogStreamingServiceBaseUrl()));
     install(new DelegateGrpcClientModule(configuration));
 
-    final String deployMode = System.getenv().get(DEPLOY_MODE);
-    if (!ONPREM.name().equals(deployMode)) {
-      install(new PerpetualTaskWorkerModule());
-    }
-
-    final String queueFilePath =
-        Optional.ofNullable(configuration.getQueueFilePath()).orElse(EventPublisherConstants.DEFAULT_QUEUE_FILE_PATH);
-    if (!isOnPrem(deployMode)) {
-      install(new PingPongModule());
-      configureCcmEventTailer(queueFilePath);
-    } else {
-      log.warn("Skipping event publisher and PingPong configuration for on-prem deployment");
-    }
-    final Config appenderConfig = Config.builder().queueFilePath(queueFilePath).build();
-    install(new AppenderModule(appenderConfig, () -> getDelegateId().orElse("UNREGISTERED")));
+    configureCcmEventPublishing();
+    install(new PerpetualTaskWorkerModule());
+    install(new PingPongModule());
 
     install(KubernetesClientFactoryModule.getInstance());
     install(KubernetesApiClientFactoryModule.getInstance());
@@ -84,26 +70,34 @@ public class DelegateAgentModule extends AbstractModule {
     if (configuration.isGrpcServiceEnabled()) {
       install(DelegateServiceGrpcAgentClientModule.getInstance());
       install(
-          new DelegateGrpcServiceModule(configuration.getGrpcServiceConnectorPort(), configuration.getAccountSecret()));
+          new DelegateGrpcServiceModule(configuration.getGrpcServiceConnectorPort(), configuration.getDelegateToken()));
     }
 
     install(new DelegateTokensModule(configuration));
   }
 
-  private void configureCcmEventTailer(final String queueFilePath) {
-    final String managerHostAndPort = System.getenv("MANAGER_HOST_AND_PORT");
-    if (isNotBlank(managerHostAndPort)) {
-      final DelegateTailerModule.Config tailerConfig =
-          DelegateTailerModule.Config.builder()
-              .accountId(configuration.getAccountId())
-              .accountSecret(configuration.getAccountSecret())
-              .queueFilePath(queueFilePath)
-              .publishTarget(extractTarget(managerHostAndPort))
-              .publishAuthority(extractAuthority(managerHostAndPort, "events"))
-              .build();
-      install(new DelegateTailerModule(tailerConfig));
+  private void configureCcmEventPublishing() {
+    final String deployMode = System.getenv(DEPLOY_MODE);
+    if (!isOnPrem(deployMode) && isImmutableDelegate) {
+      final String managerHostAndPort = System.getenv("MANAGER_HOST_AND_PORT");
+      if (isNotBlank(managerHostAndPort)) {
+        log.info("Running immutable delegate, starting CCM event tailer");
+        final DelegateTailerModule.Config tailerConfig =
+            DelegateTailerModule.Config.builder()
+                .accountId(configuration.getAccountId())
+                .accountSecret(configuration.getDelegateToken())
+                .queueFilePath(configuration.getQueueFilePath())
+                .publishTarget(extractTarget(managerHostAndPort))
+                .publishAuthority(extractAuthority(managerHostAndPort, "events"))
+                .build();
+        install(new DelegateTailerModule(tailerConfig));
+      } else {
+        log.warn("Unable to configure event publisher configs. Event publisher will be disabled");
+      }
     } else {
-      log.warn("Unable to configure event publisher configs. Event publisher will be disabled");
+      log.info("Skip running tailer by delegate. For mutable it runs in watcher, for on prem we never run it.");
     }
+    final Config appenderConfig = Config.builder().queueFilePath(configuration.getQueueFilePath()).build();
+    install(new AppenderModule(appenderConfig, () -> getDelegateId().orElse("UNREGISTERED")));
   }
 }

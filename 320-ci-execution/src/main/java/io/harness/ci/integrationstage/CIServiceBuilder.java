@@ -24,9 +24,10 @@ import io.harness.beans.dependencies.DependencyElement;
 import io.harness.beans.environment.pod.container.ContainerDefinitionInfo;
 import io.harness.beans.environment.pod.container.ContainerImageDetails;
 import io.harness.beans.quantity.unit.DecimalQuantityUnit;
-import io.harness.beans.quantity.unit.MemoryQuantityUnit;
+import io.harness.beans.quantity.unit.StorageQuantityUnit;
 import io.harness.beans.serializer.RunTimeInputHandler;
 import io.harness.beans.stages.IntegrationStageConfig;
+import io.harness.beans.yaml.extended.infrastrucutre.OSType;
 import io.harness.ci.config.CIExecutionServiceConfig;
 import io.harness.ci.utils.QuantityUtils;
 import io.harness.delegate.beans.ci.pod.CIContainerType;
@@ -38,7 +39,7 @@ import io.harness.util.PortFinder;
 import io.harness.yaml.extended.ci.container.ContainerResource;
 
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,16 +47,17 @@ import java.util.Map;
 @OwnedBy(HarnessTeam.CI)
 public class CIServiceBuilder {
   private static final String SEPARATOR = ",";
-  public static List<ContainerDefinitionInfo> createServicesContainerDefinition(
-      StageElementConfig stageElementConfig, PortFinder portFinder, CIExecutionServiceConfig ciExecutionServiceConfig) {
+  public static List<ContainerDefinitionInfo> createServicesContainerDefinition(StageElementConfig stageElementConfig,
+      PortFinder portFinder, CIExecutionServiceConfig ciExecutionServiceConfig, OSType os) {
     List<ContainerDefinitionInfo> containerDefinitionInfos = new ArrayList<>();
     IntegrationStageConfig integrationStage = IntegrationStageUtils.getIntegrationStageConfig(stageElementConfig);
-    if (isEmpty(integrationStage.getServiceDependencies())) {
+    if (integrationStage.getServiceDependencies() == null
+        || isEmpty(integrationStage.getServiceDependencies().getValue())) {
       return containerDefinitionInfos;
     }
 
     int serviceIdx = 0;
-    for (DependencyElement dependencyElement : integrationStage.getServiceDependencies()) {
+    for (DependencyElement dependencyElement : integrationStage.getServiceDependencies().getValue()) {
       if (dependencyElement == null) {
         continue;
       }
@@ -63,7 +65,7 @@ public class CIServiceBuilder {
       if (dependencyElement.getDependencySpecType() instanceof CIServiceInfo) {
         ContainerDefinitionInfo containerDefinitionInfo =
             createServiceContainerDefinition((CIServiceInfo) dependencyElement.getDependencySpecType(), portFinder,
-                serviceIdx, ciExecutionServiceConfig, stageElementConfig.getIdentifier());
+                serviceIdx, ciExecutionServiceConfig, stageElementConfig.getIdentifier(), os);
         if (containerDefinitionInfo != null) {
           containerDefinitionInfos.add(containerDefinitionInfo);
         }
@@ -74,7 +76,7 @@ public class CIServiceBuilder {
   }
 
   private static ContainerDefinitionInfo createServiceContainerDefinition(CIServiceInfo service, PortFinder portFinder,
-      int serviceIdx, CIExecutionServiceConfig ciExecutionServiceConfig, String identifier) {
+      int serviceIdx, CIExecutionServiceConfig ciExecutionServiceConfig, String identifier, OSType os) {
     Integer port = portFinder.getNextPort();
     service.setGrpcPort(port);
 
@@ -115,7 +117,7 @@ public class CIServiceBuilder {
 
     return ContainerDefinitionInfo.builder()
         .name(containerName)
-        .commands(ServiceContainerUtils.getCommand())
+        .commands(ServiceContainerUtils.getCommand(os))
         .args(ServiceContainerUtils.getArguments(service.getIdentifier(), image, port))
         .envVars(envVariables)
         .containerImageDetails(ContainerImageDetails.builder()
@@ -124,7 +126,7 @@ public class CIServiceBuilder {
                                    .build())
         .containerResourceParams(
             getServiceContainerResource(service.getResources(), ciExecutionServiceConfig, service.getIdentifier()))
-        .ports(Collections.singletonList(port))
+        .ports(Arrays.asList(port))
         .containerType(CIContainerType.SERVICE)
         .stepIdentifier(service.getIdentifier())
         .stepName(service.getName())
@@ -150,7 +152,7 @@ public class CIServiceBuilder {
         String memoryQuantity = RunTimeInputHandler.resolveStringParameter(
             "memory", "Service", identifier, resource.getLimits().getMemory(), false);
         if (isNotEmpty(memoryQuantity) && !UNRESOLVED_PARAMETER.equals(memoryQuantity)) {
-          memory = QuantityUtils.getMemoryQuantityValueInUnit(memoryQuantity, MemoryQuantityUnit.Mi);
+          memory = QuantityUtils.getStorageQuantityValueInUnit(memoryQuantity, StorageQuantityUnit.Mi);
         }
       }
     }
@@ -166,11 +168,11 @@ public class CIServiceBuilder {
     List<String> serviceIdList = new ArrayList<>();
     IntegrationStageConfig integrationStage = IntegrationStageUtils.getIntegrationStageConfig(stageElementConfig);
 
-    if (isEmpty(integrationStage.getServiceDependencies())) {
+    if (isEmpty(integrationStage.getServiceDependencies().getValue())) {
       return serviceIdList;
     }
 
-    for (DependencyElement dependencyElement : integrationStage.getServiceDependencies()) {
+    for (DependencyElement dependencyElement : integrationStage.getServiceDependencies().getValue()) {
       if (dependencyElement == null) {
         continue;
       }
@@ -186,11 +188,11 @@ public class CIServiceBuilder {
     List<Integer> grpcPortList = new ArrayList<>();
     IntegrationStageConfig integrationStage = IntegrationStageUtils.getIntegrationStageConfig(stageElementConfig);
 
-    if (isEmpty(integrationStage.getServiceDependencies())) {
+    if (isEmpty(integrationStage.getServiceDependencies().getValue())) {
       return grpcPortList;
     }
 
-    for (DependencyElement dependencyElement : integrationStage.getServiceDependencies()) {
+    for (DependencyElement dependencyElement : integrationStage.getServiceDependencies().getValue()) {
       if (dependencyElement == null) {
         continue;
       }

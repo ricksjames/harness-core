@@ -22,9 +22,8 @@ import io.harness.accesscontrol.ProjectIdentifier;
 import io.harness.accesscontrol.ResourceIdentifier;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.beans.ExecutionNode;
-import io.harness.data.structure.EmptyPredicate;
-import io.harness.engine.GovernanceService;
 import io.harness.engine.executions.node.NodeExecutionService;
+import io.harness.exception.EntityNotFoundException;
 import io.harness.exception.InvalidRequestException;
 import io.harness.filter.dto.FilterPropertiesDTO;
 import io.harness.git.model.ChangeType;
@@ -32,12 +31,12 @@ import io.harness.gitsync.interceptor.GitEntityCreateInfoDTO;
 import io.harness.gitsync.interceptor.GitEntityDeleteInfoDTO;
 import io.harness.gitsync.interceptor.GitEntityFindInfoDTO;
 import io.harness.gitsync.interceptor.GitEntityUpdateInfoDTO;
+import io.harness.gitsync.interceptor.GitImportInfoDTO;
 import io.harness.ng.core.dto.ErrorDTO;
 import io.harness.ng.core.dto.FailureDTO;
 import io.harness.ng.core.dto.ResponseDTO;
 import io.harness.ng.core.template.TemplateMergeResponseDTO;
 import io.harness.notification.bean.NotificationRules;
-import io.harness.opaclient.model.OpaConstants;
 import io.harness.plancreator.steps.http.PmsAbstractStepNode;
 import io.harness.pms.annotations.PipelineServiceAuth;
 import io.harness.pms.contracts.governance.GovernanceMetadata;
@@ -47,11 +46,13 @@ import io.harness.pms.pipeline.PipelineEntity.PipelineEntityKeys;
 import io.harness.pms.pipeline.mappers.NodeExecutionToExecutioNodeMapper;
 import io.harness.pms.pipeline.mappers.PMSPipelineDtoMapper;
 import io.harness.pms.pipeline.service.PMSPipelineService;
+import io.harness.pms.pipeline.service.PMSPipelineServiceHelper;
 import io.harness.pms.pipeline.service.PMSPipelineTemplateHelper;
-import io.harness.pms.pipeline.service.PMSYamlSchemaService;
 import io.harness.pms.rbac.PipelineRbacPermissions;
+import io.harness.pms.variables.VariableCreatorMergeService;
 import io.harness.pms.variables.VariableMergeServiceResponse;
 import io.harness.steps.template.TemplateStepNode;
+import io.harness.steps.template.stage.TemplateStageNode;
 import io.harness.utils.PageUtils;
 import io.harness.yaml.core.StepSpecType;
 import io.harness.yaml.schema.YamlSchemaResource;
@@ -69,7 +70,6 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
@@ -112,6 +112,12 @@ import org.springframework.data.mongodb.core.query.Criteria;
       @Content(mediaType = "application/json", schema = @Schema(implementation = FailureDTO.class))
       , @Content(mediaType = "application/yaml", schema = @Schema(implementation = FailureDTO.class))
     })
+@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Not Found",
+    content =
+    {
+      @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorDTO.class))
+      , @Content(mediaType = "application/yaml", schema = @Schema(implementation = ErrorDTO.class))
+    })
 @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "Internal server error",
     content =
     {
@@ -122,12 +128,12 @@ import org.springframework.data.mongodb.core.query.Criteria;
 @Slf4j
 public class PipelineResource implements YamlSchemaResource {
   private final PMSPipelineService pmsPipelineService;
-  private final PMSYamlSchemaService pmsYamlSchemaService;
+  private final PMSPipelineServiceHelper pipelineServiceHelper;
   private final NodeExecutionService nodeExecutionService;
   private final NodeExecutionToExecutioNodeMapper nodeExecutionToExecutioNodeMapper;
   private final PMSPipelineTemplateHelper pipelineTemplateHelper;
-  private final GovernanceService governanceService;
   private final PmsFeatureFlagHelper pmsFeatureFlagHelper;
+  private final VariableCreatorMergeService variableCreatorMergeService;
 
   @POST
   @ApiOperation(value = "Create a Pipeline", nickname = "createPipeline")
@@ -145,20 +151,18 @@ public class PipelineResource implements YamlSchemaResource {
           NGCommonEntityConstants.ORG_KEY) @OrgIdentifier String orgId,
       @Parameter(description = PipelineResourceConstants.PROJECT_PARAM_MESSAGE, required = true) @NotNull @QueryParam(
           NGCommonEntityConstants.PROJECT_KEY) @ProjectIdentifier String projectId,
+      @Parameter(description = PipelineResourceConstants.PIPELINE_ID_PARAM_MESSAGE, required = false,
+          hidden = true) @QueryParam(NGCommonEntityConstants.IDENTIFIER_KEY) String pipelineIdentifier,
+      @Parameter(description = PipelineResourceConstants.PIPELINE_NAME_PARAM_MESSAGE, required = false,
+          hidden = true) @QueryParam(NGCommonEntityConstants.NAME_KEY) String pipelineName,
+      @Parameter(description = PipelineResourceConstants.PIPELINE_DESCRIPTION_PARAM_MESSAGE, required = false,
+          hidden = true) @QueryParam(NGCommonEntityConstants.DESCRIPTION_KEY) String pipelineDescription,
       @BeanParam GitEntityCreateInfoDTO gitEntityCreateInfo,
-      @RequestBody(required = true, description = "Pipeline YAML") @NotNull String yaml) throws IOException {
+      @RequestBody(required = true, description = "Pipeline YAML") @NotNull String yaml) {
     PipelineEntity pipelineEntity = PMSPipelineDtoMapper.toPipelineEntity(accountId, orgId, projectId, yaml);
     log.info(String.format("Creating pipeline with identifier %s in project %s, org %s, account %s",
         pipelineEntity.getIdentifier(), projectId, orgId, accountId));
-    // Apply all the templateRefs(if any) then check for schema validation.
-    TemplateMergeResponseDTO templateMergeResponseDTO =
-        pipelineTemplateHelper.resolveTemplateRefsInPipeline(pipelineEntity);
-    String resolveTemplateRefsInPipeline = templateMergeResponseDTO.getMergedPipelineYaml();
-    pmsYamlSchemaService.validateYamlSchema(accountId, orgId, projectId, resolveTemplateRefsInPipeline);
-    // validate unique fqn in resolveTemplateRefsInPipeline
-    pmsYamlSchemaService.validateUniqueFqn(resolveTemplateRefsInPipeline);
-    pipelineEntity.setTemplateReference(
-        EmptyPredicate.isNotEmpty(templateMergeResponseDTO.getTemplateReferenceSummaries()));
+    pipelineServiceHelper.validatePipelineYamlAndSetTemplateRefIfAny(pipelineEntity, false);
     PipelineEntity createdEntity = pmsPipelineService.create(pipelineEntity);
     return ResponseDTO.newResponse(createdEntity.getVersion().toString(), createdEntity.getIdentifier());
   }
@@ -166,7 +170,7 @@ public class PipelineResource implements YamlSchemaResource {
   @POST
   @Path("/v2")
   @ApiOperation(value = "Create a Pipeline", nickname = "createPipelineV2")
-  @Operation(operationId = "postPipelineV2", summary = "Create a Pipeline API (V2 Version)",
+  @Operation(operationId = "postPipelineV2", summary = "Create a Pipeline API With Governance Checks",
       responses =
       {
         @io.swagger.v3.oas.annotations.responses.
@@ -180,32 +184,25 @@ public class PipelineResource implements YamlSchemaResource {
           NGCommonEntityConstants.ORG_KEY) @OrgIdentifier String orgId,
       @Parameter(description = PipelineResourceConstants.PROJECT_PARAM_MESSAGE, required = true) @NotNull @QueryParam(
           NGCommonEntityConstants.PROJECT_KEY) @ProjectIdentifier String projectId,
+      @Parameter(description = PipelineResourceConstants.PIPELINE_ID_PARAM_MESSAGE, required = false,
+          hidden = true) @QueryParam(NGCommonEntityConstants.IDENTIFIER_KEY) String pipelineIdentifier,
+      @Parameter(description = PipelineResourceConstants.PIPELINE_NAME_PARAM_MESSAGE, required = false,
+          hidden = true) @QueryParam(NGCommonEntityConstants.NAME_KEY) String pipelineName,
+      @Parameter(description = PipelineResourceConstants.PIPELINE_DESCRIPTION_PARAM_MESSAGE, required = false,
+          hidden = true) @QueryParam(NGCommonEntityConstants.DESCRIPTION_KEY) String pipelineDescription,
       @BeanParam GitEntityCreateInfoDTO gitEntityCreateInfo,
-      @RequestBody(required = true, description = "Pipeline YAML") @NotNull String yaml) throws IOException {
+      @RequestBody(required = true, description = "Pipeline YAML") @NotNull String yaml) {
     PipelineEntity pipelineEntity = PMSPipelineDtoMapper.toPipelineEntity(accountId, orgId, projectId, yaml);
     log.info(String.format("Creating pipeline with identifier %s in project %s, org %s, account %s",
         pipelineEntity.getIdentifier(), projectId, orgId, accountId));
 
-    // Apply all the templateRefs(if any) then check for schema validation.
-    TemplateMergeResponseDTO templateMergeResponseDTO =
-        pipelineTemplateHelper.resolveTemplateRefsInPipeline(pipelineEntity);
-    String resolveTemplateRefsInPipeline = templateMergeResponseDTO.getMergedPipelineYaml();
-    pmsYamlSchemaService.validateYamlSchema(accountId, orgId, projectId, resolveTemplateRefsInPipeline);
-    // validate unique fqn in resolveTemplateRefsInPipeline
-    pmsYamlSchemaService.validateUniqueFqn(resolveTemplateRefsInPipeline);
-    pipelineEntity.setTemplateReference(
-        EmptyPredicate.isNotEmpty(templateMergeResponseDTO.getTemplateReferenceSummaries()));
-
-    String expandedPipelineJSON = pmsPipelineService.fetchExpandedPipelineJSONFromYaml(
-        accountId, orgId, projectId, resolveTemplateRefsInPipeline);
-    GovernanceMetadata governanceMetadata = governanceService.evaluateGovernancePolicies(
-        expandedPipelineJSON, accountId, orgId, projectId, OpaConstants.OPA_EVALUATION_ACTION_PIPELINE_SAVE, "");
+    GovernanceMetadata governanceMetadata =
+        pipelineServiceHelper.validatePipelineYamlAndSetTemplateRefIfAny(pipelineEntity, true);
     if (governanceMetadata.getDeny()) {
       return ResponseDTO.newResponse(PipelineSaveResponse.builder().governanceMetadata(governanceMetadata).build());
     }
 
     PipelineEntity createdEntity = pmsPipelineService.create(pipelineEntity);
-
     return ResponseDTO.newResponse(createdEntity.getVersion().toString(),
         PipelineSaveResponse.builder()
             .governanceMetadata(governanceMetadata)
@@ -223,6 +220,7 @@ public class PipelineResource implements YamlSchemaResource {
             description = "Returns all Variables used that are valid to be used as expression in pipeline.")
       })
   @ApiOperation(value = "Create variables for Pipeline", nickname = "createVariables")
+  @Hidden
   public ResponseDTO<VariableMergeServiceResponse>
   createVariables(@Parameter(description = PipelineResourceConstants.ACCOUNT_PARAM_MESSAGE,
                       required = true) @NotNull @QueryParam(NGCommonEntityConstants.ACCOUNT_KEY) String accountId,
@@ -230,6 +228,7 @@ public class PipelineResource implements YamlSchemaResource {
           NGCommonEntityConstants.ORG_KEY) String orgId,
       @Parameter(description = PipelineResourceConstants.PROJECT_PARAM_MESSAGE, required = true) @NotNull @QueryParam(
           NGCommonEntityConstants.PROJECT_KEY) String projectId,
+      @BeanParam GitEntityFindInfoDTO gitEntityBasicInfo,
       @RequestBody(required = true, description = "Pipeline YAML") @NotNull @ApiParam(hidden = true) String yaml) {
     log.info("Creating variables for pipeline.");
 
@@ -238,8 +237,39 @@ public class PipelineResource implements YamlSchemaResource {
     String resolveTemplateRefsInPipeline =
         pipelineTemplateHelper.resolveTemplateRefsInPipeline(pipelineEntity).getMergedPipelineYaml();
     VariableMergeServiceResponse variablesResponse =
-        pmsPipelineService.createVariablesResponse(resolveTemplateRefsInPipeline);
+        variableCreatorMergeService.createVariablesResponses(resolveTemplateRefsInPipeline, false);
 
+    return ResponseDTO.newResponse(variablesResponse);
+  }
+
+  @POST
+  @Path("/v2/variables")
+  @Operation(operationId = "createVariablesV2",
+      summary = "Get all the Variables which can be used as expression in the Pipeline.",
+      responses =
+      {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "default",
+            description = "Returns all Variables used that are valid to be used as expression in pipeline.")
+      })
+  @ApiOperation(value = "Create variables for Pipeline", nickname = "createVariablesV2")
+  @Hidden
+  public ResponseDTO<VariableMergeServiceResponse>
+  createVariablesV2(@Parameter(description = PipelineResourceConstants.ACCOUNT_PARAM_MESSAGE,
+                        required = true) @NotNull @QueryParam(NGCommonEntityConstants.ACCOUNT_KEY) String accountId,
+      @Parameter(description = PipelineResourceConstants.ORG_PARAM_MESSAGE, required = true) @NotNull @QueryParam(
+          NGCommonEntityConstants.ORG_KEY) String orgId,
+      @Parameter(description = PipelineResourceConstants.PROJECT_PARAM_MESSAGE, required = true) @NotNull @QueryParam(
+          NGCommonEntityConstants.PROJECT_KEY) String projectId,
+      @BeanParam GitEntityFindInfoDTO gitEntityBasicInfo,
+      @RequestBody(required = true, description = "Pipeline YAML") @NotNull @ApiParam(hidden = true) String yaml) {
+    log.info("Creating variables for pipeline v2 version.");
+
+    PipelineEntity pipelineEntity = PMSPipelineDtoMapper.toPipelineEntity(accountId, orgId, projectId, yaml);
+    // Apply all the templateRefs(if any) then check for variables.
+    String resolveTemplateRefsInPipeline =
+        pipelineTemplateHelper.resolveTemplateRefsInPipeline(pipelineEntity).getMergedPipelineYaml();
+    VariableMergeServiceResponse variablesResponse = variableCreatorMergeService.createVariablesResponsesV2(
+        accountId, orgId, projectId, resolveTemplateRefsInPipeline);
     return ResponseDTO.newResponse(variablesResponse);
   }
 
@@ -262,7 +292,11 @@ public class PipelineResource implements YamlSchemaResource {
           NGCommonEntityConstants.PROJECT_KEY) @ProjectIdentifier String projectId,
       @Parameter(description = PipelineResourceConstants.PIPELINE_ID_PARAM_MESSAGE, required = true) @PathParam(
           NGCommonEntityConstants.PIPELINE_KEY) @ResourceIdentifier String pipelineId,
-      @BeanParam GitEntityFindInfoDTO gitEntityBasicInfo) {
+      @BeanParam GitEntityFindInfoDTO gitEntityBasicInfo,
+      @Parameter(
+          description =
+              "This is a boolean value. If true, returns Templates resolved Pipeline YAML in the response else returns null.")
+      @QueryParam("getTemplatesResolvedPipeline") @DefaultValue("false") boolean getTemplatesResolvedPipeline) {
     log.info(String.format("Retrieving pipeline with identifier %s in project %s, org %s, account %s", pipelineId,
         projectId, orgId, accountId));
 
@@ -274,9 +308,20 @@ public class PipelineResource implements YamlSchemaResource {
 
     PMSPipelineResponseDTO pipeline = PMSPipelineDtoMapper.writePipelineDto(pipelineEntity.orElseThrow(
         ()
-            -> new InvalidRequestException(
+            -> new EntityNotFoundException(
                 String.format("Pipeline with the given ID: %s does not exist or has been deleted", pipelineId))));
 
+    if (getTemplatesResolvedPipeline) {
+      try {
+        String templateResolvedPipelineYaml = "";
+        TemplateMergeResponseDTO templateMergeResponseDTO =
+            pipelineTemplateHelper.resolveTemplateRefsInPipeline(pipelineEntity.get());
+        templateResolvedPipelineYaml = templateMergeResponseDTO.getMergedPipelineYaml();
+        pipeline.setResolvedTemplatesPipelineYaml(templateResolvedPipelineYaml);
+      } catch (Exception e) {
+        log.info("Cannot get resolved templates pipeline YAML");
+      }
+    }
     return ResponseDTO.newResponse(version, pipeline);
   }
 
@@ -301,25 +346,19 @@ public class PipelineResource implements YamlSchemaResource {
           NGCommonEntityConstants.PROJECT_KEY) @ProjectIdentifier String projectId,
       @Parameter(description = PipelineResourceConstants.PIPELINE_ID_PARAM_MESSAGE, required = true) @PathParam(
           NGCommonEntityConstants.PIPELINE_KEY) @ResourceIdentifier String pipelineId,
+      @Parameter(description = PipelineResourceConstants.PIPELINE_NAME_PARAM_MESSAGE, required = false,
+          hidden = true) @QueryParam(NGCommonEntityConstants.NAME_KEY) String pipelineName,
+      @Parameter(description = PipelineResourceConstants.PIPELINE_DESCRIPTION_PARAM_MESSAGE, required = false,
+          hidden = true) @QueryParam(NGCommonEntityConstants.DESCRIPTION_KEY) String pipelineDescription,
       @BeanParam GitEntityUpdateInfoDTO gitEntityInfo,
-      @RequestBody(required = true, description = "Pipeline YAML to be updated") @NotNull String yaml)
-      throws IOException {
+      @RequestBody(required = true, description = "Pipeline YAML to be updated") @NotNull String yaml) {
     log.info(String.format("Updating pipeline with identifier %s in project %s, org %s, account %s", pipelineId,
         projectId, orgId, accountId));
-    // Apply all the templateRefs(if any) then check for schema validation.
-    TemplateMergeResponseDTO templateMergeResponseDTO =
-        pipelineTemplateHelper.resolveTemplateRefsInPipeline(accountId, orgId, projectId, yaml);
-    String resolveTemplateRefsInPipeline = templateMergeResponseDTO.getMergedPipelineYaml();
-    pmsYamlSchemaService.validateYamlSchema(accountId, orgId, projectId, resolveTemplateRefsInPipeline);
-    // validate unique fqn in yaml
-    pmsYamlSchemaService.validateUniqueFqn(resolveTemplateRefsInPipeline);
-
     PipelineEntity pipelineEntity = PMSPipelineDtoMapper.toPipelineEntity(accountId, orgId, projectId, yaml);
     if (!pipelineEntity.getIdentifier().equals(pipelineId)) {
       throw new InvalidRequestException("Pipeline identifier in URL does not match pipeline identifier in yaml");
     }
-    pipelineEntity.setTemplateReference(
-        EmptyPredicate.isNotEmpty(templateMergeResponseDTO.getTemplateReferenceSummaries()));
+    pipelineServiceHelper.validatePipelineYamlAndSetTemplateRefIfAny(pipelineEntity, false);
 
     PipelineEntity withVersion = pipelineEntity.withVersion(isNumeric(ifMatch) ? parseLong(ifMatch) : null);
     PipelineEntity updatedEntity = pmsPipelineService.updatePipelineYaml(withVersion, ChangeType.MODIFY);
@@ -329,7 +368,7 @@ public class PipelineResource implements YamlSchemaResource {
   @PUT
   @Path("/v2/{pipelineIdentifier}")
   @ApiOperation(value = "Update a Pipeline", nickname = "putPipelineV2")
-  @Operation(operationId = "updatePipelineV2", summary = "Updates a Pipeline by identifier (V2 Version)",
+  @Operation(operationId = "updatePipelineV2", summary = "Updates a Pipeline by identifier with Governance checks",
       responses =
       {
         @io.swagger.v3.oas.annotations.responses.
@@ -347,31 +386,21 @@ public class PipelineResource implements YamlSchemaResource {
           NGCommonEntityConstants.PROJECT_KEY) @ProjectIdentifier String projectId,
       @Parameter(description = PipelineResourceConstants.PIPELINE_ID_PARAM_MESSAGE, required = true) @PathParam(
           NGCommonEntityConstants.PIPELINE_KEY) @ResourceIdentifier String pipelineId,
+      @Parameter(description = PipelineResourceConstants.PIPELINE_NAME_PARAM_MESSAGE, required = false,
+          hidden = true) @QueryParam(NGCommonEntityConstants.NAME_KEY) String pipelineName,
+      @Parameter(description = PipelineResourceConstants.PIPELINE_DESCRIPTION_PARAM_MESSAGE, required = false,
+          hidden = true) @QueryParam(NGCommonEntityConstants.DESCRIPTION_KEY) String pipelineDescription,
       @BeanParam GitEntityUpdateInfoDTO gitEntityInfo,
-      @RequestBody(required = true, description = "Pipeline YAML to be updated") @NotNull String yaml)
-      throws IOException {
+      @RequestBody(required = true, description = "Pipeline YAML to be updated") @NotNull String yaml) {
     log.info(String.format("Updating pipeline with identifier %s in project %s, org %s, account %s", pipelineId,
         projectId, orgId, accountId));
-
-    // Apply all the templateRefs(if any) then check for schema validation.
-    TemplateMergeResponseDTO templateMergeResponseDTO =
-        pipelineTemplateHelper.resolveTemplateRefsInPipeline(accountId, orgId, projectId, yaml);
-    String resolveTemplateRefsInPipeline = templateMergeResponseDTO.getMergedPipelineYaml();
-    pmsYamlSchemaService.validateYamlSchema(accountId, orgId, projectId, resolveTemplateRefsInPipeline);
-    // validate unique fqn in yaml
-    pmsYamlSchemaService.validateUniqueFqn(resolveTemplateRefsInPipeline);
-
     PipelineEntity pipelineEntity = PMSPipelineDtoMapper.toPipelineEntity(accountId, orgId, projectId, yaml);
     if (!pipelineEntity.getIdentifier().equals(pipelineId)) {
       throw new InvalidRequestException("Pipeline identifier in URL does not match pipeline identifier in yaml");
     }
-    pipelineEntity.setTemplateReference(
-        EmptyPredicate.isNotEmpty(templateMergeResponseDTO.getTemplateReferenceSummaries()));
 
-    String expandedPipelineJSON = pmsPipelineService.fetchExpandedPipelineJSONFromYaml(
-        accountId, orgId, projectId, resolveTemplateRefsInPipeline);
-    GovernanceMetadata governanceMetadata = governanceService.evaluateGovernancePolicies(
-        expandedPipelineJSON, accountId, orgId, projectId, OpaConstants.OPA_EVALUATION_ACTION_PIPELINE_SAVE, "");
+    GovernanceMetadata governanceMetadata =
+        pipelineServiceHelper.validatePipelineYamlAndSetTemplateRefIfAny(pipelineEntity, true);
     if (governanceMetadata.getDeny()) {
       return ResponseDTO.newResponse(PipelineSaveResponse.builder().governanceMetadata(governanceMetadata).build());
     }
@@ -444,7 +473,7 @@ public class PipelineResource implements YamlSchemaResource {
       @Parameter(description = "Boolean flag to get distinct pipelines from all branches.") @QueryParam(
           "getDistinctFromBranches") Boolean getDistinctFromBranches) {
     log.info(String.format("Get List of pipelines in project %s, org %s, account %s", projectId, orgId, accountId));
-    Criteria criteria = pmsPipelineService.formCriteria(accountId, orgId, projectId, filterIdentifier,
+    Criteria criteria = pipelineServiceHelper.formCriteria(accountId, orgId, projectId, filterIdentifier,
         (PipelineFilterPropertiesDto) filterProperties, false, module, searchTerm);
 
     Pageable pageRequest =
@@ -484,10 +513,34 @@ public class PipelineResource implements YamlSchemaResource {
     PMSPipelineSummaryResponseDTO pipelineSummary = PMSPipelineDtoMapper.preparePipelineSummary(
         pmsPipelineService.get(accountId, orgId, projectId, pipelineId, false)
             .orElseThrow(()
-                             -> new InvalidRequestException(String.format(
+                             -> new EntityNotFoundException(String.format(
                                  "Pipeline with the given ID: %s does not exist or has been deleted", pipelineId))));
 
     return ResponseDTO.newResponse(pipelineSummary);
+  }
+
+  @GET
+  @Path("/import/{pipelineIdentifier}")
+  @Hidden
+  @ApiOperation(value = "Get Pipeline YAML from Git Repository", nickname = "importPipeline")
+  @Operation(operationId = "importPipeline", summary = "Get Pipeline YAML from Git Repository",
+      responses =
+      {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "default",
+            description = "Returns Pipeline YAML fetched from Git Repository. No Pipeline is saved")
+      })
+  @NGAccessControlCheck(resourceType = "PIPELINE", permission = PipelineRbacPermissions.PIPELINE_VIEW)
+  public ResponseDTO<PMSPipelineResponseDTO>
+  importPipelineFromGit(@NotNull @Parameter(description = PipelineResourceConstants.ACCOUNT_PARAM_MESSAGE) @QueryParam(
+                            NGCommonEntityConstants.ACCOUNT_KEY) @AccountIdentifier String accountId,
+      @NotNull @Parameter(description = PipelineResourceConstants.ORG_PARAM_MESSAGE) @QueryParam(
+          NGCommonEntityConstants.ORG_KEY) @OrgIdentifier String orgId,
+      @NotNull @Parameter(description = PipelineResourceConstants.PROJECT_PARAM_MESSAGE) @QueryParam(
+          NGCommonEntityConstants.PROJECT_KEY) @ProjectIdentifier String projectId,
+      @PathParam(NGCommonEntityConstants.PIPELINE_KEY) @ResourceIdentifier @Parameter(
+          description = PipelineResourceConstants.PIPELINE_ID_PARAM_MESSAGE) String pipelineId,
+      @BeanParam GitImportInfoDTO gitImportInfoDTO, PipelineImportRequestDTO pipelineImportRequestDTO) {
+    return ResponseDTO.newResponse(null);
   }
 
   @GET
@@ -534,6 +587,7 @@ public class PipelineResource implements YamlSchemaResource {
   @GET
   @Path("/notification")
   @ApiOperation(value = "Get Notification Schema", nickname = "getNotificationSchema")
+  @Hidden
   public ResponseDTO<NotificationRules> getNotificationSchema() {
     return ResponseDTO.newResponse(NotificationRules.builder().build());
   }
@@ -592,6 +646,15 @@ public class PipelineResource implements YamlSchemaResource {
   }
 
   @GET
+  @Path("/dummy-templateStage-api")
+  @ApiOperation(value = "This is dummy api to expose templateStageNode", nickname = "dummyTemplateStageApi")
+  @Hidden
+  // do not delete this.
+  public ResponseDTO<TemplateStageNode> getTemplateStageNode() {
+    return ResponseDTO.newResponse(new TemplateStageNode());
+  }
+
+  @GET
   @Path("/ffCache/refresh")
   @ApiOperation(value = "Refresh the feature flag cache", nickname = "refreshFFCache")
   @Operation(operationId = "refreshFFCache", summary = "Refresh the feature flag cache",
@@ -600,6 +663,7 @@ public class PipelineResource implements YamlSchemaResource {
         @io.swagger.v3.oas.annotations.responses.
         ApiResponse(responseCode = "default", description = "Refresh the feature flag cache")
       })
+  @Hidden
   public ResponseDTO<Boolean>
   refreshFFCache(@NotNull @Parameter(description = PipelineResourceConstants.ACCOUNT_PARAM_MESSAGE,
       required = true) @QueryParam(NGCommonEntityConstants.ACCOUNT_KEY) @AccountIdentifier String accountId) {
@@ -609,5 +673,110 @@ public class PipelineResource implements YamlSchemaResource {
       log.error("Execution exception occurred while updating cache: " + e.getMessage());
     }
     return ResponseDTO.newResponse(false);
+  }
+
+  @POST
+  @Path("/validate-yaml-with-schema")
+  @ApiOperation(value = "Validate a Pipeline YAML", nickname = "validatePipelineByYAML")
+  @Operation(operationId = "postPipeline", summary = "Validate a Pipeline YAML with Schema",
+      responses =
+      {
+        @io.swagger.v3.oas.annotations.responses.
+        ApiResponse(responseCode = "default", description = "Return if Pipeline YAML is valid or not")
+      })
+  @NGAccessControlCheck(resourceType = "PIPELINE", permission = PipelineRbacPermissions.PIPELINE_CREATE_AND_EDIT)
+  public ResponseDTO<String>
+  validatePipelineByYAML(@Parameter(description = PipelineResourceConstants.ACCOUNT_PARAM_MESSAGE, required = true)
+                         @NotNull @QueryParam(NGCommonEntityConstants.ACCOUNT_KEY) @AccountIdentifier String accountId,
+      @Parameter(description = PipelineResourceConstants.ORG_PARAM_MESSAGE, required = true) @NotNull @QueryParam(
+          NGCommonEntityConstants.ORG_KEY) @OrgIdentifier String orgId,
+      @Parameter(description = PipelineResourceConstants.PROJECT_PARAM_MESSAGE, required = true) @NotNull @QueryParam(
+          NGCommonEntityConstants.PROJECT_KEY) @ProjectIdentifier String projectId,
+      @RequestBody(required = true, description = "Pipeline YAML") @NotNull String yaml) {
+    PipelineEntity pipelineEntity = PMSPipelineDtoMapper.toPipelineEntity(accountId, orgId, projectId, yaml);
+    log.info(String.format("Validating the pipeline YAML with identifier %s in project %s, org %s, account %s",
+        pipelineEntity.getIdentifier(), projectId, orgId, accountId));
+    pipelineServiceHelper.validatePipelineYamlAndSetTemplateRefIfAny(pipelineEntity, false);
+    return ResponseDTO.newResponse(pipelineEntity.getIdentifier());
+  }
+
+  @POST
+  @Path("/validate-pipeline-with-schema")
+  @ApiOperation(value = "Validate a Pipeline", nickname = "validatePipeline")
+  @Operation(operationId = "postPipeline", summary = "Validate a Pipeline with Schema",
+      responses =
+      {
+        @io.swagger.v3.oas.annotations.responses.
+        ApiResponse(responseCode = "default", description = "Return if Pipeline is valid or not")
+      })
+  @NGAccessControlCheck(resourceType = "PIPELINE", permission = PipelineRbacPermissions.PIPELINE_CREATE_AND_EDIT)
+  public ResponseDTO<String>
+  validatePipelineByIdentifier(
+      @Parameter(description = PipelineResourceConstants.ACCOUNT_PARAM_MESSAGE, required = true) @NotNull @QueryParam(
+          NGCommonEntityConstants.ACCOUNT_KEY) @AccountIdentifier String accountId,
+      @Parameter(description = PipelineResourceConstants.ORG_PARAM_MESSAGE, required = true) @NotNull @QueryParam(
+          NGCommonEntityConstants.ORG_KEY) @OrgIdentifier String orgId,
+      @Parameter(description = PipelineResourceConstants.PROJECT_PARAM_MESSAGE, required = true) @NotNull @QueryParam(
+          NGCommonEntityConstants.PROJECT_KEY) @ProjectIdentifier String projectId,
+      @Parameter(description = PipelineResourceConstants.PIPELINE_ID_PARAM_MESSAGE, required = true) @QueryParam(
+          NGCommonEntityConstants.PIPELINE_KEY) @ResourceIdentifier String pipelineId) {
+    Optional<PipelineEntity> entityOptional = pmsPipelineService.get(accountId, orgId, projectId, pipelineId, false);
+    if (entityOptional.isPresent()) {
+      PipelineEntity pipelineEntity = entityOptional.get();
+      log.info(String.format("Validating the pipeline with identifier %s in project %s, org %s, account %s",
+          pipelineEntity.getIdentifier(), projectId, orgId, accountId));
+      pipelineServiceHelper.validatePipelineYamlAndSetTemplateRefIfAny(pipelineEntity, false);
+      return ResponseDTO.newResponse(pipelineEntity.getIdentifier());
+    } else {
+      throw new EntityNotFoundException(
+          String.format("Pipeline with the given ID: %s does not exist or has been deleted", pipelineId));
+    }
+  }
+
+  @GET
+  @Path("resolved-templates-pipeline-yaml/{pipelineIdentifier}")
+  @ApiOperation(value = "Gets template resolved pipeline yaml", nickname = "getTemplateResolvedPipeline")
+  @Hidden
+  @Operation(operationId = "getTemplateResolvedPipeline",
+      summary = "Gets template resolved pipeline yaml by pipeline identifier",
+      responses =
+      {
+        @io.swagger.v3.oas.annotations.responses.
+        ApiResponse(responseCode = "default", description = "Returns templates resolved pipeline YAML")
+      })
+  @NGAccessControlCheck(resourceType = "PIPELINE", permission = PipelineRbacPermissions.PIPELINE_VIEW)
+  public ResponseDTO<TemplatesResolvedPipelineResponseDTO>
+  getTemplateResolvedPipelineYaml(
+      @Parameter(description = PipelineResourceConstants.ACCOUNT_PARAM_MESSAGE, required = true) @NotNull @QueryParam(
+          NGCommonEntityConstants.ACCOUNT_KEY) @AccountIdentifier String accountId,
+      @Parameter(description = PipelineResourceConstants.ORG_PARAM_MESSAGE, required = true) @NotNull @QueryParam(
+          NGCommonEntityConstants.ORG_KEY) @OrgIdentifier String orgId,
+      @Parameter(description = PipelineResourceConstants.PROJECT_PARAM_MESSAGE, required = true) @NotNull @QueryParam(
+          NGCommonEntityConstants.PROJECT_KEY) @ProjectIdentifier String projectId,
+      @Parameter(description = PipelineResourceConstants.PIPELINE_ID_PARAM_MESSAGE, required = true) @PathParam(
+          NGCommonEntityConstants.PIPELINE_KEY) @ResourceIdentifier String pipelineId,
+      @BeanParam GitEntityFindInfoDTO gitEntityBasicInfo) {
+    log.info(
+        String.format("Retrieving templates resolved pipeline with identifier %s in project %s, org %s, account %s",
+            pipelineId, projectId, orgId, accountId));
+
+    Optional<PipelineEntity> pipelineEntity = pmsPipelineService.get(accountId, orgId, projectId, pipelineId, false);
+
+    if (!pipelineEntity.isPresent()) {
+      throw new EntityNotFoundException(
+          String.format("Pipeline with the given ID: %s does not exist or has been deleted", pipelineId));
+    }
+
+    String pipelineYaml = pipelineEntity.get().getYaml();
+
+    TemplateMergeResponseDTO templateMergeResponseDTO =
+        pipelineTemplateHelper.resolveTemplateRefsInPipeline(pipelineEntity.get());
+    String templateResolvedPipelineYaml = templateMergeResponseDTO.getMergedPipelineYaml();
+    TemplatesResolvedPipelineResponseDTO templatesResolvedPipelineResponseDTO =
+        TemplatesResolvedPipelineResponseDTO.builder()
+            .resolvedTemplatesPipelineYaml(templateResolvedPipelineYaml)
+            .yamlPipeline(pipelineYaml)
+            .build();
+    return ResponseDTO.newResponse(templatesResolvedPipelineResponseDTO);
   }
 }

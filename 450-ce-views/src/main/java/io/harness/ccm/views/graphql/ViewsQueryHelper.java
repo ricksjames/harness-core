@@ -88,13 +88,15 @@ public class ViewsQueryHelper {
     }
 
     double totalCost = costData.getCost();
+
     long actualTimeDiffMillis =
-        (endInstant.plus(1, ChronoUnit.SECONDS).toEpochMilli()) - (costData.getMaxStartTime() / 1000);
+        (endInstant.plus(1, ChronoUnit.DAYS).toEpochMilli()) - (costData.getMaxStartTime() / 1000);
 
     long billingTimeDiffMillis = ONE_DAY_MILLIS;
     if (costData.getMaxStartTime() != costData.getMinStartTime()) {
       billingTimeDiffMillis = ((costData.getMaxStartTime() - costData.getMinStartTime()) / 1000) + ONE_DAY_MILLIS;
     }
+
     if (billingTimeDiffMillis < OBSERVATION_PERIOD) {
       return DEFAULT_DOUBLE_VALUE;
     }
@@ -304,9 +306,8 @@ public class ViewsQueryHelper {
   }
 
   public Boolean isGroupByNonePresent(List<QLCEViewGroupBy> groupByList) {
-    String noneFieldName = NONE_FIELD;
-    return groupByList.stream().anyMatch(groupBy
-        -> groupBy.getEntityGroupBy() != null && groupBy.getEntityGroupBy().getFieldName().equals(noneFieldName));
+    return groupByList.stream().anyMatch(
+        groupBy -> groupBy.getEntityGroupBy() != null && groupBy.getEntityGroupBy().getFieldName().equals(NONE_FIELD));
   }
 
   public Boolean isGroupByFieldPresent(List<QLCEViewGroupBy> groupByList, String fieldName) {
@@ -317,7 +318,29 @@ public class ViewsQueryHelper {
   public List<QLCEViewGroupBy> removeGroupByNone(List<QLCEViewGroupBy> groupByList) {
     return groupByList.stream()
         .filter(groupBy
-            -> groupBy.getEntityGroupBy() != null && !groupBy.getEntityGroupBy().getFieldName().equals(NONE_FIELD))
+            -> groupBy.getEntityGroupBy() == null || !groupBy.getEntityGroupBy().getFieldName().equals(NONE_FIELD))
         .collect(Collectors.toList());
+  }
+
+  public String getBusinessMappingIdFromGroupBy(List<QLCEViewGroupBy> groupByList) {
+    Optional<QLCEViewGroupBy> businessMappingGroupBy =
+        groupByList.stream()
+            .filter(groupBy
+                -> groupBy.getEntityGroupBy() != null
+                    && groupBy.getEntityGroupBy().getIdentifier() == ViewFieldIdentifier.BUSINESS_MAPPING)
+            .findFirst();
+
+    return businessMappingGroupBy.map(groupBy -> groupBy.getEntityGroupBy().getFieldId()).orElse(null);
+  }
+
+  public String getBusinessMappingIdFromFilters(List<QLCEViewFilterWrapper> filters) {
+    Optional<QLCEViewFilterWrapper> businessMappingGroupBy =
+        filters.stream()
+            .filter(filter
+                -> filter.getIdFilter() != null
+                    && filter.getIdFilter().getField().getIdentifier() == ViewFieldIdentifier.BUSINESS_MAPPING)
+            .findFirst();
+
+    return businessMappingGroupBy.map(filter -> filter.getIdFilter().getField().getFieldId()).orElse(null);
   }
 }

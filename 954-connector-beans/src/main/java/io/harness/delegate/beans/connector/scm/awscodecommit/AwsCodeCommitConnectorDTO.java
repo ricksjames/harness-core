@@ -10,8 +10,11 @@ package io.harness.delegate.beans.connector.scm.awscodecommit;
 import io.harness.beans.DecryptableEntity;
 import io.harness.connector.DelegateSelectable;
 import io.harness.delegate.beans.connector.ConnectorConfigDTO;
+import io.harness.delegate.beans.connector.ConnectorType;
 import io.harness.delegate.beans.connector.scm.ScmConnector;
+import io.harness.gitsync.beans.GitRepositoryDTO;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.annotations.ApiModel;
@@ -61,5 +64,21 @@ public class AwsCodeCommitConnectorDTO extends ConnectorConfigDTO implements Scm
       }
     }
     return decryptableEntities;
+  }
+
+  @Override
+  @JsonIgnore
+  public ConnectorType getConnectorType() {
+    return ConnectorType.CODECOMMIT;
+  }
+
+  @Override
+  public String getGitConnectionUrl(String repoName) {
+    return "";
+  }
+
+  @Override
+  public GitRepositoryDTO getGitRepositoryDetails() {
+    return GitRepositoryDTO.builder().build();
   }
 }

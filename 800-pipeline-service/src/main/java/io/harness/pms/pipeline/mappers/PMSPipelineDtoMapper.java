@@ -10,8 +10,8 @@ package io.harness.pms.pipeline.mappers;
 import static io.harness.annotations.dev.HarnessTeam.PIPELINE;
 
 import io.harness.EntityType;
-import io.harness.accesscontrol.clients.PermissionCheckDTO;
-import io.harness.accesscontrol.clients.ResourceScope;
+import io.harness.accesscontrol.acl.api.PermissionCheckDTO;
+import io.harness.accesscontrol.acl.api.ResourceScope;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.beans.IdentifierRef;
 import io.harness.common.NGExpressionUtils;
@@ -84,7 +84,7 @@ public class PMSPipelineDtoMapper {
         .lastUpdatedAt(pipelineEntity.getLastUpdatedAt())
         .createdAt(pipelineEntity.getCreatedAt())
         .modules(pipelineEntity.getFilters().keySet())
-        .filters(pipelineEntity.getFilters())
+        .filters(ModuleInfoMapper.getModuleInfo(pipelineEntity.getFilters()))
         .stageNames(pipelineEntity.getStageNames())
         .gitDetails(EntityGitDetailsMapper.mapEntityGitDetails(pipelineEntity))
         .entityValidityDetails(pipelineEntity.isEntityInvalid()

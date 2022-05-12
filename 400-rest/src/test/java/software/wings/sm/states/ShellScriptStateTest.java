@@ -20,13 +20,13 @@ import static io.harness.shell.ScriptType.BASH;
 import static io.harness.shell.ScriptType.POWERSHELL;
 
 import static software.wings.beans.Application.Builder.anApplication;
+import static software.wings.beans.ConnectionType.SSH;
+import static software.wings.beans.ConnectionType.WINRM;
 import static software.wings.beans.Environment.Builder.anEnvironment;
 import static software.wings.beans.HostConnectionAttributes.Builder.aHostConnectionAttributes;
 import static software.wings.beans.ServiceTemplate.Builder.aServiceTemplate;
 import static software.wings.beans.command.Command.Builder.aCommand;
 import static software.wings.service.intfc.ServiceTemplateService.EncryptedFieldComputeMode.OBTAIN_VALUE;
-import static software.wings.sm.states.ShellScriptState.ConnectionType.SSH;
-import static software.wings.sm.states.ShellScriptState.ConnectionType.WINRM;
 import static software.wings.utils.WingsTestConstants.ACCOUNT_ID;
 import static software.wings.utils.WingsTestConstants.ACTIVITY_ID;
 import static software.wings.utils.WingsTestConstants.APP_ID;
@@ -97,6 +97,7 @@ import software.wings.sm.ExecutionContextImpl;
 import software.wings.sm.ExecutionResponse;
 import software.wings.sm.StateExecutionContext;
 import software.wings.sm.WorkflowStandardParams;
+import software.wings.sm.WorkflowStandardParamsExtensionService;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.inject.Inject;
@@ -144,6 +145,7 @@ public class ShellScriptStateTest extends WingsBaseTest {
   @Mock private FeatureFlagService featureFlagService;
   @Mock private StateExecutionService stateExecutionService;
   @Mock private SSHVaultService sshVaultService;
+  @Mock private WorkflowStandardParamsExtensionService workflowStandardParamsExtensionService;
   @InjectMocks private ShellScriptState shellScriptState = new ShellScriptState("ShellScript");
 
   private ExecutionResponse asyncExecutionResponse;
@@ -268,8 +270,9 @@ public class ShellScriptStateTest extends WingsBaseTest {
         .thenReturn("echo \"John Doe\"");
     when(workflowStandardParams.getAppId()).thenReturn(APP_ID);
     when(workflowStandardParams.getEnvId()).thenReturn(ENV_ID);
-    when(workflowStandardParams.getApp()).thenReturn(anApplication().uuid(APP_ID).name(APP_NAME).build());
-    when(workflowStandardParams.getEnv())
+    when(workflowStandardParamsExtensionService.getApp(workflowStandardParams))
+        .thenReturn(anApplication().uuid(APP_ID).name(APP_NAME).build());
+    when(workflowStandardParamsExtensionService.getEnv(workflowStandardParams))
         .thenReturn(anEnvironment().uuid(ENV_ID).name(ENV_NAME).environmentType(NON_PROD).build());
 
     doReturn("TASKID").when(delegateService).queueTask(any());
@@ -323,8 +326,9 @@ public class ShellScriptStateTest extends WingsBaseTest {
 
     when(workflowStandardParams.getAppId()).thenReturn(APP_ID);
     when(workflowStandardParams.getEnvId()).thenReturn(ENV_ID);
-    when(workflowStandardParams.getApp()).thenReturn(anApplication().uuid(APP_ID).name(APP_NAME).build());
-    when(workflowStandardParams.getEnv())
+    when(workflowStandardParamsExtensionService.getApp(workflowStandardParams))
+        .thenReturn(anApplication().uuid(APP_ID).name(APP_NAME).build());
+    when(workflowStandardParamsExtensionService.getEnv(workflowStandardParams))
         .thenReturn(anEnvironment().uuid(ENV_ID).name(ENV_NAME).environmentType(NON_PROD).build());
 
     doReturn("TASKID").when(delegateService).queueTask(any());
@@ -692,8 +696,9 @@ public class ShellScriptStateTest extends WingsBaseTest {
     when(executionContext.renderExpression(eq("localhost"), any(StateExecutionContext.class))).thenReturn("localhost");
     when(workflowStandardParams.getAppId()).thenReturn(APP_ID);
     when(workflowStandardParams.getEnvId()).thenReturn(ENV_ID);
-    when(workflowStandardParams.getApp()).thenReturn(anApplication().uuid(APP_ID).name(APP_NAME).build());
-    when(workflowStandardParams.getEnv())
+    when(workflowStandardParamsExtensionService.getApp(workflowStandardParams))
+        .thenReturn(anApplication().uuid(APP_ID).name(APP_NAME).build());
+    when(workflowStandardParamsExtensionService.getEnv(workflowStandardParams))
         .thenReturn(anEnvironment().uuid(ENV_ID).name(ENV_NAME).environmentType(NON_PROD).build());
   }
 }

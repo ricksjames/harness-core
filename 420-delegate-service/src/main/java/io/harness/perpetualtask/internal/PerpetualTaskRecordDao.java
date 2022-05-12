@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
+import org.mongodb.morphia.query.FindOptions;
 import org.mongodb.morphia.query.Query;
 import org.mongodb.morphia.query.UpdateOperations;
 import org.mongodb.morphia.query.UpdateResults;
@@ -38,6 +39,7 @@ import org.mongodb.morphia.query.UpdateResults;
 public class PerpetualTaskRecordDao {
   private final HPersistence persistence;
   private static final int MAX_FIBONACCI_INDEX_FOR_TASK_ASSIGNMENT = 8;
+  private static final int BATCH_SIZE_FOR_PERPETUAL_TASK_TO_REBALANCE = 20;
 
   @Inject
   public PerpetualTaskRecordDao(HPersistence persistence) {
@@ -46,7 +48,7 @@ public class PerpetualTaskRecordDao {
 
   public void appointDelegate(String taskId, String delegateId, long lastContextUpdated) {
     try (DelegateLogContext ignore = new DelegateLogContext(delegateId, OVERRIDE_ERROR)) {
-      log.info("Appoint perpetual task: {}");
+      log.info("Appoint perpetual task: {}", taskId);
       Query<PerpetualTaskRecord> query =
           persistence.createQuery(PerpetualTaskRecord.class).filter(PerpetualTaskRecordKeys.uuid, taskId);
       UpdateOperations<PerpetualTaskRecord> updateOperations =
@@ -188,6 +190,14 @@ public class PerpetualTaskRecordDao {
     }
 
     return perpetualTaskRecords;
+  }
+
+  public List<PerpetualTaskRecord> listBatchOfPerpetualTasksToRebalanceForAccount(String accountId) {
+    Query<PerpetualTaskRecord> query = persistence.createQuery(PerpetualTaskRecord.class)
+                                           .filter(PerpetualTaskRecordKeys.accountId, accountId)
+                                           .filter(PerpetualTaskRecordKeys.state, PerpetualTaskState.TASK_TO_REBALANCE);
+
+    return query.asList(new FindOptions().limit(BATCH_SIZE_FOR_PERPETUAL_TASK_TO_REBALANCE));
   }
 
   public PerpetualTaskRecord getTask(String taskId) {

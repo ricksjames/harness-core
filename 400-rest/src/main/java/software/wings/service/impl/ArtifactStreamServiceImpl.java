@@ -8,6 +8,7 @@
 package software.wings.service.impl;
 
 import static io.harness.annotations.dev.HarnessTeam.CDC;
+import static io.harness.beans.FeatureName.ARTIFACT_STREAM_METADATA_ONLY;
 import static io.harness.beans.PageRequest.PageRequestBuilder.aPageRequest;
 import static io.harness.beans.PageResponse.PageResponseBuilder.aPageResponse;
 import static io.harness.beans.SearchFilter.Operator.EQ;
@@ -39,6 +40,7 @@ import static software.wings.beans.artifact.ArtifactStreamType.SFTP;
 import static software.wings.beans.artifact.ArtifactStreamType.SMB;
 import static software.wings.common.TemplateConstants.LATEST_TAG;
 import static software.wings.security.PermissionAttribute.PermissionType.ACCOUNT_MANAGEMENT;
+import static software.wings.service.impl.artifact.ArtifactServiceImpl.metadataOnlyBehindFlag;
 
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
@@ -120,7 +122,6 @@ import software.wings.service.intfc.template.TemplateService;
 import software.wings.service.intfc.yaml.YamlPushService;
 import software.wings.settings.SettingValue;
 import software.wings.settings.SettingVariableTypes;
-import software.wings.stencils.DataProvider;
 import software.wings.utils.ArtifactType;
 import software.wings.utils.RepositoryFormat;
 import software.wings.utils.RepositoryType;
@@ -160,7 +161,7 @@ import ru.vyarus.guice.validator.group.annotation.ValidationGroups;
 @ValidateOnExecution
 @Slf4j
 @OwnedBy(CDC)
-public class ArtifactStreamServiceImpl implements ArtifactStreamService, DataProvider {
+public class ArtifactStreamServiceImpl implements ArtifactStreamService {
   private static final Integer REFERENCED_ENTITIES_TO_SHOW = 10;
   public static final String ARTIFACT_STREAM_DEBUG_LOG = "ARTIFACT_STREAM_DEBUG_LOG ";
 
@@ -465,7 +466,15 @@ public class ArtifactStreamServiceImpl implements ArtifactStreamService, DataPro
     }
 
     setServiceId(artifactStream);
+
+    boolean originalMetadataOnly = artifactStream.isMetadataOnly();
+    if (featureFlagService.isEnabled(ARTIFACT_STREAM_METADATA_ONLY, accountId)) {
+      artifactStream.setMetadataOnly(true);
+    }
     artifactStream.validateRequiredFields();
+    if (featureFlagService.isEnabled(ARTIFACT_STREAM_METADATA_ONLY, accountId)) {
+      artifactStream.setMetadataOnly(originalMetadataOnly);
+    }
 
     validateIfNexus2AndDockerRepositoryType(artifactStream, accountId);
 
@@ -508,7 +517,8 @@ public class ArtifactStreamServiceImpl implements ArtifactStreamService, DataPro
 
     // Set metadata-only field for nexus and azure artifacts.
     setMetadataOnly(artifactStream);
-    if (!artifactStream.isMetadataOnly()) {
+
+    if (!metadataOnlyBehindFlag(featureFlagService, artifactStream.getAccountId(), artifactStream.isMetadataOnly())) {
       throw new InvalidRequestException("Artifact Stream's metadata-only property cannot be set to false", USER);
     }
     handleArtifactoryDockerSupportForPcf(artifactStream);
@@ -701,7 +711,14 @@ public class ArtifactStreamServiceImpl implements ArtifactStreamService, DataPro
     String accountId = getAccountIdForArtifactStream(artifactStream);
     artifactStream.setAccountId(accountId);
 
+    boolean originalMetadataOnly = artifactStream.isMetadataOnly();
+    if (featureFlagService.isEnabled(ARTIFACT_STREAM_METADATA_ONLY, accountId)) {
+      artifactStream.setMetadataOnly(true);
+    }
     artifactStream.validateRequiredFields();
+    if (featureFlagService.isEnabled(ARTIFACT_STREAM_METADATA_ONLY, accountId)) {
+      artifactStream.setMetadataOnly(originalMetadataOnly);
+    }
 
     if (artifactStream.getArtifactStreamType() != null && existingArtifactStream.getArtifactStreamType() != null
         && !artifactStream.getArtifactStreamType().equals(existingArtifactStream.getArtifactStreamType())) {
@@ -716,7 +733,10 @@ public class ArtifactStreamServiceImpl implements ArtifactStreamService, DataPro
     }
 
     setMetadataOnly(artifactStream);
-    if (!artifactStream.isMetadataOnly() && existingArtifactStream.isMetadataOnly()) {
+
+    if (!metadataOnlyBehindFlag(featureFlagService, artifactStream.getAccountId(), artifactStream.isMetadataOnly())
+        && metadataOnlyBehindFlag(
+            featureFlagService, existingArtifactStream.getAccountId(), existingArtifactStream.isMetadataOnly())) {
       throw new InvalidRequestException("Artifact Stream's metadata-only property cannot be changed to false", USER);
     }
 
@@ -797,7 +817,8 @@ public class ArtifactStreamServiceImpl implements ArtifactStreamService, DataPro
     }
     if (existingArtifactStream.artifactServerChanged(artifactStream)
         || existingArtifactStream.artifactSourceChanged(artifactStream)
-        || existingArtifactStream.artifactCollectionEnabledFromDisabled(artifactStream)) {
+        || existingArtifactStream.artifactCollectionEnabledFromDisabled(artifactStream)
+        || artifactStream.getCollectionStatus() == null) {
       artifactStream.setCollectionStatus(ArtifactStreamCollectionStatus.UNSTABLE.name());
       artifactStream.setFailedCronAttempts(0);
     }
@@ -898,6 +919,26 @@ public class ArtifactStreamServiceImpl implements ArtifactStreamService, DataPro
         deletePerpetualTask(artifactStream);
       }
     }
+  }
+
+  @Override
+  public Map<String, String> getArtifactStreamNames(String appId, Set<String> artifactStreamIds) {
+    if (isEmpty(artifactStreamIds)) {
+      return Collections.emptyMap();
+    }
+    List<ArtifactStream> artifactStreams = wingsPersistence.createQuery(ArtifactStream.class)
+                                               .field(ServiceKeys.appId)
+                                               .equal(appId)
+                                               .field(ServiceKeys.uuid)
+                                               .in(artifactStreamIds)
+                                               .project(ServiceKeys.name, true)
+                                               .project(ServiceKeys.uuid, true)
+                                               .asList();
+
+    Map<String, String> artifactStreamIdToNameMap = new HashMap<>();
+    artifactStreams.forEach(
+        artifactStream -> artifactStreamIdToNameMap.put(artifactStream.getUuid(), artifactStream.getName()));
+    return artifactStreamIdToNameMap;
   }
 
   private void populateCustomArtifactStreamFields(
@@ -1307,6 +1348,21 @@ public class ArtifactStreamServiceImpl implements ArtifactStreamService, DataPro
   }
 
   @Override
+  public List<ArtifactStream> getArtifactStreamsForService(String appId, String serviceId, List<String> projections) {
+    Query<ArtifactStream> query = wingsPersistence.createQuery(ArtifactStream.class)
+                                      .filter(ArtifactStreamKeys.appId, appId)
+                                      .filter(ArtifactStreamKeys.serviceId, serviceId);
+
+    if (isNotEmpty(projections)) {
+      for (String projectionKey : projections) {
+        query.project(projectionKey, true);
+      }
+    }
+
+    return query.asList();
+  }
+
+  @Override
   public Map<String, String> fetchArtifactSourceProperties(String accountId, String artifactStreamId) {
     ArtifactStream artifactStream = wingsPersistence.get(ArtifactStream.class, artifactStreamId);
     Map<String, String> artifactSourceProperties = new HashMap<>();
@@ -1441,22 +1497,6 @@ public class ArtifactStreamServiceImpl implements ArtifactStreamService, DataPro
           pruneArtifactStream(artifactStream);
           auditServiceHelper.reportDeleteForAuditing(appId, artifactStream);
         });
-  }
-
-  @Override
-  public Map<String, String> getData(String appId, Map<String, String> params) {
-    if (appId == null || GLOBAL_APP_ID.equals(appId)) {
-      return new HashMap<>();
-    }
-
-    List<ArtifactStream> artifactStreams = listByAppId(appId);
-    if (isEmpty(artifactStreams)) {
-      return new HashMap<>();
-    }
-
-    Map<String, String> data = new HashMap<>();
-    artifactStreams.forEach(artifactStream -> data.put(artifactStream.getUuid(), artifactStream.getSourceName()));
-    return data;
   }
 
   @Override
@@ -1712,6 +1752,7 @@ public class ArtifactStreamServiceImpl implements ArtifactStreamService, DataPro
         .uuid(artifact.getUuid())
         .uiDisplayName(artifact.getUiDisplayName())
         .buildNo(artifact.getBuildNo())
+        .artifactStreamId(artifact.getArtifactStreamId())
         .build();
   }
 }

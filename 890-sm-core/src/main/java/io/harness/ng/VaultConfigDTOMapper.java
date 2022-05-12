@@ -45,7 +45,18 @@ public class VaultConfigDTOMapper {
             .name(connector.getName())
             .encryptionType(EncryptionType.VAULT)
             .tags(connector.getTags())
-            .description(connector.getDescription());
+            .description(connector.getDescription())
+            .useAwsIam(vaultConnectorDTO.isUseAwsIam())
+            .awsRegion(vaultConnectorDTO.getAwsRegion())
+            .vaultAwsIamRole(vaultConnectorDTO.getVaultAwsIamRole())
+            .useK8sAuth(vaultConnectorDTO.isUseK8sAuth())
+            .vaultK8sAuthRole(vaultConnectorDTO.getVaultK8sAuthRole())
+            .serviceAccountTokenPath(vaultConnectorDTO.getServiceAccountTokenPath());
+
+    if (null != vaultConnectorDTO.getHeaderAwsIam()
+        && null != vaultConnectorDTO.getHeaderAwsIam().getDecryptedValue()) {
+      builder.xVaultAwsIamServerId(String.valueOf(vaultConnectorDTO.getHeaderAwsIam().getDecryptedValue()));
+    }
 
     if (null != vaultConnectorDTO.getAuthToken() && null != vaultConnectorDTO.getAuthToken().getDecryptedValue()) {
       builder.authToken(String.valueOf(vaultConnectorDTO.getAuthToken().getDecryptedValue()));
@@ -82,7 +93,18 @@ public class VaultConfigDTOMapper {
                                               .projectIdentifier(connector.getProjectIdentifier())
                                               .tags(connector.getTags())
                                               .identifier(connector.getIdentifier())
-                                              .description(connector.getDescription());
+                                              .description(connector.getDescription())
+                                              .useAwsIam(vaultConnectorDTO.isUseAwsIam())
+                                              .awsRegion(vaultConnectorDTO.getAwsRegion())
+                                              .vaultAwsIamRole(vaultConnectorDTO.getVaultAwsIamRole())
+                                              .useK8sAuth(vaultConnectorDTO.isUseK8sAuth())
+                                              .vaultK8sAuthRole(vaultConnectorDTO.getVaultK8sAuthRole())
+                                              .serviceAccountTokenPath(vaultConnectorDTO.getServiceAccountTokenPath());
+
+    if (null != vaultConnectorDTO.getHeaderAwsIam()
+        && null != vaultConnectorDTO.getHeaderAwsIam().getDecryptedValue()) {
+      builder.xVaultAwsIamServerId(String.valueOf(vaultConnectorDTO.getHeaderAwsIam().getDecryptedValue()));
+    }
 
     if (null != vaultConnectorDTO.getAuthToken() && null != vaultConnectorDTO.getAuthToken().getDecryptedValue()) {
       builder.authToken(String.valueOf(vaultConnectorDTO.getAuthToken().getDecryptedValue()));

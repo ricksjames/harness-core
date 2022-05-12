@@ -8,11 +8,14 @@
 package io.harness.ng.core.service.resources;
 
 import static io.harness.rule.OwnerRule.ARCHIT;
+import static io.harness.rule.OwnerRule.SHIVAM;
 
 import static software.wings.beans.Service.ServiceKeys;
 
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
@@ -66,7 +69,6 @@ public class ServiceResourceTest extends CategoryTest {
                             .projectIdentifier("PROJECT_ID")
                             .name("Service")
                             .tags(singletonMap("k1", "v1"))
-                            .version(0L)
                             .build();
 
     serviceResponseDTO = ServiceResponseDTO.builder()
@@ -77,6 +79,9 @@ public class ServiceResourceTest extends CategoryTest {
                              .name("Service")
                              .tags(singletonMap("k1", "v1"))
                              .version(0L)
+                             .yaml("service:\n  name: \"Service\"\n  identifier: \"IDENTIFIER\"\n  "
+                                 + "orgIdentifier: \"ORG_ID\"\n  projectIdentifier: \"PROJECT_ID\"\n  tags:\n    "
+                                 + "k1: \"v1\"\n")
                              .build();
     serviceEntity = ServiceEntity.builder()
                         .accountId("ACCOUNT_ID")
@@ -85,6 +90,9 @@ public class ServiceResourceTest extends CategoryTest {
                         .projectIdentifier("PROJECT_ID")
                         .name("Service")
                         .tags(tags)
+                        .yaml("service:\n  name: \"Service\"\n  identifier: \"IDENTIFIER\"\n  "
+                            + "orgIdentifier: \"ORG_ID\"\n  projectIdentifier: \"PROJECT_ID\"\n  tags:\n    "
+                            + "k1: \"v1\"\n")
                         .version(0L)
                         .build();
   }
@@ -106,10 +114,22 @@ public class ServiceResourceTest extends CategoryTest {
   }
 
   @Test
+  @Owner(developers = SHIVAM)
+  @Category(UnitTests.class)
+  public void testGetForNotFound() {
+    doReturn(Optional.empty())
+        .when(serviceEntityService)
+        .get("ACCOUNT_ID", serviceRequestDTO.getOrgIdentifier(), serviceRequestDTO.getProjectIdentifier(),
+            serviceRequestDTO.getIdentifier(), false);
+    assertThatThrownBy(() -> serviceResource.get("IDENTIFIER", "ACCOUNT_ID", "ORG_ID", "PROJECT_ID", false))
+        .hasMessage("Service with identifier [IDENTIFIER] in project [PROJECT_ID], org [ORG_ID] not found");
+  }
+
+  @Test
   @Owner(developers = ARCHIT)
   @Category(UnitTests.class)
   public void testCreate() {
-    doReturn(serviceEntity).when(serviceEntityService).create(serviceEntity);
+    doReturn(serviceEntity).when(serviceEntityService).create(any());
     ServiceResponseDTO serviceResponse =
         serviceResource.create(serviceEntity.getAccountId(), serviceRequestDTO).getData();
     assertThat(serviceResponse).isEqualTo(serviceResponseDTO);

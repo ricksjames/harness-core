@@ -10,6 +10,7 @@ package io.harness.cdng.provision.terraform;
 import io.harness.annotation.RecasterAlias;
 import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
+import io.harness.cdng.manifest.yaml.FileStorageStoreConfig;
 import io.harness.cdng.manifest.yaml.GitStoreConfig;
 import io.harness.pms.sdk.core.data.ExecutionSweepingOutput;
 import io.harness.security.encryption.EncryptedRecordData;
@@ -31,11 +32,12 @@ import org.springframework.data.annotation.TypeAlias;
 public class TerraformInheritOutput implements ExecutionSweepingOutput {
   String workspace;
   GitStoreConfig configFiles;
+  FileStorageStoreConfig fileStoreConfig;
   List<TerraformVarFileConfig> varFileConfigs;
   String backendConfig;
   List<String> targets;
   Map<String, String> environmentVariables;
-
+  boolean useConnectorCredentials;
   EncryptionConfig encryptionConfig;
   EncryptedRecordData encryptedTfPlan;
   String planName;

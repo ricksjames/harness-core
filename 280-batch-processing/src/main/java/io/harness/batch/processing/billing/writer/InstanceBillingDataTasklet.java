@@ -42,12 +42,13 @@ import io.harness.batch.processing.tasklet.util.InstanceMetaDataUtils;
 import io.harness.batch.processing.writer.constants.K8sCCMConstants;
 import io.harness.ccm.HarnessServiceInfoNG;
 import io.harness.ccm.commons.beans.HarnessServiceInfo;
+import io.harness.ccm.commons.beans.InstanceState;
 import io.harness.ccm.commons.beans.InstanceType;
+import io.harness.ccm.commons.beans.JobConstants;
 import io.harness.ccm.commons.beans.Resource;
 import io.harness.ccm.commons.constants.CloudProvider;
 import io.harness.ccm.commons.constants.InstanceMetaDataConstants;
 import io.harness.ccm.commons.entities.batch.InstanceData;
-import io.harness.persistence.HPersistence;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -66,7 +67,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.mutable.MutableInt;
-import org.springframework.batch.core.JobParameters;
 import org.springframework.batch.core.StepContribution;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.tasklet.Tasklet;
@@ -86,26 +86,23 @@ public class InstanceBillingDataTasklet implements Tasklet {
   @Autowired private AzureCustomBillingService azureCustomBillingService;
   @Autowired private CustomBillingMetaDataService customBillingMetaDataService;
   @Autowired private InstanceDataDao instanceDataDao;
-  @Autowired private HPersistence persistence;
   @Autowired private BatchMainConfig config;
 
-  private JobParameters parameters;
   private static final String CLAIM_REF_SEPARATOR = "/";
   private int batchSize;
-  private BatchJobType batchJobType;
 
   @Override
   public RepeatStatus execute(StepContribution stepContribution, ChunkContext chunkContext) {
-    log.info("Instance Billing Job Started");
-    parameters = chunkContext.getStepContext().getStepExecution().getJobParameters();
+    final JobConstants jobConstants = CCMJobConstants.fromContext(chunkContext);
+    String accountId = jobConstants.getAccountId();
+    Instant startTime = Instant.ofEpochMilli(jobConstants.getJobStartTime());
+    Instant endTime = Instant.ofEpochMilli(jobConstants.getJobEndTime());
     batchSize = config.getBatchQueryConfig().getInstanceDataBatchSize();
-    String accountId = parameters.getString(CCMJobConstants.ACCOUNT_ID);
-    log.info("Account ID: {}", accountId);
-    Instant startTime = getFieldValueFromJobParams(CCMJobConstants.JOB_START_DATE);
-    Instant endTime = getFieldValueFromJobParams(CCMJobConstants.JOB_END_DATE);
-    batchJobType = CCMJobConstants.getBatchJobTypeFromJobParams(parameters, CCMJobConstants.BATCH_JOB_TYPE);
+
+    BatchJobType batchJobType = CCMJobConstants.getBatchJobTypeFromJobParams(
+        chunkContext.getStepContext().getStepExecution().getJobParameters());
     // bill PV first
-    List<InstanceBillingData> pvInstanceBillingDataList = billPVInstances(accountId, startTime, endTime);
+    List<InstanceBillingData> pvInstanceBillingDataList = billPVInstances(batchJobType, accountId, startTime, endTime);
     Map<String, InstanceBillingData> claimRefToPVInstanceBillingData =
         pvInstanceBillingDataList.stream().collect(Collectors.toMap(e
             -> e.getNamespace() + CLAIM_REF_SEPARATOR + e.getWorkloadName(),
@@ -128,7 +125,6 @@ public class InstanceBillingDataTasklet implements Tasklet {
         throw ex;
       }
     } while (instanceDataLists.size() == batchSize);
-    log.info("Instance Billing Job Finished");
     return null;
   }
 
@@ -154,7 +150,8 @@ public class InstanceBillingDataTasklet implements Tasklet {
     return result;
   }
 
-  private List<InstanceBillingData> billPVInstances(String accountId, Instant startTime, Instant endTime) {
+  private List<InstanceBillingData> billPVInstances(
+      BatchJobType batchJobType, String accountId, Instant startTime, Instant endTime) {
     List<InstanceBillingData> instanceBillingDataList = new ArrayList<>();
     List<InstanceData> instanceDataLists;
     InstanceDataReader instanceDataReader =
@@ -175,12 +172,16 @@ public class InstanceBillingDataTasklet implements Tasklet {
   List<InstanceBillingData> createBillingData(String accountId, Instant startTime, Instant endTime,
       BatchJobType batchJobType, List<InstanceData> instanceDataLists,
       Map<String, InstanceBillingData> claimRefToPVInstanceBillingData, Map<String, MutableInt> pvcClaimCount) {
-    log.info("Instance data list new {} {} {} {}", instanceDataLists.size(), startTime, endTime, parameters.toString());
-
     Set<String> parentInstanceIds = new HashSet<>();
     instanceDataLists.forEach(instanceData -> {
       if (null == instanceData.getActiveInstanceIterator() && null == instanceData.getUsageStopTime()) {
         instanceDataDao.updateInstanceActiveIterationTime(instanceData);
+      }
+
+      if (null != instanceData.getUsageStopTime() && instanceData.getInstanceState() == InstanceState.RUNNING) {
+        log.info("correcting instance state {} {} {} {}", instanceData.getInstanceId(),
+            instanceData.getActiveInstanceIterator(), instanceData.getUsageStopTime(), instanceData.getInstanceState());
+        // instanceDataDao.correctInstanceStateActiveIterationTime(instanceData);
       }
     });
 
@@ -189,7 +190,7 @@ public class InstanceBillingDataTasklet implements Tasklet {
             .filter(this::validInstanceForBilling)
             .collect(Collectors.groupingBy(InstanceData::getClusterId));
     String awsDataSetId = customBillingMetaDataService.getAwsDataSetId(accountId);
-    log.info("AWS data set {}", awsDataSetId);
+    log.debug("AWS data set {}", awsDataSetId);
     if (awsDataSetId != null) {
       Set<String> resourceIds = new HashSet<>();
       Set<String> eksFargateResourceIds = new HashSet<>();
@@ -225,7 +226,7 @@ public class InstanceBillingDataTasklet implements Tasklet {
     }
 
     String azureDataSetId = customBillingMetaDataService.getAzureDataSetId(accountId);
-    log.info("Azure data set {}", azureDataSetId);
+    log.debug("Azure data set {}", azureDataSetId);
     if (azureDataSetId != null) {
       Set<String> resourceIds = new HashSet<>();
       instanceDataLists.forEach(instanceData -> {
@@ -423,7 +424,7 @@ public class InstanceBillingDataTasklet implements Tasklet {
         .memoryMbSeconds(billingData.getMemoryMbSeconds())
         .parentInstanceId(getParentInstanceId(instanceData))
         .launchType(getValueForKeyFromInstanceMetaData(InstanceMetaDataConstants.LAUNCH_TYPE, instanceData))
-        .taskId(getValueForKeyFromInstanceMetaData(InstanceMetaDataConstants.TASK_ID, instanceData))
+        .taskId(getTaskIdOrWorkloadId(instanceData))
         .namespace(namespace)
         .region(firstNonNull(region, "on_prem"))
         .clusterType(getValueForKeyFromInstanceMetaData(InstanceMetaDataConstants.CLUSTER_TYPE, instanceData))
@@ -463,6 +464,14 @@ public class InstanceBillingDataTasklet implements Tasklet {
         .build();
   }
 
+  private String getTaskIdOrWorkloadId(InstanceData instanceData) {
+    String taskId = getValueForKeyFromInstanceMetaData(InstanceMetaDataConstants.TASK_ID, instanceData);
+    if (ImmutableSet.of(InstanceType.K8S_POD, InstanceType.K8S_POD_FARGATE).contains(instanceData.getInstanceType())) {
+      taskId = getValueForKeyFromInstanceMetaData(InstanceMetaDataConstants.WORKLOAD_ID, instanceData);
+    }
+    return taskId;
+  }
+
   private BigDecimal getStorageUnallocatedCost(
       BillingData billingData, UtilizationData utilizationData, InstanceData instanceData) {
     if (K8S_PV == instanceData.getInstanceType()) {
@@ -474,7 +483,7 @@ public class InstanceBillingDataTasklet implements Tasklet {
                 .divide(capacityFromInstanceData, MathContext.DECIMAL128);
       }
       if (storageUnallocatedFraction.compareTo(BigDecimal.ZERO) < 0) {
-        log.warn("-ve storageUnallocatedCost, Request:{}/Capacity:{} {}", utilizationData.getAvgStorageRequestValue(),
+        log.debug("-ve storageUnallocatedCost, Request:{}/Capacity:{} {}", utilizationData.getAvgStorageRequestValue(),
             utilizationData.getAvgStorageCapacityValue(), instanceData.toString());
         return BigDecimal.ZERO;
       }
@@ -526,9 +535,5 @@ public class InstanceBillingDataTasklet implements Tasklet {
       return instanceData.getHarnessServiceInfoNG();
     }
     return new HarnessServiceInfoNG(null, null, null, null, null);
-  }
-
-  private Instant getFieldValueFromJobParams(String fieldName) {
-    return Instant.ofEpochMilli(Long.parseLong(parameters.getString(fieldName)));
   }
 }

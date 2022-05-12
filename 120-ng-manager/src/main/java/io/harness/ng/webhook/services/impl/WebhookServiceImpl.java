@@ -8,16 +8,16 @@
 package io.harness.ng.webhook.services.impl;
 
 import static io.harness.annotations.dev.HarnessTeam.PIPELINE;
-import static io.harness.ng.NextGenModule.CONNECTOR_DECORATOR_SERVICE;
 
 import io.harness.NGCommonEntityConstants;
+import io.harness.NgAutoLogContext;
 import io.harness.annotations.dev.OwnedBy;
-import io.harness.connector.impl.ConnectorErrorMessagesHelper;
-import io.harness.connector.services.ConnectorService;
 import io.harness.delegate.task.scm.GitWebhookTaskType;
 import io.harness.exception.InvalidRequestException;
 import io.harness.gitsync.common.service.ScmOrchestratorService;
+import io.harness.logging.AutoLogContext;
 import io.harness.ng.BaseUrls;
+import io.harness.ng.core.AccountOrgProjectHelper;
 import io.harness.ng.webhook.UpsertWebhookRequestDTO;
 import io.harness.ng.webhook.UpsertWebhookResponseDTO;
 import io.harness.ng.webhook.WebhookConstants;
@@ -26,13 +26,10 @@ import io.harness.ng.webhook.services.api.WebhookEventService;
 import io.harness.ng.webhook.services.api.WebhookService;
 import io.harness.product.ci.scm.proto.CreateWebhookResponse;
 import io.harness.repositories.ng.webhook.spring.WebhookEventRepository;
-import io.harness.secretmanagerclient.services.api.SecretManagerClientService;
-import io.harness.service.DelegateGrpcClientWrapper;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import com.google.inject.name.Named;
 import lombok.extern.slf4j.Slf4j;
 
 @Singleton
@@ -40,33 +37,24 @@ import lombok.extern.slf4j.Slf4j;
 @OwnedBy(PIPELINE)
 public class WebhookServiceImpl implements WebhookService, WebhookEventService {
   private final WebhookEventRepository webhookEventRepository;
-  private final DelegateGrpcClientWrapper delegateGrpcClientWrapper;
-  private final SecretManagerClientService secretManagerClientService;
-  private final ConnectorService connectorService;
-  private final ConnectorErrorMessagesHelper connectorErrorMessagesHelper;
   private final BaseUrls baseUrls;
   private final ScmOrchestratorService scmOrchestratorService;
+  private final AccountOrgProjectHelper accountOrgProjectHelper;
 
   @Inject
   public WebhookServiceImpl(WebhookEventRepository webhookEventRepository,
-      DelegateGrpcClientWrapper delegateGrpcClientWrapper, SecretManagerClientService secretManagerClientService,
-      @Named(CONNECTOR_DECORATOR_SERVICE) ConnectorService connectorService,
-      ConnectorErrorMessagesHelper connectorErrorMessagesHelper, BaseUrls baseUrls,
-      ScmOrchestratorService scmOrchestratorService) {
+      ScmOrchestratorService scmOrchestratorService, AccountOrgProjectHelper accountOrgProjectHelper,
+      BaseUrls baseUrls) {
     this.webhookEventRepository = webhookEventRepository;
-    this.delegateGrpcClientWrapper = delegateGrpcClientWrapper;
-    this.secretManagerClientService = secretManagerClientService;
-    this.connectorService = connectorService;
-    this.connectorErrorMessagesHelper = connectorErrorMessagesHelper;
     this.baseUrls = baseUrls;
     this.scmOrchestratorService = scmOrchestratorService;
+    this.accountOrgProjectHelper = accountOrgProjectHelper;
   }
 
   @Override
   public WebhookEvent addEventToQueue(WebhookEvent webhookEvent) {
     try {
-      log.info(
-          "received webhook event with uuid {}, accountId {} ", webhookEvent.getUuid(), webhookEvent.getAccountId());
+      log.info("received webhook event in the accountId {} ", webhookEvent.getAccountId());
       return webhookEventRepository.save(webhookEvent);
     } catch (Exception e) {
       throw new InvalidRequestException("Webhook event could not be saved for processing");
@@ -74,33 +62,55 @@ public class WebhookServiceImpl implements WebhookService, WebhookEventService {
   }
 
   public UpsertWebhookResponseDTO upsertWebhook(UpsertWebhookRequestDTO upsertWebhookRequestDTO) {
-    String target = getTargetUrl(upsertWebhookRequestDTO.getAccountIdentifier());
-    CreateWebhookResponse createWebhookResponse =
-        scmOrchestratorService.processScmRequestUsingConnectorSettings(scmClientFacilitatorService
-            -> scmClientFacilitatorService.upsertWebhook(upsertWebhookRequestDTO, target, GitWebhookTaskType.UPSERT),
-            upsertWebhookRequestDTO.getProjectIdentifier(), upsertWebhookRequestDTO.getOrgIdentifier(),
-            upsertWebhookRequestDTO.getAccountIdentifier(), upsertWebhookRequestDTO.getConnectorIdentifierRef(), null,
-            null);
-    return UpsertWebhookResponseDTO.builder()
-        .webhookResponse(createWebhookResponse.getWebhook())
-        .error(createWebhookResponse.getError())
-        .status(createWebhookResponse.getStatus())
-        .build();
+    try (AutoLogContext ignore1 = new NgAutoLogContext(upsertWebhookRequestDTO.getProjectIdentifier(),
+             upsertWebhookRequestDTO.getOrgIdentifier(), upsertWebhookRequestDTO.getAccountIdentifier(),
+             AutoLogContext.OverrideBehavior.OVERRIDE_ERROR)) {
+      String target = getTargetUrl(upsertWebhookRequestDTO.getAccountIdentifier());
+      CreateWebhookResponse createWebhookResponse =
+          scmOrchestratorService.processScmRequestUsingConnectorSettings(scmClientFacilitatorService
+              -> scmClientFacilitatorService.upsertWebhook(upsertWebhookRequestDTO, target, GitWebhookTaskType.UPSERT),
+              upsertWebhookRequestDTO.getProjectIdentifier(), upsertWebhookRequestDTO.getOrgIdentifier(),
+              upsertWebhookRequestDTO.getAccountIdentifier(), upsertWebhookRequestDTO.getConnectorIdentifierRef(), null,
+              null);
+      UpsertWebhookResponseDTO response = UpsertWebhookResponseDTO.builder()
+                                              .webhookResponse(createWebhookResponse.getWebhook())
+                                              .error(createWebhookResponse.getError())
+                                              .status(createWebhookResponse.getStatus())
+                                              .build();
+      log.info("Upsert Webhook Response : {}", response);
+      return response;
+    } catch (Exception exception) {
+      log.error("Upsert Webhook Error for accountId: {}, orgId:{}, projectId:{} : ",
+          upsertWebhookRequestDTO.getAccountIdentifier(), upsertWebhookRequestDTO.getOrgIdentifier(),
+          upsertWebhookRequestDTO.getProjectIdentifier(), exception);
+      throw exception;
+    }
   }
 
   @VisibleForTesting
   String getTargetUrl(String accountIdentifier) {
-    String webhookBaseUrl = getWebhookBaseUrl();
-    if (!webhookBaseUrl.endsWith("/")) {
-      webhookBaseUrl += "/";
+    String vanityUrl = accountOrgProjectHelper.getVanityUrl(accountIdentifier);
+    String webhookBaseUrlFromConfig = getWebhookBaseUrl();
+    if (!webhookBaseUrlFromConfig.endsWith("/")) {
+      webhookBaseUrlFromConfig += "/";
     }
-    StringBuilder webhookUrl = new StringBuilder(webhookBaseUrl)
+    log.info("The vanity url is {} and webhook url is {}", vanityUrl, webhookBaseUrlFromConfig);
+    String basewebhookUrl = vanityUrl == null ? webhookBaseUrlFromConfig : getVanityUrlForNG(vanityUrl);
+    StringBuilder webhookUrl = new StringBuilder(basewebhookUrl)
                                    .append(WebhookConstants.WEBHOOK_ENDPOINT)
                                    .append('?')
                                    .append(NGCommonEntityConstants.ACCOUNT_KEY)
                                    .append('=')
                                    .append(accountIdentifier);
+    log.info("The complete webhook url is {}", webhookUrl.toString());
     return webhookUrl.toString();
+  }
+
+  private String getVanityUrlForNG(String vanityUrl) {
+    if (!vanityUrl.endsWith("/")) {
+      vanityUrl += "/";
+    }
+    return vanityUrl + "ng/api/";
   }
 
   @VisibleForTesting

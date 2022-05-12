@@ -12,10 +12,13 @@ import static io.harness.beans.ExecutionInterruptType.ABORT_ALL;
 import static io.harness.beans.ExecutionInterruptType.ROLLBACK;
 import static io.harness.beans.ExecutionInterruptType.ROLLBACK_PROVISIONER_AFTER_PHASES;
 import static io.harness.beans.ExecutionStatus.ERROR;
+import static io.harness.beans.ExecutionStatus.EXPIRED;
 import static io.harness.beans.ExecutionStatus.FAILED;
 import static io.harness.beans.ExecutionStatus.STARTING;
 import static io.harness.beans.ExecutionStatus.SUCCESS;
+import static io.harness.beans.FeatureName.CONSIDER_ORIGINAL_STATE_VERSION;
 import static io.harness.beans.FeatureName.LOG_APP_DEFAULTS;
+import static io.harness.beans.FeatureName.TIMEOUT_FAILURE_SUPPORT;
 import static io.harness.beans.OrchestrationWorkflowType.ROLLING;
 import static io.harness.data.structure.EmptyPredicate.isEmpty;
 import static io.harness.data.structure.EmptyPredicate.isNotEmpty;
@@ -145,7 +148,19 @@ public class CanaryWorkflowExecutionAdvisor implements ExecutionEventAdvisor {
         return anExecutionEventAdvice().withExecutionInterruptType(ExecutionInterruptType.END_EXECUTION).build();
       }
 
-      Workflow workflow = workflowService.readWorkflow(workflowExecution.getAppId(), workflowExecution.getWorkflowId());
+      Workflow workflow;
+      if (featureFlagService.isEnabled(CONSIDER_ORIGINAL_STATE_VERSION, context.getAccountId())) {
+        Integer originalStateVersion = context.getStateMachine().getOriginVersion();
+        if (originalStateVersion == null) {
+          workflow = workflowService.readWorkflow(workflowExecution.getAppId(), workflowExecution.getWorkflowId());
+        } else {
+          workflow = workflowService.readWorkflow(
+              workflowExecution.getAppId(), workflowExecution.getWorkflowId(), originalStateVersion);
+        }
+      } else {
+        workflow = workflowService.readWorkflow(workflowExecution.getAppId(), workflowExecution.getWorkflowId());
+      }
+
       CanaryOrchestrationWorkflow orchestrationWorkflow =
           (CanaryOrchestrationWorkflow) findOrchestrationWorkflow(workflow, workflowExecution);
 
@@ -272,7 +287,9 @@ public class CanaryWorkflowExecutionAdvisor implements ExecutionEventAdvisor {
       } else if (executionEvent.getExecutionStatus() == STARTING) {
         PhaseStep phaseStep = findPhaseStep(orchestrationWorkflow, phaseElement, state);
         return shouldSkipStep(context, phaseStep, state, featureFlagService);
-      } else if (!(executionEvent.getExecutionStatus() == FAILED || executionEvent.getExecutionStatus() == ERROR)) {
+      } else if (!(executionEvent.getExecutionStatus() == FAILED || executionEvent.getExecutionStatus() == ERROR
+                     || (featureFlagService.isEnabled(TIMEOUT_FAILURE_SUPPORT, context.getAccountId())
+                         && executionEvent.getExecutionStatus() == EXPIRED))) {
         return null;
       }
 
@@ -548,10 +565,11 @@ public class CanaryWorkflowExecutionAdvisor implements ExecutionEventAdvisor {
     return false;
   }
 
-  private ExecutionEventAdvice computeExecutionEventAdvice(CanaryOrchestrationWorkflow orchestrationWorkflow,
+  ExecutionEventAdvice computeExecutionEventAdvice(CanaryOrchestrationWorkflow orchestrationWorkflow,
       FailureStrategy failureStrategy, ExecutionEvent executionEvent, PhaseSubWorkflow phaseSubWorkflow,
       StateExecutionInstance stateExecutionInstance) {
-    if (workflowExecutionService.checkIfOnDemand(
+    if (failureStrategy == null
+        && workflowExecutionService.checkIfOnDemand(
             stateExecutionInstance.getAppId(), stateExecutionInstance.getExecutionUuid())) {
       if (phaseSubWorkflow == null) {
         return null;

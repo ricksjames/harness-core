@@ -28,15 +28,17 @@ import io.harness.accesscontrol.NGAccessControlCheck;
 import io.harness.accesscontrol.OrgIdentifier;
 import io.harness.accesscontrol.ProjectIdentifier;
 import io.harness.accesscontrol.ResourceIdentifier;
+import io.harness.accesscontrol.acl.api.AccessControlDTO;
+import io.harness.accesscontrol.acl.api.PermissionCheckDTO;
+import io.harness.accesscontrol.acl.api.Resource;
+import io.harness.accesscontrol.acl.api.ResourceScope;
 import io.harness.accesscontrol.clients.AccessControlClient;
-import io.harness.accesscontrol.clients.AccessControlDTO;
-import io.harness.accesscontrol.clients.PermissionCheckDTO;
-import io.harness.accesscontrol.clients.Resource;
-import io.harness.accesscontrol.clients.ResourceScope;
 import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
+import io.harness.data.structure.EmptyPredicate;
 import io.harness.exception.InvalidRequestException;
 import io.harness.ng.beans.PageResponse;
+import io.harness.ng.core.OrgAndProjectValidationHelper;
 import io.harness.ng.core.dto.ErrorDTO;
 import io.harness.ng.core.dto.FailureDTO;
 import io.harness.ng.core.dto.ResponseDTO;
@@ -45,8 +47,10 @@ import io.harness.ng.core.environment.beans.Environment.EnvironmentKeys;
 import io.harness.ng.core.environment.beans.EnvironmentType;
 import io.harness.ng.core.environment.dto.EnvironmentRequestDTO;
 import io.harness.ng.core.environment.dto.EnvironmentResponse;
+import io.harness.ng.core.environment.mappers.EnvironmentFilterHelper;
 import io.harness.ng.core.environment.mappers.EnvironmentMapper;
 import io.harness.ng.core.environment.services.EnvironmentService;
+import io.harness.ng.core.environment.yaml.NGEnvironmentConfig;
 import io.harness.ng.core.utils.CoreCriteriaUtils;
 import io.harness.rbac.CDNGRbacUtility;
 import io.harness.security.annotations.NextGenManagerAuth;
@@ -57,6 +61,7 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
+import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -74,6 +79,7 @@ import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
+import javax.ws.rs.NotFoundException;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
@@ -120,10 +126,11 @@ import org.springframework.data.mongodb.core.query.Criteria;
           @Content(mediaType = NGCommonEntityConstants.APPLICATION_YAML_MEDIA_TYPE,
               schema = @Schema(implementation = ErrorDTO.class))
     })
-@OwnedBy(HarnessTeam.PIPELINE)
+@OwnedBy(HarnessTeam.CDC)
 public class EnvironmentResourceV2 {
   private final EnvironmentService environmentService;
   private final AccessControlClient accessControlClient;
+  private final OrgAndProjectValidationHelper orgAndProjectValidationHelper;
 
   public static final String ENVIRONMENT_PARAM_MESSAGE = "Environment Identifier for the entity";
 
@@ -153,6 +160,13 @@ public class EnvironmentResourceV2 {
     String version = "0";
     if (environment.isPresent()) {
       version = environment.get().getVersion().toString();
+      if (EmptyPredicate.isEmpty(environment.get().getYaml())) {
+        NGEnvironmentConfig ngEnvironmentConfig = EnvironmentMapper.toNGEnvironmentConfig(environment.get());
+        environment.get().setYaml(EnvironmentMapper.toYaml(ngEnvironmentConfig));
+      }
+    } else {
+      throw new NotFoundException(String.format("Environment with identifier [%s] in project [%s], org [%s] not found",
+          environmentIdentifier, projectIdentifier, orgIdentifier));
     }
     return ResponseDTO.newResponse(version, environment.map(EnvironmentMapper::toResponseWrapper).orElse(null));
   }
@@ -179,6 +193,8 @@ public class EnvironmentResourceV2 {
           "Type for an environment cannot be empty. Possible values: " + Arrays.toString(EnvironmentType.values()));
     }
     Environment environmentEntity = EnvironmentMapper.toEnvironmentEntity(accountId, environmentRequestDTO);
+    orgAndProjectValidationHelper.checkThatTheOrganizationAndProjectExists(environmentEntity.getOrgIdentifier(),
+        environmentEntity.getProjectIdentifier(), environmentEntity.getAccountId());
     Environment createdEnvironment = environmentService.create(environmentEntity);
     return ResponseDTO.newResponse(
         createdEnvironment.getVersion().toString(), EnvironmentMapper.toResponseWrapper(createdEnvironment));
@@ -256,9 +272,11 @@ public class EnvironmentResourceV2 {
 
     Environment requestEnvironment = EnvironmentMapper.toEnvironmentEntity(accountId, environmentRequestDTO);
     requestEnvironment.setVersion(isNumeric(ifMatch) ? parseLong(ifMatch) : null);
-    Environment upsertedEnvironment = environmentService.upsert(requestEnvironment);
+    orgAndProjectValidationHelper.checkThatTheOrganizationAndProjectExists(requestEnvironment.getOrgIdentifier(),
+        requestEnvironment.getProjectIdentifier(), requestEnvironment.getAccountId());
+    Environment upsertEnvironment = environmentService.upsert(requestEnvironment);
     return ResponseDTO.newResponse(
-        upsertedEnvironment.getVersion().toString(), EnvironmentMapper.toResponseWrapper(upsertedEnvironment));
+        upsertEnvironment.getVersion().toString(), EnvironmentMapper.toResponseWrapper(upsertEnvironment));
   }
 
   @GET
@@ -289,7 +307,8 @@ public class EnvironmentResourceV2 {
       @QueryParam("sort") List<String> sort) {
     accessControlClient.checkForAccessOrThrow(ResourceScope.of(accountId, orgIdentifier, projectIdentifier),
         Resource.of(ENVIRONMENT, null), ENVIRONMENT_VIEW_PERMISSION, "Unauthorized to list environments");
-    Criteria criteria = CoreCriteriaUtils.createCriteriaForGetList(accountId, orgIdentifier, projectIdentifier, false);
+    Criteria criteria = EnvironmentFilterHelper.createCriteriaForGetList(
+        accountId, orgIdentifier, projectIdentifier, false, searchTerm);
     Pageable pageRequest;
 
     if (isNotEmpty(envIdentifiers)) {
@@ -300,9 +319,14 @@ public class EnvironmentResourceV2 {
     } else {
       pageRequest = PageUtils.getPageRequest(page, size, sort);
     }
-    Page<EnvironmentResponse> environmentList =
-        environmentService.list(criteria, pageRequest).map(EnvironmentMapper::toResponseWrapper);
-    return ResponseDTO.newResponse(getNGPageResponse(environmentList));
+    Page<Environment> environmentEntities = environmentService.list(criteria, pageRequest);
+    environmentEntities.forEach(environment -> {
+      if (EmptyPredicate.isEmpty(environment.getYaml())) {
+        NGEnvironmentConfig ngEnvironmentConfig = EnvironmentMapper.toNGEnvironmentConfig(environment);
+        environment.setYaml(EnvironmentMapper.toYaml(ngEnvironmentConfig));
+      }
+    });
+    return ResponseDTO.newResponse(getNGPageResponse(environmentEntities.map(EnvironmentMapper::toResponseWrapper)));
   }
 
   @GET
@@ -351,6 +375,15 @@ public class EnvironmentResourceV2 {
     List<AccessControlDTO> accessControlList =
         accessControlClient.checkForAccess(permissionCheckDTOS).getAccessControlList();
     return ResponseDTO.newResponse(filterEnvironmentResponseByPermissionAndId(accessControlList, environmentList));
+  }
+
+  @GET
+  @Path("/dummy-env-api")
+  @ApiOperation(value = "This is dummy api to expose NGEnvironmentConfig", nickname = "dummyNGEnvironmentConfigApi")
+  @Hidden
+  // do not delete this.
+  public ResponseDTO<NGEnvironmentConfig> getNGEnvironmentConfig() {
+    return ResponseDTO.newResponse(NGEnvironmentConfig.builder().build());
   }
 
   private List<EnvironmentResponse> filterEnvironmentResponseByPermissionAndId(

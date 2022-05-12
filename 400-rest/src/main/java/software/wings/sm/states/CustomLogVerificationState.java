@@ -25,8 +25,13 @@ import io.harness.beans.DelegateTask;
 import io.harness.delegate.beans.TaskData;
 
 import software.wings.beans.APMVerificationConfig;
+import software.wings.beans.LogCollectionInfo;
+import software.wings.beans.LogResponseMapping;
 import software.wings.beans.SettingAttribute;
 import software.wings.beans.TaskType;
+import software.wings.beans.apm.Method;
+import software.wings.delegatetasks.DelegateStateType;
+import software.wings.delegatetasks.cv.beans.CustomLogResponseMapper;
 import software.wings.service.impl.analysis.AnalysisComparisonStrategy;
 import software.wings.service.impl.analysis.AnalysisComparisonStrategyProvider;
 import software.wings.service.impl.analysis.AnalysisTolerance;
@@ -47,10 +52,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 import lombok.experimental.FieldNameConstants;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
@@ -163,7 +164,8 @@ public class CustomLogVerificationState extends AbstractLogAnalysisState {
     final long dataCollectionStartTimeStamp = dataCollectionStartTimestampMillis();
     String accountId = appService.get(context.getAppId()).getAccountId();
 
-    Map<String, Map<String, ResponseMapper>> logDefinitions = constructLogDefinitions(context, logCollectionInfos);
+    Map<String, Map<String, CustomLogResponseMapper>> logDefinitions =
+        constructLogDefinitions(context, logCollectionInfos);
     CustomLogDataCollectionInfo dataCollectionInfo =
         CustomLogDataCollectionInfo.builder()
             .baseUrl(logConfig.getUrl())
@@ -173,7 +175,7 @@ public class CustomLogVerificationState extends AbstractLogAnalysisState {
             .encryptedDataDetails(logConfig.encryptedDataDetails(secretManager))
             .hosts(hosts)
             .query(getRenderedQuery())
-            .stateType(StateType.LOG_VERIFICATION)
+            .stateType(DelegateStateType.LOG_VERIFICATION)
             .applicationId(context.getAppId())
             .stateExecutionId(context.getStateExecutionInstanceId())
             .workflowId(getWorkflowId(context))
@@ -229,9 +231,9 @@ public class CustomLogVerificationState extends AbstractLogAnalysisState {
     return shouldDoHostbasedFiltering;
   }
 
-  public static Map<String, Map<String, ResponseMapper>> constructLogDefinitions(
+  public static Map<String, Map<String, CustomLogResponseMapper>> constructLogDefinitions(
       final ExecutionContext context, final List<LogCollectionInfo> logCollectionInfos) {
-    Map<String, Map<String, ResponseMapper>> logDefinition = new HashMap<>();
+    Map<String, Map<String, CustomLogResponseMapper>> logDefinition = new HashMap<>();
     for (LogCollectionInfo logInfo : logCollectionInfos) {
       String evaluatedUrl =
           context != null ? context.renderExpression(logInfo.getCollectionUrl()) : logInfo.getCollectionUrl();
@@ -247,9 +249,9 @@ public class CustomLogVerificationState extends AbstractLogAnalysisState {
     return logDefinition;
   }
 
-  private static Map<String, ResponseMapper> getResponseMappers(LogCollectionInfo logCollectionInfo) {
-    ResponseMapping responseMapping = logCollectionInfo.getResponseMapping();
-    Map<String, ResponseMapper> responseMappers = new HashMap<>();
+  private static Map<String, CustomLogResponseMapper> getResponseMappers(LogCollectionInfo logCollectionInfo) {
+    LogResponseMapping responseMapping = logCollectionInfo.getResponseMapping();
+    Map<String, CustomLogResponseMapper> responseMappers = new HashMap<>();
 
     // Set the host details (if exists) in the responseMapper
     if (!isEmpty(responseMapping.getHostJsonPath())) {
@@ -258,68 +260,23 @@ public class CustomLogVerificationState extends AbstractLogAnalysisState {
       hostJsonList.add(hostJson);
       List<String> hostRegex =
           isEmpty(responseMapping.getHostRegex()) ? null : Lists.newArrayList(responseMapping.getHostRegex());
-      ResponseMapper hostResponseMapper =
-          ResponseMapper.builder().fieldName("host").regexs(hostRegex).jsonPath(hostJsonList).build();
+      CustomLogResponseMapper hostResponseMapper =
+          CustomLogResponseMapper.builder().fieldName("host").regexs(hostRegex).jsonPath(hostJsonList).build();
       responseMappers.put("host", hostResponseMapper);
     }
     List timestampJsonList = new ArrayList(), logMsgList = new ArrayList();
     timestampJsonList.add(responseMapping.getTimestampJsonPath());
     responseMappers.put("timestamp",
-        ResponseMapper.builder()
+        CustomLogResponseMapper.builder()
             .fieldName("timestamp")
             .jsonPath(timestampJsonList)
             .timestampFormat(responseMapping.getTimestampFormat())
             .build());
 
     logMsgList.add(responseMapping.getLogMessageJsonPath());
-    responseMappers.put("logMessage", ResponseMapper.builder().fieldName("logMessage").jsonPath(logMsgList).build());
+    responseMappers.put(
+        "logMessage", CustomLogResponseMapper.builder().fieldName("logMessage").jsonPath(logMsgList).build());
 
     return responseMappers;
-  }
-
-  @Data
-  @Builder
-  @NoArgsConstructor
-  @AllArgsConstructor
-  public static class LogCollectionInfo {
-    private String collectionUrl;
-    private String collectionBody;
-    private ResponseType responseType;
-    private CustomLogVerificationState.ResponseMapping responseMapping;
-    private Method method;
-  }
-
-  @Data
-  @Builder
-  @NoArgsConstructor
-  @AllArgsConstructor
-  public static class ResponseMapping {
-    private String logMessageJsonPath;
-    private String hostJsonPath;
-    private String hostRegex;
-    private String timestampJsonPath;
-    @Deprecated private String timeStampFormat;
-    private String timestampFormat;
-
-    public void setTimestampFormat(String format) {
-      this.timestampFormat = format;
-    }
-
-    public String getTimestampFormat() {
-      return isNotEmpty(timestampFormat) ? timestampFormat : timeStampFormat;
-    }
-  }
-  public enum ResponseType { JSON }
-
-  public enum Method { POST, GET }
-
-  @Data
-  @Builder
-  public static class ResponseMapper {
-    private String fieldName;
-    private String fieldValue;
-    private List<String> jsonPath;
-    private List<String> regexs;
-    private String timestampFormat;
   }
 }

@@ -37,6 +37,7 @@ import io.harness.cdng.infra.beans.K8sDirectInfrastructureOutcome.K8sDirectInfra
 import io.harness.cdng.infra.beans.K8sGcpInfrastructureOutcome;
 import io.harness.cdng.k8s.K8sEntityHelper;
 import io.harness.cdng.k8s.beans.StepExceptionPassThroughData;
+import io.harness.cdng.manifest.ManifestStoreType;
 import io.harness.cdng.manifest.yaml.GitStoreConfig;
 import io.harness.cdng.manifest.yaml.GithubStore;
 import io.harness.cdng.manifest.yaml.K8sManifestOutcome;
@@ -570,29 +571,13 @@ public class CDStepHelperTest extends CategoryTest {
   @Owner(developers = ACHYUTH)
   @Category(UnitTests.class)
   public void testValidateManifest() {
-    String[] manifestStoreType = {"Git", "Github", "Bitbucket", "GitLab", "Http", "S3", "Gcs"};
     when(connectorInfoDTO.getConnectorConfig()).thenReturn(null);
-    assertThatThrownBy(
-        () -> CDStepHelper.validateManifest(manifestStoreType[0], ConnectorInfoDTO.builder().build(), ""))
-        .isInstanceOf(InvalidRequestException.class);
-    assertThatThrownBy(
-        () -> CDStepHelper.validateManifest(manifestStoreType[1], ConnectorInfoDTO.builder().build(), ""))
-        .isInstanceOf(InvalidRequestException.class);
-    assertThatThrownBy(
-        () -> CDStepHelper.validateManifest(manifestStoreType[2], ConnectorInfoDTO.builder().build(), ""))
-        .isInstanceOf(InvalidRequestException.class);
-    assertThatThrownBy(
-        () -> CDStepHelper.validateManifest(manifestStoreType[3], ConnectorInfoDTO.builder().build(), ""))
-        .isInstanceOf(InvalidRequestException.class);
-    assertThatThrownBy(
-        () -> CDStepHelper.validateManifest(manifestStoreType[4], ConnectorInfoDTO.builder().build(), ""))
-        .isInstanceOf(InvalidRequestException.class);
-    assertThatThrownBy(
-        () -> CDStepHelper.validateManifest(manifestStoreType[5], ConnectorInfoDTO.builder().build(), ""))
-        .isInstanceOf(InvalidRequestException.class);
-    assertThatThrownBy(
-        () -> CDStepHelper.validateManifest(manifestStoreType[6], ConnectorInfoDTO.builder().build(), ""))
-        .isInstanceOf(InvalidRequestException.class);
+    String[] manifestStoreTypes = {ManifestStoreType.GIT, ManifestStoreType.GITHUB, ManifestStoreType.BITBUCKET,
+        ManifestStoreType.GITLAB, ManifestStoreType.HTTP, ManifestStoreType.S3, ManifestStoreType.GCS};
+    for (String storeType : manifestStoreTypes) {
+      assertThatThrownBy(() -> CDStepHelper.validateManifest(storeType, ConnectorInfoDTO.builder().build(), ""))
+          .isInstanceOf(InvalidRequestException.class);
+    }
   }
 
   @Test
@@ -632,16 +617,7 @@ public class CDStepHelperTest extends CategoryTest {
     doReturn(connectorDTOOptional).when(connectorService).get("account1", "org1", "project1", "abcConnector");
 
     K8sDirectInfrastructureOutcomeBuilder outcomeBuilder =
-        K8sDirectInfrastructureOutcome.builder().connectorRef("abcConnector").namespace("namespace test");
-
-    try {
-      CDStepHelper.getK8sInfraDelegateConfig(outcomeBuilder.build(), ambiance);
-      fail("Should not reach here.");
-    } catch (InvalidArgumentsException ex) {
-      assertThat(ex.getParams().get("args"))
-          .isEqualTo(
-              "Namespace: \"namespace test\" is an invalid name. Namespaces may only contain lowercase letters, numbers, and '-'.");
-    }
+        K8sDirectInfrastructureOutcome.builder().connectorRef("abcConnector");
 
     try {
       outcomeBuilder.namespace("");

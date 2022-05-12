@@ -18,9 +18,11 @@ import static io.harness.walktree.visitor.utilities.VisitorParentPathUtils.PATH_
 import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.beans.stages.IntegrationStageConfig;
+import io.harness.beans.yaml.extended.infrastrucutre.Infrastructure;
 import io.harness.beans.yaml.extended.infrastrucutre.K8sDirectInfraYaml;
 import io.harness.ci.integrationstage.IntegrationStageUtils;
 import io.harness.ci.plan.creator.filter.CIFilter.CIFilterBuilder;
+import io.harness.ci.utils.ValidationUtils;
 import io.harness.delegate.beans.ci.pod.ConnectorDetails;
 import io.harness.eventsframework.schemas.entity.EntityDetailProtoDTO;
 import io.harness.eventsframework.schemas.entity.EntityTypeProtoEnum;
@@ -37,11 +39,12 @@ import io.harness.pms.yaml.YamlField;
 import io.harness.pms.yaml.YamlNode;
 import io.harness.pms.yaml.YamlUtils;
 import io.harness.stateutils.buildstate.ConnectorUtils;
+import io.harness.steps.StepSpecTypeConstants;
 import io.harness.walktree.visitor.SimpleVisitorFactory;
 import io.harness.yaml.extended.ci.codebase.CodeBase;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.inject.Inject;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
@@ -54,7 +57,7 @@ public class CIStageFilterJsonCreator extends GenericStageFilterJsonCreator {
 
   @Override
   public Set<String> getSupportedStageTypes() {
-    return Collections.singleton("CI");
+    return ImmutableSet.of(StepSpecTypeConstants.CI_STAGE, StepSpecTypeConstants.SECURITY_STAGE);
   }
 
   @Override
@@ -88,12 +91,12 @@ public class CIStageFilterJsonCreator extends GenericStageFilterJsonCreator {
     }
 
     if (ciCodeBase != null) {
-      if (ciCodeBase.getRepoName() != null) {
-        ciFilterBuilder.repoName(ciCodeBase.getRepoName());
-      } else if (ciCodeBase.getConnectorRef() != null) {
+      if (ciCodeBase.getRepoName().getValue() != null) {
+        ciFilterBuilder.repoName(ciCodeBase.getRepoName().getValue());
+      } else if (ciCodeBase.getConnectorRef().getValue() != null) {
         try {
           ConnectorDetails connectorDetails =
-              connectorUtils.getConnectorDetails(baseNGAccess, ciCodeBase.getConnectorRef());
+              connectorUtils.getConnectorDetails(baseNGAccess, ciCodeBase.getConnectorRef().getValue());
           String repoName = getGitRepo(connectorUtils.retrieveURL(connectorDetails));
           ciFilterBuilder.repoName(repoName);
         } catch (Exception exception) {
@@ -101,9 +104,23 @@ public class CIStageFilterJsonCreator extends GenericStageFilterJsonCreator {
         }
       }
     }
-    log.info("Successfully created filter for integration stage {}", stageElementConfig.getIdentifier());
 
+    validateStage(stageElementConfig);
+
+    log.info("Successfully created filter for integration stage {}", stageElementConfig.getIdentifier());
     return ciFilterBuilder.build();
+  }
+
+  private void validateStage(StageElementConfig stageElementConfig) {
+    IntegrationStageConfig integrationStageConfig = (IntegrationStageConfig) stageElementConfig.getStageType();
+
+    Infrastructure infrastructure = integrationStageConfig.getInfrastructure();
+    if (infrastructure == null) {
+      throw new CIStageExecutionException("Infrastructure is mandatory for execution");
+    }
+    if (infrastructure.getType() == Infrastructure.Type.VM) {
+      ValidationUtils.validateVmInfraDependencies(integrationStageConfig.getServiceDependencies().getValue());
+    }
   }
 
   public Set<EntityDetailProtoDTO> getReferredEntities(
@@ -129,9 +146,8 @@ public class CIStageFilterJsonCreator extends GenericStageFilterJsonCreator {
           YamlUtils.getFullyQualifiedName(filterCreationContext.getCurrentField().getNode()) + PATH_CONNECTOR
           + YAMLFieldNameConstants.SPEC + PATH_CONNECTOR + ciCodeBase.getConnectorRef();
 
-      result.add(
-          convertToEntityDetailProtoDTO(accountIdentifier, orgIdentifier, projectIdentifier, fullQualifiedDomainName,
-              ParameterField.createValueField(ciCodeBase.getConnectorRef()), EntityTypeProtoEnum.CONNECTORS));
+      result.add(convertToEntityDetailProtoDTO(accountIdentifier, orgIdentifier, projectIdentifier,
+          fullQualifiedDomainName, ciCodeBase.getConnectorRef(), EntityTypeProtoEnum.CONNECTORS));
     }
 
     IntegrationStageConfig integrationStage = (IntegrationStageConfig) stageElementConfig.getStageType();

@@ -42,6 +42,7 @@ import io.harness.persistence.HIterator;
 import software.wings.api.SkipStateExecutionData;
 import software.wings.beans.SettingAttribute;
 import software.wings.beans.WorkflowExecution;
+import software.wings.delegatetasks.DelegateStateType;
 import software.wings.dl.WingsPersistence;
 import software.wings.metrics.RiskLevel;
 import software.wings.metrics.Threshold;
@@ -62,19 +63,17 @@ import software.wings.service.impl.newrelic.LearningEngineAnalysisTask;
 import software.wings.service.impl.newrelic.NewRelicMetricAnalysisRecord;
 import software.wings.service.impl.newrelic.NewRelicMetricAnalysisRecord.NewRelicMetricAnalysis;
 import software.wings.service.impl.newrelic.NewRelicMetricAnalysisRecord.NewRelicMetricAnalysisRecordKeys;
-import software.wings.service.impl.newrelic.NewRelicMetricAnalysisRecord.NewRelicMetricAnalysisValue;
-import software.wings.service.impl.newrelic.NewRelicMetricAnalysisRecord.NewRelicMetricHostAnalysisValue;
+import software.wings.service.impl.newrelic.NewRelicMetricAnalysisValue;
 import software.wings.service.impl.newrelic.NewRelicMetricDataRecord;
 import software.wings.service.impl.newrelic.NewRelicMetricDataRecord.NewRelicMetricDataRecordKeys;
+import software.wings.service.impl.newrelic.NewRelicMetricHostAnalysisValue;
 import software.wings.service.intfc.AppService;
 import software.wings.service.intfc.DataStoreService;
 import software.wings.service.intfc.MetricDataAnalysisService;
 import software.wings.service.intfc.SettingsService;
-import software.wings.service.intfc.VerificationService;
 import software.wings.service.intfc.WorkflowExecutionService;
 import software.wings.service.intfc.WorkflowService;
 import software.wings.service.intfc.analysis.ClusterLevel;
-import software.wings.service.intfc.verification.CVConfigurationService;
 import software.wings.sm.StateExecutionData;
 import software.wings.sm.StateExecutionInstance;
 import software.wings.sm.StateType;
@@ -115,16 +114,14 @@ public class MetricDataAnalysisServiceImpl implements MetricDataAnalysisService 
   public static final int DEFAULT_PAGE_SIZE = 10;
   @Inject private WingsPersistence wingsPersistence;
   @Inject private WorkflowExecutionService workflowExecutionService;
-  @Inject private VerificationService learningEngineService;
   @Inject protected SettingsService settingsService;
   @Inject private WorkflowService workflowService;
   @Inject private AppService appService;
   @Inject private DataStoreService dataStoreService;
-  @Inject private CVConfigurationService cvConfigurationService;
 
   @Override
-  public String getLastSuccessfulWorkflowExecutionIdWithData(
-      StateType stateType, String appId, String workflowId, String serviceId, String infraMappingId, String envId) {
+  public String getLastSuccessfulWorkflowExecutionIdWithData(DelegateStateType stateType, String appId,
+      String workflowId, String serviceId, String infraMappingId, String envId) {
     List<String> successfulExecutions = new ArrayList<>();
     List<WorkflowExecution> executions =
         workflowExecutionService.getLastSuccessfulWorkflowExecutions(appId, workflowId, serviceId);
@@ -319,7 +316,10 @@ public class MetricDataAnalysisServiceImpl implements MetricDataAnalysisService 
   public List<TimeSeriesMLTransactionThresholds> getCustomThreshold(String customThresholdRefId) {
     Query<TimeSeriesMLTransactionThresholds> query =
         wingsPersistence.createQuery(TimeSeriesMLTransactionThresholds.class, excludeAuthority)
-            .filter(TimeSeriesMLTransactionThresholdKeys.customThresholdRefId, customThresholdRefId);
+            .filter(TimeSeriesMLTransactionThresholdKeys.customThresholdRefId, customThresholdRefId)
+            .order(Sort.ascending(TimeSeriesMLTransactionThresholdKeys.groupName),
+                Sort.ascending(TimeSeriesMLTransactionThresholdKeys.transactionName),
+                Sort.ascending(TimeSeriesMLTransactionThresholdKeys.metricName));
 
     List<TimeSeriesMLTransactionThresholds> transactionThresholds = new ArrayList<>();
     try (HIterator<TimeSeriesMLTransactionThresholds> iterator = new HIterator(query.fetch())) {

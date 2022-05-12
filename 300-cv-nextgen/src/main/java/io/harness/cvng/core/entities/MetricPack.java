@@ -26,6 +26,7 @@ import io.harness.persistence.UuidAware;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -117,6 +118,7 @@ public final class MetricPack implements PersistentEntity, UuidAware, CreatedAtA
   @JsonIgnoreProperties(ignoreUnknown = true)
   public static class MetricDefinition {
     @Trimmed @NotEmpty private String name;
+    @NotEmpty private String identifier;
     @NotNull private TimeSeriesMetricType type;
     private String path;
     private String validationPath;
@@ -125,11 +127,13 @@ public final class MetricPack implements PersistentEntity, UuidAware, CreatedAtA
     private boolean included;
     @Builder.Default private List<TimeSeriesThreshold> thresholds = new ArrayList<>();
     @JsonIgnore
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     public String getPath() {
       return path;
     }
 
     @JsonIgnore
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     public String getValidationPath() {
       return validationPath;
     }
@@ -137,6 +141,7 @@ public final class MetricPack implements PersistentEntity, UuidAware, CreatedAtA
     public io.harness.cvng.beans.MetricPackDTO.MetricDefinitionDTO toDTO() {
       return io.harness.cvng.beans.MetricPackDTO.MetricDefinitionDTO.builder()
           .name(name)
+          .metricIdentifier(identifier)
           .path(path)
           .responseJsonPath(responseJsonPath)
           .validationResponseJsonPath(validationResponseJsonPath)

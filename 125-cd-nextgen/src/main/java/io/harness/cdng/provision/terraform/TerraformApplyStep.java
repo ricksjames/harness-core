@@ -12,6 +12,7 @@ import static io.harness.cdng.provision.terraform.TerraformPlanCommand.APPLY;
 import io.harness.EntityType;
 import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
+import io.harness.beans.FeatureName;
 import io.harness.beans.IdentifierRef;
 import io.harness.cdng.featureFlag.CDFeatureFlagHelper;
 import io.harness.cdng.stepsdependency.constants.OutcomeExpressionConstants;
@@ -29,6 +30,7 @@ import io.harness.executions.steps.ExecutionNodeType;
 import io.harness.logging.CommandExecutionStatus;
 import io.harness.logging.UnitProgress;
 import io.harness.ng.core.EntityDetail;
+import io.harness.plancreator.steps.TaskSelectorYaml;
 import io.harness.plancreator.steps.common.StepElementParameters;
 import io.harness.plancreator.steps.common.rollback.TaskExecutableWithRollbackAndRbac;
 import io.harness.pms.contracts.ambiance.Ambiance;
@@ -53,6 +55,7 @@ import software.wings.beans.TaskType;
 import com.google.inject.Inject;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
@@ -125,8 +128,8 @@ public class TerraformApplyStep extends TaskExecutableWithRollbackAndRbac<Terraf
 
   private TaskRequest obtainInlineTask(
       Ambiance ambiance, TerraformApplyStepParameters stepParameters, StepElementParameters stepElementParameters) {
-    helper.validateApplyStepConfigFilesInline(stepParameters);
     log.info("Obtaining Inline Task for the Apply Step");
+    helper.validateApplyStepConfigFilesInline(stepParameters);
     TerraformStepConfigurationParameters configuration = stepParameters.getConfiguration();
     TerraformExecutionDataParameters spec = configuration.getSpec();
     TerraformTaskNGParametersBuilder builder = TerraformTaskNGParameters.builder();
@@ -140,14 +143,20 @@ public class TerraformApplyStep extends TaskExecutableWithRollbackAndRbac<Terraf
         .terraformCommand(TerraformCommand.APPLY)
         .terraformCommandUnit(TerraformCommandUnit.Apply)
         .entityId(entityId)
+        .tfModuleSourceInheritSSH(helper.isExportCredentialForSourceModule(
+            ambiance, configuration.getSpec().getConfigFiles(), stepElementParameters.getType()))
         .workspace(ParameterFieldHelper.getParameterFieldValue(spec.getWorkspace()))
         .configFile(helper.getGitFetchFilesConfig(
+            spec.getConfigFiles().getStore().getSpec(), ambiance, TerraformStepHelper.TF_CONFIG_FILES))
+        .fileStoreConfigFiles(helper.getFileStoreFetchFilesConfig(
             spec.getConfigFiles().getStore().getSpec(), ambiance, TerraformStepHelper.TF_CONFIG_FILES))
         .varFileInfos(helper.toTerraformVarFileInfo(spec.getVarFiles(), ambiance))
         .backendConfig(helper.getBackendConfig(spec.getBackendConfig()))
         .targets(ParameterFieldHelper.getParameterFieldValue(spec.getTargets()))
         .saveTerraformStateJson(false)
-        .environmentVariables(helper.getEnvironmentVariablesMap(spec.getEnvironmentVariables()))
+        .environmentVariables(helper.getEnvironmentVariablesMap(spec.getEnvironmentVariables()) == null
+                ? new HashMap<>()
+                : helper.getEnvironmentVariablesMap(spec.getEnvironmentVariables()))
         .timeoutInMillis(
             StepUtils.getTimeoutMillis(stepElementParameters.getTimeout(), TerraformConstants.DEFAULT_TIMEOUT));
 
@@ -158,10 +167,10 @@ public class TerraformApplyStep extends TaskExecutableWithRollbackAndRbac<Terraf
             .timeout(StepUtils.getTimeoutMillis(stepElementParameters.getTimeout(), TerraformConstants.DEFAULT_TIMEOUT))
             .parameters(new Object[] {builder.build()})
             .build();
-
     return StepUtils.prepareCDTaskRequest(ambiance, taskData, kryoSerializer,
         Collections.singletonList(TerraformCommandUnit.Apply.name()), TaskType.TERRAFORM_TASK_NG.getDisplayName(),
-        StepUtils.getTaskSelectors(stepParameters.getDelegateSelectors()), stepHelper.getEnvironmentType(ambiance));
+        TaskSelectorYaml.toTaskSelector(stepParameters.getDelegateSelectors()),
+        stepHelper.getEnvironmentType(ambiance));
   }
 
   private TaskRequest obtainInheritedTask(
@@ -180,6 +189,11 @@ public class TerraformApplyStep extends TaskExecutableWithRollbackAndRbac<Terraf
     builder.workspace(inheritOutput.getWorkspace())
         .configFile(helper.getGitFetchFilesConfig(
             inheritOutput.getConfigFiles(), ambiance, TerraformStepHelper.TF_CONFIG_FILES))
+        .tfModuleSourceInheritSSH(cdFeatureFlagHelper.isEnabled(
+                                      AmbianceUtils.getAccountId(ambiance), FeatureName.TF_MODULE_SOURCE_INHERIT_SSH)
+            && inheritOutput.isUseConnectorCredentials())
+        .fileStoreConfigFiles(helper.getFileStoreFetchFilesConfig(
+            inheritOutput.getFileStoreConfig(), ambiance, TerraformStepHelper.TF_CONFIG_FILES))
         .varFileInfos(helper.prepareTerraformVarFileInfo(inheritOutput.getVarFileConfigs(), ambiance))
         .backendConfig(inheritOutput.getBackendConfig())
         .targets(inheritOutput.getTargets())
@@ -187,7 +201,8 @@ public class TerraformApplyStep extends TaskExecutableWithRollbackAndRbac<Terraf
         .encryptionConfig(inheritOutput.getEncryptionConfig())
         .encryptedTfPlan(inheritOutput.getEncryptedTfPlan())
         .planName(inheritOutput.getPlanName())
-        .environmentVariables(inheritOutput.getEnvironmentVariables())
+        .environmentVariables(
+            inheritOutput.getEnvironmentVariables() == null ? new HashMap<>() : inheritOutput.getEnvironmentVariables())
         .timeoutInMillis(
             StepUtils.getTimeoutMillis(stepElementParameters.getTimeout(), TerraformConstants.DEFAULT_TIMEOUT));
 
@@ -198,10 +213,10 @@ public class TerraformApplyStep extends TaskExecutableWithRollbackAndRbac<Terraf
             .timeout(StepUtils.getTimeoutMillis(stepElementParameters.getTimeout(), TerraformConstants.DEFAULT_TIMEOUT))
             .parameters(new Object[] {builder.build()})
             .build();
-
     return StepUtils.prepareCDTaskRequest(ambiance, taskData, kryoSerializer,
         Collections.singletonList(TerraformCommandUnit.Apply.name()), TaskType.TERRAFORM_TASK_NG.getDisplayName(),
-        StepUtils.getTaskSelectors(stepParameters.getDelegateSelectors()), stepHelper.getEnvironmentType(ambiance));
+        TaskSelectorYaml.toTaskSelector(stepParameters.getDelegateSelectors()),
+        stepHelper.getEnvironmentType(ambiance));
   }
 
   @Override

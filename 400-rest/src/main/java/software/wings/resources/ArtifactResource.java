@@ -15,10 +15,12 @@ import io.harness.beans.PageRequest;
 import io.harness.beans.PageResponse;
 import io.harness.rest.RestResponse;
 
+import software.wings.beans.Service;
 import software.wings.beans.alert.AlertType;
 import software.wings.beans.alert.ArtifactCollectionFailedAlert;
 import software.wings.beans.artifact.Artifact;
 import software.wings.beans.artifact.ArtifactStream;
+import software.wings.beans.artifact.ArtifactView;
 import software.wings.security.PermissionAttribute.Action;
 import software.wings.security.PermissionAttribute.PermissionType;
 import software.wings.security.annotations.AuthRule;
@@ -27,6 +29,7 @@ import software.wings.service.intfc.AppService;
 import software.wings.service.intfc.ArtifactService;
 import software.wings.service.intfc.ArtifactStreamService;
 import software.wings.service.intfc.PermitService;
+import software.wings.service.intfc.ServiceResourceService;
 
 import com.codahale.metrics.annotation.ExceptionMetered;
 import com.codahale.metrics.annotation.Timed;
@@ -63,6 +66,7 @@ public class ArtifactResource {
   private PermitService permitService;
   private AppService appService;
   private AlertService alertService;
+  private ServiceResourceService serviceResourceService;
 
   /**
    * Instantiates a new artifact resource.
@@ -100,6 +104,28 @@ public class ArtifactResource {
     return new RestResponse<>(artifactService.listArtifactsForService(appId, serviceId, pageRequest));
   }
 
+  /**
+   * List artifacts for artifact streams having collection enabled.
+   *
+   * @param appId       the app id
+   * @param pageRequest the page request
+   * @return the rest response
+   */
+  @GET
+  @Path("/collection-enabled-artifacts")
+  @Timed
+  @ExceptionMetered
+  public RestResponse<PageResponse<Artifact>> listArtifactsWithCollectionEnabled(@QueryParam("appId") String appId,
+      @QueryParam("accountId") String accountId, @QueryParam("routingId") String routingId,
+      @QueryParam("serviceId") String serviceId, @BeanParam PageRequest<Artifact> pageRequest) {
+    pageRequest.addFilter("appId", EQ, appId);
+    if (StringUtils.isNoneBlank(accountId, routingId)) {
+      pageRequest.addFilter("accountId", EQ, StringUtils.isNotBlank(accountId) ? accountId : routingId);
+    }
+    return new RestResponse<>(
+        artifactService.listArtifactsForServiceWithCollectionEnabled(appId, serviceId, pageRequest));
+  }
+
   @GET
   @Path("/v2")
   @Timed
@@ -108,6 +134,12 @@ public class ArtifactResource {
       @QueryParam("accountId") String accountId, @BeanParam PageRequest<Artifact> pageRequest) {
     if (StringUtils.isNotBlank(accountId)) {
       pageRequest.addFilter("accountId", EQ, accountId);
+    } else if (serviceId != null) {
+      Service service = serviceResourceService.get(serviceId);
+      if (service != null) {
+        String accountIdentifier = service.getAccountId();
+        pageRequest.addFilter("accountId", EQ, accountIdentifier);
+      }
     }
     return new RestResponse<>(artifactService.listArtifactsForService(serviceId, pageRequest));
   }
@@ -123,7 +155,7 @@ public class ArtifactResource {
   @Path("{artifactId}")
   @Timed
   @ExceptionMetered
-  public RestResponse<Artifact> get(@QueryParam("appId") String appId, @PathParam("artifactId") String artifactId) {
+  public RestResponse<ArtifactView> get(@QueryParam("appId") String appId, @PathParam("artifactId") String artifactId) {
     return new RestResponse<>(artifactService.getWithServices(artifactId, appId));
   }
 

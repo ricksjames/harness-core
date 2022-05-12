@@ -21,6 +21,7 @@ import io.harness.connector.impl.ConnectorFilterServiceImpl;
 import io.harness.connector.impl.ConnectorHeartbeatServiceImpl;
 import io.harness.connector.impl.DefaultConnectorServiceImpl;
 import io.harness.connector.impl.NGConnectorSecretManagerServiceImpl;
+import io.harness.connector.impl.NGHostServiceImpl;
 import io.harness.connector.mappers.ConnectorDTOToEntityMapper;
 import io.harness.connector.mappers.ConnectorEntityToDTOMapper;
 import io.harness.connector.mappers.filter.ConnectorFilterPropertiesMapper;
@@ -32,6 +33,7 @@ import io.harness.connector.services.ConnectorFilterService;
 import io.harness.connector.services.ConnectorHeartbeatService;
 import io.harness.connector.services.ConnectorService;
 import io.harness.connector.services.NGConnectorSecretManagerService;
+import io.harness.connector.services.NGHostService;
 import io.harness.connector.task.ConnectorValidationHandler;
 import io.harness.connector.validator.ConnectionValidator;
 import io.harness.delegate.beans.connector.ConnectorType;
@@ -42,6 +44,8 @@ import io.harness.filter.mapper.FilterPropertiesMapper;
 import io.harness.git.GitClientV2;
 import io.harness.git.GitClientV2Impl;
 import io.harness.impl.scm.ScmServiceClientImpl;
+import io.harness.ng.core.accountsetting.services.NGAccountSettingService;
+import io.harness.ng.core.accountsetting.services.NGAccountSettingServiceImpl;
 import io.harness.persistence.HPersistence;
 import io.harness.service.ScmServiceClient;
 
@@ -115,6 +119,8 @@ public class ConnectorModule extends AbstractModule {
     bind(NGConnectorSecretManagerService.class).to(NGConnectorSecretManagerServiceImpl.class);
     bind(GithubService.class).to(GithubServiceImpl.class);
     bind(ScmServiceClient.class).to(ScmServiceClientImpl.class);
+    bind(NGAccountSettingService.class).to(NGAccountSettingServiceImpl.class);
+    bind(NGHostService.class).to(NGHostServiceImpl.class);
     MapBinder<String, FilterPropertiesMapper> filterPropertiesMapper =
         MapBinder.newMapBinder(binder(), String.class, FilterPropertiesMapper.class);
     filterPropertiesMapper.addBinding(FilterType.CONNECTOR.toString()).to(ConnectorFilterPropertiesMapper.class);

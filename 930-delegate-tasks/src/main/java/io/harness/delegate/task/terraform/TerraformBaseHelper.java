@@ -12,6 +12,7 @@ import static io.harness.annotations.dev.HarnessTeam.CDP;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.cli.CliResponse;
 import io.harness.delegate.beans.connector.scm.genericgitconnector.GitConfigDTO;
+import io.harness.delegate.beans.storeconfig.ArtifactoryStoreDelegateConfig;
 import io.harness.delegate.beans.storeconfig.GitStoreDelegateConfig;
 import io.harness.git.model.GitBaseRequest;
 import io.harness.logging.LogCallback;
@@ -49,12 +50,18 @@ public interface TerraformBaseHelper {
   GitBaseRequest getGitBaseRequestForConfigFile(
       String accountId, GitStoreDelegateConfig confileFileGitStore, GitConfigDTO configFileGitConfigDTO);
 
-  Map<String, String> buildcommitIdToFetchedFilesMap(String accountId, String configFileIdentifier,
-      GitBaseRequest gitBaseRequestForConfigFile, List<TerraformVarFileInfo> varFileInfo);
+  Map<String, String> buildCommitIdToFetchedFilesMap(String configFileIdentifier,
+      GitBaseRequest gitBaseRequestForConfigFile, Map<String, String> commitIdForConfigFilesMap);
+
+  void addVarFilesCommitIdsToMap(
+      String accountId, List<TerraformVarFileInfo> varFileInfo, Map<String, String> commitIdForConfigFilesMap);
 
   String fetchConfigFileAndPrepareScriptDir(GitBaseRequest gitBaseRequestForConfigFile, String accountId,
       String workspace, String currentStateFileId, GitStoreDelegateConfig confileFileGitStore, LogCallback logCallback,
       String scriptPath, String workingDir);
+
+  String fetchConfigFileAndPrepareScriptDir(ArtifactoryStoreDelegateConfig artifactoryStoreDelegateConfig,
+      String accountId, String workspace, String currentStateFileId, LogCallback logCallback, String baseDir);
 
   void fetchConfigFileAndCloneLocally(GitBaseRequest gitBaseRequestForConfigFile, LogCallback logCallback);
 
@@ -74,6 +81,9 @@ public interface TerraformBaseHelper {
   void performCleanupOfTfDirs(TerraformTaskNGParameters parameters, LogCallback logCallback);
 
   String getBaseDir(String entityId);
+
+  void configureCredentialsForModuleSource(TerraformTaskNGParameters taskParameters,
+      GitStoreDelegateConfig conFileFileGitStore, LogCallback logCallback) throws IOException;
 
   String uploadTfPlanJson(String accountId, String delegateId, String taskId, String entityId, String planName,
       String localFilePath) throws IOException;

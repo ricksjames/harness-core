@@ -35,7 +35,11 @@ fi
 
 # 2. Build config.yml
 echo "accountId: $ACCOUNT_ID" >> config.yml
-echo "accountSecret: $ACCOUNT_SECRET" >> config.yml
+if [ ! -e $ACCOUNT_SECRET ]; then
+  echo "delegateToken: $ACCOUNT_SECRET" >> config.yml
+else
+  echo "delegateToken: $DELEGATE_TOKEN" >> config.yml
+fi
 echo "managerUrl: $MANAGER_HOST_AND_PORT/api/" >> config.yml
 echo "verificationServiceUrl: $MANAGER_HOST_AND_PORT/verification/" >> config.yml
 echo "cvNextGenUrl: $MANAGER_HOST_AND_PORT/cv/api/" >> config.yml
@@ -44,11 +48,11 @@ echo "heartbeatIntervalMs: 60000" >> config.yml
 echo "localDiskPath: /tmp" >> config.yml
 echo "maxCachedArtifacts: 2" >> config.yml
 echo "pollForTasks: ${POLL_FOR_TASKS:-false}" >> config.yml
+echo "grpcServiceEnabled: ${GRPC_SERVICE_ENABLED:-true}" >> config.yml
+echo "grpcServiceConnectorPort: ${GRPC_SERVICE_CONNECTOR_PORT:-8080}" >> config.yml
 echo "doUpgrade: false" >> config.yml
 
-append_config "grpcServiceEnabled" $GRPC_SERVICE_ENABLED
-append_config "grpcServiceConnectorPort" $GRPC_SERVICE_CONNECTOR_PORT
 append_config "clientToolsDownloadDisabled" $CLIENT_TOOLS_DOWNLOAD_DISABLED
 
 # 3. Start the delegate
-exec java $JAVA_OPTS $PROXY_SYS_PROPS -Xbootclasspath/p:alpn-boot-8.1.13.v20181017.jar -Xmx4096m -XX:+HeapDumpOnOutOfMemoryError -XX:+PrintGCDetails -XX:+PrintGCDateStamps -Xloggc:mygclogfilename.gc -XX:+UseParallelGC -XX:MaxGCPauseMillis=500 -Dfile.encoding=UTF-8 -Dcom.sun.jndi.ldap.object.disableEndpointIdentification=true -DLANG=en_US.UTF-8 -jar delegate.jar server config.yml
+exec java $JAVA_OPTS $PROXY_SYS_PROPS -Xbootclasspath/p:alpn-boot-8.1.13.v20181017.jar -Xmx1536m -XX:+HeapDumpOnOutOfMemoryError -XX:+PrintGCDetails -XX:+PrintGCDateStamps -Xloggc:mygclogfilename.gc -XX:+UseParallelGC -XX:MaxGCPauseMillis=500 -Dfile.encoding=UTF-8 -Dcom.sun.jndi.ldap.object.disableEndpointIdentification=true -DLANG=en_US.UTF-8 -jar delegate.jar server config.yml

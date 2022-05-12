@@ -10,19 +10,31 @@ package io.harness.cvng.statemachine.services.impl;
 import static io.harness.cvng.CVConstants.STATE_MACHINE_IGNORE_LIMIT;
 import static io.harness.data.structure.EmptyPredicate.isNotEmpty;
 import static io.harness.data.structure.UUIDGenerator.generateUuid;
+import static io.harness.eventsframework.EventsFrameworkConstants.SRM_STATEMACHINE_LOCK;
+import static io.harness.eventsframework.EventsFrameworkConstants.SRM_STATEMACHINE_LOCK_TIMEOUT;
+import static io.harness.eventsframework.EventsFrameworkConstants.SRM_STATEMACHINE_LOCK_WAIT_TIMEOUT;
 
+import io.harness.cvng.core.jobs.StateMachineEventPublisherService;
 import io.harness.cvng.core.services.api.VerificationTaskService;
+import io.harness.cvng.metrics.CVNGMetricsUtils;
+import io.harness.cvng.metrics.services.impl.MetricContextBuilder;
 import io.harness.cvng.statemachine.beans.AnalysisInput;
+import io.harness.cvng.statemachine.beans.AnalysisOrchestratorStatus;
 import io.harness.cvng.statemachine.beans.AnalysisStatus;
 import io.harness.cvng.statemachine.entities.AnalysisOrchestrator;
 import io.harness.cvng.statemachine.entities.AnalysisOrchestrator.AnalysisOrchestratorKeys;
 import io.harness.cvng.statemachine.entities.AnalysisStateMachine;
 import io.harness.cvng.statemachine.services.api.AnalysisStateMachineService;
 import io.harness.cvng.statemachine.services.api.OrchestrationService;
+import io.harness.lock.AcquiredLock;
+import io.harness.lock.PersistentLocker;
+import io.harness.metrics.AutoMetricContext;
+import io.harness.metrics.service.api.MetricService;
 import io.harness.persistence.HPersistence;
 
 import com.google.common.base.Preconditions;
 import com.google.inject.Inject;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -42,6 +54,10 @@ public class OrchestrationServiceImpl implements OrchestrationService {
   @Inject private AnalysisStateMachineService stateMachineService;
 
   @Inject private VerificationTaskService verificationTaskService;
+  @Inject private StateMachineEventPublisherService stateMachineEventPublisherService;
+  @Inject private PersistentLocker persistentLocker;
+  @Inject private MetricService metricService;
+  @Inject private MetricContextBuilder metricContextBuilder;
 
   @Override
   public void queueAnalysis(String verificationTaskId, Instant startTime, Instant endTime) {
@@ -67,11 +83,13 @@ public class OrchestrationServiceImpl implements OrchestrationService {
             .setOnInsert(AnalysisOrchestratorKeys.uuid,
                 generateUuid()) // By default mongo generates object id instead of string and our hPersistence does not
                                 // work well with objectIds.
-            .setOnInsert(AnalysisOrchestratorKeys.status, AnalysisStatus.CREATED)
+            .set(AnalysisOrchestratorKeys.status, AnalysisOrchestratorStatus.RUNNING)
             .set(AnalysisOrchestratorKeys.validUntil, Date.from(OffsetDateTime.now().plusDays(30).toInstant()))
             .addToSet(AnalysisOrchestratorKeys.analysisStateMachineQueue, Arrays.asList(stateMachine));
 
     hPersistence.upsert(orchestratorQuery, updateOperations);
+
+    stateMachineEventPublisherService.registerTaskComplete(accountId, verificationTaskId);
   }
 
   private void validateAnalysisInputs(AnalysisInput inputs) {
@@ -83,7 +101,10 @@ public class OrchestrationServiceImpl implements OrchestrationService {
   @Override
   public void orchestrate(AnalysisOrchestrator orchestrator) {
     Preconditions.checkNotNull(orchestrator, "orchestrator cannot be null when trying to orchestrate");
-    try {
+    String lockString = SRM_STATEMACHINE_LOCK + orchestrator.getVerificationTaskId();
+    try (AcquiredLock acquiredLock =
+             persistentLocker.waitToAcquireLock(lockString, Duration.ofSeconds(SRM_STATEMACHINE_LOCK_TIMEOUT),
+                 Duration.ofSeconds(SRM_STATEMACHINE_LOCK_WAIT_TIMEOUT))) {
       orchestrateAtRunningState(orchestrator);
     } catch (Exception e) {
       // TODO: these errors needs to go to execution log so that we can connect it with the right context and show them
@@ -96,7 +117,7 @@ public class OrchestrationServiceImpl implements OrchestrationService {
 
   @Override
   public void markCompleted(String verificationTaskId) {
-    updateStatusOfOrchestrator(verificationTaskId, AnalysisStatus.COMPLETED);
+    updateStatusOfOrchestrator(verificationTaskId, AnalysisOrchestratorStatus.COMPLETED);
   }
 
   @Override
@@ -107,7 +128,7 @@ public class OrchestrationServiceImpl implements OrchestrationService {
 
     UpdateOperations<AnalysisOrchestrator> updateOperations =
         hPersistence.createUpdateOperations(AnalysisOrchestrator.class)
-            .set(AnalysisOrchestratorKeys.status, AnalysisStatus.COMPLETED);
+            .set(AnalysisOrchestratorKeys.status, AnalysisOrchestratorStatus.COMPLETED);
 
     hPersistence.update(orchestratorQuery, updateOperations);
   }
@@ -118,6 +139,9 @@ public class OrchestrationServiceImpl implements OrchestrationService {
       log.info("For verification task ID {}, orchestrator has more than 5 tasks waiting."
               + " Please check if there is a growing backlog.",
           orchestrator.getVerificationTaskId());
+      try (AutoMetricContext ignore = metricContextBuilder.getContext(orchestrator, AnalysisOrchestrator.class)) {
+        metricService.incCounter(CVNGMetricsUtils.ORCHESTRATOR_STATE_MACHINE_QUEUE_COUNT_ABOVE_FIVE);
+      }
     }
 
     AnalysisStateMachine currentlyExecutingStateMachine =
@@ -125,7 +149,6 @@ public class OrchestrationServiceImpl implements OrchestrationService {
     if (currentlyExecutingStateMachine == null && isNotEmpty(orchestrator.getAnalysisStateMachineQueue())) {
       currentlyExecutingStateMachine = orchestrator.getAnalysisStateMachineQueue().get(0);
     }
-
     if (currentlyExecutingStateMachine != null) {
       AnalysisStatus stateMachineStatus = null;
 
@@ -133,7 +156,8 @@ public class OrchestrationServiceImpl implements OrchestrationService {
         case CREATED:
         case SUCCESS:
         case IGNORED:
-          orchestrateNewAnalysisStateMachine(orchestrator.getVerificationTaskId());
+          orchestrateNewAnalysisStateMachine(
+              orchestrator.getVerificationTaskId(), currentlyExecutingStateMachine.getTotalRetryCountToBePropagated());
           break;
         case RUNNING:
           log.info("For {}, state machine is currently RUNNING. "
@@ -142,6 +166,8 @@ public class OrchestrationServiceImpl implements OrchestrationService {
           stateMachineStatus = stateMachineService.executeStateMachine(currentlyExecutingStateMachine);
           break;
         case FAILED:
+          markCompleted(orchestrator.getVerificationTaskId());
+          break;
         case TIMEOUT:
           orchestrateFailedStateMachine(currentlyExecutingStateMachine);
           break;
@@ -153,7 +179,8 @@ public class OrchestrationServiceImpl implements OrchestrationService {
           log.info("Unknown analysis status of the state machine under execution");
       }
       if (AnalysisStatus.SUCCESS == stateMachineStatus || AnalysisStatus.COMPLETED == stateMachineStatus) {
-        orchestrateNewAnalysisStateMachine(orchestrator.getVerificationTaskId());
+        orchestrateNewAnalysisStateMachine(
+            orchestrator.getVerificationTaskId(), currentlyExecutingStateMachine.getTotalRetryCountToBePropagated());
       }
     }
   }
@@ -177,7 +204,7 @@ public class OrchestrationServiceImpl implements OrchestrationService {
         : null;
   }
 
-  private void orchestrateNewAnalysisStateMachine(String verificationTaskId) {
+  private void orchestrateNewAnalysisStateMachine(String verificationTaskId, int totalRetryCount) {
     int ignoredCount = 0;
     List<AnalysisStateMachine> ignoredStatemachines = new ArrayList<>();
     AnalysisStateMachine analysisStateMachine = null;
@@ -188,7 +215,7 @@ public class OrchestrationServiceImpl implements OrchestrationService {
         log.info("There is currently nothing to analyze for verificationTaskId {}", verificationTaskId);
         break;
       }
-
+      analysisStateMachine.setTotalRetryCount(totalRetryCount);
       Optional<AnalysisStateMachine> ignoredStateMachine =
           stateMachineService.ignoreOldStateMachine(analysisStateMachine);
       if (!ignoredStateMachine.isPresent()) {
@@ -207,18 +234,32 @@ public class OrchestrationServiceImpl implements OrchestrationService {
     if (analysisStateMachine != null && ignoredCount < STATE_MACHINE_IGNORE_LIMIT) {
       stateMachineService.initiateStateMachine(verificationTaskId, analysisStateMachine);
     }
-
-    updateStatusOfOrchestrator(verificationTaskId, AnalysisStatus.RUNNING);
+    if (analysisStateMachine == null) {
+      updateStatusOfOrchestrator(verificationTaskId, AnalysisOrchestratorStatus.WAITING);
+    } else {
+      updateStatusOfOrchestrator(verificationTaskId, AnalysisOrchestratorStatus.RUNNING);
+    }
   }
 
-  private void updateStatusOfOrchestrator(String verificationTaskId, AnalysisStatus status) {
+  private void updateStatusOfOrchestrator(String verificationTaskId, AnalysisOrchestratorStatus status) {
     Query<AnalysisOrchestrator> orchestratorQuery =
         hPersistence.createQuery(AnalysisOrchestrator.class)
             .filter(AnalysisOrchestratorKeys.verificationTaskId, verificationTaskId);
+    if (status.equals(AnalysisOrchestratorStatus.WAITING)) {
+      // handle race condition if we are changing status to WAITING
+      orchestratorQuery = orchestratorQuery.field(AnalysisOrchestratorKeys.analysisStateMachineQueue).sizeEq(0);
+    }
 
     UpdateOperations<AnalysisOrchestrator> updateOperations =
         hPersistence.createUpdateOperations(AnalysisOrchestrator.class).set(AnalysisOrchestratorKeys.status, status);
 
     hPersistence.update(orchestratorQuery, updateOperations);
+  }
+
+  @Override
+  public AnalysisOrchestrator getAnalysisOrchestrator(String verificationTaskId) {
+    return hPersistence.createQuery(AnalysisOrchestrator.class)
+        .filter(AnalysisOrchestratorKeys.verificationTaskId, verificationTaskId)
+        .get();
   }
 }

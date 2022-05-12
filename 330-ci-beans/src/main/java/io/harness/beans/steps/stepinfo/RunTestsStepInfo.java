@@ -12,6 +12,7 @@ import static io.harness.beans.SwaggerConstants.BOOLEAN_CLASSPATH;
 import static io.harness.beans.SwaggerConstants.INTEGER_CLASSPATH;
 import static io.harness.beans.SwaggerConstants.STRING_CLASSPATH;
 import static io.harness.beans.SwaggerConstants.STRING_MAP_CLASSPATH;
+import static io.harness.yaml.schema.beans.SupportedPossibleFieldTypes.runtime;
 import static io.harness.yaml.schema.beans.SupportedPossibleFieldTypes.string;
 
 import io.harness.annotation.RecasterAlias;
@@ -28,11 +29,14 @@ import io.harness.pms.contracts.steps.StepCategory;
 import io.harness.pms.contracts.steps.StepType;
 import io.harness.pms.execution.OrchestrationFacilitatorType;
 import io.harness.pms.yaml.ParameterField;
+import io.harness.pms.yaml.YamlNode;
 import io.harness.yaml.YamlSchemaTypes;
+import io.harness.yaml.core.VariableExpression;
 import io.harness.yaml.core.variables.OutputNGVariable;
 import io.harness.yaml.extended.ci.container.ContainerResource;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import io.swagger.annotations.ApiModelProperty;
 import java.beans.ConstructorProperties;
@@ -53,9 +57,13 @@ import org.springframework.data.annotation.TypeAlias;
 @OwnedBy(CI)
 @RecasterAlias("io.harness.beans.steps.stepinfo.RunTestsStepInfo")
 public class RunTestsStepInfo implements CIStepInfo {
-  public static final int DEFAULT_RETRY = 0;
+  @VariableExpression(skipVariableExpression = true) public static final int DEFAULT_RETRY = 0;
+  @JsonProperty(YamlNode.UUID_FIELD_NAME)
+  @Getter(onMethod_ = { @ApiModelProperty(hidden = true) })
+  @ApiModelProperty(hidden = true)
+  private String uuid;
   // Keeping the timeout to a day as its a test step and might take lot of time
-  public static final int DEFAULT_TIMEOUT = 60 * 60 * 24; // 24 hour;
+  @VariableExpression(skipVariableExpression = true) public static final int DEFAULT_TIMEOUT = 60 * 60 * 24; // 24 hour;
 
   @JsonIgnore public static final TypeInfo typeInfo = TypeInfo.builder().stepInfoType(CIStepInfoType.RUN_TESTS).build();
 
@@ -67,18 +75,22 @@ public class RunTestsStepInfo implements CIStepInfo {
 
   @Getter(onMethod_ = { @ApiModelProperty(hidden = true) }) @ApiModelProperty(hidden = true) private String identifier;
   @Getter(onMethod_ = { @ApiModelProperty(hidden = true) }) @ApiModelProperty(hidden = true) private String name;
-  @Min(MIN_RETRY) @Max(MAX_RETRY) private int retry;
+  @VariableExpression(skipVariableExpression = true) @Min(MIN_RETRY) @Max(MAX_RETRY) private int retry;
 
   @NotNull @ApiModelProperty(dataType = STRING_CLASSPATH) private ParameterField<String> args;
   @NotNull
+  @YamlSchemaTypes({runtime})
   @ApiModelProperty(dataType = "io.harness.beans.yaml.extended.TILanguage")
   private ParameterField<TILanguage> language;
   @NotNull
+  @YamlSchemaTypes({runtime})
   @ApiModelProperty(dataType = "io.harness.beans.yaml.extended.TIBuildTool")
   private ParameterField<TIBuildTool> buildTool;
   @ApiModelProperty(dataType = STRING_CLASSPATH) private ParameterField<String> packages;
   @ApiModelProperty(dataType = STRING_CLASSPATH) private ParameterField<String> testAnnotations;
-  private UnitTestReport reports;
+  @YamlSchemaTypes({runtime})
+  @ApiModelProperty(dataType = "io.harness.beans.yaml.extended.reports.UnitTestReport")
+  private ParameterField<UnitTestReport> reports;
   @YamlSchemaTypes({string})
   @ApiModelProperty(dataType = BOOLEAN_CLASSPATH)
   private ParameterField<Boolean> runOnlySelectedTests;
@@ -86,17 +98,25 @@ public class RunTestsStepInfo implements CIStepInfo {
   @ApiModelProperty(dataType = STRING_CLASSPATH) private ParameterField<String> image;
   @ApiModelProperty(dataType = STRING_CLASSPATH) private ParameterField<String> connectorRef;
   private ContainerResource resources;
-  private List<OutputNGVariable> outputVariables;
+  @YamlSchemaTypes(value = {runtime})
+  @VariableExpression(skipVariableExpression = true)
+  @ApiModelProperty(dataType = "[Lio.harness.yaml.core.variables.OutputNGVariable;")
+  private ParameterField<List<OutputNGVariable>> outputVariables;
   @YamlSchemaTypes(value = {string})
   @ApiModelProperty(dataType = STRING_MAP_CLASSPATH)
   private ParameterField<Map<String, String>> envVariables;
   @ApiModelProperty(dataType = STRING_CLASSPATH) private ParameterField<String> preCommand;
   @ApiModelProperty(dataType = STRING_CLASSPATH) private ParameterField<String> postCommand;
-  @YamlSchemaTypes({string}) @ApiModelProperty(dataType = BOOLEAN_CLASSPATH) private ParameterField<Boolean> privileged;
+  @YamlSchemaTypes({runtime})
+  @ApiModelProperty(dataType = BOOLEAN_CLASSPATH)
+  private ParameterField<Boolean> privileged;
   @YamlSchemaTypes({string}) @ApiModelProperty(dataType = INTEGER_CLASSPATH) private ParameterField<Integer> runAsUser;
+  @YamlSchemaTypes({runtime})
   @ApiModelProperty(dataType = "io.harness.beans.yaml.extended.ImagePullPolicy")
   private ParameterField<ImagePullPolicy> imagePullPolicy;
-  @ApiModelProperty(dataType = "io.harness.beans.yaml.extended.CIShellType") private ParameterField<CIShellType> shell;
+  @YamlSchemaTypes({runtime})
+  @ApiModelProperty(dataType = "io.harness.beans.yaml.extended.CIShellType")
+  private ParameterField<CIShellType> shell;
 
   @Builder
   @ConstructorProperties({"identifier", "name", "retry", "args", "language", "buildTool", "image", "connectorRef",
@@ -104,10 +124,10 @@ public class RunTestsStepInfo implements CIStepInfo {
       "outputVariables", "envVariables", "privileged", "runAsUser", "imagePullPolicy", "shell"})
   public RunTestsStepInfo(String identifier, String name, Integer retry, ParameterField<String> args,
       ParameterField<TILanguage> language, ParameterField<TIBuildTool> buildTool, ParameterField<String> image,
-      ParameterField<String> connectorRef, ContainerResource resources, UnitTestReport reports,
+      ParameterField<String> connectorRef, ContainerResource resources, ParameterField<UnitTestReport> reports,
       ParameterField<String> testAnnotations, ParameterField<String> packages,
       ParameterField<Boolean> runOnlySelectedTests, ParameterField<String> preCommand,
-      ParameterField<String> postCommand, List<OutputNGVariable> outputVariables,
+      ParameterField<String> postCommand, ParameterField<List<OutputNGVariable>> outputVariables,
       ParameterField<Map<String, String>> envVariables, ParameterField<Boolean> privileged,
       ParameterField<Integer> runAsUser, ParameterField<ImagePullPolicy> imagePullPolicy,
       ParameterField<CIShellType> shell) {

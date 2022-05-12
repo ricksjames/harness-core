@@ -55,6 +55,7 @@ import io.harness.beans.EmbeddedUser;
 import io.harness.category.element.UnitTests;
 import io.harness.context.ContextElementType;
 import io.harness.exception.InvalidRequestException;
+import io.harness.ff.FeatureFlagService;
 import io.harness.rule.Owner;
 
 import software.wings.api.PhaseElement;
@@ -68,7 +69,7 @@ import software.wings.beans.Environment;
 import software.wings.beans.LambdaSpecification;
 import software.wings.beans.Service;
 import software.wings.beans.SettingAttribute;
-import software.wings.beans.artifact.Artifact.ArtifactMetadataKeys;
+import software.wings.beans.artifact.ArtifactMetadataKeys;
 import software.wings.beans.artifact.ArtifactStreamAttributes;
 import software.wings.beans.artifact.ArtifactStreamType;
 import software.wings.beans.artifact.DockerArtifactStream;
@@ -89,6 +90,7 @@ import software.wings.service.intfc.StateExecutionService;
 import software.wings.service.intfc.security.SecretManager;
 import software.wings.sm.ExecutionContextImpl;
 import software.wings.sm.WorkflowStandardParams;
+import software.wings.sm.WorkflowStandardParamsExtensionService;
 import software.wings.utils.WingsTestConstants;
 
 import java.util.Collections;
@@ -108,6 +110,7 @@ import org.mockito.Spy;
 @OwnedBy(CDP)
 public class AwsLambdaStateTest extends CategoryTest {
   @Mock private ServiceResourceService serviceResourceService;
+  @Mock private FeatureFlagService featureFlagService;
   @Mock private InfrastructureMappingService infrastructureMappingService;
   @Mock private SettingsService settingsService;
   @Mock private ArtifactStreamService artifactStreamService;
@@ -118,6 +121,7 @@ public class AwsLambdaStateTest extends CategoryTest {
   @Mock private ServiceTemplateService serviceTemplateService;
   @Mock private DelegateService delegateService;
   @Mock private StateExecutionService stateExecutionService;
+  @Mock WorkflowStandardParamsExtensionService workflowStandardParamsExtensionService;
 
   @Spy @InjectMocks AwsLambdaState awsLambdaState;
   private SettingAttribute awsSetting =
@@ -150,9 +154,9 @@ public class AwsLambdaStateTest extends CategoryTest {
     EmbeddedUser mockCurrentUser = mock(EmbeddedUser.class);
     doReturn(mockCurrentUser).when(mockParams).getCurrentUser();
     doReturn(mockParams).when(mockContext).getContextElement(ContextElementType.STANDARD);
-    doReturn(app).when(mockParams).fetchRequiredApp();
-    doReturn(env).when(mockParams).getEnv();
-    doReturn(env).when(mockParams).getEnv();
+    doReturn(app).when(workflowStandardParamsExtensionService).fetchRequiredApp(mockParams);
+    doReturn(env).when(workflowStandardParamsExtensionService).getEnv(mockParams);
+    doReturn(env).when(workflowStandardParamsExtensionService).getEnv(mockParams);
     doReturn(mock(Service.class)).when(serviceResourceService).getWithDetails(anyString(), anyString());
     final ServiceCommand serviceCommandMock = mock(ServiceCommand.class);
     doReturn(serviceCommandMock)
@@ -198,8 +202,8 @@ public class AwsLambdaStateTest extends CategoryTest {
     EmbeddedUser mockCurrentUser = mock(EmbeddedUser.class);
     doReturn(mockCurrentUser).when(mockParams).getCurrentUser();
     doReturn(mockParams).when(mockContext).getContextElement(ContextElementType.STANDARD);
-    doReturn(app).when(mockParams).fetchRequiredApp();
-    doReturn(env).when(mockParams).getEnv();
+    doReturn(app).when(workflowStandardParamsExtensionService).fetchRequiredApp(mockParams);
+    doReturn(env).when(workflowStandardParamsExtensionService).getEnv(mockParams);
 
     DockerArtifactStream mockDockerArtifactStream = mock(DockerArtifactStream.class);
     ArtifactStreamAttributes artifactStreamAttributes = ArtifactStreamAttributes.builder()
@@ -234,6 +238,8 @@ public class AwsLambdaStateTest extends CategoryTest {
     List<String> aliases = Mockito.mock(List.class);
     doReturn(true).when(aliases).isEmpty();
     on(awsLambdaState).set("aliases", aliases);
+
+    doReturn(true).when(featureFlagService).isEnabled(any(), anyString());
 
     awsLambdaState.execute(mockContext);
     ArgumentCaptor<DelegateTask> captor = ArgumentCaptor.forClass(DelegateTask.class);

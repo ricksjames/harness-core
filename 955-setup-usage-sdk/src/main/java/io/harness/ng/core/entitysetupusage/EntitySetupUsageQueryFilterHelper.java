@@ -43,6 +43,25 @@ public class EntitySetupUsageQueryFilterHelper {
     return criteria;
   }
 
+  public Criteria createCriteriaFromEntityFilter(String accountIdentifier, String referredEntityFQN,
+      EntityType referredEntityType, EntityType referredByEntityType, String searchTerm) {
+    Criteria criteria = new Criteria();
+    criteria.and(EntitySetupUsageKeys.accountIdentifier).is(accountIdentifier);
+    criteria.and(EntitySetupUsageKeys.referredEntityFQN).is(referredEntityFQN);
+    if (referredEntityType != null) {
+      criteria.and(EntitySetupUsageKeys.referredEntityType).is(referredEntityType.getYamlName());
+    }
+    if (referredByEntityType != null) {
+      criteria.and(EntitySetupUsageKeys.referredByEntityType).is(referredByEntityType.getYamlName());
+    }
+    if (isNotBlank(searchTerm)) {
+      criteria.orOperator(Criteria.where(EntitySetupUsageKeys.referredEntityName).regex(searchTerm),
+          Criteria.where(EntitySetupUsageKeys.referredByEntityName).regex(searchTerm));
+    }
+    populateGitCriteriaForReferredEntity(criteria);
+    return criteria;
+  }
+
   private Criteria createCriteriaForDefaultReferredEntity() {
     return new Criteria().orOperator(Criteria.where(EntitySetupUsageKeys.referredEntityIsDefault).is(true),
         Criteria.where(EntitySetupUsageKeys.referredEntityIsDefault).exists(false));
@@ -146,6 +165,21 @@ public class EntitySetupUsageQueryFilterHelper {
       criteria.and(EntitySetupUsageKeys.referredByEntityType).is(referredByEntityType.getYamlName());
     }
     populateGitCriteriaForReferredByEntity(criteria);
+    return criteria;
+  }
+
+  public Criteria createCriteriaForEntitiesInScope(String accountIdentifier, String referredEntityFQScope,
+      EntityType referredEntityType, EntityType referredByEntityType) {
+    Criteria criteria = new Criteria();
+    criteria.and(EntitySetupUsageKeys.accountIdentifier).is(accountIdentifier);
+    criteria.and(EntitySetupUsageKeys.referredEntityFQN).regex(referredEntityFQScope);
+    if (referredEntityType != null) {
+      criteria.and(EntitySetupUsageKeys.referredEntityType).is(referredEntityType.getYamlName());
+    }
+    if (referredByEntityType != null) {
+      criteria.and(EntitySetupUsageKeys.referredByEntityType).is(referredByEntityType.getYamlName());
+    }
+    populateGitCriteriaForReferredEntity(criteria);
     return criteria;
   }
 }

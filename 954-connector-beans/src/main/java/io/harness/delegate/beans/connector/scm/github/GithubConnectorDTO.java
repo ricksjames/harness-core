@@ -13,10 +13,16 @@ import io.harness.beans.DecryptableEntity;
 import io.harness.connector.DelegateSelectable;
 import io.harness.connector.ManagerExecutable;
 import io.harness.delegate.beans.connector.ConnectorConfigDTO;
+import io.harness.delegate.beans.connector.ConnectorType;
 import io.harness.delegate.beans.connector.scm.GitAuthType;
 import io.harness.delegate.beans.connector.scm.GitConnectionType;
 import io.harness.delegate.beans.connector.scm.ScmConnector;
+import io.harness.exception.InvalidRequestException;
+import io.harness.git.GitClientHelper;
+import io.harness.gitsync.beans.GitRepositoryDTO;
+import io.harness.utils.FilePathUtils;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.annotations.ApiModel;
@@ -84,5 +90,36 @@ public class GithubConnectorDTO
       decryptableEntities.add(apiAccess.getSpec());
     }
     return decryptableEntities;
+  }
+
+  @Override
+  @JsonIgnore
+  public ConnectorType getConnectorType() {
+    return ConnectorType.GITHUB;
+  }
+
+  @Override
+  public String getGitConnectionUrl(String repoName) {
+    if (connectionType == GitConnectionType.REPO) {
+      String linkedRepo = GitClientHelper.getGitRepo(url);
+      if (!linkedRepo.equals(repoName)) {
+        throw new InvalidRequestException(
+            String.format("Provided repoName [%s] does not match with the repoName [%s] provided in connector.",
+                repoName, linkedRepo));
+      }
+      return getUrl();
+    }
+    return FilePathUtils.addEndingSlashIfMissing(getUrl()) + repoName;
+  }
+
+  @Override
+  public GitRepositoryDTO getGitRepositoryDetails() {
+    if (GitConnectionType.REPO.equals(connectionType)) {
+      return GitRepositoryDTO.builder()
+          .name(GitClientHelper.getGitRepo(url))
+          .org(GitClientHelper.getGitOwner(url, false))
+          .build();
+    }
+    return GitRepositoryDTO.builder().org(GitClientHelper.getGitOwner(url, true)).build();
   }
 }

@@ -15,14 +15,22 @@ import io.harness.persistence.UserProvider;
 
 import software.wings.beans.User;
 
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
+
 @OwnedBy(PL)
+@Slf4j
 public class ThreadLocalUserProvider implements UserProvider {
   public static EmbeddedUser populateEmbeddedUser(User user) {
-    return EmbeddedUser.builder()
-        .uuid(UserThreadLocal.get().getUuid())
-        .email(UserThreadLocal.get().getEmail())
-        .name(UserThreadLocal.get().getName())
-        .build();
+    EmbeddedUser embeddedUser = EmbeddedUser.builder()
+                                    .uuid(UserThreadLocal.get().getUuid())
+                                    .email(UserThreadLocal.get().getEmail())
+                                    .name(UserThreadLocal.get().getName())
+                                    .build();
+    if (StringUtils.isNotEmpty(UserThreadLocal.get().getExternalUserId())) {
+      embeddedUser.setExternalUserId(UserThreadLocal.get().getExternalUserId());
+    }
+    return embeddedUser;
   }
 
   public static EmbeddedUser threadLocalUser() {
@@ -30,7 +38,6 @@ public class ThreadLocalUserProvider implements UserProvider {
     if (user == null) {
       return null;
     }
-
     return populateEmbeddedUser(UserThreadLocal.get());
   }
 

@@ -908,9 +908,7 @@ public class YamlDirectoryServiceImpl implements YamlDirectoryService {
     futureResponseList.add(
         executorService.submit(() -> doProvisioners(app, appPath.clone(), applyPermissions, allowedProvisioners)));
 
-    if (isAppTelemetryEnabled(accountId)) {
-      futureResponseList.add(executorService.submit(() -> doEventConfigs(app, appPath.clone())));
-    }
+    futureResponseList.add(executorService.submit(() -> doEventConfigs(app, appPath.clone())));
 
     futureResponseList.add(executorService.submit(
         () -> doTemplateLibraryForApp(app, appPath.clone(), applyPermissions, allowedTemplates)));
@@ -945,9 +943,7 @@ public class YamlDirectoryServiceImpl implements YamlDirectoryService {
     appFolder.addChild(map.get(WORKFLOWS_FOLDER));
     appFolder.addChild(map.get(PIPELINES_FOLDER));
     appFolder.addChild(map.get(PROVISIONERS_FOLDER));
-    if (isAppTelemetryEnabled(accountId)) {
-      appFolder.addChild(map.get(CG_EVENT_CONFIG_FOLDER));
-    }
+    appFolder.addChild(map.get(CG_EVENT_CONFIG_FOLDER));
     if (isTriggerYamlEnabled(accountId)) {
       appFolder.addChild(map.get(TRIGGER_FOLDER));
     }
@@ -969,10 +965,6 @@ public class YamlDirectoryServiceImpl implements YamlDirectoryService {
 
   private boolean isTriggerYamlEnabled(String accountId) {
     return featureFlagService.isEnabled(FeatureName.TRIGGER_YAML, accountId);
-  }
-
-  private boolean isAppTelemetryEnabled(String accountId) {
-    return featureFlagService.isEnabled(FeatureName.APP_TELEMETRY, accountId);
   }
 
   private boolean isNewDeploymentFreezeFFenabled(String accountId) {
@@ -2453,6 +2445,10 @@ public class YamlDirectoryServiceImpl implements YamlDirectoryService {
       String templateLibraryFolderName, Type type, boolean applyPermissions, Set<String> allowedTemplates) {
     final FolderNode templateLibraryFolder = new FolderNode(
         accountId, templateLibraryFolderName, SettingAttribute.class, directoryPath.add(templateLibraryFolderName));
+
+    if (applyPermissions && isEmpty(allowedTemplates)) {
+      return templateLibraryFolder;
+    }
 
     // get the whole template folder tree  structure
     final TemplateFolder templateTree =

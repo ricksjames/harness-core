@@ -29,8 +29,9 @@ import io.harness.pms.contracts.execution.Status;
 import io.harness.pms.execution.utils.AmbianceUtils;
 import io.harness.pms.execution.utils.StatusUtils;
 import io.harness.pms.expression.PmsEngineExpressionService;
+import io.harness.pms.helpers.PipelineExpressionHelper;
+import io.harness.pms.pipeline.service.PMSPipelineService;
 import io.harness.pms.pipeline.yaml.BasicPipeline;
-import io.harness.pms.plan.execution.service.PMSExecutionService;
 import io.harness.pms.serializer.recaster.RecastOrchestrationUtils;
 import io.harness.pms.yaml.YamlUtils;
 
@@ -46,12 +47,13 @@ import lombok.extern.slf4j.Slf4j;
 @OwnedBy(HarnessTeam.PIPELINE)
 @Slf4j
 public class NotificationHelper {
-  @Inject private PMSExecutionService pmsExecutionService;
   @Inject NotificationClient notificationClient;
   @Inject PlanExecutionService planExecutionService;
   @Inject PipelineServiceConfiguration pipelineServiceConfiguration;
   @Inject PlanExecutionMetadataService planExecutionMetadataService;
   @Inject PmsEngineExpressionService pmsEngineExpressionService;
+  @Inject PMSPipelineService pmsPipelineService;
+  @Inject PipelineExpressionHelper pipelineExpressionHelper;
 
   public Optional<PipelineEventType> getEventTypeForStage(NodeExecution nodeExecution) {
     if (!OrchestrationUtils.isStageNode(nodeExecution)) {
@@ -157,11 +159,7 @@ public class NotificationHelper {
   }
 
   public String generateUrl(Ambiance ambiance) {
-    return String.format("%s/account/%s/%s/orgs/%s/projects/%s/pipelines/%s/executions/%s/pipeline",
-        pipelineServiceConfiguration.getPipelineServiceBaseUrl(), AmbianceUtils.getAccountId(ambiance),
-        EmptyPredicate.isEmpty(ambiance.getMetadata().getModuleType()) ? "cd" : ambiance.getMetadata().getModuleType(),
-        AmbianceUtils.getOrgIdentifier(ambiance), AmbianceUtils.getProjectIdentifier(ambiance),
-        ambiance.getMetadata().getPipelineIdentifier(), ambiance.getPlanExecutionId());
+    return pipelineExpressionHelper.generateUrl(ambiance);
   }
 
   String obtainYaml(String planExecutionId) {

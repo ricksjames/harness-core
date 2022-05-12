@@ -1,21 +1,21 @@
 [
   {
     "txnName": "/",
-    "metricIdentifier": "Calls per Minute",
+    "metricIdentifier": "calls_per_minute",
     "metricName": "Calls per Minute",
     "metricValue": 0.0,
     "timestamp": 1642966080000
   },
   {
     "txnName": "/",
-    "metricIdentifier": "Average Response Time (ms)",
+    "metricIdentifier": "average_response_time_ms",
     "metricName": "Average Response Time (ms)",
     "metricValue": 0.0,
     "timestamp": 1642966080000
   },
   {
     "txnName": "/",
-    "metricIdentifier": "Stall Count",
+    "metricIdentifier": "stall_count",
     "metricName": "Stall Count",
     "metricValue": 0.0,
     "timestamp": 1642966080000

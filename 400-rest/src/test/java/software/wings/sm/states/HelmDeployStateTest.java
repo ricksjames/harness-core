@@ -48,6 +48,7 @@ import static software.wings.utils.WingsTestConstants.CLUSTER_NAME;
 import static software.wings.utils.WingsTestConstants.COMPUTE_PROVIDER_ID;
 import static software.wings.utils.WingsTestConstants.ENV_ID;
 import static software.wings.utils.WingsTestConstants.ENV_NAME;
+import static software.wings.utils.WingsTestConstants.ENV_PROD_FIELD;
 import static software.wings.utils.WingsTestConstants.HOST_NAME;
 import static software.wings.utils.WingsTestConstants.INFRA_DEFINITION_ID;
 import static software.wings.utils.WingsTestConstants.INFRA_MAPPING_ID;
@@ -128,6 +129,7 @@ import io.harness.rule.OwnerRule;
 import io.harness.tasks.ResponseData;
 
 import software.wings.api.ContainerServiceElement;
+import software.wings.api.ContextElementParamMapperFactory;
 import software.wings.api.DeploymentType;
 import software.wings.api.HelmDeployContextElement;
 import software.wings.api.HelmDeployStateExecutionData;
@@ -227,6 +229,7 @@ import software.wings.sm.StateExecutionContext;
 import software.wings.sm.StateExecutionInstance;
 import software.wings.sm.StateType;
 import software.wings.sm.WorkflowStandardParams;
+import software.wings.sm.WorkflowStandardParamsExtensionService;
 import software.wings.sm.states.k8s.K8sStateHelper;
 import software.wings.utils.ApplicationManifestUtils;
 import software.wings.utils.WingsTestConstants;
@@ -241,6 +244,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.junit.Before;
@@ -250,6 +254,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.Spy;
 import org.mongodb.morphia.Key;
 
 @OwnedBy(CDP)
@@ -314,10 +319,11 @@ public class HelmDeployStateTest extends CategoryTest {
   @Mock private GitFileConfigHelperService gitFileConfigHelperService;
   @Mock private SubdomainUrlHelperIntfc subdomainUrlHelper;
   @Mock private LogService logService;
-  @Mock private K8sStateHelper k8sStateHelper;
   @Mock private FeatureService featureService;
   @Mock private StateExecutionService stateExecutionService;
   @Mock private TemplateExpressionProcessor templateExpressionProcessor;
+
+  @Spy @InjectMocks private K8sStateHelper k8sStateHelper;
 
   @InjectMocks HelmDeployState helmDeployState = new HelmDeployState("helmDeployState");
   @InjectMocks HelmRollbackState helmRollbackState = new HelmRollbackState("helmRollbackState");
@@ -386,7 +392,13 @@ public class HelmDeployStateTest extends CategoryTest {
           .build();
 
   private Application app = anApplication().uuid(APP_ID).name(APP_NAME).build();
-  private Environment env = anEnvironment().appId(APP_ID).uuid(ENV_ID).name(ENV_NAME).build();
+  private Environment env = anEnvironment()
+                                .appId(APP_ID)
+                                .uuid(ENV_ID)
+                                .name(ENV_NAME)
+                                .environmentType(EnvironmentType.PROD)
+                                .name("Prod Env")
+                                .build();
   private Service service = Service.builder().appId(APP_ID).uuid(SERVICE_ID).name(SERVICE_NAME).build();
   private ContainerServiceParams containerServiceParams =
       ContainerServiceParams.builder()
@@ -417,6 +429,7 @@ public class HelmDeployStateTest extends CategoryTest {
     when(serviceResourceService.getWithDetails(APP_ID, SERVICE_ID)).thenReturn(service);
     when(serviceResourceService.get(APP_ID, SERVICE_ID)).thenReturn(service);
     when(environmentService.get(APP_ID, ENV_ID, false)).thenReturn(env);
+    when(environmentService.get(any(), any())).thenReturn(env);
     when(infrastructureMappingService.get(APP_ID, INFRA_MAPPING_ID)).thenReturn(infrastructureMapping);
     when(infrastructureDefinitionService.get(APP_ID, INFRA_DEFINITION_ID)).thenReturn(infrastructureDefinition);
 
@@ -446,9 +459,17 @@ public class HelmDeployStateTest extends CategoryTest {
         .thenAnswer(i -> i.getArguments()[0]);
     when(featureFlagService.isEnabled(FeatureName.ARTIFACT_STREAM_REFACTOR, ACCOUNT_ID)).thenReturn(false);
 
-    on(workflowStandardParams).set("appService", appService);
-    on(workflowStandardParams).set("environmentService", environmentService);
-    on(workflowStandardParams).set("featureFlagService", featureFlagService);
+    WorkflowStandardParamsExtensionService workflowStandardParamsExtensionService =
+        new WorkflowStandardParamsExtensionService(
+            appService, null, artifactService, environmentService, artifactStreamServiceBindingService, null);
+
+    on(helmDeployState).set("workflowStandardParamsExtensionService", workflowStandardParamsExtensionService);
+    on(helmRollbackState).set("workflowStandardParamsExtensionService", workflowStandardParamsExtensionService);
+    on(k8sStateHelper).set("workflowStandardParamsExtensionService", workflowStandardParamsExtensionService);
+
+    ContextElementParamMapperFactory contextElementParamMapperFactory = new ContextElementParamMapperFactory(
+        subdomainUrlHelper, workflowExecutionService, artifactService, artifactStreamService,
+        applicationManifestService, featureFlagService, null, workflowStandardParamsExtensionService);
 
     on(context).set("infrastructureMappingService", infrastructureMappingService);
     on(context).set("infrastructureDefinitionService", infrastructureDefinitionService);
@@ -459,7 +480,9 @@ public class HelmDeployStateTest extends CategoryTest {
     on(context).set("featureFlagService", featureFlagService);
     on(context).set("stateExecutionInstance", stateExecutionInstance);
     on(context).set("sweepingOutputService", sweepingOutputService);
-    on(workflowStandardParams).set("subdomainUrlHelper", subdomainUrlHelper);
+    on(context).set("workflowStandardParamsExtensionService", workflowStandardParamsExtensionService);
+    on(context).set("contextElementParamMapperFactory", contextElementParamMapperFactory);
+
     when(featureFlagService.isEnabled(FeatureName.ARTIFACT_STREAM_REFACTOR, ACCOUNT_ID)).thenReturn(false);
     when(subdomainUrlHelper.getPortalBaseUrl(any())).thenReturn("baseUrl");
   }
@@ -1011,8 +1034,6 @@ public class HelmDeployStateTest extends CategoryTest {
         HelmChartSpecification.builder().chartName(CHART_NAME).chartUrl(CHART_URL).chartVersion(CHART_VERSION).build())
         .when(serviceResourceService)
         .getHelmChartSpecification(APP_ID, SERVICE_ID);
-    when(k8sStateHelper.fetchContainerInfrastructureMapping(context))
-        .thenReturn(DirectKubernetesInfrastructureMapping.builder().build());
 
     testHandleAsyncResponseForHelmFetchTaskWithValuesInGit();
     testHandleAsyncResponseForHelmFetchTaskWithNoValuesInGit();
@@ -1041,10 +1062,14 @@ public class HelmDeployStateTest extends CategoryTest {
     doReturn("taskId").when(delegateService).queueTask(delegateTaskCaptor.capture());
     doReturn(true).when(applicationManifestUtils).isValuesInGit(appManifestMap);
     helmDeployState.handleAsyncResponse(context, responseDataMap);
-    assertThat(delegateTaskCaptor.getValue().getData().getTaskType()).isEqualTo(TaskType.GIT_FETCH_FILES_TASK.name());
-    assertThat(
-        ((GitFetchFilesTaskParams) delegateTaskCaptor.getValue().getData().getParameters()[0]).isOptimizedFilesFetch())
-        .isTrue();
+    DelegateTask task = delegateTaskCaptor.getValue();
+    assertThat(task.getSetupAbstractions().get(Cd1SetupFields.APP_ID_FIELD)).isEqualTo(APP_ID);
+    assertThat(task.getSetupAbstractions().get(Cd1SetupFields.ENV_ID_FIELD)).isEqualTo(ENV_ID);
+    assertThat(task.getSetupAbstractions().get(Cd1SetupFields.ENV_TYPE_FIELD)).isEqualTo(ENV_PROD_FIELD);
+    assertThat(task.getData().isAsync()).isTrue();
+    assertThat(task.getData().getTimeout()).isEqualTo(TimeUnit.MINUTES.toMillis(10));
+    assertThat(task.getData().getTaskType()).isEqualTo(TaskType.GIT_FETCH_FILES_TASK.name());
+    assertThat(((GitFetchFilesTaskParams) task.getData().getParameters()[0]).isOptimizedFilesFetch()).isTrue();
   }
 
   private void testHandleAsyncResponseForHelmFetchTaskWithNoValuesInGit() {
@@ -1057,7 +1082,13 @@ public class HelmDeployStateTest extends CategoryTest {
 
     doReturn(false).when(applicationManifestUtils).isValuesInGit(appManifestMap);
     helmDeployState.handleAsyncResponse(context, responseDataMap);
-    assertThat(delegateTaskCaptor.getValue().getData().getTaskType()).isEqualTo(TaskType.HELM_COMMAND_TASK.name());
+    DelegateTask task = delegateTaskCaptor.getValue();
+    assertThat(task.getSetupAbstractions().get(Cd1SetupFields.APP_ID_FIELD)).isEqualTo(APP_ID);
+    assertThat(task.getSetupAbstractions().get(Cd1SetupFields.ENV_ID_FIELD)).isEqualTo(ENV_ID);
+    assertThat(task.getSetupAbstractions().get(Cd1SetupFields.ENV_TYPE_FIELD)).isEqualTo(ENV_PROD_FIELD);
+    assertThat(task.getData().isAsync()).isTrue();
+    assertThat(task.getData().getTimeout()).isEqualTo(TimeUnit.MINUTES.toMillis(10));
+    assertThat(task.getData().getTaskType()).isEqualTo(TaskType.HELM_COMMAND_TASK.name());
   }
 
   @Test
@@ -1246,8 +1277,6 @@ public class HelmDeployStateTest extends CategoryTest {
                         .containerServiceParams(containerServiceParams)
                         .isBindTaskFeatureSet(true)
                         .build());
-    when(k8sStateHelper.fetchContainerInfrastructureMapping(context))
-        .thenReturn(DirectKubernetesInfrastructureMapping.builder().build());
 
     ExecutionResponse executionResponse = helmDeployState.execute(context);
 
@@ -1269,8 +1298,6 @@ public class HelmDeployStateTest extends CategoryTest {
     when(applicationManifestUtils.isValuesInGit(appManifestMap)).thenReturn(true);
     when(applicationManifestUtils.createGitFetchFilesTaskParams(context, app, appManifestMap))
         .thenReturn(GitFetchFilesTaskParams.builder().isBindTaskFeatureSet(true).build());
-    when(k8sStateHelper.fetchContainerInfrastructureMapping(context))
-        .thenReturn(DirectKubernetesInfrastructureMapping.builder().build());
 
     ExecutionResponse executionResponse = helmDeployState.execute(context);
     verify(applicationManifestUtils, times(1)).populateRemoteGitConfigFilePathList(context, appManifestMap);
@@ -1392,6 +1419,13 @@ public class HelmDeployStateTest extends CategoryTest {
     verify(delegateService, times(1)).queueTask(delegateTaskCaptor.capture());
 
     DelegateTask task = delegateTaskCaptor.getValue();
+    assertThat(task.getSetupAbstractions().get(Cd1SetupFields.APP_ID_FIELD)).isEqualTo(APP_ID);
+    assertThat(task.getSetupAbstractions().get(Cd1SetupFields.ENV_ID_FIELD)).isEqualTo(ENV_ID);
+    assertThat(task.getSetupAbstractions().get(Cd1SetupFields.ENV_TYPE_FIELD)).isEqualTo(ENV_PROD_FIELD);
+    assertThat(task.getData().getTaskType()).isEqualTo(TaskType.HELM_VALUES_FETCH.name());
+    assertThat(task.getData().isAsync()).isTrue();
+    assertThat(task.getData().getTimeout()).isEqualTo(TimeUnit.MINUTES.toMillis(10));
+
     HelmValuesFetchTaskParameters taskParameters = (HelmValuesFetchTaskParameters) task.getData().getParameters()[0];
     assertThat(taskParameters.getHelmChartConfigTaskParams()).isNotNull();
     assertThat(taskParameters.getHelmChartConfigTaskParams().getRepoName()).isEqualTo("repoName");
@@ -1976,9 +2010,6 @@ public class HelmDeployStateTest extends CategoryTest {
     doReturn(appManifest)
         .when(applicationManifestService)
         .getAppManifest(app.getUuid(), null, serviceElement.getUuid(), AppManifestKind.K8S_MANIFEST);
-    doReturn(DirectKubernetesInfrastructureMapping.builder().build())
-        .when(k8sStateHelper)
-        .fetchContainerInfrastructureMapping(context);
     doReturn(true).when(featureFlagService).isEnabled(FeatureName.CUSTOM_MANIFEST, null);
     doReturn(valuesMap)
         .when(applicationManifestUtils)
@@ -1993,9 +2024,15 @@ public class HelmDeployStateTest extends CategoryTest {
         .executeHelmTask(any(ExecutionContext.class), anyString(), eq(appManifestMap), anyMap());
     assertThat(stateExecutionData.getValuesFiles()).isEqualTo(valuesMap);
     assertThat(stateExecutionData.getZippedManifestFileId()).isEqualTo("fileId");
-    HelmCommandRequest helmCommandRequest =
-        (HelmCommandRequest) delegateTaskCaptor.getValue().getData().getParameters()[0];
-    assertThat(delegateTaskCaptor.getValue().getData().getTaskType()).isEqualTo(TaskType.HELM_COMMAND_TASK.name());
+
+    DelegateTask task = delegateTaskCaptor.getValue();
+    assertThat(task.getSetupAbstractions().get(Cd1SetupFields.APP_ID_FIELD)).isEqualTo(APP_ID);
+    assertThat(task.getSetupAbstractions().get(Cd1SetupFields.ENV_ID_FIELD)).isEqualTo(ENV_ID);
+    assertThat(task.getSetupAbstractions().get(Cd1SetupFields.ENV_TYPE_FIELD)).isEqualTo(ENV_PROD_FIELD);
+    assertThat(task.getData().getTaskType()).isEqualTo(TaskType.HELM_COMMAND_TASK.name());
+    assertThat(task.getData().isAsync()).isTrue();
+    assertThat(task.getData().getTimeout()).isEqualTo(TimeUnit.MINUTES.toMillis(10));
+    HelmCommandRequest helmCommandRequest = (HelmCommandRequest) task.getData().getParameters()[0];
     assertThat(helmCommandRequest.getRepoConfig().getCustomManifestSource().getFilePaths())
         .isEqualTo(singletonList("path"));
     assertThat(helmCommandRequest.getRepoConfig().getCustomManifestSource().getScript()).isEqualTo("test script");

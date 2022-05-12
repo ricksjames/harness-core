@@ -17,8 +17,10 @@ import static io.harness.k8s.model.K8sExpressions.canaryDestination;
 import static io.harness.k8s.model.K8sExpressions.canaryWorkload;
 import static io.harness.k8s.model.K8sExpressions.stableDestination;
 import static io.harness.k8s.model.K8sExpressions.virtualServiceName;
+import static io.harness.pcf.model.PcfConstants.CONTEXT_ACTIVE_APP_NAME_EXPR;
 import static io.harness.pcf.model.PcfConstants.CONTEXT_APP_FINAL_ROUTES_EXPR;
 import static io.harness.pcf.model.PcfConstants.CONTEXT_APP_TEMP_ROUTES_EXPR;
+import static io.harness.pcf.model.PcfConstants.CONTEXT_INACTIVE_APP_NAME_EXPR;
 import static io.harness.pcf.model.PcfConstants.CONTEXT_NEW_APP_GUID_EXPR;
 import static io.harness.pcf.model.PcfConstants.CONTEXT_NEW_APP_NAME_EXPR;
 import static io.harness.pcf.model.PcfConstants.CONTEXT_NEW_APP_ROUTES_EXPR;
@@ -54,6 +56,7 @@ import software.wings.beans.EntityType;
 import software.wings.beans.ServiceTemplate;
 import software.wings.beans.ServiceVariable;
 import software.wings.beans.ServiceVariable.ServiceVariableKeys;
+import software.wings.beans.ServiceVariableType;
 import software.wings.beans.SubEntityType;
 import software.wings.beans.artifact.Artifact.ArtifactKeys;
 import software.wings.service.intfc.AppService;
@@ -99,6 +102,7 @@ public abstract class ExpressionBuilder {
   protected static final String ARTIFACT_BUILD_FULL_DISPLAYNAME_SUFFIX = ".buildFullDisplayName";
   protected static final String ARTIFACT_METADATA_IMAGE_SUFFIX = "." + ArtifactKeys.metadata_image;
   protected static final String ARTIFACT_METADATA_TAG_SUFFIX = "." + ArtifactKeys.metadata_tag;
+  protected static final String ARTIFACT_METADATA_SHA256 = ".metadata.getSHA()";
   protected static final String ARTIFACT_PATH_SUFFIX = ".artifactPath";
   protected static final String ARTIFACT_SOURCE_USER_NAME_SUFFIX = ".source." + ARTIFACT_SOURCE_USER_NAME_KEY;
   protected static final String ARTIFACT_SOURCE_REGISTRY_URL_SUFFIX = ".source." + ARTIFACT_SOURCE_REGISTRY_URL_KEY;
@@ -322,8 +326,9 @@ public abstract class ExpressionBuilder {
 
   private static Collection<String> getPcfWorkflowExprAfterSetupState() {
     return asList(CONTEXT_NEW_APP_GUID_EXPR, CONTEXT_NEW_APP_NAME_EXPR, CONTEXT_NEW_APP_ROUTES_EXPR,
-        CONTEXT_OLD_APP_GUID_EXPR, CONTEXT_OLD_APP_NAME_EXPR, CONTEXT_OLD_APP_ROUTES_EXPR,
-        CONTEXT_APP_FINAL_ROUTES_EXPR, CONTEXT_APP_TEMP_ROUTES_EXPR);
+        CONTEXT_OLD_APP_GUID_EXPR, CONTEXT_OLD_APP_NAME_EXPR, CONTEXT_ACTIVE_APP_NAME_EXPR,
+        CONTEXT_INACTIVE_APP_NAME_EXPR, CONTEXT_OLD_APP_ROUTES_EXPR, CONTEXT_APP_FINAL_ROUTES_EXPR,
+        CONTEXT_APP_TEMP_ROUTES_EXPR);
   }
 
   protected Set<String> getServiceVariables(String appId, List<String> entityIds) {
@@ -348,7 +353,7 @@ public abstract class ExpressionBuilder {
     if (featureFlagService.isEnabled(FeatureName.ARTIFACT_STREAM_REFACTOR, accountId)) {
       Set<String> serviceVariableMentions = new HashSet<>();
       serviceVariables.forEach(serviceVariable -> {
-        if (ServiceVariable.Type.ARTIFACT == serviceVariable.getType()) {
+        if (ServiceVariableType.ARTIFACT == serviceVariable.getType()) {
           String artifactMentions = "artifacts." + serviceVariable.getName();
           serviceVariableMentions.add(artifactMentions);
           for (String suffix : getArtifactExpressionSuffixes()) {
@@ -388,7 +393,7 @@ public abstract class ExpressionBuilder {
         ARTIFACT_DESCRIPTION_SUFFIX, ARTIFACT_FILE_NAME_SUFFIX, ARTIFACT_BUILD_FULL_DISPLAYNAME_SUFFIX,
         ARTIFACT_BUCKET_NAME_SUFFIX, ARTIFACT_BUCKET_KEY_SUFFIX, ARTIFACT_PATH_SUFFIX, ARTIFACT_URL_SUFFIX,
         ARTIFACT_SOURCE_USER_NAME_SUFFIX, ARTIFACT_SOURCE_REGISTRY_URL_SUFFIX, ARTIFACT_SOURCE_REPOSITORY_NAME_SUFFIX,
-        ARTIFACT_METADATA_IMAGE_SUFFIX, ARTIFACT_METADATA_TAG_SUFFIX, ARTIFACT_LABEL_SUFFIX));
+        ARTIFACT_METADATA_IMAGE_SUFFIX, ARTIFACT_METADATA_TAG_SUFFIX, ARTIFACT_LABEL_SUFFIX, ARTIFACT_METADATA_SHA256));
     return expressions;
   }
 }

@@ -22,12 +22,15 @@ import io.harness.delegate.beans.logstreaming.CommandUnitsProgress;
 import io.harness.delegate.beans.logstreaming.ILogStreamingTaskClient;
 import io.harness.delegate.beans.logstreaming.NGDelegateLogCallback;
 import io.harness.delegate.beans.logstreaming.UnitProgressDataMapper;
+import io.harness.delegate.clienttools.ClientTool;
+import io.harness.delegate.clienttools.InstallUtils;
 import io.harness.delegate.exception.TaskNGDataException;
 import io.harness.delegate.task.AbstractDelegateRunnableTask;
 import io.harness.delegate.task.TaskParameters;
 import io.harness.delegate.task.k8s.HelmChartManifestDelegateConfig;
 import io.harness.exception.ExceptionUtils;
 import io.harness.k8s.K8sCommandUnitConstants;
+import io.harness.k8s.model.HelmVersion;
 import io.harness.logging.CommandExecutionStatus;
 import io.harness.logging.LogCallback;
 
@@ -35,6 +38,7 @@ import com.google.inject.Inject;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
+import org.zeroturnaround.exec.ProcessExecutor;
 
 @Slf4j
 @OwnedBy(CDP)
@@ -63,6 +67,10 @@ public class HelmValuesFetchTaskNG extends AbstractDelegateRunnableTask {
     log.info(format("Running HelmValuesFetchTaskNG for account %s", helmValuesFetchRequest.getAccountId()));
 
     LogCallback logCallback = getLogCallback(commandUnitsProgress);
+
+    printHelmBinaryPathAndVersion(
+        helmValuesFetchRequest.getHelmChartManifestDelegateConfig().getHelmVersion(), logCallback);
+
     HelmChartManifestDelegateConfig helmChartManifestDelegateConfig =
         helmValuesFetchRequest.getHelmChartManifestDelegateConfig();
     try {
@@ -70,6 +78,8 @@ public class HelmValuesFetchTaskNG extends AbstractDelegateRunnableTask {
 
       String valuesFileContent = helmTaskHelperBase.fetchValuesYamlFromChart(
           helmChartManifestDelegateConfig, helmValuesFetchRequest.getTimeout(), logCallback);
+
+      logCallback.saveExecutionLog("\nFetching helm values completed successfully.", INFO);
 
       if (helmValuesFetchRequest.isCloseLogStream()) {
         logCallback.saveExecutionLog("Done.", INFO, CommandExecutionStatus.SUCCESS);
@@ -91,5 +101,35 @@ public class HelmValuesFetchTaskNG extends AbstractDelegateRunnableTask {
   public LogCallback getLogCallback(CommandUnitsProgress commandUnitsProgress) {
     return new NGDelegateLogCallback(
         getLogStreamingTaskClient(), K8sCommandUnitConstants.FetchFiles, true, commandUnitsProgress);
+  }
+
+  public void printHelmBinaryPathAndVersion(HelmVersion helmVersion, LogCallback logCallback) {
+    String helmPath;
+    if (helmVersion == null) {
+      helmVersion = HelmVersion.V2; // Default to V2
+    }
+    switch (helmVersion) {
+      case V3:
+        helmPath = InstallUtils.getPath(ClientTool.HELM, io.harness.delegate.clienttools.HelmVersion.V3);
+        break;
+      case V380:
+        helmPath = InstallUtils.getPath(ClientTool.HELM, io.harness.delegate.clienttools.HelmVersion.V3_8);
+        break;
+      default:
+        helmPath = InstallUtils.getPath(ClientTool.HELM, io.harness.delegate.clienttools.HelmVersion.V2);
+    }
+    logCallback.saveExecutionLog("Path of helm binary picked up: " + helmPath);
+
+    try {
+      String version = new ProcessExecutor()
+                           .directory(null)
+                           .commandSplit(helmPath + " version")
+                           .readOutput(true)
+                           .execute()
+                           .outputUTF8();
+      logCallback.saveExecutionLog("Helm binary version is: " + version);
+    } catch (Exception e) {
+      log.warn("Exception occurred while getting helm version");
+    }
   }
 }

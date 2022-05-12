@@ -25,6 +25,7 @@ import io.harness.delegate.beans.executioncapability.ExecutionCapability;
 import io.harness.delegate.beans.executioncapability.ExecutionCapabilityDemander;
 import io.harness.delegate.beans.executioncapability.SelectorCapability;
 import io.harness.delegate.task.mixin.HttpConnectionExecutionCapabilityGenerator;
+import io.harness.delegate.task.winrm.WinRmSessionConfig;
 import io.harness.eraro.ErrorCode;
 import io.harness.exception.WingsException;
 import io.harness.expression.ExpressionEvaluator;
@@ -43,11 +44,11 @@ import software.wings.beans.artifact.Artifact;
 import software.wings.beans.artifact.ArtifactFile;
 import software.wings.beans.artifact.ArtifactStreamAttributes;
 import software.wings.beans.infrastructure.Host;
-import software.wings.core.winrm.executors.WinRmSessionConfig;
 import software.wings.delegatetasks.validation.capabilities.BasicValidationInfo;
 import software.wings.delegatetasks.validation.capabilities.SSHHostValidationCapability;
 import software.wings.delegatetasks.validation.capabilities.WinrmHostValidationCapability;
 import software.wings.settings.SettingValue;
+import software.wings.utils.MappingUtils;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.util.ArrayList;
@@ -103,6 +104,7 @@ public class CommandExecutionContext implements ExecutionCapabilityDemander {
   private boolean executeOnDelegate;
   private boolean disableWinRMCommandEncodingFFSet; // DISABLE_WINRM_COMMAND_ENCODING
   private boolean disableWinRMEnvVariables; // stop passing service variables as env variables
+  private boolean useWinRMKerberosUniqueCacheFile;
   private List<String> delegateSelectors;
 
   // new fields for multi artifact
@@ -179,10 +181,11 @@ public class CommandExecutionContext implements ExecutionCapabilityDemander {
       ContainerResizeParams containerResizeParams, Map<String, String> metadata,
       CommandExecutionData commandExecutionData, Integer timeout, String deploymentType,
       List<EncryptedDataDetail> artifactServerEncryptedDataDetails, boolean inlineSshCommand, boolean executeOnDelegate,
-      boolean disableWinRMCommandEncodingFFSet, boolean disableWinRMEnvVariables, List<String> delegateSelectors,
-      Map<String, Artifact> multiArtifactMap, Map<String, ArtifactStreamAttributes> artifactStreamAttributesMap,
-      boolean multiArtifact, Map<String, List<EncryptedDataDetail>> artifactServerEncryptedDataDetailsMap,
-      String artifactFileName, SSHVaultConfig sshVaultConfig) {
+      boolean disableWinRMCommandEncodingFFSet, boolean disableWinRMEnvVariables,
+      boolean useWinRMKerberosUniqueCacheFile, List<String> delegateSelectors, Map<String, Artifact> multiArtifactMap,
+      Map<String, ArtifactStreamAttributes> artifactStreamAttributesMap, boolean multiArtifact,
+      Map<String, List<EncryptedDataDetail>> artifactServerEncryptedDataDetailsMap, String artifactFileName,
+      SSHVaultConfig sshVaultConfig) {
     this.accountId = accountId;
     this.envId = envId;
     this.host = host;
@@ -222,6 +225,7 @@ public class CommandExecutionContext implements ExecutionCapabilityDemander {
     this.executeOnDelegate = executeOnDelegate;
     this.disableWinRMCommandEncodingFFSet = disableWinRMCommandEncodingFFSet;
     this.disableWinRMEnvVariables = disableWinRMEnvVariables;
+    this.useWinRMKerberosUniqueCacheFile = useWinRMKerberosUniqueCacheFile;
     this.delegateSelectors = delegateSelectors;
     this.multiArtifactMap = multiArtifactMap;
     this.artifactStreamAttributesMap = artifactStreamAttributesMap;
@@ -272,6 +276,7 @@ public class CommandExecutionContext implements ExecutionCapabilityDemander {
         .username(winrmConnectionAttributes.getUsername())
         .password(winrmConnectionAttributes.isUseKeyTab() ? StringUtils.EMPTY
                                                           : String.valueOf(winrmConnectionAttributes.getPassword()))
+        .timeout(timeout)
         .port(winrmConnectionAttributes.getPort())
         .useSSL(winrmConnectionAttributes.isUseSSL())
         .skipCertChecks(winrmConnectionAttributes.isSkipCertChecks())
@@ -280,6 +285,7 @@ public class CommandExecutionContext implements ExecutionCapabilityDemander {
         .useKeyTab(winrmConnectionAttributes.isUseKeyTab())
         .keyTabFilePath(winrmConnectionAttributes.getKeyTabFilePath())
         .useNoProfile(winrmConnectionAttributes.isUseNoProfile())
+        .useKerberosUniqueCacheFile(useWinRMKerberosUniqueCacheFile)
         .build();
   }
 
@@ -565,7 +571,7 @@ public class CommandExecutionContext implements ExecutionCapabilityDemander {
     }
 
     public Builder metadata(Map<String, String> metadata) {
-      this.metadata = metadata;
+      this.metadata = MappingUtils.safeCopy(metadata);
       return this;
     }
 

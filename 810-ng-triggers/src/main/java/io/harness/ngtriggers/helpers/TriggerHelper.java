@@ -56,7 +56,9 @@ import io.harness.pms.contracts.triggers.TriggerPayload;
 import io.harness.product.ci.scm.proto.PullRequest;
 import io.harness.product.ci.scm.proto.User;
 
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import lombok.experimental.UtilityClass;
 
@@ -89,7 +91,7 @@ public class TriggerHelper {
         break;
       case PUSH:
         jsonObject.put(BRANCH, parsedPayload.getPush().getRef().replaceFirst("^refs/heads/", ""));
-        jsonObject.put(TARGET_BRANCH, parsedPayload.getPush().getRepo().getBranch());
+        jsonObject.put(TARGET_BRANCH, parsedPayload.getPush().getRef().replaceFirst("^refs/heads/", ""));
         jsonObject.put(COMMIT_SHA, parsedPayload.getPush().getAfter());
         jsonObject.put(EVENT, PUSH);
         jsonObject.put(TYPE, WEBHOOK_TYPE);
@@ -177,5 +179,9 @@ public class TriggerHelper {
         .append(':')
         .append(ngTriggerEntity.getIdentifier())
         .toString();
+  }
+
+  public List<String> getAllTriggerExpressions() {
+    return Arrays.asList("trigger.targetBranch", "trigger.sourceBranch", "trigger.prNumber", "trigger.prTitle");
   }
 }

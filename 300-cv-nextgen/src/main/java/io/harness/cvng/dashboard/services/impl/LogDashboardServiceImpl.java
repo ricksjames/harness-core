@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Harness Inc. All rights reserved.
+ * Copyright 2022 Harness Inc. All rights reserved.
  * Use of this source code is governed by the PolyForm Free Trial 1.0.0 license
  * that can be found in the licenses directory at the root of this repository, also available at
  * https://polyformproject.org/wp-content/uploads/2020/05/PolyForm-Free-Trial-1.0.0.txt.
@@ -7,46 +7,50 @@
 
 package io.harness.cvng.dashboard.services.impl;
 
-import io.harness.cvng.activity.entities.Activity;
-import io.harness.cvng.activity.services.api.ActivityService;
+import static io.harness.cvng.beans.DataSourceType.ERROR_TRACKING;
+
 import io.harness.cvng.analysis.beans.LiveMonitoringLogAnalysisClusterDTO;
+import io.harness.cvng.analysis.beans.LiveMonitoringLogAnalysisRadarChartClusterDTO;
 import io.harness.cvng.analysis.entities.LogAnalysisCluster;
 import io.harness.cvng.analysis.entities.LogAnalysisCluster.Frequency;
 import io.harness.cvng.analysis.entities.LogAnalysisResult;
 import io.harness.cvng.analysis.entities.LogAnalysisResult.AnalysisResult;
 import io.harness.cvng.analysis.entities.LogAnalysisResult.LogAnalysisTag;
+import io.harness.cvng.analysis.entities.LogAnalysisResult.RadarChartTag;
 import io.harness.cvng.analysis.services.api.LogAnalysisService;
-import io.harness.cvng.beans.CVMonitoringCategory;
+import io.harness.cvng.core.beans.params.MonitoredServiceParams;
 import io.harness.cvng.core.beans.params.PageParams;
-import io.harness.cvng.core.beans.params.ServiceEnvironmentParams;
 import io.harness.cvng.core.beans.params.TimeRangeParams;
 import io.harness.cvng.core.beans.params.filterParams.LiveMonitoringLogAnalysisFilter;
+import io.harness.cvng.core.beans.params.filterParams.MonitoredServiceLogAnalysisFilter;
 import io.harness.cvng.core.entities.CVConfig;
 import io.harness.cvng.core.services.api.CVConfigService;
 import io.harness.cvng.core.services.api.VerificationTaskService;
 import io.harness.cvng.dashboard.beans.AnalyzedLogDataDTO;
 import io.harness.cvng.dashboard.beans.AnalyzedLogDataDTO.FrequencyDTO;
 import io.harness.cvng.dashboard.beans.AnalyzedLogDataDTO.LogData;
-import io.harness.cvng.dashboard.beans.LogDataByTag;
-import io.harness.cvng.dashboard.beans.LogDataByTag.CountByTag;
+import io.harness.cvng.dashboard.beans.AnalyzedRadarChartLogDataDTO;
 import io.harness.cvng.dashboard.services.api.LogDashboardService;
 import io.harness.cvng.utils.CVNGParallelExecutor;
 import io.harness.ng.beans.PageResponse;
 import io.harness.utils.PageUtils;
 
+import com.google.common.base.Charsets;
+import com.google.common.base.Preconditions;
 import com.google.inject.Inject;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Random;
 import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -59,56 +63,62 @@ public class LogDashboardServiceImpl implements LogDashboardService {
   @Inject private CVConfigService cvConfigService;
   @Inject private CVNGParallelExecutor cvngParallelExecutor;
   @Inject private VerificationTaskService verificationTaskService;
-  @Inject private ActivityService activityService;
 
   @Override
-  public PageResponse<AnalyzedLogDataDTO> getAnomalousLogs(String accountId, String projectIdentifier,
-      String orgIdentifier, String serviceIdentifier, String environmentIdentifier, CVMonitoringCategory category,
-      long startTimeMillis, long endTimeMillis, int page, int size) {
-    return getLogs(accountId, projectIdentifier, orgIdentifier, serviceIdentifier, environmentIdentifier, category,
-        startTimeMillis, endTimeMillis, Arrays.asList(LogAnalysisTag.UNEXPECTED, LogAnalysisTag.UNKNOWN), page, size);
-  }
-
-  @Override
-  public PageResponse<AnalyzedLogDataDTO> getAllLogs(String accountId, String projectIdentifier, String orgIdentifier,
-      String serviceIdentifier, String environmentIdentifier, CVMonitoringCategory category, long startTimeMillis,
-      long endTimeMillis, int page, int size) {
-    return getLogs(accountId, projectIdentifier, orgIdentifier, serviceIdentifier, environmentIdentifier, category,
-        startTimeMillis, endTimeMillis, Arrays.asList(LogAnalysisTag.values()), page, size);
-  }
-
-  @Override
-  public PageResponse<AnalyzedLogDataDTO> getActivityLogs(String activityId, String accountId, String projectIdentifier,
-      String orgIdentifier, String environmentIdentifier, String serviceIdentifier, Long startTimeMillis,
-      Long endTimeMillis, boolean anomalousOnly, int page, int size) {
-    List<String> cvConfigIds = getCVConfigIdsForActivity(accountId, activityId);
-    List<LogAnalysisTag> tags = anomalousOnly ? Arrays.asList(LogAnalysisTag.UNEXPECTED, LogAnalysisTag.UNKNOWN)
-                                              : Arrays.asList(LogAnalysisTag.values());
-    return getLogs(accountId, projectIdentifier, orgIdentifier, serviceIdentifier, environmentIdentifier, tags,
-        Instant.ofEpochMilli(startTimeMillis), Instant.ofEpochMilli(endTimeMillis), cvConfigIds, page, size);
-  }
-
-  @Override
-  public PageResponse<AnalyzedLogDataDTO> getAllLogsData(ServiceEnvironmentParams serviceEnvironmentParams,
+  @Deprecated
+  public PageResponse<AnalyzedLogDataDTO> getAllLogsData(MonitoredServiceParams monitoredServiceParams,
       TimeRangeParams timeRangeParams, LiveMonitoringLogAnalysisFilter liveMonitoringLogAnalysisFilter,
       PageParams pageParams) {
-    List<CVConfig> configs = getCVConfigs(serviceEnvironmentParams, liveMonitoringLogAnalysisFilter);
+    List<CVConfig> configs = getCVConfigs(monitoredServiceParams, liveMonitoringLogAnalysisFilter);
     List<String> cvConfigIds = configs.stream().map(CVConfig::getUuid).collect(Collectors.toList());
     List<LogAnalysisTag> tags = liveMonitoringLogAnalysisFilter.filterByClusterTypes()
         ? liveMonitoringLogAnalysisFilter.getClusterTypes()
         : Arrays.asList(LogAnalysisTag.values());
-    return getLogs(serviceEnvironmentParams.getAccountIdentifier(), serviceEnvironmentParams.getProjectIdentifier(),
-        serviceEnvironmentParams.getOrgIdentifier(), serviceEnvironmentParams.getServiceIdentifier(),
-        serviceEnvironmentParams.getEnvironmentIdentifier(), tags, timeRangeParams.getStartTime(),
+    return getLogs(monitoredServiceParams.getAccountIdentifier(), monitoredServiceParams.getProjectIdentifier(),
+        monitoredServiceParams.getOrgIdentifier(), monitoredServiceParams.getServiceIdentifier(),
+        monitoredServiceParams.getEnvironmentIdentifier(), tags, timeRangeParams.getStartTime(),
         timeRangeParams.getEndTime(), cvConfigIds, pageParams.getPage(), pageParams.getSize());
   }
 
   @Override
-  public List<LiveMonitoringLogAnalysisClusterDTO> getLogAnalysisClusters(
-      ServiceEnvironmentParams serviceEnvironmentParams, TimeRangeParams timeRangeParams,
-      LiveMonitoringLogAnalysisFilter liveMonitoringLogAnalysisFilter) {
+  public PageResponse<AnalyzedRadarChartLogDataDTO> getAllRadarChartLogsData(
+      MonitoredServiceParams monitoredServiceParams,
+      MonitoredServiceLogAnalysisFilter monitoredServiceLogAnalysisFilter, PageParams pageParams) {
+    TimeRangeParams timeRangeParams =
+        TimeRangeParams.builder()
+            .startTime(Instant.ofEpochMilli(monitoredServiceLogAnalysisFilter.getStartTimeMillis()))
+            .endTime(Instant.ofEpochMilli(monitoredServiceLogAnalysisFilter.getEndTimeMillis()))
+            .build();
+    List<LogAnalysisTag> logAnalysisTagList = new ArrayList<>();
+    if (!Objects.isNull(monitoredServiceLogAnalysisFilter.getClusterTypes())) {
+      for (RadarChartTag radarChartTag : monitoredServiceLogAnalysisFilter.getClusterTypes()) {
+        logAnalysisTagList.add(LogAnalysisResult.RadarChartTagToLogAnalysisTag(radarChartTag));
+      }
+    }
+    LiveMonitoringLogAnalysisFilter liveMonitoringLogAnalysisFilter =
+        LiveMonitoringLogAnalysisFilter.builder()
+            .healthSourceIdentifiers(monitoredServiceLogAnalysisFilter.getHealthSourceIdentifiers())
+            .clusterTypes(logAnalysisTagList)
+            .build();
+
+    List<CVConfig> configs = getCVConfigs(monitoredServiceParams, liveMonitoringLogAnalysisFilter);
+    List<String> cvConfigIds = configs.stream().map(CVConfig::getUuid).collect(Collectors.toList());
+    List<LogAnalysisTag> tags = liveMonitoringLogAnalysisFilter.filterByClusterTypes()
+        ? liveMonitoringLogAnalysisFilter.getClusterTypes()
+        : Arrays.asList(LogAnalysisTag.values());
+    return getRadarChartLogs(monitoredServiceParams.getAccountIdentifier(),
+        monitoredServiceParams.getProjectIdentifier(), monitoredServiceParams.getOrgIdentifier(),
+        monitoredServiceParams.getServiceIdentifier(), monitoredServiceParams.getEnvironmentIdentifier(), tags,
+        timeRangeParams.getStartTime(), timeRangeParams.getEndTime(), cvConfigIds, pageParams.getPage(),
+        pageParams.getSize(), monitoredServiceLogAnalysisFilter);
+  }
+
+  @Override
+  @Deprecated
+  public List<LiveMonitoringLogAnalysisClusterDTO> getLogAnalysisClusters(MonitoredServiceParams monitoredServiceParams,
+      TimeRangeParams timeRangeParams, LiveMonitoringLogAnalysisFilter liveMonitoringLogAnalysisFilter) {
     List<LiveMonitoringLogAnalysisClusterDTO> liveMonitoringLogAnalysisClusterDTOS = new ArrayList<>();
-    List<String> cvConfigIds = getCVConfigs(serviceEnvironmentParams, liveMonitoringLogAnalysisFilter)
+    List<String> cvConfigIds = getCVConfigs(monitoredServiceParams, liveMonitoringLogAnalysisFilter)
                                    .stream()
                                    .map(CVConfig::getUuid)
                                    .collect(Collectors.toList());
@@ -129,7 +139,7 @@ public class LogDashboardServiceImpl implements LogDashboardService {
       });
 
       String verificationTaskId = verificationTaskService.getServiceGuardVerificationTaskId(
-          serviceEnvironmentParams.getAccountIdentifier(), cvConfigId);
+          monitoredServiceParams.getAccountIdentifier(), cvConfigId);
       List<LogAnalysisCluster> clusters =
           logAnalysisService.getAnalysisClusters(verificationTaskId, labelTagMap.keySet());
       clusters.forEach(logAnalysisCluster -> {
@@ -146,98 +156,152 @@ public class LogDashboardServiceImpl implements LogDashboardService {
         .collect(Collectors.toList());
   }
 
-  private List<CVConfig> getCVConfigs(ServiceEnvironmentParams serviceEnvironmentParams,
-      LiveMonitoringLogAnalysisFilter liveMonitoringLogAnalysisFilter) {
+  @Override
+  public List<LiveMonitoringLogAnalysisRadarChartClusterDTO> getLogAnalysisRadarChartClusters(
+      MonitoredServiceParams monitoredServiceParams,
+      MonitoredServiceLogAnalysisFilter monitoredServiceLogAnalysisFilter) {
+    List<LiveMonitoringLogAnalysisRadarChartClusterDTO> liveMonitoringLogAnalysisRadarChartClusterDTOS =
+        new ArrayList<>();
+    TimeRangeParams timeRangeParams =
+        TimeRangeParams.builder()
+            .startTime(Instant.ofEpochMilli(monitoredServiceLogAnalysisFilter.getStartTimeMillis()))
+            .endTime(Instant.ofEpochMilli(monitoredServiceLogAnalysisFilter.getEndTimeMillis()))
+            .build();
+    List<LogAnalysisTag> logAnalysisTagList = new ArrayList<>();
+    if (!Objects.isNull(monitoredServiceLogAnalysisFilter.getClusterTypes())) {
+      for (RadarChartTag radarChartTag : monitoredServiceLogAnalysisFilter.getClusterTypes()) {
+        logAnalysisTagList.add(LogAnalysisResult.RadarChartTagToLogAnalysisTag(radarChartTag));
+      }
+    }
+    LiveMonitoringLogAnalysisFilter liveMonitoringLogAnalysisFilter =
+        LiveMonitoringLogAnalysisFilter.builder()
+            .healthSourceIdentifiers(monitoredServiceLogAnalysisFilter.getHealthSourceIdentifiers())
+            .clusterTypes(logAnalysisTagList)
+            .build();
+
+    List<String> cvConfigIds = getCVConfigs(monitoredServiceParams, liveMonitoringLogAnalysisFilter)
+                                   .stream()
+                                   .map(CVConfig::getUuid)
+                                   .collect(Collectors.toList());
+    List<LogAnalysisTag> tags = liveMonitoringLogAnalysisFilter.filterByClusterTypes()
+        ? liveMonitoringLogAnalysisFilter.getClusterTypes()
+        : Arrays.asList(LogAnalysisTag.values());
+
+    cvConfigIds.forEach(cvConfigId -> {
+      List<AnalysisResult> logAnalysisResults =
+          getAnalysisResultForCvConfigId(cvConfigId, timeRangeParams.getStartTime(), timeRangeParams.getEndTime());
+
+      Map<Long, LogAnalysisTag> labelTagMap = new HashMap<>();
+      logAnalysisResults.forEach(result -> {
+        Long label = result.getLabel();
+        if (!labelTagMap.containsKey(label) || result.getTag().isMoreSevereThan(labelTagMap.get(label))) {
+          labelTagMap.put(label, result.getTag());
+        }
+      });
+
+      String verificationTaskId = verificationTaskService.getServiceGuardVerificationTaskId(
+          monitoredServiceParams.getAccountIdentifier(), cvConfigId);
+      List<LogAnalysisCluster> clusters =
+          logAnalysisService.getAnalysisClusters(verificationTaskId, labelTagMap.keySet());
+      clusters.forEach(logAnalysisCluster -> {
+        liveMonitoringLogAnalysisRadarChartClusterDTOS.add(
+            LiveMonitoringLogAnalysisRadarChartClusterDTO.builder()
+                .clusterId(UUID.nameUUIDFromBytes(
+                                   (verificationTaskId + ":" + logAnalysisCluster.getLabel()).getBytes(Charsets.UTF_8))
+                               .toString())
+                .clusterType(
+                    LogAnalysisResult.LogAnalysisTagToRadarChartTag(labelTagMap.get(logAnalysisCluster.getLabel())))
+                .text(logAnalysisCluster.getText())
+                .build());
+      });
+    });
+
+    List<LiveMonitoringLogAnalysisRadarChartClusterDTO> sortedList =
+        liveMonitoringLogAnalysisRadarChartClusterDTOS.stream()
+            .filter(cluster -> tags.contains(LogAnalysisResult.RadarChartTagToLogAnalysisTag(cluster.getClusterType())))
+            .sorted(Comparator.comparing(LiveMonitoringLogAnalysisRadarChartClusterDTO::getClusterId))
+            .collect(Collectors.toList());
+
+    if (monitoredServiceLogAnalysisFilter.hasClusterIdFilter()) {
+      sortedList = sortedList.stream()
+                       .filter(liveMonitoringLogAnalysisRadarChartClusterDTO
+                           -> liveMonitoringLogAnalysisRadarChartClusterDTO.getClusterId().equals(
+                               monitoredServiceLogAnalysisFilter.getClusterId()))
+                       .collect(Collectors.toList());
+      Preconditions.checkState(sortedList.size() <= 1, "clusterId filter should result in one or zero cluster");
+    }
+
+    if (sortedList.size() > 0) {
+      setAngleAndRadiusForRadarChartCluster(
+          sortedList.stream()
+              .filter(liveMonitoringLogAnalysisRadarChartClusterDTO
+                  -> tags.contains(LogAnalysisResult.RadarChartTagToLogAnalysisTag(
+                      liveMonitoringLogAnalysisRadarChartClusterDTO.getClusterType())))
+              .collect(Collectors.toList()));
+    }
+
+    return filterClusterByAngle(sortedList, monitoredServiceLogAnalysisFilter);
+  }
+
+  private void setAngleAndRadiusForRadarChartCluster(
+      List<LiveMonitoringLogAnalysisRadarChartClusterDTO> liveMonitoringLogAnalysisRadarChartClusterDTOS) {
+    int totalSize = liveMonitoringLogAnalysisRadarChartClusterDTOS.size();
+    Preconditions.checkArgument(totalSize != 0, "Radar CHart List size cannot be 0 for the angle calculation");
+    double angleDifference = (double) 360 / totalSize;
+    double angle = 0;
+    Random random = new Random(123456789);
+
+    for (int i = 0; i < liveMonitoringLogAnalysisRadarChartClusterDTOS.size(); i++) {
+      LiveMonitoringLogAnalysisRadarChartClusterDTO liveMonitoringLogAnalysisRadarChartClusterDTO =
+          liveMonitoringLogAnalysisRadarChartClusterDTOS.get(i);
+      liveMonitoringLogAnalysisRadarChartClusterDTO.setAngle(angle);
+      liveMonitoringLogAnalysisRadarChartClusterDTO.setRadius(
+          getRandomRadiusInExpectedRange(liveMonitoringLogAnalysisRadarChartClusterDTO.getClusterType(), random));
+      angle += angleDifference;
+      angle = Math.min(angle, 360);
+    }
+  }
+
+  private double getRandomRadiusInExpectedRange(RadarChartTag tag, Random random) {
+    if (tag.equals(LogAnalysisTag.KNOWN)) {
+      return random.nextDouble() * 0.5 + 0.5;
+    } else {
+      return random.nextDouble() + 1;
+    }
+  }
+
+  private List<LiveMonitoringLogAnalysisRadarChartClusterDTO> filterClusterByAngle(
+      List<LiveMonitoringLogAnalysisRadarChartClusterDTO> liveMonitoringLogAnalysisRadarChartClusterDTOList,
+      MonitoredServiceLogAnalysisFilter monitoredServiceLogAnalysisFilter) {
+    List<LiveMonitoringLogAnalysisRadarChartClusterDTO> filteredLogs =
+        liveMonitoringLogAnalysisRadarChartClusterDTOList;
+    if (monitoredServiceLogAnalysisFilter.filterByAngle()) {
+      Preconditions.checkArgument(monitoredServiceLogAnalysisFilter.getMinAngle() >= 0
+              && monitoredServiceLogAnalysisFilter.getMaxAngle() <= 360,
+          "Angle filter range should be between 0 and 360");
+      filteredLogs = liveMonitoringLogAnalysisRadarChartClusterDTOList.stream()
+                         .filter(result
+                             -> result.getAngle() >= monitoredServiceLogAnalysisFilter.getMinAngle()
+                                 && result.getAngle() <= monitoredServiceLogAnalysisFilter.getMaxAngle())
+                         .collect(Collectors.toList());
+    }
+    return filteredLogs;
+  }
+
+  private List<CVConfig> getCVConfigs(
+      MonitoredServiceParams monitoredServiceParams, LiveMonitoringLogAnalysisFilter liveMonitoringLogAnalysisFilter) {
     List<CVConfig> configs;
     if (liveMonitoringLogAnalysisFilter.filterByHealthSourceIdentifiers()) {
       configs =
-          cvConfigService.list(serviceEnvironmentParams, liveMonitoringLogAnalysisFilter.getHealthSourceIdentifiers());
+          cvConfigService.list(monitoredServiceParams, liveMonitoringLogAnalysisFilter.getHealthSourceIdentifiers());
     } else {
-      configs = cvConfigService.list(serviceEnvironmentParams);
+      configs = cvConfigService.list(monitoredServiceParams);
     }
+
+    // Limit to NOT include Error Tracking configs
+    configs = configs.stream().filter(config -> !ERROR_TRACKING.equals(config.getType())).collect(Collectors.toList());
+
     return configs;
-  }
-
-  private List<String> getCVConfigIdsForActivity(String accountId, String activityId) {
-    Activity activity = activityService.get(activityId);
-    List<String> verificationJobInstanceIds = activity.getVerificationJobInstanceIds();
-    Set<String> verificationTaskIds =
-        verificationJobInstanceIds.stream()
-            .map(verificationJobInstanceId
-                -> verificationTaskService.getVerificationTaskIds(accountId, verificationJobInstanceId))
-            .flatMap(Collection::stream)
-            .collect(Collectors.toSet());
-    return verificationTaskIds.stream()
-        .map(verificationTaskId -> verificationTaskService.getCVConfigId(verificationTaskId))
-        .collect(Collectors.toList());
-  }
-
-  @Override
-  public SortedSet<LogDataByTag> getLogCountByTag(String accountId, String projectIdentifier, String orgIdentifier,
-      String serviceIdentifier, String environmentIdentifier, CVMonitoringCategory category, long startTimeMillis,
-      long endTimeMillis) {
-    List<CVConfig> configs = cvConfigService.getConfigsOfProductionEnvironments(
-        accountId, orgIdentifier, projectIdentifier, environmentIdentifier, serviceIdentifier, category);
-    List<String> cvConfigIds = configs.stream().map(CVConfig::getUuid).collect(Collectors.toList());
-    return getLogCountByTagForConfigs(accountId, cvConfigIds, startTimeMillis, endTimeMillis);
-  }
-
-  private SortedSet<LogDataByTag> getLogCountByTagForConfigs(
-      String accountId, List<String> cvConfigIds, long startTimeMillis, long endTimeMillis) {
-    Map<Long, Map<LogAnalysisTag, Integer>> logTagCountMap = new HashMap<>();
-    List<LogDataByTag> logDataByTagList = new ArrayList<>();
-
-    Instant startTime = Instant.ofEpochMilli(startTimeMillis);
-    Instant endTime = Instant.ofEpochMilli(endTimeMillis);
-
-    for (String verificationTaskId : cvConfigIds) {
-      // String verificationTaskId = verificationTaskService.create(accountId, cvConfigId);
-      List<LogAnalysisResult> analysisResults = logAnalysisService.getAnalysisResults(
-          verificationTaskId, Arrays.asList(LogAnalysisTag.values()), startTime, endTime);
-      analysisResults.forEach(result -> {
-        Long analysisTime = result.getAnalysisStartTime().toEpochMilli();
-        if (!logTagCountMap.containsKey(analysisTime)) {
-          logTagCountMap.put(analysisTime, new HashMap<>());
-        }
-        result.getLogAnalysisResults().forEach(analysis -> {
-          LogAnalysisTag tag = analysis.getTag();
-          if (!logTagCountMap.get(analysisTime).containsKey(tag)) {
-            logTagCountMap.get(analysisTime).put(tag, 0);
-          }
-          int newCount = logTagCountMap.get(analysisTime).get(tag) + analysis.getCount();
-          logTagCountMap.get(analysisTime).put(tag, newCount);
-        });
-      });
-    }
-
-    logTagCountMap.forEach((timestamp, countMap) -> {
-      LogDataByTag logDataByTag = LogDataByTag.builder().timestamp(timestamp).build();
-      countMap.forEach(
-          (tag, count) -> { logDataByTag.addCountByTag(CountByTag.builder().tag(tag).count(count).build()); });
-      logDataByTagList.add(logDataByTag);
-    });
-    SortedSet<LogDataByTag> sortedReturnSet = new TreeSet<>(logDataByTagList);
-    log.info("In getLogCountByTag, returning a set of size {}", sortedReturnSet.size());
-    return sortedReturnSet;
-  }
-
-  @Override
-  public SortedSet<LogDataByTag> getLogCountByTagForActivity(String accountId, String projectIdentifier,
-      String orgIdentifier, String activityId, Instant startTime, Instant endTime) {
-    List<String> cvConfigIds = getCVConfigIdsForActivity(accountId, activityId);
-    return getLogCountByTagForConfigs(accountId, cvConfigIds, startTime.toEpochMilli(), endTime.toEpochMilli());
-  }
-
-  private PageResponse<AnalyzedLogDataDTO> getLogs(String accountId, String projectIdentifier, String orgIdentifier,
-      String serviceIdentifier, String environmentIdentifier, CVMonitoringCategory category, long startTimeMillis,
-      long endTimeMillis, List<LogAnalysisTag> tags, int page, int size) {
-    Instant startTime = Instant.ofEpochMilli(startTimeMillis);
-    Instant endTime = Instant.ofEpochMilli(endTimeMillis);
-    List<CVConfig> configs = cvConfigService.getConfigsOfProductionEnvironments(
-        accountId, orgIdentifier, projectIdentifier, environmentIdentifier, serviceIdentifier, category);
-    List<String> cvConfigIds = configs.stream().map(CVConfig::getUuid).collect(Collectors.toList());
-    return getLogs(accountId, projectIdentifier, orgIdentifier, serviceIdentifier, environmentIdentifier, tags,
-        startTime, endTime, cvConfigIds, page, size);
   }
 
   private PageResponse<AnalyzedLogDataDTO> getLogs(String accountId, String projectIdentifier, String orgIdentifier,
@@ -290,6 +354,174 @@ public class LogDashboardServiceImpl implements LogDashboardService {
                                   .build()));
     Collections.sort(sortedList);
     return PageUtils.offsetAndLimit(sortedList, page, size);
+  }
+
+  private PageResponse<AnalyzedRadarChartLogDataDTO> getRadarChartLogs(String accountId, String projectIdentifier,
+      String orgIdentifier, String serviceIdentifier, String environmentIdentifer, List<LogAnalysisTag> tags,
+      Instant startTime, Instant endTime, List<String> cvConfigIds, int page, int size,
+      MonitoredServiceLogAnalysisFilter monitoredServiceLogAnalysisFilter) {
+    // for each cvConfigId, get the list of unknown and unexpected analysis results.
+    // Total number of calls to DB = total number of cvConfigs that are part of this category for this service+env with
+    // type as LOG
+    Map<String, List<AnalysisResult>> cvConfigAnalysisResultMap = new ConcurrentHashMap<>();
+
+    List<AnalyzedRadarChartLogDataDTO.LogData> logDataToBeReturned = Collections.synchronizedList(new ArrayList<>());
+    List<Callable<Map<String, List<AnalysisResult>>>> callables = new ArrayList<>();
+    cvConfigIds.forEach(cvConfigId -> {
+      callables.add(() -> {
+        Map<String, List<AnalysisResult>> configResult = new HashMap<>();
+        configResult.put(cvConfigId, getAnalysisResultForCvConfigId(cvConfigId, startTime, endTime));
+        return configResult;
+      });
+    });
+
+    List<Map<String, List<AnalysisResult>>> allResults = cvngParallelExecutor.executeParallel(callables);
+    allResults.forEach(result -> cvConfigAnalysisResultMap.putAll(result));
+
+    // for each cvConfigId, make a call to get the labels/texts
+    List<Callable<List<AnalyzedRadarChartLogDataDTO.LogData>>> logDataCallables = new ArrayList<>();
+    cvConfigAnalysisResultMap.keySet().forEach(cvConfigId -> {
+      logDataCallables.add(() -> {
+        List<AnalysisResult> analysisResults = cvConfigAnalysisResultMap.get(cvConfigId);
+        Set<Long> labels = analysisResults.stream().map(AnalysisResult::getLabel).collect(Collectors.toSet());
+        String verificationTaskId = verificationTaskService.getServiceGuardVerificationTaskId(accountId, cvConfigId);
+        List<LogAnalysisCluster> clusters = logAnalysisService.getAnalysisClusters(verificationTaskId, labels);
+        return mergeClusterWithRadarChartResults(analysisResults, clusters, startTime, endTime);
+      });
+    });
+
+    List<List<AnalyzedRadarChartLogDataDTO.LogData>> logDataResults =
+        cvngParallelExecutor.executeParallel(logDataCallables);
+    logDataResults.forEach(result -> logDataToBeReturned.addAll(result));
+
+    List<AnalyzedRadarChartLogDataDTO> sortedList = new ArrayList<>();
+    // create the sorted set first. Then form the page response.
+    logDataToBeReturned.stream()
+        .filter(logData -> tags.contains(LogAnalysisResult.RadarChartTagToLogAnalysisTag(logData.getClusterType())))
+        .forEach(logData
+            -> sortedList.add(AnalyzedRadarChartLogDataDTO.builder()
+                                  .projectIdentifier(projectIdentifier)
+                                  .orgIdentifier(orgIdentifier)
+                                  .serviceIdentifier(serviceIdentifier)
+                                  .environmentIdentifier(environmentIdentifer)
+                                  .logData(logData)
+                                  .build()));
+    List<AnalyzedRadarChartLogDataDTO> sortedAnalyzedRadarChartLogDataDTOS =
+        sortedList.stream()
+            .sorted(Comparator.comparing(x -> x.getLogData().getClusterId()))
+            .collect(Collectors.toList());
+
+    if (monitoredServiceLogAnalysisFilter.hasClusterIdFilter()) {
+      sortedAnalyzedRadarChartLogDataDTOS = sortedAnalyzedRadarChartLogDataDTOS.stream()
+                                                .filter(analyzedRadarChartLogDataDTO
+                                                    -> analyzedRadarChartLogDataDTO.getLogData().getClusterId().equals(
+                                                        monitoredServiceLogAnalysisFilter.getClusterId()))
+                                                .collect(Collectors.toList());
+      Preconditions.checkState(
+          sortedAnalyzedRadarChartLogDataDTOS.size() <= 1, "clusterId filter should result in one or zero cluster");
+    }
+
+    if (sortedAnalyzedRadarChartLogDataDTOS.size() > 0) {
+      setAngleAndRadiusForRadarChartData(sortedAnalyzedRadarChartLogDataDTOS.stream()
+                                             .filter(analyzedRadarChartLogDataDTO
+                                                 -> tags.contains(LogAnalysisResult.RadarChartTagToLogAnalysisTag(
+                                                     analyzedRadarChartLogDataDTO.getLogData().getClusterType())))
+                                             .collect(Collectors.toList()));
+    }
+
+    sortedAnalyzedRadarChartLogDataDTOS =
+        filterDataByAngle(sortedAnalyzedRadarChartLogDataDTOS, monitoredServiceLogAnalysisFilter);
+    return PageUtils.offsetAndLimit(sortedAnalyzedRadarChartLogDataDTOS, page, size);
+  }
+
+  private void setAngleAndRadiusForRadarChartData(List<AnalyzedRadarChartLogDataDTO> analyzedRadarChartLogDataDTOList) {
+    int totalSize = analyzedRadarChartLogDataDTOList.size();
+    Preconditions.checkArgument(totalSize != 0, "Radar CHart List size cannot be 0 for the angle calculation");
+    double angleDifference = (double) 360 / totalSize;
+    double angle = 0;
+    Random random = new Random(123456789);
+
+    for (int i = 0; i < analyzedRadarChartLogDataDTOList.size(); i++) {
+      AnalyzedRadarChartLogDataDTO analyzedRadarChartLogDataDTO = analyzedRadarChartLogDataDTOList.get(i);
+      analyzedRadarChartLogDataDTO.getLogData().setAngle(angle);
+      analyzedRadarChartLogDataDTO.getLogData().setRadius(
+          getRandomRadiusInExpectedRange(analyzedRadarChartLogDataDTO.getLogData().getClusterType(), random));
+      angle += angleDifference;
+      angle = Math.min(angle, 360);
+    }
+  }
+
+  private List<AnalyzedRadarChartLogDataDTO> filterDataByAngle(
+      List<AnalyzedRadarChartLogDataDTO> analyzedRadarChartLogDataDTOList,
+      MonitoredServiceLogAnalysisFilter monitoredServiceLogAnalysisFilter) {
+    List<AnalyzedRadarChartLogDataDTO> filteredLogs = analyzedRadarChartLogDataDTOList;
+    if (monitoredServiceLogAnalysisFilter.filterByAngle()) {
+      Preconditions.checkArgument(monitoredServiceLogAnalysisFilter.getMinAngle() >= 0
+              && monitoredServiceLogAnalysisFilter.getMaxAngle() <= 360,
+          "Angle filter range should be between 0 and 360");
+      filteredLogs = analyzedRadarChartLogDataDTOList.stream()
+                         .filter(result
+                             -> result.getLogData().getAngle() >= monitoredServiceLogAnalysisFilter.getMinAngle()
+                                 && result.getLogData().getAngle() <= monitoredServiceLogAnalysisFilter.getMaxAngle())
+                         .collect(Collectors.toList());
+    }
+    return filteredLogs;
+  }
+
+  private List<AnalyzedRadarChartLogDataDTO.LogData> mergeClusterWithRadarChartResults(
+      List<AnalysisResult> analysisResults, List<LogAnalysisCluster> analysisClusters, Instant start, Instant end) {
+    Map<Long, AnalysisResult> labelTagMap = new HashMap<>();
+
+    analysisResults.forEach(result -> {
+      Long label = result.getLabel();
+      if (!labelTagMap.containsKey(label) || result.getTag().isMoreSevereThan(labelTagMap.get(label).getTag())) {
+        labelTagMap.put(label, result);
+      }
+    });
+
+    List<AnalyzedRadarChartLogDataDTO.LogData> logDataList = new ArrayList<>();
+
+    analysisClusters.forEach(cluster -> {
+      Map<Long, Integer> trendMap =
+          cluster.getFrequencyTrend().stream().collect(Collectors.toMap(Frequency::getTimestamp, Frequency::getCount));
+
+      // filter and keep only those within the timerange we want.
+      trendMap = trendMap.entrySet()
+                     .stream()
+                     .filter(e
+                         -> e.getKey() >= TimeUnit.MILLISECONDS.toMinutes(start.toEpochMilli())
+                             && e.getKey() <= TimeUnit.MILLISECONDS.toMinutes(end.toEpochMilli()))
+                     .collect(Collectors.toMap(x -> TimeUnit.MINUTES.toMillis(x.getKey()), x -> x.getValue()));
+
+      List<FrequencyDTO> frequencies = new ArrayList<>();
+
+      trendMap.forEach(
+          (timestamp, count) -> frequencies.add(FrequencyDTO.builder().timestamp(timestamp).count(count).build()));
+
+      AnalysisResult analysisResult = labelTagMap.get(cluster.getLabel());
+
+      // TODO:going forward this if condition needs to be removed as we are saving high riskScore for unknown and
+      // unexpected tags in the db itself.
+      if (LogAnalysisTag.getAnomalousTags().contains(analysisResult.getTag())) {
+        analysisResult.setRiskScore(1.0);
+      }
+
+      AnalyzedRadarChartLogDataDTO.LogData data =
+          AnalyzedRadarChartLogDataDTO.LogData.builder()
+              .text(cluster.getText())
+              .label(cluster.getLabel())
+              .clusterId(UUID.nameUUIDFromBytes(
+                                 (cluster.getVerificationTaskId() + ":" + cluster.getLabel()).getBytes(Charsets.UTF_8))
+                             .toString())
+              .count(trendMap.values().stream().collect(Collectors.summingInt(Integer::intValue)))
+              .trend(frequencies)
+              .clusterType(LogAnalysisResult.LogAnalysisTagToRadarChartTag(analysisResult.getTag()))
+              .riskScore(analysisResult.getRiskScore())
+              .riskStatus(analysisResult.getRisk())
+              .build();
+      logDataList.add(data);
+    });
+    return logDataList;
   }
 
   private List<AnalysisResult> getAnalysisResultForCvConfigId(String cvConfigId, Instant startTime, Instant endTime) {
@@ -349,31 +581,5 @@ public class LogDashboardServiceImpl implements LogDashboardService {
       logDataList.add(data);
     });
     return logDataList;
-  }
-
-  private PageResponse<AnalyzedLogDataDTO> formPageResponse(
-      int page, int size, SortedSet<AnalyzedLogDataDTO> analyzedLogData) {
-    List<AnalyzedLogDataDTO> returnList = new ArrayList<>();
-
-    int totalNumPages = analyzedLogData.size() / size;
-    int startIndex = page * size;
-    Iterator<AnalyzedLogDataDTO> iterator = analyzedLogData.iterator();
-    int i = 0;
-    while (iterator.hasNext()) {
-      AnalyzedLogDataDTO analyzedLogDataDTO = iterator.next();
-      if (i >= startIndex && returnList.size() < size) {
-        returnList.add(analyzedLogDataDTO);
-      }
-      i++;
-    }
-
-    return PageResponse.<AnalyzedLogDataDTO>builder()
-        .pageSize(size)
-        .totalPages(totalNumPages)
-        .totalItems(analyzedLogData.size())
-        .pageIndex(returnList.size() == 0 ? -1 : page)
-        .empty(returnList.size() == 0)
-        .content(returnList)
-        .build();
   }
 }

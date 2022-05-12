@@ -9,6 +9,7 @@ package io.harness.pms.triggers;
 
 import static io.harness.AuthorizationServiceHeader.PIPELINE_SERVICE;
 import static io.harness.data.structure.EmptyPredicate.isEmpty;
+import static io.harness.data.structure.EmptyPredicate.isNotEmpty;
 import static io.harness.data.structure.UUIDGenerator.generateUuid;
 import static io.harness.exception.WingsException.USER;
 import static io.harness.ngtriggers.Constants.EVENT_CORRELATION_ID;
@@ -57,8 +58,11 @@ import io.harness.pms.merger.helpers.InputSetMergeHelper;
 import io.harness.pms.ngpipeline.inputset.helpers.InputSetSanitizer;
 import io.harness.pms.pipeline.PipelineEntity;
 import io.harness.pms.pipeline.service.PMSPipelineService;
+import io.harness.pms.pipeline.service.PMSPipelineServiceHelper;
 import io.harness.pms.pipeline.service.PMSPipelineTemplateHelper;
 import io.harness.pms.pipeline.service.PMSYamlSchemaService;
+import io.harness.pms.pipeline.service.PipelineEnforcementService;
+import io.harness.pms.pipeline.service.PipelineMetadataService;
 import io.harness.pms.pipeline.yaml.BasicPipeline;
 import io.harness.pms.plan.execution.ExecutionHelper;
 import io.harness.pms.plan.execution.service.PMSExecutionService;
@@ -84,12 +88,15 @@ import lombok.extern.slf4j.Slf4j;
 @OwnedBy(HarnessTeam.PIPELINE)
 public class TriggerExecutionHelper {
   private final PMSPipelineService pmsPipelineService;
+  private final PipelineMetadataService pipelineMetadataService;
+  private final PMSPipelineServiceHelper pmsPipelineServiceHelper;
   private final PlanExecutionService planExecutionService;
   private final PMSExecutionService pmsExecutionService;
   private final PmsGitSyncHelper pmsGitSyncHelper;
   private final PMSYamlSchemaService pmsYamlSchemaService;
   private final ExecutionHelper executionHelper;
   private final PMSPipelineTemplateHelper pipelineTemplateHelper;
+  private final PipelineEnforcementService pipelineEnforcementService;
 
   public PlanExecution resolveRuntimeInputAndSubmitExecutionReques(
       TriggerDetails triggerDetails, TriggerPayload triggerPayload) {
@@ -140,7 +147,7 @@ public class TriggerExecutionHelper {
           ExecutionMetadata.newBuilder()
               .setExecutionUuid(executionId)
               .setTriggerInfo(triggerInfo)
-              .setRunSequence(pmsPipelineService.incrementRunSequence(pipelineEntity))
+              .setRunSequence(pipelineMetadataService.incrementRunSequence(pipelineEntity))
               .setPipelineIdentifier(pipelineEntity.getIdentifier());
 
       final GitEntityInfo branchInfo = GitEntityInfo.builder()
@@ -178,12 +185,15 @@ public class TriggerExecutionHelper {
         pipelineYaml =
             pipelineTemplateHelper
                 .resolveTemplateRefsInPipeline(pipelineEntity.getAccountId(), pipelineEntity.getOrgIdentifier(),
-                    pipelineEntity.getProjectIdentifier(), pipelineYaml, true)
+                    pipelineEntity.getProjectIdentifier(), pipelineYaml, false)
                 .getMergedPipelineYaml();
       }
+
       BasicPipeline basicPipeline = YamlUtils.read(pipelineYaml, BasicPipeline.class);
 
-      String expandedJson = pmsPipelineService.fetchExpandedPipelineJSONFromYaml(pipelineEntity.getAccountId(),
+      pipelineEnforcementService.validateExecutionEnforcementsBasedOnStage(pipelineEntity);
+
+      String expandedJson = pmsPipelineServiceHelper.fetchExpandedPipelineJSONFromYaml(pipelineEntity.getAccountId(),
           pipelineEntity.getOrgIdentifier(), pipelineEntity.getProjectIdentifier(), pipelineYaml);
 
       planExecutionMetadataBuilder.yaml(pipelineYaml);
@@ -237,6 +247,15 @@ public class TriggerExecutionHelper {
 
         if (sender != null) {
           builder.putExtraInfo(GIT_USER, sender.getLogin());
+          if (isNotEmpty(sender.getEmail())) {
+            builder.putExtraInfo("email", sender.getEmail());
+          }
+          if (isNotEmpty(sender.getLogin())) {
+            builder.setIdentifier(sender.getLogin());
+          }
+          if (isNotEmpty(sender.getName())) {
+            builder.setUuid(sender.getName());
+          }
         }
       }
     }

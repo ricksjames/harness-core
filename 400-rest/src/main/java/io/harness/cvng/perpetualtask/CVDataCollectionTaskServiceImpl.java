@@ -139,6 +139,7 @@ public class CVDataCollectionTaskServiceImpl implements CVDataCollectionTaskServ
                                    .orgIdentifier(bundle.getOrgIdentifier())
                                    .envIdentifier(bundle.getEnvIdentifier())
                                    .serviceIdentifier(bundle.getServiceIdentifier())
+                                   .monitoredServiceIdentifier(bundle.getMonitoredServiceIdentifier())
                                    .changeSourceIdentifier(bundle.getSourceIdentifier())
                                    .build();
         K8ActivityCollectionPerpetualTaskParams k8ActivityCollectionPerpetualTaskParams =
@@ -221,10 +222,12 @@ public class CVDataCollectionTaskServiceImpl implements CVDataCollectionTaskServ
 
   private List<EncryptedDataDetail> getEncryptedDataDetails(
       NGAccess basicNgAccessObject, DecryptableEntity decryptableEntity) {
-    return NGRestUtils.getResponse(secretNGManagerClient.getEncryptionDetails(NGAccessWithEncryptionConsumer.builder()
-                                                                                  .ngAccess(basicNgAccessObject)
-                                                                                  .decryptableEntity(decryptableEntity)
-                                                                                  .build()));
+    return NGRestUtils.getResponse(
+        secretNGManagerClient.getEncryptionDetails(basicNgAccessObject.getAccountIdentifier(),
+            NGAccessWithEncryptionConsumer.builder()
+                .ngAccess(basicNgAccessObject)
+                .decryptableEntity(decryptableEntity)
+                .build()));
   }
 
   @Override
@@ -262,6 +265,8 @@ public class CVDataCollectionTaskServiceImpl implements CVDataCollectionTaskServ
         return CVNGPerpetualTaskUnassignedReason.NO_ELIGIBLE_DELEGATES;
       case MULTIPLE_FAILED_PERPETUAL_TASK:
         return CVNGPerpetualTaskUnassignedReason.MULTIPLE_FAILED_PERPETUAL_TASK;
+      case VALIDATION_TASK_FAILED:
+        return CVNGPerpetualTaskUnassignedReason.VALIDATION_TASK_FAILED;
       default:
         throw new UnknownEnumTypeException("Task Unassigned Reason", String.valueOf(perpetualTaskUnassignedReason));
     }

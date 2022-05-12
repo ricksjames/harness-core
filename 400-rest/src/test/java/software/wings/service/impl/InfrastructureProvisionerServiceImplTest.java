@@ -8,6 +8,7 @@
 package software.wings.service.impl;
 
 import static io.harness.annotations.dev.HarnessTeam.CDP;
+import static io.harness.beans.FeatureName.VALIDATE_PROVISIONER_EXPRESSION;
 import static io.harness.rule.OwnerRule.ANSHUL;
 import static io.harness.rule.OwnerRule.ARVIND;
 import static io.harness.rule.OwnerRule.BOJANA;
@@ -90,7 +91,7 @@ import software.wings.beans.KmsConfig;
 import software.wings.beans.NameValuePair;
 import software.wings.beans.Service;
 import software.wings.beans.Service.ServiceKeys;
-import software.wings.beans.ServiceVariable.Type;
+import software.wings.beans.ServiceVariableType;
 import software.wings.beans.SettingAttribute;
 import software.wings.beans.SettingAttribute.SettingAttributeKeys;
 import software.wings.beans.TerraformInfrastructureProvisioner;
@@ -138,6 +139,7 @@ import org.junit.experimental.categories.Category;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mongodb.morphia.query.MorphiaIterator;
 import org.mongodb.morphia.query.Query;
 
@@ -163,6 +165,7 @@ public class InfrastructureProvisionerServiceImplTest extends WingsBaseTest {
   @Mock DelegateService delegateService;
   @Mock WorkflowExecutionService workflowExecutionService;
   @Mock SecretManager secretManager;
+  @Mock FeatureFlagService featureFlagService;
   @Inject @InjectMocks InfrastructureProvisionerService infrastructureProvisionerService;
   @Inject @InjectMocks InfrastructureProvisionerServiceImpl infrastructureProvisionerServiceImpl;
   @Inject private HPersistence persistence;
@@ -430,14 +433,14 @@ public class InfrastructureProvisionerServiceImplTest extends WingsBaseTest {
   private void shouldBackendConfigValidation(TerraformInfrastructureProvisioner terraformProvisioner,
       InfrastructureProvisionerServiceImpl provisionerService) {
     terraformProvisioner.setBackendConfigs(
-        asList(NameValuePair.builder().name("access.key").valueType(Type.TEXT.toString()).build(),
-            NameValuePair.builder().name("secret_key").valueType(Type.TEXT.toString()).build()));
+        asList(NameValuePair.builder().name("access.key").valueType(ServiceVariableType.TEXT.toString()).build(),
+            NameValuePair.builder().name("secret_key").valueType(ServiceVariableType.TEXT.toString()).build()));
     assertThatExceptionOfType(InvalidRequestException.class)
         .isThrownBy(() -> provisionerService.validateProvisioner(terraformProvisioner));
 
     terraformProvisioner.setBackendConfigs(
-        asList(NameValuePair.builder().name("$access_key").valueType(Type.TEXT.toString()).build(),
-            NameValuePair.builder().name("secret_key").valueType(Type.TEXT.toString()).build()));
+        asList(NameValuePair.builder().name("$access_key").valueType(ServiceVariableType.TEXT.toString()).build(),
+            NameValuePair.builder().name("secret_key").valueType(ServiceVariableType.TEXT.toString()).build()));
     assertThatExceptionOfType(InvalidRequestException.class)
         .isThrownBy(() -> provisionerService.validateProvisioner(terraformProvisioner));
 
@@ -448,22 +451,22 @@ public class InfrastructureProvisionerServiceImplTest extends WingsBaseTest {
     provisionerService.validateProvisioner(terraformProvisioner);
 
     terraformProvisioner.setBackendConfigs(
-        asList(NameValuePair.builder().name("access_key").valueType(Type.TEXT.toString()).build(),
-            NameValuePair.builder().name("secret_key").valueType(Type.TEXT.toString()).build()));
+        asList(NameValuePair.builder().name("access_key").valueType(ServiceVariableType.TEXT.toString()).build(),
+            NameValuePair.builder().name("secret_key").valueType(ServiceVariableType.TEXT.toString()).build()));
     provisionerService.validateProvisioner(terraformProvisioner);
   }
 
   private void shouldVariablesValidation(TerraformInfrastructureProvisioner terraformProvisioner,
       InfrastructureProvisionerServiceImpl provisionerService) {
     terraformProvisioner.setVariables(
-        asList(NameValuePair.builder().name("access.key").valueType(Type.TEXT.toString()).build(),
-            NameValuePair.builder().name("secret_key").valueType(Type.TEXT.toString()).build()));
+        asList(NameValuePair.builder().name("access.key").valueType(ServiceVariableType.TEXT.toString()).build(),
+            NameValuePair.builder().name("secret_key").valueType(ServiceVariableType.TEXT.toString()).build()));
     assertThatExceptionOfType(InvalidRequestException.class)
         .isThrownBy(() -> provisionerService.validateProvisioner(terraformProvisioner));
 
     terraformProvisioner.setVariables(
-        asList(NameValuePair.builder().name("$access_key").valueType(Type.TEXT.toString()).build(),
-            NameValuePair.builder().name("secret_key").valueType(Type.TEXT.toString()).build()));
+        asList(NameValuePair.builder().name("$access_key").valueType(ServiceVariableType.TEXT.toString()).build(),
+            NameValuePair.builder().name("secret_key").valueType(ServiceVariableType.TEXT.toString()).build()));
     assertThatExceptionOfType(InvalidRequestException.class)
         .isThrownBy(() -> provisionerService.validateProvisioner(terraformProvisioner));
 
@@ -474,8 +477,8 @@ public class InfrastructureProvisionerServiceImplTest extends WingsBaseTest {
     provisionerService.validateProvisioner(terraformProvisioner);
 
     terraformProvisioner.setVariables(
-        asList(NameValuePair.builder().name("access_key").valueType(Type.TEXT.toString()).build(),
-            NameValuePair.builder().name("secret_key").valueType(Type.TEXT.toString()).build()));
+        asList(NameValuePair.builder().name("access_key").valueType(ServiceVariableType.TEXT.toString()).build(),
+            NameValuePair.builder().name("secret_key").valueType(ServiceVariableType.TEXT.toString()).build()));
     provisionerService.validateProvisioner(terraformProvisioner);
   }
 
@@ -624,7 +627,7 @@ public class InfrastructureProvisionerServiceImplTest extends WingsBaseTest {
     SettingAttribute settingAttribute1 = aSettingAttribute().withUuid("id1").build();
     SettingAttribute settingAttribute2 = aSettingAttribute().withUuid("id2").build();
     settingAttributePageResponse.setResponse(asList(settingAttribute1, settingAttribute2));
-    when(settingService.list(settingAttributePageRequest, null, null)).thenReturn(settingAttributePageResponse);
+    when(settingService.list(settingAttributePageRequest, null, null, false)).thenReturn(settingAttributePageResponse);
 
     Map<String, SettingAttribute> idToSettingAttributeMapping =
         ((InfrastructureProvisionerServiceImpl) infrastructureProvisionerService)
@@ -1122,5 +1125,34 @@ public class InfrastructureProvisionerServiceImplTest extends WingsBaseTest {
     properties.add(property);
     infrastructureProvisionerServiceImpl.addProvisionerKeys(properties, infrastructureProvisioner);
     assertThat(property.getValue()).isEqualTo("${shellScriptProvisioner.test}");
+  }
+
+  @Test
+  @Owner(developers = ARVIND)
+  @Category(UnitTests.class)
+  public void testAreExpressionsValid() {
+    doReturn(true).when(featureFlagService).isEnabled(eq(VALIDATE_PROVISIONER_EXPRESSION), any());
+    InfrastructureProvisioner provisioner = Mockito.mock(InfrastructureProvisioner.class);
+    String variableKey = TerraformInfrastructureProvisioner.VARIABLE_KEY;
+    doReturn(variableKey).when(provisioner).variableKey();
+    assertThat(infrastructureProvisionerServiceImpl.areExpressionsValid(provisioner, null)).isTrue();
+    Map<String, Object> expressions = new HashMap<>();
+    assertThat(infrastructureProvisionerServiceImpl.areExpressionsValid(provisioner, expressions)).isTrue();
+    expressions.put("Key1", variableKey);
+    expressions.put("Key2", provisioner);
+    assertThat(infrastructureProvisionerServiceImpl.areExpressionsValid(provisioner, expressions)).isTrue();
+    expressions.put("Key3", "${" + variableKey);
+    assertThat(infrastructureProvisionerServiceImpl.areExpressionsValid(provisioner, expressions)).isTrue();
+    expressions.put("Key4", "${" + variableKey + ".hello");
+    assertThat(infrastructureProvisionerServiceImpl.areExpressionsValid(provisioner, expressions)).isTrue();
+    expressions.put("Key5", "RANDOM-${" + variableKey + ".hello}");
+    assertThat(infrastructureProvisionerServiceImpl.areExpressionsValid(provisioner, expressions)).isFalse();
+    expressions.clear();
+    expressions.put("Key5", "RANDOM-${ABC.hello");
+    assertThat(infrastructureProvisionerServiceImpl.areExpressionsValid(provisioner, expressions)).isTrue();
+    expressions.put("Key5", "RANDOM-${ABC.hello}");
+    assertThat(infrastructureProvisionerServiceImpl.areExpressionsValid(provisioner, expressions)).isFalse();
+    doReturn(false).when(featureFlagService).isEnabled(eq(VALIDATE_PROVISIONER_EXPRESSION), any());
+    assertThat(infrastructureProvisionerServiceImpl.areExpressionsValid(provisioner, expressions)).isTrue();
   }
 }

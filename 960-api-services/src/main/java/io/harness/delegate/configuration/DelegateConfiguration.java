@@ -10,16 +10,22 @@ package io.harness.delegate.configuration;
 import static io.harness.annotations.dev.HarnessTeam.DEL;
 
 import io.harness.annotations.dev.OwnedBy;
+import io.harness.event.client.impl.EventPublisherConstants;
 
+import java.util.Optional;
 import lombok.Builder;
 import lombok.Data;
+import lombok.ToString;
+import org.apache.commons.lang3.StringUtils;
 
 @Data
 @Builder
+@ToString
 @OwnedBy(DEL)
 public class DelegateConfiguration {
   private String accountId;
-  private String accountSecret;
+  @ToString.Exclude private String accountSecret;
+  @ToString.Exclude private String delegateToken;
   private String managerUrl;
   private String verificationServiceUrl;
   private String cvNextGenUrl;
@@ -31,21 +37,18 @@ public class DelegateConfiguration {
   private boolean pollForTasks;
   private String description;
 
-  private String kubectlPath;
-  private String ocPath;
-  private String kustomizePath;
-
   private String managerTarget;
   private String managerAuthority;
   private String queueFilePath;
 
   private boolean useCdn;
-
   private String cdnUrl;
 
+  private String kubectlPath;
+  private String ocPath;
+  private String kustomizePath;
   private String helmPath;
   private String helm3Path;
-
   private String cfCli6Path;
   private String cfCli7Path;
 
@@ -55,4 +58,18 @@ public class DelegateConfiguration {
   private String logStreamingServiceBaseUrl;
   private boolean clientToolsDownloadDisabled;
   private boolean installClientToolsInBackground;
+  private boolean dynamicHandlingOfRequestEnabled;
+
+  // TODO: This method will get removed once we rolled out new delegate.
+  public String getDelegateToken() {
+    if (StringUtils.isEmpty(delegateToken)) {
+      // Return account secret only if delegate token is not available.
+      return accountSecret;
+    }
+    return delegateToken;
+  }
+
+  public String getQueueFilePath() {
+    return Optional.ofNullable(queueFilePath).orElse(EventPublisherConstants.DEFAULT_QUEUE_FILE_PATH);
+  }
 }

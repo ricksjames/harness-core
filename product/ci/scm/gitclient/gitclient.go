@@ -7,11 +7,15 @@ package gitclient
 
 import (
 	"crypto/tls"
+	"crypto/x509"
+	"encoding/base64"
 	"fmt"
 	"net/http"
 	"net/http/httputil"
+	"os"
 
 	"github.com/drone/go-scm/scm"
+	"github.com/drone/go-scm/scm/driver/azure"
 	"github.com/drone/go-scm/scm/driver/bitbucket"
 	"github.com/drone/go-scm/scm/driver/gitea"
 	"github.com/drone/go-scm/scm/driver/github"
@@ -26,9 +30,9 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func oauthTransport(token string, skip bool) http.RoundTripper {
+func oauthTransport(token string, skip bool, additionalCertsPath string, log *zap.SugaredLogger) http.RoundTripper {
 	return &oauth2.Transport{
-		Base: defaultTransport(skip),
+		Base: defaultTransport(skip, additionalCertsPath, log),
 		Source: oauth2.StaticTokenSource(
 			&scm.Token{
 				Token: token,
@@ -36,16 +40,16 @@ func oauthTransport(token string, skip bool) http.RoundTripper {
 		),
 	}
 }
-func privateTokenTransport(token string, skip bool) http.RoundTripper {
+func privateTokenTransport(token string, skip bool, additionalCertsPath string, log *zap.SugaredLogger) http.RoundTripper {
 	return &transport.PrivateToken{
-		Base:  defaultTransport(skip),
+		Base:  defaultTransport(skip, additionalCertsPath, log),
 		Token: token,
 	}
 }
 
-func giteaTransport(token string, skip bool) http.RoundTripper {
+func giteaTransport(token string, skip bool, additionalCertsPath string, log *zap.SugaredLogger) http.RoundTripper {
 	return &oauth2.Transport{
-		Base:   defaultTransport(skip),
+		Base:   defaultTransport(skip, additionalCertsPath, log),
 		Scheme: oauth2.SchemeBearer,
 		Source: oauth2.StaticTokenSource(
 			&scm.Token{
@@ -56,21 +60,51 @@ func giteaTransport(token string, skip bool) http.RoundTripper {
 	}
 }
 
-func bitbucketTransport(username, password string, skip bool) http.RoundTripper {
+func tlsConfig(skip bool, additionalCertsPath string, log *zap.SugaredLogger) *tls.Config {
+	config := tls.Config{
+		InsecureSkipVerify: skip,
+	}
+	if skip || additionalCertsPath == "" {
+		return &config
+	}
+	// Try to read 	additional certs and add them to the root CAs
+	// Create TLS config using cert PEM
+	rootPem, err := os.ReadFile(additionalCertsPath)
+	if err != nil {
+		log.Warnf("could not read certificate file (%s), error: %s", additionalCertsPath, err.Error())
+		return &config
+	}
+
+	// Use the system certs if possible
+	rootCAs, _ := x509.SystemCertPool()
+	if rootCAs == nil {
+		rootCAs = x509.NewCertPool()
+	}
+
+	ok := rootCAs.AppendCertsFromPEM(rootPem)
+	if !ok {
+		log.Errorf("error adding cert (%s) to pool, error: %s", additionalCertsPath, err.Error())
+		return &config
+	}
+	config.RootCAs = rootCAs
+	return &config
+}
+
+func bitbucketTransport(username, password string, skip bool, additionalCertsPath string, log *zap.SugaredLogger) http.RoundTripper {
 	return &transport.BasicAuth{
-		Base:     defaultTransport(skip),
+		Base:     defaultTransport(skip, additionalCertsPath, log),
 		Username: username,
 		Password: password,
 	}
 }
 
-// defaultTransport provides a default http.Transport. If skip verify is true, the transport will skip ssl verification.
-func defaultTransport(skip bool) http.RoundTripper {
+// defaultTransport provides a default http.Transport.
+// If skip verify is true, the transport will skip ssl verification.
+// Otherwise, it will append all the certs from the provided path.
+func defaultTransport(skip bool, additionalCertsPath string, log *zap.SugaredLogger) http.RoundTripper {
 	return &http.Transport{
-		Proxy: http.ProxyFromEnvironment,
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: skip, //nolint:gosec //TLS skip is set in the grpc request.
-		},
+		Proxy:           http.ProxyFromEnvironment,
+		TLSClientConfig: tlsConfig(skip, additionalCertsPath, log),
 	}
 }
 
@@ -82,6 +116,8 @@ func GetValidRef(p pb.Provider, inputRef, inputBranch string) (string, error) {
 		case *pb.Provider_BitbucketCloud:
 			return inputBranch, nil
 		case *pb.Provider_BitbucketServer:
+			return inputBranch, nil
+		case *pb.Provider_Azure:
 			return inputBranch, nil
 		default:
 			return scm.ExpandRef(inputBranch, "refs/heads"), nil
@@ -111,7 +147,7 @@ func GetGitClient(p pb.Provider, log *zap.SugaredLogger) (client *scm.Client, er
 			return nil, status.Errorf(codes.Unimplemented, "Github Application not implemented yet")
 		}
 		client.Client = &http.Client{
-			Transport: oauthTransport(token, p.GetSkipVerify()),
+			Transport: oauthTransport(token, p.GetSkipVerify(), p.GetAdditionalCertsPath(), log),
 		}
 	case *pb.Provider_Gitlab:
 		if p.GetEndpoint() == "" {
@@ -128,12 +164,12 @@ func GetGitClient(p pb.Provider, log *zap.SugaredLogger) (client *scm.Client, er
 		case *pb.GitlabProvider_AccessToken:
 			token = p.GetGitlab().GetAccessToken()
 			client.Client = &http.Client{
-				Transport: oauthTransport(token, p.GetSkipVerify()),
+				Transport: oauthTransport(token, p.GetSkipVerify(), p.GetAdditionalCertsPath(), log),
 			}
 		case *pb.GitlabProvider_PersonalToken:
 			token = p.GetGitlab().GetPersonalToken()
 			client.Client = &http.Client{
-				Transport: privateTokenTransport(token, p.GetSkipVerify()),
+				Transport: privateTokenTransport(token, p.GetSkipVerify(), p.GetAdditionalCertsPath(), log),
 			}
 		default:
 			return nil, status.Errorf(codes.Unimplemented, "Gitlab provider not implemented yet")
@@ -150,12 +186,12 @@ func GetGitClient(p pb.Provider, log *zap.SugaredLogger) (client *scm.Client, er
 			return nil, err
 		}
 		client.Client = &http.Client{
-			Transport: giteaTransport(p.GetGitea().GetAccessToken(), p.GetSkipVerify()),
+			Transport: giteaTransport(p.GetGitea().GetAccessToken(), p.GetSkipVerify(), p.GetAdditionalCertsPath(), log),
 		}
 	case *pb.Provider_BitbucketCloud:
 		client = bitbucket.NewDefault()
 		client.Client = &http.Client{
-			Transport: bitbucketTransport(p.GetBitbucketCloud().GetUsername(), p.GetBitbucketCloud().GetAppPassword(), p.GetSkipVerify()),
+			Transport: bitbucketTransport(p.GetBitbucketCloud().GetUsername(), p.GetBitbucketCloud().GetAppPassword(), p.GetSkipVerify(), p.GetAdditionalCertsPath(), log),
 		}
 	case *pb.Provider_BitbucketServer:
 		if p.GetEndpoint() == "" {
@@ -168,7 +204,19 @@ func GetGitClient(p pb.Provider, log *zap.SugaredLogger) (client *scm.Client, er
 			return nil, err
 		}
 		client.Client = &http.Client{
-			Transport: bitbucketTransport(p.GetBitbucketServer().GetUsername(), p.GetBitbucketServer().GetPersonalAccessToken(), p.GetSkipVerify()),
+			Transport: bitbucketTransport(p.GetBitbucketServer().GetUsername(), p.GetBitbucketServer().GetPersonalAccessToken(), p.GetSkipVerify(), p.GetAdditionalCertsPath(), log),
+		}
+	case *pb.Provider_Azure:
+		client = azure.NewDefault(p.GetAzure().GetOrganization(), p.GetAzure().GetProject())
+		// prepend ':' and encode the access token as base64
+		encodedToken := fmt.Sprintf(":%s", p.GetAzure().GetPersonalAccessToken())
+		encodedToken = base64.StdEncoding.EncodeToString([]byte(encodedToken))
+		client.Client = &http.Client{
+			Transport: &transport.Custom{
+				Before: func(r *http.Request) {
+					r.Header.Set("Authorization", fmt.Sprintf("Basic %s", encodedToken))
+				},
+			},
 		}
 	default:
 		log.Errorw("GetGitClient unsupported git provider", "endpoint", p.GetEndpoint())

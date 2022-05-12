@@ -39,6 +39,9 @@ public class GitEntityInfo {
   String baseBranch;
   String commitId; // used for passing commitId in case of g2h.
   Boolean isFullSyncFlow;
+  String resolvedConflictCommitId;
+  String connectorRef;
+  String repoName;
 
   public boolean isNull() {
     // todo @Abhinav Maybe we should use null in place of default

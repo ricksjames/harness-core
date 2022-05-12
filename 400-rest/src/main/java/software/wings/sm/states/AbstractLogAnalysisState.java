@@ -38,6 +38,7 @@ import software.wings.beans.DatadogConfig;
 import software.wings.beans.GcpConfig;
 import software.wings.beans.SettingAttribute;
 import software.wings.beans.SumoConfig;
+import software.wings.delegatetasks.DelegateStateType;
 import software.wings.metrics.RiskLevel;
 import software.wings.service.impl.VerificationLogContext;
 import software.wings.service.impl.analysis.AnalysisContext;
@@ -51,11 +52,12 @@ import software.wings.service.impl.analysis.MLAnalysisType;
 import software.wings.service.impl.stackdriver.StackDriverLogDataCollectionInfo;
 import software.wings.service.impl.sumo.SumoDataCollectionInfo;
 import software.wings.service.intfc.analysis.AnalysisService;
-import software.wings.service.intfc.verification.CVActivityLogService.Logger;
+import software.wings.service.intfc.verification.CVActivityLogger;
 import software.wings.sm.ExecutionContext;
 import software.wings.sm.ExecutionResponse;
 import software.wings.sm.StateType;
 import software.wings.sm.WorkflowStandardParams;
+import software.wings.sm.WorkflowStandardParamsExtensionService;
 import software.wings.sm.states.StackDriverLogState.StackDriverLogStateKeys;
 import software.wings.stencils.DefaultValue;
 import software.wings.verification.VerificationDataAnalysisResponse;
@@ -109,6 +111,10 @@ public abstract class AbstractLogAnalysisState extends AbstractAnalysisState {
 
   @Transient @Inject @SchemaIgnore protected AnalysisService analysisService;
   @Transient @Inject @SchemaIgnore protected VersionInfoManager versionInfoManager;
+  @Transient
+  @Inject
+  @SchemaIgnore
+  protected WorkflowStandardParamsExtensionService workflowStandardParamsExtensionService;
 
   @SchemaIgnore @Transient private String renderedQuery;
 
@@ -137,10 +143,11 @@ public abstract class AbstractLogAnalysisState extends AbstractAnalysisState {
   @Override
   public ExecutionResponse execute(ExecutionContext executionContext) {
     try (VerificationLogContext ignored = new VerificationLogContext(executionContext.getAccountId(), null,
-             executionContext.getStateExecutionInstanceId(), StateType.valueOf(getStateType()), OVERRIDE_ERROR)) {
+             executionContext.getStateExecutionInstanceId(), DelegateStateType.valueOf(getStateType()),
+             OVERRIDE_ERROR)) {
       getLogger().info("Executing state {}", executionContext.getStateExecutionInstanceId());
       String correlationId = UUID.randomUUID().toString();
-      Logger activityLogger = cvActivityLogService.getLoggerByStateExecutionId(
+      CVActivityLogger activityLogger = cvActivityLogService.getLoggerByStateExecutionId(
           executionContext.getAccountId(), executionContext.getStateExecutionInstanceId());
       if (executionContext.isRetry()) {
         activityLogger.info(RETRYING_VERIFICATION_STATE_MSG);
@@ -183,6 +190,13 @@ public abstract class AbstractLogAnalysisState extends AbstractAnalysisState {
 
         if (analysisContext.isSkipVerification()) {
           getLogger().warn("Could not find test nodes to compare the data");
+
+          if (shouldFailOnEmptyNodes(analysisContext.getAccountId())) {
+            getLogger().info("Could not find newly deployed instances. failOnEmptyNodes is true. Failing execution");
+            return generateAnalysisResponse(analysisContext, ExecutionStatus.FAILED, false,
+                "Could not find newly deployed instances. Marking execution as failed.");
+          }
+
           return generateAnalysisResponse(analysisContext, ExecutionStatus.SKIPPED, false,
               "Could not find newly deployed instances. Skipping verification");
         }
@@ -191,6 +205,15 @@ public abstract class AbstractLogAnalysisState extends AbstractAnalysisState {
         if (isEmpty(lastExecutionNodes)) {
           if (getComparisonStrategy() == COMPARE_WITH_CURRENT) {
             getLogger().info("No nodes with older version found to compare the logs. Skipping analysis");
+
+            if (shouldFailOnEmptyNodes(analysisContext.getAccountId())) {
+              getLogger().info(
+                  "No nodes with older version found to compare the logs. failOnEmptyNodes is true. Failing execution");
+              return generateAnalysisResponse(analysisContext, ExecutionStatus.FAILED, false,
+                  "As no previous version instances exist for comparison, analysis will be marked as failed."
+                      + " Check your setup if this is the first deployment or if the previous instances have been deleted or replaced.");
+            }
+
             return generateAnalysisResponse(analysisContext, ExecutionStatus.SKIPPED, false,
                 "As no previous version instances exist for comparison, analysis will be skipped. Check your setup if this is the first deployment or if the previous instances have been deleted or replaced.");
           }
@@ -214,7 +237,8 @@ public abstract class AbstractLogAnalysisState extends AbstractAnalysisState {
           WorkflowStandardParams workflowStandardParams =
               executionContext.getContextElement(ContextElementType.STANDARD);
           baselineWorkflowExecutionId = workflowExecutionBaselineService.getBaselineExecutionId(
-              analysisContext.getAppId(), analysisContext.getWorkflowId(), workflowStandardParams.getEnv().getUuid(),
+              analysisContext.getAppId(), analysisContext.getWorkflowId(),
+              workflowStandardParamsExtensionService.getEnv(workflowStandardParams).getUuid(),
               analysisContext.getServiceId());
           if (isEmpty(baselineWorkflowExecutionId)) {
             responseMessage = "No baseline was set for the workflow. Workflow running with auto baseline.";
@@ -323,6 +347,7 @@ public abstract class AbstractLogAnalysisState extends AbstractAnalysisState {
         (VerificationDataAnalysisResponse) response.values().iterator().next();
 
     if (ExecutionStatus.isBrokeStatus(executionResponse.getExecutionStatus())) {
+      updateSweepingOutputWithCVResult(executionContext, executionResponse.getExecutionStatus().name());
       return getErrorExecutionResponse(executionContext, executionResponse);
     } else {
       AnalysisContext context =
@@ -338,11 +363,14 @@ public abstract class AbstractLogAnalysisState extends AbstractAnalysisState {
           getLogger().info("No analysis summary. This can happen if there is no data with the given queries");
           continuousVerificationService.setMetaDataExecutionStatus(
               executionContext.getStateExecutionInstanceId(), ExecutionStatus.SUCCESS, true, false);
-          return isQAVerificationPath(context.getAccountId(), context.getAppId())
-              ? generateAnalysisResponse(
-                  context, ExecutionStatus.FAILED, true, "No Analysis result found. This is not a failure.")
-              : generateAnalysisResponse(
-                  context, ExecutionStatus.SUCCESS, true, "No data found with given queries. Skipped Analysis");
+          ExecutionStatus executionStatus = isQAVerificationPath(context.getAccountId(), context.getAppId())
+              ? ExecutionStatus.FAILED
+              : ExecutionStatus.SUCCESS;
+          String msg = isQAVerificationPath(context.getAccountId(), context.getAppId())
+              ? "No Analysis result found. This is not a failure."
+              : "No data found with given queries. Skipped Analysis";
+          updateSweepingOutputWithCVResult(executionContext, executionStatus.name());
+          return generateAnalysisResponse(context, executionStatus, true, msg);
         }
 
         if (analysisSummary.getAnalysisMinute() < analysisMinute) {
@@ -372,9 +400,11 @@ public abstract class AbstractLogAnalysisState extends AbstractAnalysisState {
         continuousVerificationService.setMetaDataExecutionStatus(
             executionContext.getStateExecutionInstanceId(), executionStatus, false, false);
         updateExecutionStatus(context.getStateExecutionId(), true, executionStatus, "Analysis completed");
+        executionStatus = isQAVerificationPath(context.getAccountId(), context.getAppId()) ? ExecutionStatus.SUCCESS
+                                                                                           : executionStatus;
+        updateSweepingOutputWithCVResult(executionContext, executionStatus.name());
         return ExecutionResponse.builder()
-            .executionStatus(isQAVerificationPath(context.getAccountId(), context.getAppId()) ? ExecutionStatus.SUCCESS
-                                                                                              : executionStatus)
+            .executionStatus(executionStatus)
             .stateExecutionData(executionResponse.getStateExecutionData())
             .build();
       }
@@ -382,6 +412,7 @@ public abstract class AbstractLogAnalysisState extends AbstractAnalysisState {
       executionResponse.getStateExecutionData().setErrorMsg(
           "Analysis for minute " + analysisMinute + " failed to save in DB");
       updateExecutionStatus(context.getStateExecutionId(), false, ExecutionStatus.ERROR, "Error");
+      updateSweepingOutputWithCVResult(executionContext, ExecutionStatus.ERROR.name());
       return ExecutionResponse.builder()
           .executionStatus(ExecutionStatus.ERROR)
           .stateExecutionData(executionResponse.getStateExecutionData())
@@ -547,7 +578,7 @@ public abstract class AbstractLogAnalysisState extends AbstractAnalysisState {
                     datadogConfig.fetchLogBodyMap(false), analysisContext.getHostNameField()))
                 .query(getRenderedQuery())
                 .hosts(Sets.newHashSet(DUMMY_HOST_NAME))
-                .stateType(StateType.DATA_DOG_LOG)
+                .stateType(DelegateStateType.DATA_DOG_LOG)
                 .applicationId(analysisContext.getAppId())
                 .stateExecutionId(analysisContext.getStateExecutionId())
                 .workflowId(analysisContext.getWorkflowId())
@@ -571,7 +602,7 @@ public abstract class AbstractLogAnalysisState extends AbstractAnalysisState {
             .gcpConfig(gcpConfig)
             .projectId(stackDriverLogState.getProjectId())
             .hostnameField(getResolvedFieldValue(executionContext, AnalysisContextKeys.hostNameField, hostnameField))
-            .stateType(StateType.STACK_DRIVER_LOG)
+            .stateType(DelegateStateType.STACK_DRIVER_LOG)
             .applicationId(analysisContext.getAppId())
             .logMessageField(getResolvedFieldValue(
                 executionContext, StackDriverLogStateKeys.messageField, stackDriverLogState.getMessageField()))

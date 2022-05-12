@@ -47,6 +47,7 @@ import static org.mockito.Mockito.when;
 
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.category.element.UnitTests;
+import io.harness.delegate.task.winrm.WinRmSessionConfig;
 import io.harness.eraro.ErrorCode;
 import io.harness.exception.ShellExecutionException;
 import io.harness.exception.TimeoutException;
@@ -63,7 +64,6 @@ import software.wings.beans.command.SetupEnvCommandUnit;
 import software.wings.beans.infrastructure.Host;
 import software.wings.core.winrm.executors.WinRmExecutor;
 import software.wings.core.winrm.executors.WinRmExecutorFactory;
-import software.wings.core.winrm.executors.WinRmSessionConfig;
 import software.wings.delegatetasks.DelegateLogService;
 
 import com.google.common.collect.ImmutableMap;
@@ -153,6 +153,7 @@ public class WinRMCommandUnitExecutorServiceImplTest extends WingsBaseTest {
                                                 .password("")
                                                 .useKeyTab(false)
                                                 .port(0)
+                                                .timeout(null)
                                                 .useSSL(false)
                                                 .skipCertChecks(false)
                                                 .workingDirectory(null)
@@ -200,6 +201,7 @@ public class WinRMCommandUnitExecutorServiceImplTest extends WingsBaseTest {
                                                 .skipCertChecks(false)
                                                 .workingDirectory(null)
                                                 .useNoProfile(false)
+                                                .timeout(null)
                                                 .build();
 
     when(winRmExecutorFactory.getExecutor(winRmSessionConfig, false)).thenReturn(winRmExecutor);
@@ -243,6 +245,7 @@ public class WinRMCommandUnitExecutorServiceImplTest extends WingsBaseTest {
                                                 .skipCertChecks(false)
                                                 .workingDirectory(null)
                                                 .useNoProfile(false)
+                                                .timeout(0)
                                                 .build();
     CommandExecutionContext commandExecutionContext = commandExecutionContextBuider.but()
                                                           .timeout(0)
@@ -315,6 +318,7 @@ public class WinRMCommandUnitExecutorServiceImplTest extends WingsBaseTest {
                                                 .skipCertChecks(false)
                                                 .workingDirectory(null)
                                                 .useNoProfile(false)
+                                                .timeout(0)
                                                 .build();
     CommandExecutionContext commandExecutionContext = commandExecutionContextBuider.but()
                                                           .timeout(0)
@@ -364,6 +368,7 @@ public class WinRMCommandUnitExecutorServiceImplTest extends WingsBaseTest {
                                                 .skipCertChecks(false)
                                                 .workingDirectory(null)
                                                 .useNoProfile(false)
+                                                .timeout(0)
                                                 .build();
     CommandExecutionContext commandExecutionContext = commandExecutionContextBuider.but()
                                                           .timeout(0)
@@ -412,9 +417,10 @@ public class WinRMCommandUnitExecutorServiceImplTest extends WingsBaseTest {
                                                 .skipCertChecks(false)
                                                 .workingDirectory(null)
                                                 .useNoProfile(false)
+                                                .timeout(10)
                                                 .build();
     CommandExecutionContext commandExecutionContext = commandExecutionContextBuider.but()
-                                                          .timeout(0)
+                                                          .timeout(10)
                                                           .hostConnectionAttributes(HOST_CONN_ATTR_PWD)
                                                           .winRmConnectionAttributes(winRmConnectionAttributes)
                                                           .build();
@@ -477,6 +483,7 @@ public class WinRMCommandUnitExecutorServiceImplTest extends WingsBaseTest {
                                                 .skipCertChecks(false)
                                                 .workingDirectory(null)
                                                 .useNoProfile(false)
+                                                .timeout(0)
                                                 .build();
     CommandExecutionContext commandExecutionContext = commandExecutionContextBuider.but()
                                                           .timeout(0)
@@ -545,6 +552,7 @@ public class WinRMCommandUnitExecutorServiceImplTest extends WingsBaseTest {
                                                 .skipCertChecks(false)
                                                 .workingDirectory(null)
                                                 .useNoProfile(false)
+                                                .timeout(0)
                                                 .build();
     CommandExecutionContext commandExecutionContext = commandExecutionContextBuider.but()
                                                           .timeout(0)

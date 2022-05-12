@@ -12,7 +12,9 @@ import static io.harness.data.structure.EmptyPredicate.isEmpty;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,7 +30,34 @@ public class DeploymentLogAnalysisDTO {
   ResultSummary resultSummary;
   List<HostSummary> hostSummaries;
 
-  public enum ClusterType { KNOWN_EVENT, UNKNOWN_EVENT, UNEXPECTED_FREQUENCY }
+  public enum ClusterType {
+    BASELINE("Baseline", 3),
+    KNOWN_EVENT("Known", 2),
+    UNEXPECTED_FREQUENCY("Unexpected Frequency", 1),
+    UNKNOWN_EVENT("Unknown", 0);
+    private final String displayName;
+    private final int sortOrder;
+    ClusterType(String displayName, int sortOrder) {
+      this.displayName = displayName;
+      this.sortOrder = sortOrder;
+    }
+
+    public String getDisplayName() {
+      return displayName;
+    }
+
+    public static List<ClusterType> getNonBaselineValues() {
+      return Arrays.stream(ClusterType.values())
+          .filter(key -> key != ClusterType.BASELINE)
+          .collect(Collectors.toList());
+    }
+
+    private int getSortOrder() {
+      return sortOrder;
+    }
+    public static Comparator<ClusterType> clusterTypeRiskComparator =
+        Comparator.comparingInt(ClusterType::getSortOrder);
+  }
 
   public List<Cluster> getClusters() {
     if (this.clusters == null) {
@@ -106,6 +135,13 @@ public class DeploymentLogAnalysisDTO {
         labelToControlDataMap.putAll(controlClusterSummaries.stream().collect(
             Collectors.toMap(ControlClusterSummary::getLabel, ControlClusterSummary::getControlFrequencyData)));
       }
+    }
+
+    public List<ControlClusterSummary> getControlClusterSummaries() {
+      if (controlClusterSummaries == null) {
+        return Collections.emptyList();
+      }
+      return controlClusterSummaries;
     }
 
     public List<Double> getControlData(int label) {

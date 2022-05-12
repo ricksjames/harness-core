@@ -22,6 +22,7 @@ import static software.wings.beans.artifact.Artifact.Builder.anArtifact;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -52,6 +53,7 @@ import io.harness.deployment.InstanceDetails;
 import io.harness.encryption.Scope;
 import io.harness.encryption.SecretRefData;
 import io.harness.exception.InvalidRequestException;
+import io.harness.ff.FeatureFlagService;
 import io.harness.logging.CommandExecutionStatus;
 import io.harness.rule.Owner;
 import io.harness.rule.OwnerRule;
@@ -94,6 +96,7 @@ import software.wings.sm.ExecutionContext;
 import software.wings.sm.ExecutionContextImpl;
 import software.wings.sm.InstanceStatusSummary;
 import software.wings.sm.WorkflowStandardParams;
+import software.wings.sm.WorkflowStandardParamsExtensionService;
 import software.wings.sm.states.ManagerExecutionLogCallback;
 import software.wings.sm.states.azure.appservices.AzureAppServiceStateData;
 import software.wings.sm.states.azure.artifact.ArtifactConnectorMapper;
@@ -128,6 +131,8 @@ public class AzureVMSSStateHelperTest extends CategoryTest {
   @Mock private AzureSweepingOutputServiceHelper azureSweepingOutputServiceHelper;
   @Mock private WorkflowExecutionService workflowExecutionService;
   @Mock private ArtifactService artifactService;
+  @Mock private FeatureFlagService featureFlagService;
+  @Mock private WorkflowStandardParamsExtensionService workflowStandardParamsExtensionService;
 
   @Spy @Inject @InjectMocks AzureVMSSStateHelper azureVMSSStateHelper;
 
@@ -240,7 +245,8 @@ public class AzureVMSSStateHelperTest extends CategoryTest {
     WorkflowStandardParams workflowStandardParams = Mockito.mock(WorkflowStandardParams.class);
 
     when(context.getContextElement(ContextElementType.STANDARD)).thenReturn(workflowStandardParams);
-    when(workflowStandardParams.getApp()).thenReturn(Application.Builder.anApplication().uuid(appId).build());
+    when(workflowStandardParamsExtensionService.getApp(workflowStandardParams))
+        .thenReturn(Application.Builder.anApplication().uuid(appId).build());
 
     Application result = azureVMSSStateHelper.getApplication(context);
 
@@ -269,7 +275,7 @@ public class AzureVMSSStateHelperTest extends CategoryTest {
     WorkflowStandardParams workflowStandardParams = Mockito.mock(WorkflowStandardParams.class);
 
     when(context.getContextElement(ContextElementType.STANDARD)).thenReturn(workflowStandardParams);
-    when(workflowStandardParams.getApp()).thenReturn(null);
+    when(workflowStandardParamsExtensionService.getApp(workflowStandardParams)).thenReturn(null);
 
     assertThatThrownBy(() -> azureVMSSStateHelper.getApplication(context))
         .hasMessage("Application can't be null or empty, accountId: null")
@@ -285,7 +291,8 @@ public class AzureVMSSStateHelperTest extends CategoryTest {
     WorkflowStandardParams workflowStandardParams = Mockito.mock(WorkflowStandardParams.class);
 
     when(context.getContextElement(ContextElementType.STANDARD)).thenReturn(workflowStandardParams);
-    when(workflowStandardParams.getEnv()).thenReturn(anEnvironment().uuid(envId).build());
+    when(workflowStandardParamsExtensionService.getEnv(workflowStandardParams))
+        .thenReturn(anEnvironment().uuid(envId).build());
 
     Environment result = azureVMSSStateHelper.getEnvironment(context);
 
@@ -314,7 +321,7 @@ public class AzureVMSSStateHelperTest extends CategoryTest {
     WorkflowStandardParams workflowStandardParams = Mockito.mock(WorkflowStandardParams.class);
 
     when(context.getContextElement(ContextElementType.STANDARD)).thenReturn(workflowStandardParams);
-    when(workflowStandardParams.getApp()).thenReturn(null);
+    when(workflowStandardParamsExtensionService.getApp(workflowStandardParams)).thenReturn(null);
 
     assertThatThrownBy(() -> azureVMSSStateHelper.getEnvironment(context))
         .hasMessage("Env can't be null or empty, accountId: null")
@@ -630,8 +637,8 @@ public class AzureVMSSStateHelperTest extends CategoryTest {
     PhaseElement phaseElement = Mockito.mock(PhaseElement.class);
     WorkflowStandardParams workflowStandardParams = Mockito.mock(WorkflowStandardParams.class);
     doReturn(workflowStandardParams).when(context).getContextElement(ContextElementType.STANDARD);
-    doReturn(app).when(workflowStandardParams).getApp();
-    doReturn(env).when(workflowStandardParams).getEnv();
+    doReturn(app).when(workflowStandardParamsExtensionService).getApp(workflowStandardParams);
+    doReturn(env).when(workflowStandardParamsExtensionService).getEnv(workflowStandardParams);
     when(phaseElement.getServiceElement()).thenReturn(ServiceElement.builder().uuid(serviceId).build());
     doReturn(phaseElement).when(context).getContextElement(ContextElementType.PARAM, PhaseElement.PHASE_PARAM);
     doReturn(service).when(serviceResourceService).getWithDetails(appId, serviceId);
@@ -672,13 +679,15 @@ public class AzureVMSSStateHelperTest extends CategoryTest {
     SettingAttribute settingAttribute = mock(SettingAttribute.class);
 
     when(context.getContextElement(ContextElementType.STANDARD)).thenReturn(workflowStandardParams);
-    when(workflowStandardParams.getApp()).thenReturn(Application.Builder.anApplication().uuid(appId).build());
+    when(workflowStandardParamsExtensionService.getApp(workflowStandardParams))
+        .thenReturn(Application.Builder.anApplication().uuid(appId).build());
     when(workflowStandardParams.getCurrentUser()).thenReturn(EmbeddedUser.builder().name(harnessUser).build());
     when(context.getContextElement(ContextElementType.PARAM, PhaseElement.PHASE_PARAM)).thenReturn(phaseElement);
     when(phaseElement.getServiceElement()).thenReturn(ServiceElement.builder().uuid(serviceId).build());
     doReturn(service).when(serviceResourceService).getWithDetails(appId, serviceId);
     when(context.getDefaultArtifactForService(serviceId)).thenReturn(artifact);
-    when(workflowStandardParams.getEnv()).thenReturn(anEnvironment().uuid(envId).build());
+    when(workflowStandardParamsExtensionService.getEnv(workflowStandardParams))
+        .thenReturn(anEnvironment().uuid(envId).build());
     when(settingsService.get(computeProviderSettingId)).thenReturn(settingAttribute);
     when(settingAttribute.getValue()).thenReturn(AzureConfig.builder().accountId(accountId).build());
     when(context.fetchInfraMappingId()).thenReturn(infraMappingId);
@@ -716,7 +725,8 @@ public class AzureVMSSStateHelperTest extends CategoryTest {
 
     doReturn(artifact).when(context).getDefaultArtifactForService("serviceId");
     doReturn(artifactStream).when(artifactStreamService).get("artifactStreamId");
-    doReturn(artifactStreamAttributes).when(artifactStream).fetchArtifactStreamAttributes(null);
+    doReturn(artifactStreamAttributes).when(artifactStream).fetchArtifactStreamAttributes(any());
+    doReturn(true).when(featureFlagService).isEnabled(any(), anyString());
 
     AzureMachineImageArtifactDTO azureMachineImageArtifactDTO =
         azureVMSSStateHelper.getAzureMachineImageArtifactDTO(context, "serviceId");
@@ -1174,6 +1184,8 @@ public class AzureVMSSStateHelperTest extends CategoryTest {
     doReturn(ArtifactType.DOCKER).when(artifactStreamAttributes).getArtifactType();
     doReturn(ArtifactStreamType.DOCKER.name()).when(artifactStreamAttributes).getArtifactStreamType();
     doReturn(artifactStreamAttributes).when(artifactStream).fetchArtifactStreamAttributes(any());
+
+    doReturn(true).when(featureFlagService).isEnabled(any(), anyString());
 
     ArtifactConnectorMapper artifactConnectorMapper =
         azureVMSSStateHelper.getConnectorMapper(executionContext, artifact);

@@ -14,6 +14,7 @@ import static io.harness.cache.CacheBackend.NOOP;
 
 import io.harness.AccessControlClientConfiguration;
 import io.harness.AccessControlClientModule;
+import io.harness.accesscontrol.clients.AccessControlClient;
 import io.harness.cache.CacheConfig;
 import io.harness.cache.CacheConfig.CacheConfigBuilder;
 import io.harness.cache.CacheModule;
@@ -25,7 +26,8 @@ import io.harness.cvng.CVNextGenCommonsServiceModule;
 import io.harness.cvng.CVServiceModule;
 import io.harness.cvng.EventsFrameworkModule;
 import io.harness.cvng.VerificationConfiguration;
-import io.harness.cvng.client.MockedNextGenService;
+import io.harness.cvng.client.FakeAccessControlClient;
+import io.harness.cvng.client.FakeNextGenService;
 import io.harness.cvng.client.MockedVerificationManagerService;
 import io.harness.cvng.client.NextGenClientModule;
 import io.harness.cvng.client.NextGenService;
@@ -34,6 +36,7 @@ import io.harness.cvng.client.VerificationManagerService;
 import io.harness.cvng.core.NGManagerServiceConfig;
 import io.harness.cvng.core.services.api.FeatureFlagService;
 import io.harness.cvng.core.services.impl.AlwaysFalseFeatureFlagServiceImpl;
+import io.harness.cvng.core.utils.template.TemplateFacade;
 import io.harness.factory.ClosingFactory;
 import io.harness.factory.ClosingFactoryModule;
 import io.harness.ff.FeatureFlagConfig;
@@ -82,14 +85,17 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.rules.MethodRule;
 import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.Statement;
+import org.mockito.Mockito;
 import org.mongodb.morphia.converters.TypeConverter;
 
 @Slf4j
 public class CvNextGenRule implements MethodRule, InjectorRuleMixin, MongoRuleMixin {
   ClosingFactory closingFactory;
+  private boolean forbiddenAccessControl;
 
-  public CvNextGenRule(ClosingFactory closingFactory) {
+  public CvNextGenRule(ClosingFactory closingFactory, boolean forbiddenAccessControl) {
     this.closingFactory = closingFactory;
+    this.forbiddenAccessControl = forbiddenAccessControl;
   }
 
   @Override
@@ -140,7 +146,8 @@ public class CvNextGenRule implements MethodRule, InjectorRuleMixin, MongoRuleMi
       binder.bind(FeatureFlagService.class).to(AlwaysFalseFeatureFlagServiceImpl.class);
       binder.bind(VerificationManagerService.class).to(MockedVerificationManagerService.class);
       binder.bind(Clock.class).toInstance(CVNGTestConstants.FIXED_TIME_FOR_TESTS);
-      binder.bind(NextGenService.class).to(MockedNextGenService.class);
+      binder.bind(TemplateFacade.class).toInstance(Mockito.mock(TemplateFacade.class));
+      binder.bind(NextGenService.class).to(FakeNextGenService.class);
     }));
     MongoBackendConfiguration mongoBackendConfiguration =
         MongoBackendConfiguration.builder().uri("mongodb://localhost:27017/notificationChannel").build();
@@ -186,7 +193,14 @@ public class CvNextGenRule implements MethodRule, InjectorRuleMixin, MongoRuleMi
                                             .connectTimeOutSeconds(15)
                                             .build())
             .build();
-    modules.add(AccessControlClientModule.getInstance(accessControlClientConfiguration, CV_NEXT_GEN.getServiceId()));
+    modules.add(Modules
+                    .override(AccessControlClientModule.getInstance(
+                        accessControlClientConfiguration, CV_NEXT_GEN.getServiceId()))
+                    .with(binder -> {
+                      if (forbiddenAccessControl) {
+                        binder.bind(AccessControlClient.class).to(FakeAccessControlClient.class);
+                      }
+                    }));
 
     modules.add(new AbstractCfModule() {
       @Override

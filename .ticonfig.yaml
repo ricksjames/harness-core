@@ -13,3 +13,5 @@ config:
     - "product/**/*"
     - "commons/**/*"
     - "**/*.hash"
+    - "toolset/git-hooks/**/*"
+    - "build.properties"

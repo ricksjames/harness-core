@@ -84,6 +84,8 @@ public interface NgUserService {
 
   boolean isUserLastAdminAtScope(String userId, Scope scope);
 
+  boolean isAccountAdmin(String userId, String accountIdentifier);
+
   boolean updateUserMetadata(UserMetadataDTO user);
 
   boolean removeUserFromScope(
@@ -102,4 +104,6 @@ public interface NgUserService {
   boolean updateScimUser(String accountId, String userId, ScimUser scimUser);
 
   boolean updateUserDisabled(String accountId, String userId, boolean disabled);
+
+  boolean verifyHarnessSupportGroupUser();
 }

@@ -9,13 +9,17 @@ package io.harness.cvng.migration;
 
 import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
-import io.harness.cvng.migration.list.AddDefaultFieldsToMonitoredService;
 import io.harness.cvng.migration.list.AddDeploymentMonitoringSourcePerpetualTask;
 import io.harness.cvng.migration.list.AddEnvRefsToMonitoredServiceMigration;
+import io.harness.cvng.migration.list.AddMetricIdentifierInCVConfigsAndMetricPacks;
+import io.harness.cvng.migration.list.AddMetricIdentifierToTimeSeriesThreshold;
+import io.harness.cvng.migration.list.AddMonitoredServiceToActivityMigration;
 import io.harness.cvng.migration.list.AddMonitoredServiceToCVConfigMigration;
 import io.harness.cvng.migration.list.AddMonitoredServiceToChangeSourceMigration;
 import io.harness.cvng.migration.list.AddMonitoredServiceToHeatMapMigration;
+import io.harness.cvng.migration.list.AddMonitoredServiceToWebhookMigration;
 import io.harness.cvng.migration.list.AddMonitoringSourcesToVerificationJobMigration;
+import io.harness.cvng.migration.list.AddTaskInfoToVerificationTask;
 import io.harness.cvng.migration.list.AppDCustomMetricForExistingProjects;
 import io.harness.cvng.migration.list.CVNGBaseMigration;
 import io.harness.cvng.migration.list.CleanUpMonitoringSourcePerpetualTask;
@@ -24,14 +28,15 @@ import io.harness.cvng.migration.list.CleanupDeprecatedDocuments;
 import io.harness.cvng.migration.list.CreateDefaultVerificationJobsMigration;
 import io.harness.cvng.migration.list.CustomHealthCustomPackForExistingProjects;
 import io.harness.cvng.migration.list.DeleteInvalidOrchestratorsMigration;
+import io.harness.cvng.migration.list.DeleteOldAnalysisOrchestratorMigration;
 import io.harness.cvng.migration.list.DeleteOrchestratorWithInvalidVerificationTaskId;
 import io.harness.cvng.migration.list.DeleteSLISLOMigration;
 import io.harness.cvng.migration.list.EnableExistingCVConfigs;
 import io.harness.cvng.migration.list.FixOrchestratorStatusMigration;
 import io.harness.cvng.migration.list.FixRuntimeParamInCanaryBlueGreenVerificationJob;
 import io.harness.cvng.migration.list.FixRuntimeParamsInDefaultHealthJob;
-import io.harness.cvng.migration.list.MigrateSetupEvents;
 import io.harness.cvng.migration.list.NewRelicCustomPackForExistingProjects;
+import io.harness.cvng.migration.list.NoOppMigration;
 import io.harness.cvng.migration.list.RecoverMonitoringSourceWorkerId;
 import io.harness.cvng.migration.list.RecreateMetricPackAndThresholdMigration;
 import io.harness.cvng.migration.list.UpdateActivitySourceTasksMigration;
@@ -76,11 +81,11 @@ public class CVNGBackgroundMigrationList {
         .add(Pair.of(19, CleanupDeprecatedDocuments.class))
         .add(Pair.of(20, CleanUpOldDocuments.class))
         .add(Pair.of(21, FixOrchestratorStatusMigration.class))
-        .add(Pair.of(22, MigrateSetupEvents.class))
+        .add(Pair.of(22, NoOppMigration.class))
         .add(Pair.of(23, CleanUpMonitoringSourcePerpetualTask.class))
         .add(Pair.of(24, DeleteOrchestratorWithInvalidVerificationTaskId.class))
         .add(Pair.of(25, DeleteSLISLOMigration.class))
-        .add(Pair.of(26, AddDefaultFieldsToMonitoredService.class))
+        .add(Pair.of(26, NoOppMigration.class))
         .add(Pair.of(27, AppDCustomMetricForExistingProjects.class))
         .add(Pair.of(28, DeleteSLISLOMigration.class))
         .add(Pair.of(29, NewRelicCustomPackForExistingProjects.class))
@@ -91,6 +96,17 @@ public class CVNGBackgroundMigrationList {
         .add(Pair.of(34, AddMonitoredServiceToCVConfigMigration.class))
         .add(Pair.of(35, AddMonitoredServiceToHeatMapMigration.class))
         .add(Pair.of(36, AddEnvRefsToMonitoredServiceMigration.class))
+        // Migration logic was missed in default monitored service create. Adding the migration again.
+        .add(Pair.of(37, AddEnvRefsToMonitoredServiceMigration.class))
+        .add(Pair.of(38, AddMonitoredServiceToHeatMapMigration.class))
+        .add(Pair.of(39, AddMonitoredServiceToActivityMigration.class))
+        .add(Pair.of(40, AddMetricIdentifierInCVConfigsAndMetricPacks.class))
+        .add(Pair.of(41, AddMetricIdentifierToTimeSeriesThreshold.class))
+        .add(Pair.of(42, AddMonitoredServiceToWebhookMigration.class))
+        .add(Pair.of(43, AddTaskInfoToVerificationTask.class))
+        .add(Pair.of(44, DeleteOldAnalysisOrchestratorMigration.class))
+        .add(Pair.of(45, AddMetricIdentifierInCVConfigsAndMetricPacks.class))
+        .add(Pair.of(46, AddMetricIdentifierToTimeSeriesThreshold.class))
         .build();
   }
 }

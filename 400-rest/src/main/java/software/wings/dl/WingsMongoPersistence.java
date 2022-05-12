@@ -47,7 +47,7 @@ import io.harness.reflection.ReflectionUtils;
 import software.wings.annotation.EncryptableSetting;
 import software.wings.beans.Base;
 import software.wings.beans.ServiceVariable;
-import software.wings.beans.ServiceVariable.Type;
+import software.wings.beans.ServiceVariableType;
 import software.wings.beans.SettingAttribute;
 import software.wings.beans.User;
 import software.wings.security.UserPermissionInfo;
@@ -399,6 +399,12 @@ public class WingsMongoPersistence extends MongoPersistence implements WingsPers
     return authorizeQuery(collectionClass, query);
   }
 
+  @Override
+  public <T extends PersistentEntity> Query<T> createAuthorizedQueryOnAnalyticNode(Class<T> collectionClass) {
+    Query query = createAnalyticsQuery(collectionClass);
+    return authorizeQuery(collectionClass, query);
+  }
+
   private <T extends PersistentEntity> Query<T> authorizeQuery(Class<T> collectionClass, Query query) {
     if (authFilters(query, collectionClass)) {
       return query;
@@ -470,7 +476,7 @@ public class WingsMongoPersistence extends MongoPersistence implements WingsPers
       Field f, EncryptableSetting savedObject, Map<String, Object> keyValuePairs) {
     List<Field> encryptedFields = savedObject.getEncryptedFields();
     if (savedObject.getClass().equals(ServiceVariable.class)) {
-      return keyValuePairs.get("type") == Type.ENCRYPTED_TEXT;
+      return keyValuePairs.get("type") == ServiceVariableType.ENCRYPTED_TEXT;
     }
     return encryptedFields.contains(f);
   }

@@ -12,6 +12,8 @@ import static io.harness.ng.core.CorrelationContext.getCorrelationIdInterceptor;
 import static io.harness.request.RequestContextFilter.getRequestContextInterceptor;
 import static io.harness.security.JWTAuthenticationFilter.X_SOURCE_PRINCIPAL;
 
+import static com.fasterxml.jackson.core.JsonGenerator.Feature.AUTO_CLOSE_JSON_CONTENT;
+import static com.fasterxml.jackson.core.JsonParser.Feature.AUTO_CLOSE_SOURCE;
 import static com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES;
 import static org.apache.http.HttpHeaders.AUTHORIZATION;
 
@@ -40,6 +42,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.hubspot.jackson.datatype.protobuf.ProtobufModule;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.retrofit.CircuitBreakerCallAdapter;
+import io.serializer.HObjectMapper;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.function.Supplier;
@@ -121,10 +124,12 @@ public abstract class AbstractHttpClientFactory {
   }
 
   protected ObjectMapper getObjectMapper() {
-    ObjectMapper objMapper = new ObjectMapper();
+    ObjectMapper objMapper = HObjectMapper.get();
     objMapper.setSubtypeResolver(new JsonSubtypeResolver(objMapper.getSubtypeResolver()));
     objMapper.setConfig(objMapper.getSerializationConfig().withView(JsonViews.Public.class));
     objMapper.disable(FAIL_ON_UNKNOWN_PROPERTIES);
+    objMapper.configure(AUTO_CLOSE_SOURCE, false);
+    objMapper.configure(AUTO_CLOSE_JSON_CONTENT, false);
     objMapper.registerModule(new ProtobufModule());
     objMapper.registerModule(new Jdk8Module());
     objMapper.registerModule(new GuavaModule());

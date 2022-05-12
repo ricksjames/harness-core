@@ -8,29 +8,25 @@
 package io.harness.batch.processing.tasklet;
 
 import static io.harness.data.structure.EmptyPredicate.isEmpty;
-import static io.harness.data.structure.EmptyPredicate.isNotEmpty;
 
-import static com.hazelcast.util.Preconditions.checkFalse;
+import static com.hazelcast.internal.util.Preconditions.checkFalse;
 
 import io.harness.batch.processing.ccm.BatchJobType;
 import io.harness.batch.processing.ccm.CCMJobConstants;
+import io.harness.batch.processing.cloudevents.aws.ecs.service.tasklet.support.ng.NGConnectorHelper;
 import io.harness.batch.processing.config.BatchMainConfig;
 import io.harness.batch.processing.config.BillingDataPipelineConfig;
 import io.harness.batch.processing.dao.intfc.BatchJobScheduledDataDao;
+import io.harness.ccm.commons.beans.JobConstants;
 import io.harness.ccm.commons.entities.batch.BatchJobScheduledData;
 import io.harness.ccm.config.GcpBillingAccount;
 import io.harness.ccm.config.GcpServiceAccount;
-import io.harness.connector.ConnectorFilterPropertiesDTO;
 import io.harness.connector.ConnectorInfoDTO;
 import io.harness.connector.ConnectorResourceClient;
 import io.harness.connector.ConnectorResponseDTO;
 import io.harness.delegate.beans.connector.CEFeatures;
-import io.harness.delegate.beans.connector.CcmConnectorFilter;
 import io.harness.delegate.beans.connector.ConnectorType;
 import io.harness.delegate.beans.connector.gcpccm.GcpCloudCostConnectorDTO;
-import io.harness.filter.FilterType;
-import io.harness.ng.beans.PageResponse;
-import io.harness.utils.RestCallToNGManagerClientUtils;
 
 import software.wings.service.intfc.instance.CloudToHarnessMappingService;
 
@@ -59,13 +55,12 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.batch.core.JobParameters;
 import org.springframework.batch.core.StepContribution;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.tasklet.Tasklet;
@@ -87,10 +82,11 @@ public class GcpSyncTasklet implements Tasklet {
   @Autowired private ConnectorResourceClient connectorResourceClient;
   @Autowired protected CloudToHarnessMappingService cloudToHarnessMappingService;
   @Autowired private BatchJobScheduledDataDao batchJobScheduledDataDao;
-  private JobParameters parameters;
+  @Autowired private NGConnectorHelper ngConnectorHelper;
   private static final String GOOGLE_CREDENTIALS_PATH = "CE_GCP_CREDENTIALS_PATH";
 
-  private Cache<CacheKey, Boolean> gcpSyncInfo = Caffeine.newBuilder().expireAfterWrite(30, TimeUnit.MINUTES).build();
+  private final Cache<CacheKey, Boolean> gcpSyncInfo =
+      Caffeine.newBuilder().expireAfterWrite(30, TimeUnit.MINUTES).build();
 
   @Value
   private static class CacheKey {
@@ -101,13 +97,17 @@ public class GcpSyncTasklet implements Tasklet {
 
   @Override
   public RepeatStatus execute(StepContribution stepContribution, ChunkContext chunkContext) throws Exception {
-    parameters = chunkContext.getStepContext().getStepExecution().getJobParameters();
-    String accountId = parameters.getString(CCMJobConstants.ACCOUNT_ID);
-    Long endTime = Long.parseLong(parameters.getString(CCMJobConstants.JOB_END_DATE));
+    JobConstants jobConstants = CCMJobConstants.fromContext(chunkContext);
+    String accountId = jobConstants.getAccountId();
+    Long endTime = jobConstants.getJobEndTime();
+
+    boolean firstSync = false;
     BatchJobScheduledData batchJobScheduledData =
         batchJobScheduledDataDao.fetchLastBatchJobScheduledData(accountId, BatchJobType.SYNC_BILLING_REPORT_GCP);
     if (null != batchJobScheduledData) {
       endTime = batchJobScheduledData.getEndAt().toEpochMilli();
+    } else {
+      firstSync = true;
     }
     BillingDataPipelineConfig billingDataPipelineConfig = mainConfig.getBillingDataPipelineConfig();
 
@@ -127,7 +127,7 @@ public class GcpSyncTasklet implements Tasklet {
           processGCPConnector(billingDataPipelineConfig, gcpCloudCostConnectorDTO.getServiceAccountEmail(),
               gcpCloudCostConnectorDTO.getBillingExportSpec().getDatasetId(), gcpCloudCostConnectorDTO.getProjectId(),
               gcpCloudCostConnectorDTO.getBillingExportSpec().getTableId(), accountId, connectorInfo.getIdentifier(),
-              endTime);
+              endTime, firstSync);
         } catch (Exception e) {
           log.error("Exception processing NG GCP Connector: {}", connectorInfo.getIdentifier(), e);
         }
@@ -146,7 +146,7 @@ public class GcpSyncTasklet implements Tasklet {
         try {
           processGCPConnector(billingDataPipelineConfig, gcpServiceAccount.getEmail(),
               gcpBillingAccount.getBqDatasetId(), gcpBillingAccount.getBqProjectId(), "", accountId,
-              gcpBillingAccount.getUuid(), endTime);
+              gcpBillingAccount.getUuid(), endTime, firstSync);
         } catch (Exception e) {
           log.error("Exception processing CG GCP Connector: {}", gcpBillingAccount.getUuid(), e);
         }
@@ -156,7 +156,8 @@ public class GcpSyncTasklet implements Tasklet {
   }
 
   private void processGCPConnector(BillingDataPipelineConfig billingDataPipelineConfig, String serviceAccountEmail,
-      String datasetId, String projectId, String tableName, String accountId, String connectorId, Long endTime) {
+      String datasetId, String projectId, String tableName, String accountId, String connectorId, Long endTime,
+      boolean firstSync) {
     ServiceAccountCredentials sourceCredentials = getCredentials(GOOGLE_CREDENTIALS_PATH);
     Credentials credentials = getImpersonatedCredentials(sourceCredentials, serviceAccountEmail);
     BigQuery bigQuery = BigQueryOptions.newBuilder().setCredentials(credentials).build().getService();
@@ -172,7 +173,7 @@ public class GcpSyncTasklet implements Tasklet {
           Long lastModifiedTime = tableGranularData.getLastModifiedTime();
           lastModifiedTime = lastModifiedTime != null ? lastModifiedTime : table.getCreationTime();
           log.info("Sync condition {} {}", lastModifiedTime, endTime);
-          if (lastModifiedTime > endTime) {
+          if (lastModifiedTime > endTime || firstSync) {
             CacheKey cacheKey = new CacheKey(accountId, projectId, datasetId);
             gcpSyncInfo.get(cacheKey,
                 key
@@ -190,7 +191,7 @@ public class GcpSyncTasklet implements Tasklet {
       Long lastModifiedTime = tableGranularData.getLastModifiedTime();
       lastModifiedTime = lastModifiedTime != null ? lastModifiedTime : tableGranularData.getCreationTime();
       log.info("Sync condition {} {}", lastModifiedTime, endTime);
-      if (lastModifiedTime > endTime) {
+      if (lastModifiedTime > endTime || firstSync) {
         CacheKey cacheKey = new CacheKey(accountId, projectId, datasetId);
         gcpSyncInfo.get(cacheKey,
             key
@@ -202,31 +203,10 @@ public class GcpSyncTasklet implements Tasklet {
   }
 
   public List<ConnectorResponseDTO> getNextGenGCPConnectorResponses(String accountId) {
-    List<ConnectorResponseDTO> nextGenConnectorResponses = new ArrayList<>();
-    PageResponse<ConnectorResponseDTO> response = null;
-    ConnectorFilterPropertiesDTO connectorFilterPropertiesDTO =
-        ConnectorFilterPropertiesDTO.builder()
-            .types(Arrays.asList(ConnectorType.GCP_CLOUD_COST))
-            .ccmConnectorFilter(CcmConnectorFilter.builder().featuresEnabled(Arrays.asList(CEFeatures.BILLING)).build())
-            .build();
-    connectorFilterPropertiesDTO.setFilterType(FilterType.CONNECTOR);
-    int page = 0;
-    int size = 100;
-    do {
-      response = getConnectors(accountId, page, size, connectorFilterPropertiesDTO);
-      if (response != null && isNotEmpty(response.getContent())) {
-        nextGenConnectorResponses.addAll(response.getContent());
-      }
-      page++;
-    } while (response != null && isNotEmpty(response.getContent()));
+    List<ConnectorResponseDTO> nextGenConnectorResponses = ngConnectorHelper.getNextGenConnectors(accountId,
+        Arrays.asList(ConnectorType.GCP_CLOUD_COST), Arrays.asList(CEFeatures.BILLING), Collections.emptyList());
     log.info("Processing batch size of {} in GCP Sync Job", nextGenConnectorResponses.size());
     return nextGenConnectorResponses;
-  }
-
-  PageResponse getConnectors(
-      String accountId, int page, int size, ConnectorFilterPropertiesDTO connectorFilterPropertiesDTO) {
-    return RestCallToNGManagerClientUtils.execute(
-        connectorResourceClient.listConnectors(accountId, null, null, page, size, connectorFilterPropertiesDTO, false));
   }
 
   // read the credential path from env variables

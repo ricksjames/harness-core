@@ -12,10 +12,8 @@ import static io.harness.annotations.dev.HarnessTeam.CDC;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.beans.DelegateTask;
 import io.harness.beans.ExecutionStatusResponseData;
-import io.harness.beans.OrchestrationWorkflowType;
 import io.harness.beans.RepairActionCode;
 import io.harness.beans.ShellScriptProvisionOutputVariables;
-import io.harness.beans.WorkflowType;
 import io.harness.serializer.KryoRegistrar;
 
 import software.wings.api.ecs.EcsBGSetupData;
@@ -30,8 +28,6 @@ import com.esotericsoftware.kryo.Kryo;
 public class CgOrchestrationKryoRegister implements KryoRegistrar {
   @Override
   public void register(Kryo kryo) {
-    kryo.register(OrchestrationWorkflowType.class, 5148);
-    kryo.register(WorkflowType.class, 5025);
     kryo.register(DelegateTask.Status.class, 5004);
     kryo.register(DelegateTask.class, 5003);
     kryo.register(FileType.class, 5119);

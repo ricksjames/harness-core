@@ -35,10 +35,13 @@ public final class EventsFrameworkMetadataConstants {
   public static final String PIPELINE_ENTITY = "pipeline";
   public static final String DELEGATE_ENTITY = "delegate";
   public static final String DELEGATE_CONFIGURATION_ENTITY = "delegateconfiguration";
+  public static final String FILE_ENTITY = "file";
   public static final String USER_SCOPE_RECONCILIATION = "userScopeReconciliation";
+  public static final String CHAOS_HUB = "chaoshub";
 
   public static final String SERVICE_ENTITY = "service";
   public static final String ENVIRONMENT_ENTITY = "environment";
+  public static final String ENVIRONMENT_GROUP_ENTITY = "environmentGroup";
 
   public static final String RESOURCE_GROUP = "resourcegroup";
   public static final String USER_GROUP = "usergroup";

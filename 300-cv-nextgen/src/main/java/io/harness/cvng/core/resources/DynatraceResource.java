@@ -1,3 +1,10 @@
+/*
+ * Copyright 2022 Harness Inc. All rights reserved.
+ * Use of this source code is governed by the PolyForm Free Trial 1.0.0 license
+ * that can be found in the licenses directory at the root of this repository, also available at
+ * https://polyformproject.org/wp-content/uploads/2020/05/PolyForm-Free-Trial-1.0.0.txt.
+ */
+
 package io.harness.cvng.core.resources;
 
 import io.harness.annotations.ExposeInternalException;
@@ -25,6 +32,7 @@ import java.util.List;
 import java.util.Set;
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
+import javax.ws.rs.BeanParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -50,17 +58,10 @@ public class DynatraceResource {
   @Timed
   @ExceptionMetered
   @ApiOperation(value = "get all dynatrace services", nickname = "getDynatraceServices")
-  public ResponseDTO<List<DynatraceServiceDTO>> getDynatraceServices(@NotNull @QueryParam("accountId") String accountId,
+  public ResponseDTO<List<DynatraceServiceDTO>> getDynatraceServices(@NotNull @BeanParam ProjectParams projectParams,
       @NotNull @QueryParam("connectorIdentifier") final String connectorIdentifier,
-      @QueryParam("orgIdentifier") @NotNull String orgIdentifier,
-      @QueryParam("projectIdentifier") @NotNull String projectIdentifier,
       @NotNull @QueryParam("tracingId") String tracingId) {
-    return ResponseDTO.newResponse(dynatraceService.getAllServices(ProjectParams.builder()
-                                                                       .projectIdentifier(projectIdentifier)
-                                                                       .orgIdentifier(orgIdentifier)
-                                                                       .accountIdentifier(accountId)
-                                                                       .build(),
-        connectorIdentifier, tracingId));
+    return ResponseDTO.newResponse(dynatraceService.getAllServices(projectParams, connectorIdentifier, tracingId));
   }
 
   @GET
@@ -68,17 +69,11 @@ public class DynatraceResource {
   @Timed
   @ExceptionMetered
   @ApiOperation(value = "get all dynatrace service metrics", nickname = "getAllDynatraceServiceMetrics")
-  public ResponseDTO<List<DynatraceMetricDTO>> getDynatraceMetrics(@NotNull @QueryParam("accountId") String accountId,
+  public ResponseDTO<List<DynatraceMetricDTO>> getDynatraceMetrics(@NotNull @BeanParam ProjectParams projectParams,
       @NotNull @QueryParam("connectorIdentifier") final String connectorIdentifier,
-      @QueryParam("orgIdentifier") @NotNull String orgIdentifier,
-      @QueryParam("projectIdentifier") @NotNull String projectIdentifier,
+
       @NotNull @QueryParam("tracingId") String tracingId) {
-    return ResponseDTO.newResponse(dynatraceService.getAllMetrics(ProjectParams.builder()
-                                                                      .projectIdentifier(projectIdentifier)
-                                                                      .orgIdentifier(orgIdentifier)
-                                                                      .accountIdentifier(accountId)
-                                                                      .build(),
-        connectorIdentifier, tracingId));
+    return ResponseDTO.newResponse(dynatraceService.getAllMetrics(projectParams, connectorIdentifier, tracingId));
   }
 
   @GET
@@ -86,17 +81,11 @@ public class DynatraceResource {
   @Timed
   @ExceptionMetered
   @ApiOperation(value = "get dynatrace service details", nickname = "getDynatraceServiceDetails")
-  public ResponseDTO<DynatraceServiceDTO> getDynatraceServiceDetails(@NotNull @QueryParam("accountId") String accountId,
+  public ResponseDTO<DynatraceServiceDTO> getDynatraceServiceDetails(@NotNull @BeanParam ProjectParams projectParams,
       @NotNull @QueryParam("connectorIdentifier") final String connectorIdentifier,
-      @QueryParam("orgIdentifier") @NotNull String orgIdentifier,
-      @QueryParam("projectIdentifier") @NotNull String projectIdentifier,
       @QueryParam("serviceId") @NotNull String serviceId, @NotNull @QueryParam("tracingId") String tracingId) {
-    return ResponseDTO.newResponse(dynatraceService.getServiceDetails(ProjectParams.builder()
-                                                                          .projectIdentifier(projectIdentifier)
-                                                                          .orgIdentifier(orgIdentifier)
-                                                                          .accountIdentifier(accountId)
-                                                                          .build(),
-        connectorIdentifier, serviceId, tracingId));
+    return ResponseDTO.newResponse(
+        dynatraceService.getServiceDetails(projectParams, connectorIdentifier, serviceId, tracingId));
   }
 
   @POST
@@ -105,18 +94,12 @@ public class DynatraceResource {
   @ExceptionMetered
   @ApiOperation(value = "get metric data for given metric packs", nickname = "getDynatraceMetricData")
   public ResponseDTO<Set<MetricPackValidationResponse>> getDynatraceMetricData(
-      @QueryParam("accountId") @NotNull String accountId, @QueryParam("orgIdentifier") @NotNull String orgIdentifier,
-      @QueryParam("projectIdentifier") @NotNull String projectIdentifier,
+      @NotNull @BeanParam ProjectParams projectParams,
       @QueryParam("connectorIdentifier") @NotNull String connectorIdentifier,
       @QueryParam("tracingId") @NotNull String tracingId,
       @NotNull @Valid @Body DynatraceValidateDataRequestDTO validateDataRequestDTO) {
-    return ResponseDTO.newResponse(dynatraceService.validateData(ProjectParams.builder()
-                                                                     .projectIdentifier(projectIdentifier)
-                                                                     .orgIdentifier(orgIdentifier)
-                                                                     .accountIdentifier(accountId)
-                                                                     .build(),
-        connectorIdentifier, validateDataRequestDTO.getServiceMethodsIds(), validateDataRequestDTO.getMetricPacks(),
-        tracingId));
+    return ResponseDTO.newResponse(dynatraceService.validateData(projectParams, connectorIdentifier,
+        validateDataRequestDTO.getServiceMethodsIds(), validateDataRequestDTO.getMetricPacks(), tracingId));
   }
 
   @POST
@@ -124,17 +107,10 @@ public class DynatraceResource {
   @Timed
   @ExceptionMetered
   @ApiOperation(value = "get dynatrace sample data", nickname = "getDynatraceSampleData")
-  public ResponseDTO<List<TimeSeriesSampleDTO>> getDynatraceSampleData(
-      @QueryParam("accountId") @NotNull String accountId, @QueryParam("orgIdentifier") @NotNull String orgIdentifier,
-      @QueryParam("projectIdentifier") @NotNull String projectIdentifier,
+  public ResponseDTO<List<TimeSeriesSampleDTO>> getDynatraceSampleData(@NotNull @BeanParam ProjectParams projectParams,
       @QueryParam("connectorIdentifier") @NotNull String connectorIdentifier,
       @QueryParam("tracingId") @NotNull String tracingId,
       @NotNull @Body DynatraceSampleDataRequestDTO sampleDataRequestDTO) {
-    ProjectParams projectParams = ProjectParams.builder()
-                                      .accountIdentifier(accountId)
-                                      .orgIdentifier(orgIdentifier)
-                                      .projectIdentifier(projectIdentifier)
-                                      .build();
     return ResponseDTO.newResponse(dynatraceService.fetchSampleData(projectParams, connectorIdentifier,
         sampleDataRequestDTO.getServiceId(), sampleDataRequestDTO.getMetricSelector(), tracingId));
   }

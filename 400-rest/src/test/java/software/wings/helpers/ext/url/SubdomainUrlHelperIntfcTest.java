@@ -7,6 +7,7 @@
 
 package software.wings.helpers.ext.url;
 
+import static io.harness.rule.OwnerRule.DEEPAK;
 import static io.harness.rule.OwnerRule.MEHUL;
 import static io.harness.rule.OwnerRule.RAJ;
 
@@ -108,6 +109,16 @@ public class SubdomainUrlHelperIntfcTest extends WingsBaseTest {
     String result2 = subdomainUrlHelper.getPortalBaseUrl(ACCOUNT_ID_1);
     assertThat(result2).isEqualTo(PORTAL_URL_WITH_SEPARATOR);
     String result3 = subdomainUrlHelper.getPortalBaseUrl(ACCOUNT_ID_2);
+    assertThat(result3).isEqualTo(SUBDOMAIN_URL);
+  }
+
+  @Test
+  @Owner(developers = DEEPAK)
+  @Category(UnitTests.class)
+  public void getVanityUrlFromAccountId() {
+    String result2 = subdomainUrlHelper.getVanityUrl(ACCOUNT_ID_1);
+    assertThat(result2).isEqualTo(null);
+    String result3 = subdomainUrlHelper.getVanityUrl(ACCOUNT_ID_2);
     assertThat(result3).isEqualTo(SUBDOMAIN_URL);
   }
 
@@ -214,7 +225,8 @@ public class SubdomainUrlHelperIntfcTest extends WingsBaseTest {
     assertThat(result2).isEqualTo(DELEGATE_METADATA_URL);
     assertThat(subdomainUrlHelper.getDelegateMetadataUrl(ACCOUNT_ID_2, null, null))
         .isEqualTo(DELEGATE_METADATA_URL_WITH_SUBDOMAIN);
-    String result3 = subdomainUrlHelper.getDelegateMetadataUrl(ACCOUNT_ID_1, "testurl", DeployMode.ONPREM.name());
+    String result3 =
+        subdomainUrlHelper.getDelegateMetadataUrl(ACCOUNT_ID_1, "testurl", DeployMode.KUBERNETES_ONPREM.name());
     assertThat(result3).isEqualTo("testurl/storage/wingsdelegates/delegateprod.txt");
   }
 
@@ -228,7 +240,8 @@ public class SubdomainUrlHelperIntfcTest extends WingsBaseTest {
     assertThat(result2).isEqualTo(WATCHER_METADATA_URL);
     assertThat(subdomainUrlHelper.getWatcherMetadataUrl(ACCOUNT_ID_2, null, null))
         .isEqualTo(WATCHER_METADATA_URL_WITH_SUBDOMAIN);
-    String result3 = subdomainUrlHelper.getWatcherMetadataUrl(ACCOUNT_ID_1, "testurl", DeployMode.ONPREM.name());
+    String result3 =
+        subdomainUrlHelper.getWatcherMetadataUrl(ACCOUNT_ID_1, "testurl", DeployMode.KUBERNETES_ONPREM.name());
     assertThat(result3).isEqualTo("testurl/storage/wingswatchers/watcherprod.txt");
   }
 

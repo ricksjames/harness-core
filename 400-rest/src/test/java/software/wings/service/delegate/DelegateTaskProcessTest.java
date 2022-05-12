@@ -815,7 +815,6 @@ public class DelegateTaskProcessTest extends WingsBaseTest {
     Delegate delegate = createNGProjectLevelDelegateWithOwner(accountId);
     when(accountDelegatesCache.get(accountId)).thenReturn(singletonList(delegate));
     when(delegateCache.get(accountId, delegate.getUuid(), false)).thenReturn(delegate);
-    thrown.expect(NoEligibleDelegatesInAccountException.class);
     BaseNGAccess ngAccess =
         BaseNGAccess.builder().projectIdentifier(PROJ_ID).orgIdentifier(ORG_ID).accountIdentifier(accountId).build();
     DockerArtifactDelegateRequest dockerArtifactDelegateRequest =
@@ -1161,7 +1160,6 @@ public class DelegateTaskProcessTest extends WingsBaseTest {
     Delegate delegate = createDelegateWithScope(accountId);
     when(accountDelegatesCache.get(accountId)).thenReturn(singletonList(delegate));
     when(delegateCache.get(accountId, delegate.getUuid(), false)).thenReturn(delegate);
-    thrown.expect(NoEligibleDelegatesInAccountException.class);
     StackDriverDataCollectionInfo dataCollectionInfo =
         StackDriverDataCollectionInfo.builder()
             .collectionTime(10)
@@ -1454,6 +1452,8 @@ public class DelegateTaskProcessTest extends WingsBaseTest {
     persistence.save(delegateProfile);
     delegate.setDelegateProfileId(delegateProfile.getUuid());
     persistence.save(delegate);
+    when(delegateCache.getDelegateProfile(delegate.getAccountId(), delegate.getDelegateProfileId()))
+        .thenReturn(delegateProfile);
     return delegate;
   }
 

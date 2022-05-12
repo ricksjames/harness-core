@@ -9,17 +9,16 @@ package io.harness.serializer;
 
 import io.harness.EntityType;
 import io.harness.ModuleType;
-import io.harness.accesscontrol.serializer.AccessControlClientRegistrars;
 import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.cvng.core.beans.CVVerifyStepNode;
 import io.harness.morphia.MorphiaRegistrar;
-import io.harness.plancreator.steps.StepElementConfig;
 import io.harness.pms.contracts.steps.StepCategory;
 import io.harness.pms.serializer.kryo.PmsContractsKryoRegistrar;
 import io.harness.serializer.kryo.CVNGKryoRegistrar;
+import io.harness.serializer.kryo.NotificationBeansKryoRegistrar;
 import io.harness.serializer.morphia.CVNextGenMorphiaRegister;
-import io.harness.serializer.morphia.NotificationClientRegistrars;
+import io.harness.serializer.morphia.NotificationBeansMorphiaRegistrar;
 import io.harness.yaml.schema.beans.SchemaNamespaceConstants;
 import io.harness.yaml.schema.beans.YamlGroup;
 import io.harness.yaml.schema.beans.YamlSchemaMetadata;
@@ -39,41 +38,28 @@ public class CvNextGenRegistrars {
           .addAll(CvNextGenCommonsRegistrars.kryoRegistrars)
           .addAll(ConnectorNextGenRegistrars.kryoRegistrars)
           .add(CVNGKryoRegistrar.class)
-          .add(PipelineServiceUtilKryoRegistrar.class)
           .add(PmsContractsKryoRegistrar.class)
-          .addAll(NotificationClientRegistrars.kryoRegistrars)
-          .addAll(OrchestrationBeansRegistrars.kryoRegistrars)
-          .addAll(OrchestrationStepsModuleRegistrars.kryoRegistrars)
+          .add(NotificationBeansKryoRegistrar.class)
           .addAll(AccessControlClientRegistrars.kryoRegistrars)
           .addAll(DelegateTaskRegistrars.kryoRegistrars)
+          .addAll(NGCommonModuleRegistrars.kryoRegistrars)
           .build();
 
   public static final ImmutableSet<Class<? extends MorphiaRegistrar>> morphiaRegistrars =
       ImmutableSet.<Class<? extends MorphiaRegistrar>>builder()
           .addAll(CvNextGenCommonsRegistrars.morphiaRegistrars)
           .add(CVNextGenMorphiaRegister.class)
-          .addAll(NotificationClientRegistrars.morphiaRegistrars)
+          .add(NotificationBeansMorphiaRegistrar.class)
           .addAll(ConnectorBeansRegistrars.morphiaRegistrars)
-          .addAll(OrchestrationBeansRegistrars.morphiaRegistrars)
-          .addAll(OrchestrationStepsModuleRegistrars.morphiaRegistrars)
           .addAll(PrimaryVersionManagerRegistrars.morphiaRegistrars)
           .addAll(DelegateTaskRegistrars.morphiaRegistrars)
+          .addAll(NGCommonModuleRegistrars.morphiaRegistrars)
           .build();
 
   public static final ImmutableSet<Class<? extends TypeConverter>> morphiaConverters =
-      ImmutableSet.<Class<? extends TypeConverter>>builder()
-          .addAll(PersistenceRegistrars.morphiaConverters)
-          .addAll(OrchestrationBeansRegistrars.morphiaConverters)
-          .build();
+      ImmutableSet.<Class<? extends TypeConverter>>builder().addAll(PersistenceRegistrars.morphiaConverters).build();
   public static final ImmutableList<YamlSchemaRootClass> yamlSchemaRegistrars =
       ImmutableList.<YamlSchemaRootClass>builder()
-          .add(YamlSchemaRootClass.builder()
-                   .entityType(EntityType.DEPLOYMENT_STEPS)
-                   .availableAtProjectLevel(true)
-                   .availableAtOrgLevel(false)
-                   .availableAtAccountLevel(false)
-                   .clazz(StepElementConfig.class)
-                   .build())
           .add(YamlSchemaRootClass.builder()
                    .entityType(EntityType.VERIFY_STEP)
                    .availableAtProjectLevel(true)

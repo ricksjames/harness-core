@@ -10,6 +10,8 @@ package software.wings.service.impl;
 import static io.harness.annotations.dev.HarnessModule._955_ACCOUNT_MGMT;
 import static io.harness.annotations.dev.HarnessTeam.PL;
 import static io.harness.beans.FeatureName.AUTO_ACCEPT_SAML_ACCOUNT_INVITES;
+import static io.harness.beans.FeatureName.CG_LICENSE_USAGE;
+import static io.harness.beans.FeatureName.DELEGATE_VERSION_FROM_RING;
 import static io.harness.beans.PageRequest.PageRequestBuilder.aPageRequest;
 import static io.harness.beans.SearchFilter.Operator.EQ;
 import static io.harness.data.structure.EmptyPredicate.isEmpty;
@@ -62,6 +64,7 @@ import io.harness.beans.PageResponse;
 import io.harness.beans.PageResponse.PageResponseBuilder;
 import io.harness.cache.HarnessCacheManager;
 import io.harness.ccm.license.CeLicenseInfo;
+import io.harness.cdlicense.impl.CgCdLicenseUsageService;
 import io.harness.cvng.beans.ServiceGuardLimitDTO;
 import io.harness.data.structure.EmptyPredicate;
 import io.harness.data.structure.UUIDGenerator;
@@ -69,6 +72,7 @@ import io.harness.datahandler.models.AccountDetails;
 import io.harness.dataretention.AccountDataRetentionEntity;
 import io.harness.dataretention.AccountDataRetentionService;
 import io.harness.delegate.beans.DelegateConfiguration;
+import io.harness.delegate.service.DelegateVersionService;
 import io.harness.delegate.utils.DelegateRingConstants;
 import io.harness.eraro.Level;
 import io.harness.event.handler.impl.EventPublishHelper;
@@ -298,6 +302,8 @@ public class AccountServiceImpl implements AccountService {
   @Inject @Named(EventsFrameworkConstants.ENTITY_CRUD) private Producer eventProducer;
   @Inject private RemoteObserverInformer remoteObserverInformer;
   @Inject private HPersistence persistence;
+  @Inject private CgCdLicenseUsageService cgCdLicenseUsageService;
+  @Inject private DelegateVersionService delegateVersionService;
 
   @Inject @Named("BackgroundJobScheduler") private PersistentScheduler jobScheduler;
   @Inject private GovernanceFeature governanceFeature;
@@ -577,6 +583,11 @@ public class AccountServiceImpl implements AccountService {
     accountDetails.setDefaultExperience(account.getDefaultExperience());
     accountDetails.setCreatedFromNG(account.isCreatedFromNG());
     accountDetails.setActiveServiceCount(workflowExecutionService.getActiveServiceCount(accountId));
+    if (featureFlagService.isEnabled(CG_LICENSE_USAGE, accountId)) {
+      accountDetails.setActiveServicesUsageInfo(cgCdLicenseUsageService.getActiveServiceLicenseUsage(accountId));
+    }
+    // Todo: requires input LicenseModel from api request
+    //    accountDetails.setLicenseModel(CgLicenseModel.SERVICES);
     return accountDetails;
   }
 
@@ -967,23 +978,43 @@ public class AccountServiceImpl implements AccountService {
     if (licenseService.isAccountDeleted(accountId)) {
       throw new InvalidRequestException("Deleted AccountId: " + accountId);
     }
+    if (featureFlagService.isEnabled(DELEGATE_VERSION_FROM_RING, accountId)) {
+      log.info("Getting delegate configuration from Delegate ring");
 
+      // Prefer using delegateConfiguration from DelegateRing.
+      List<String> delegateVersionFromRing = delegateVersionService.getDelegateJarVersions(accountId);
+      if (isNotEmpty(delegateVersionFromRing)) {
+        return DelegateConfiguration.builder().delegateVersions(new ArrayList<>(delegateVersionFromRing)).build();
+      }
+      log.warn("Unable to get Delegate version from ring, falling back to regular flow");
+    }
+
+    // Try to pickup delegateConfiguration from Account collection.
     Account account = wingsPersistence.createQuery(Account.class, excludeAuthorityCount)
                           .filter(AccountKeys.uuid, accountId)
                           .project("delegateConfiguration", true)
                           .get();
 
-    if (account.getDelegateConfiguration() == null) {
-      account = wingsPersistence.createQuery(Account.class, excludeAuthorityCount)
-                    .filter(AccountKeys.uuid, GLOBAL_ACCOUNT_ID)
-                    .project("delegateConfiguration", true)
-                    .get();
-      return account.getDelegateConfiguration();
+    if (account.getDelegateConfiguration() != null) {
+      if (account.getDelegateConfiguration().getValidUntil() == null) {
+        log.warn("The delegate configuration for account [{}] doesn't have valid until field.", accountId);
+      }
+
+      if (account.getDelegateConfiguration().getValidUntil() != null
+          && account.getDelegateConfiguration().getValidUntil() < System.currentTimeMillis()) {
+        log.info("We can cleanup old record for delegate configuration for account [{}]", accountId);
+      } else {
+        return account.getDelegateConfiguration();
+      }
     }
-    return DelegateConfiguration.builder()
-        .accountVersion(true)
-        .delegateVersions(account.getDelegateConfiguration().getDelegateVersions())
-        .build();
+
+    // If we are here, means we didn't find any delegateConfiguration in Account collection.
+    // Pickup delegateConfiguration from GLOBAL_ACCOUNT_ID.
+    account = wingsPersistence.createQuery(Account.class, excludeAuthorityCount)
+                  .filter(AccountKeys.uuid, GLOBAL_ACCOUNT_ID)
+                  .project("delegateConfiguration", true)
+                  .get();
+    return account.getDelegateConfiguration();
   }
 
   @Override
@@ -991,18 +1022,12 @@ public class AccountServiceImpl implements AccountService {
     if (licenseService.isAccountDeleted(accountId)) {
       throw new InvalidRequestException("Deleted AccountId: " + accountId);
     }
-    Account account = wingsPersistence.createQuery(Account.class, excludeAuthorityCount)
-                          .filter(AccountKeys.uuid, accountId)
-                          .project("delegateConfiguration", true)
-                          .get();
-    if (account.getDelegateConfiguration() == null) {
+
+    DelegateConfiguration delegateConfig = getDelegateConfiguration(accountId);
+    if (delegateConfig == null) {
       return null;
     }
-    return account.getDelegateConfiguration()
-        .getDelegateVersions()
-        .stream()
-        .reduce((first, last) -> last)
-        .orElse(EMPTY);
+    return delegateConfig.getDelegateVersions().stream().reduce((first, last) -> last).orElse(EMPTY);
   }
 
   @Override

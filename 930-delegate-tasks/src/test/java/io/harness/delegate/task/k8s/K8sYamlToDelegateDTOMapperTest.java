@@ -189,7 +189,50 @@ public class K8sYamlToDelegateDTOMapperTest extends CategoryTest {
         k8sYamlToDelegateDTOMapper.createKubernetesConfigFromClusterConfig(connectorDTOWithServiceAccountCreds, null);
     assertThat(config).isNotNull();
     assertThat(config.getMasterUrl()).isEqualTo(masterUrl);
-    assertThat(config.getServiceAccountToken()).isEqualTo(serviceAccountKey.toCharArray());
+    assertThat(config.getServiceAccountTokenSupplier().get()).isEqualTo(serviceAccountKey);
+  }
+
+  @Test
+  @Owner(developers = ABOSII)
+  @Category(UnitTests.class)
+  public void createKubernetesConfigFromClusterConfigForServiceAccountWithCaCertTest() {
+    String serviceAccountKey = "serviceAccountKey";
+    String masterUrl = "https://abc.com/";
+    String serviceAccountRef = "serviceAccountRef";
+    String caCertRef = "caCertRef";
+    String caCertKey = "caCertKey";
+    SecretRefData serviceAccountSecretRef = SecretRefData.builder()
+                                                .identifier(serviceAccountRef)
+                                                .scope(Scope.ACCOUNT)
+                                                .decryptedValue(serviceAccountKey.toCharArray())
+                                                .build();
+    SecretRefData caCertSecretRef = SecretRefData.builder()
+                                        .identifier(caCertRef)
+                                        .scope(Scope.ACCOUNT)
+                                        .decryptedValue(caCertKey.toCharArray())
+                                        .build();
+
+    KubernetesAuthDTO kubernetesAuthDTO = KubernetesAuthDTO.builder()
+                                              .authType(SERVICE_ACCOUNT)
+                                              .credentials(KubernetesServiceAccountDTO.builder()
+                                                               .serviceAccountTokenRef(serviceAccountSecretRef)
+                                                               .caCertRef(caCertSecretRef)
+                                                               .build())
+                                              .build();
+    KubernetesClusterConfigDTO connectorDTOWithServiceAccountCreds =
+        KubernetesClusterConfigDTO.builder()
+            .credential(
+                KubernetesCredentialDTO.builder()
+                    .kubernetesCredentialType(MANUAL_CREDENTIALS)
+                    .config(KubernetesClusterDetailsDTO.builder().masterUrl(masterUrl).auth(kubernetesAuthDTO).build())
+                    .build())
+            .build();
+    KubernetesConfig config =
+        k8sYamlToDelegateDTOMapper.createKubernetesConfigFromClusterConfig(connectorDTOWithServiceAccountCreds, null);
+    assertThat(config).isNotNull();
+    assertThat(config.getMasterUrl()).isEqualTo(masterUrl);
+    assertThat(config.getServiceAccountTokenSupplier().get()).isEqualTo(serviceAccountKey);
+    assertThat(config.getCaCert()).isEqualTo(caCertKey.toCharArray());
   }
 
   @Test

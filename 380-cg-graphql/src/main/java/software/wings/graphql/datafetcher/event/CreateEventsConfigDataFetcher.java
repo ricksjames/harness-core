@@ -7,15 +7,12 @@
 
 package software.wings.graphql.datafetcher.event;
 
-import static io.harness.beans.FeatureName.APP_TELEMETRY;
-
 import static software.wings.security.PermissionAttribute.PermissionType.MANAGE_APPLICATIONS;
 
 import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.beans.CgEventConfig;
 import io.harness.exception.InvalidRequestException;
-import io.harness.ff.FeatureFlagService;
 import io.harness.service.EventConfigService;
 
 import software.wings.graphql.datafetcher.BaseMutatorDataFetcher;
@@ -35,7 +32,6 @@ import lombok.extern.slf4j.Slf4j;
 @OwnedBy(HarnessTeam.CDC)
 public class CreateEventsConfigDataFetcher
     extends BaseMutatorDataFetcher<QLCreateEventsConfigInput, QLCreateEventsConfigPayload> {
-  @Inject private FeatureFlagService featureFlagService;
   @Inject private EventConfigService eventConfigService;
   @Inject private AppService appService;
   @Inject private EventsConfigValidationHelper eventsConfigValidationHelper;
@@ -49,9 +45,6 @@ public class CreateEventsConfigDataFetcher
   protected QLCreateEventsConfigPayload mutateAndFetch(
       QLCreateEventsConfigInput parameter, MutationContext mutationContext) {
     String accountId = mutationContext.getAccountId();
-    if (!featureFlagService.isEnabled(APP_TELEMETRY, mutationContext.getAccountId())) {
-      throw new InvalidRequestException("Please enable feature flag to configure events");
-    }
     if (!appService.exist(parameter.getAppId())) {
       throw new InvalidRequestException("Application does not exist");
     }
@@ -65,6 +58,7 @@ public class CreateEventsConfigDataFetcher
                                       .enabled(parameter.isEnabled())
                                       .build();
     eventsConfigValidationHelper.validatePipelineIds(cgeventConfig, accountId, parameter.getAppId());
+    eventsConfigValidationHelper.validateWorkflowIds(cgeventConfig, accountId, parameter.getAppId());
     CgEventConfig eventConfig = eventConfigService.createEventsConfig(accountId, parameter.getAppId(), cgeventConfig);
     return QLCreateEventsConfigPayload.builder()
         .clientMutationId(parameter.getClientMutationId())

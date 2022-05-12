@@ -7,6 +7,9 @@
 
 package io.harness.beans;
 
+import static io.harness.data.structure.EmptyPredicate.isEmpty;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -22,4 +25,10 @@ public class EmbeddedUser {
   private String uuid;
   private String name;
   private String email;
+  private String externalUserId;
+
+  @JsonIgnore
+  public boolean existNameAndEmail() {
+    return !isEmpty(this.getEmail()) && !isEmpty(this.getName());
+  }
 }

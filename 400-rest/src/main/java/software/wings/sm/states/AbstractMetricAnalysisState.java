@@ -13,10 +13,10 @@ import static io.harness.logging.AutoLogContext.OverrideBehavior.OVERRIDE_ERROR;
 import static io.harness.persistence.HQuery.excludeAuthority;
 
 import static software.wings.common.VerificationConstants.LAMBDA_HOST_NAME;
+import static software.wings.delegatetasks.cv.CVConstants.CONTROL_HOST_NAME;
+import static software.wings.delegatetasks.cv.CVConstants.TEST_HOST_NAME;
 import static software.wings.service.impl.analysis.AnalysisComparisonStrategy.COMPARE_WITH_PREVIOUS;
 import static software.wings.service.impl.newrelic.NewRelicMetricDataRecord.DEFAULT_GROUP_NAME;
-import static software.wings.sm.states.DynatraceState.CONTROL_HOST_NAME;
-import static software.wings.sm.states.DynatraceState.TEST_HOST_NAME;
 
 import static org.apache.commons.lang3.StringUtils.isBlank;
 
@@ -31,6 +31,7 @@ import io.harness.time.Timestamp;
 import io.harness.version.VersionInfoManager;
 
 import software.wings.beans.GcpConfig;
+import software.wings.delegatetasks.DelegateStateType;
 import software.wings.metrics.RiskLevel;
 import software.wings.service.impl.VerificationLogContext;
 import software.wings.service.impl.analysis.AnalysisComparisonStrategy;
@@ -48,11 +49,12 @@ import software.wings.service.impl.newrelic.NewRelicMetricAnalysisRecord;
 import software.wings.service.impl.newrelic.NewRelicMetricAnalysisRecord.NewRelicMetricAnalysis;
 import software.wings.service.impl.stackdriver.StackDriverDataCollectionInfo;
 import software.wings.service.intfc.MetricDataAnalysisService;
-import software.wings.service.intfc.verification.CVActivityLogService.Logger;
+import software.wings.service.intfc.verification.CVActivityLogger;
 import software.wings.sm.ExecutionContext;
 import software.wings.sm.ExecutionResponse;
 import software.wings.sm.StateType;
 import software.wings.sm.WorkflowStandardParams;
+import software.wings.sm.WorkflowStandardParamsExtensionService;
 import software.wings.verification.VerificationDataAnalysisResponse;
 import software.wings.verification.VerificationStateAnalysisExecutionData;
 
@@ -116,6 +118,7 @@ public abstract class AbstractMetricAnalysisState extends AbstractAnalysisState 
   }
   @Transient @Inject protected MetricDataAnalysisService metricAnalysisService;
   @Transient @Inject protected VersionInfoManager versionInfoManager;
+  @Transient @Inject protected WorkflowStandardParamsExtensionService workflowStandardParamsExtensionService;
 
   public AbstractMetricAnalysisState(String name, StateType stateType) {
     super(name, stateType.name());
@@ -131,9 +134,9 @@ public abstract class AbstractMetricAnalysisState extends AbstractAnalysisState 
   @Override
   public ExecutionResponse execute(ExecutionContext context) {
     try (VerificationLogContext ignored = new VerificationLogContext(context.getAccountId(), null,
-             context.getStateExecutionInstanceId(), StateType.valueOf(getStateType()), OVERRIDE_ERROR)) {
+             context.getStateExecutionInstanceId(), DelegateStateType.valueOf(getStateType()), OVERRIDE_ERROR)) {
       getLogger().info("Executing state {}", context.getStateExecutionInstanceId());
-      Logger activityLogger = cvActivityLogService.getLoggerByStateExecutionId(
+      CVActivityLogger activityLogger = cvActivityLogService.getLoggerByStateExecutionId(
           context.getAccountId(), context.getStateExecutionInstanceId());
       if (context.isRetry()) {
         activityLogger.info(RETRYING_VERIFICATION_STATE_MSG);
@@ -212,6 +215,13 @@ public abstract class AbstractMetricAnalysisState extends AbstractAnalysisState 
         if (analysisContext.isSkipVerification()) {
           getLogger().warn(
               "id: {}, Could not find test nodes to compare the data", context.getStateExecutionInstanceId());
+
+          if (shouldFailOnEmptyNodes(analysisContext.getAccountId())) {
+            getLogger().info("Could not find newly deployed instances. failOnEmptyNodes is true. Failing execution");
+            return generateAnalysisResponse(analysisContext, ExecutionStatus.FAILED, false,
+                "Could not find newly deployed instances. Marking execution as failed.");
+          }
+
           return generateAnalysisResponse(analysisContext, ExecutionStatus.SKIPPED, false,
               "Could not find newly deployed instances. Skipping verification");
         }
@@ -220,6 +230,14 @@ public abstract class AbstractMetricAnalysisState extends AbstractAnalysisState 
         if (isEmpty(lastExecutionNodes) && !isAwsLambdaState(context)) {
           if (getComparisonStrategy() == AnalysisComparisonStrategy.COMPARE_WITH_CURRENT) {
             getLogger().info("No nodes with older version found to compare the logs. Skipping analysis");
+
+            if (shouldFailOnEmptyNodes(analysisContext.getAccountId())) {
+              getLogger().info(
+                  "No nodes with older version found to compare the logs. failOnEmptyNodes is true. Failing execution");
+              return generateAnalysisResponse(analysisContext, ExecutionStatus.FAILED, false,
+                  "As no previous version instances exist for comparison, analysis will be marked as failed."
+                      + " Check your setup if this is the first deployment or if the previous instances have been deleted or replaced.");
+            }
             return generateAnalysisResponse(analysisContext, ExecutionStatus.SKIPPED, false,
                 "As no previous version instances exist for comparison, analysis will be skipped. Check your setup if this is the first deployment or if the previous instances have been deleted or replaced.");
           }
@@ -249,14 +267,15 @@ public abstract class AbstractMetricAnalysisState extends AbstractAnalysisState 
         if (getComparisonStrategy() == COMPARE_WITH_PREVIOUS) {
           WorkflowStandardParams workflowStandardParams = context.getContextElement(ContextElementType.STANDARD);
           baselineWorkflowExecutionId = workflowExecutionBaselineService.getBaselineExecutionId(context.getAppId(),
-              context.getWorkflowId(), workflowStandardParams.getEnv().getUuid(), analysisContext.getServiceId());
+              context.getWorkflowId(), workflowStandardParamsExtensionService.getEnv(workflowStandardParams).getUuid(),
+              analysisContext.getServiceId());
           if (isEmpty(baselineWorkflowExecutionId)) {
             responseMessage = "No baseline was set for the workflow. Workflow running with auto baseline.";
             getLogger().info(responseMessage);
-            baselineWorkflowExecutionId =
-                metricAnalysisService.getLastSuccessfulWorkflowExecutionIdWithData(analysisContext.getStateType(),
-                    analysisContext.getAppId(), analysisContext.getWorkflowId(), analysisContext.getServiceId(),
-                    getPhaseInfraMappingId(context), workflowStandardParams.getEnv().getUuid());
+            baselineWorkflowExecutionId = metricAnalysisService.getLastSuccessfulWorkflowExecutionIdWithData(
+                analysisContext.getStateType().getDelegateStateType(), analysisContext.getAppId(),
+                analysisContext.getWorkflowId(), analysisContext.getServiceId(), getPhaseInfraMappingId(context),
+                workflowStandardParamsExtensionService.getEnv(workflowStandardParams).getUuid());
           } else {
             responseMessage = "Baseline is fixed for the workflow. Analyzing against fixed baseline.";
             getLogger().info("Baseline execution is {}", baselineWorkflowExecutionId);
@@ -370,6 +389,7 @@ public abstract class AbstractMetricAnalysisState extends AbstractAnalysisState 
         (VerificationDataAnalysisResponse) response.values().iterator().next();
 
     if (ExecutionStatus.isBrokeStatus(executionResponse.getExecutionStatus())) {
+      updateSweepingOutputWithCVResult(executionContext, executionResponse.getExecutionStatus().name());
       return getErrorExecutionResponse(executionContext, executionResponse);
     }
 
@@ -386,6 +406,7 @@ public abstract class AbstractMetricAnalysisState extends AbstractAnalysisState 
       NewRelicMetricAnalysisRecord manualActionRecord =
           metricAnalysisService.getLatestLocalAnalysisRecord(context.getStateExecutionId());
       Preconditions.checkNotNull(manualActionRecord);
+      updateSweepingOutputWithCVResult(executionContext, cvMetaData.getExecutionStatus().name());
       return createExecutionResponse(context, cvMetaData.getExecutionStatus(), manualActionRecord.getMessage(), false);
     }
 
@@ -397,6 +418,7 @@ public abstract class AbstractMetricAnalysisState extends AbstractAnalysisState 
                                                                                          : ExecutionStatus.SUCCESS;
       continuousVerificationService.setMetaDataExecutionStatus(
           context.getStateExecutionId(), executionStatus, true, false);
+      updateSweepingOutputWithCVResult(executionContext, executionStatus.name());
       return generateAnalysisResponse(
           context, executionStatus, false, "No Analysis result found. This is not a failure.");
     }
@@ -424,6 +446,8 @@ public abstract class AbstractMetricAnalysisState extends AbstractAnalysisState 
         context.getStateExecutionId(), executionStatus, false, false);
 
     updateExecutionStatus(context.getStateExecutionId(), true, executionStatus, "Analysis completed");
+    updateSweepingOutputWithCVResult(executionContext, executionStatus.name());
+
     return ExecutionResponse.builder()
         .executionStatus(executionStatus)
         .stateExecutionData(executionResponse.getStateExecutionData())

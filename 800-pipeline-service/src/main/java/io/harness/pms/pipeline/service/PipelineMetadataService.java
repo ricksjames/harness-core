@@ -7,17 +7,19 @@
 
 package io.harness.pms.pipeline.service;
 
-import io.harness.pms.pipeline.PipelineMetadata;
+import io.harness.pms.pipeline.PipelineEntity;
+import io.harness.pms.pipeline.PipelineMetadataV2;
 
-import com.google.protobuf.ByteString;
 import java.util.Optional;
 
 public interface PipelineMetadataService {
-  int incrementExecutionCounter(String accountId, String orgIdentifier, String projectIdentifier,
-      String pipelineIdentifier, ByteString gitSyncBranchContext);
+  int incrementRunSequence(PipelineEntity entity);
 
-  PipelineMetadata save(PipelineMetadata metadata);
+  int incrementExecutionCounter(
+      String accountId, String orgIdentifier, String projectIdentifier, String pipelineIdentifier);
 
-  Optional<PipelineMetadata> getMetadata(String accountId, String orgIdentifier, String projectIdentifier,
-      String identifier, ByteString gitSyncBranchContext);
+  PipelineMetadataV2 save(PipelineMetadataV2 metadata);
+
+  Optional<PipelineMetadataV2> getMetadata(
+      String accountId, String orgIdentifier, String projectIdentifier, String identifier);
 }

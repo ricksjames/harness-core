@@ -7,10 +7,13 @@
 
 package io.harness.batch.processing.billing.tasklet;
 
+import static io.harness.telemetry.Destination.AMPLITUDE;
+
 import io.harness.batch.processing.billing.tasklet.dao.intfc.DataGeneratedNotificationDao;
 import io.harness.batch.processing.ccm.CCMJobConstants;
 import io.harness.batch.processing.mail.CEMailNotificationService;
 import io.harness.ccm.cluster.entities.CEUserInfo;
+import io.harness.ccm.commons.beans.JobConstants;
 import io.harness.ccm.commons.dao.CEMetadataRecordDao;
 import io.harness.ccm.commons.entities.batch.CEMetadataRecord;
 import io.harness.ccm.commons.entities.batch.DataGeneratedNotification;
@@ -19,6 +22,8 @@ import io.harness.ccm.views.dto.DefaultViewIdDto;
 import io.harness.ccm.views.entities.ViewFieldIdentifier;
 import io.harness.ccm.views.service.CEViewService;
 import io.harness.exception.InvalidRequestException;
+import io.harness.telemetry.Category;
+import io.harness.telemetry.TelemetryReporter;
 import io.harness.timescaledb.DBUtils;
 import io.harness.timescaledb.TimeScaleDBService;
 
@@ -50,7 +55,6 @@ import java.util.StringJoiner;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.batch.core.JobParameters;
 import org.springframework.batch.core.StepContribution;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.tasklet.Tasklet;
@@ -60,6 +64,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 @Slf4j
 @Singleton
 public class BillingDataGeneratedMailTasklet implements Tasklet {
+  public static final String FIRST_DATA_RECEIVED = "First Data Received";
+  public static final String MODULE = "module";
+  public static final String DATA_TYPE = "dataType";
   @Autowired private CloudToHarnessMappingService cloudToHarnessMappingService;
   @Autowired private DataGeneratedNotificationDao notificationDao;
   @Autowired private TimeScaleDBService timeScaleDBService;
@@ -67,8 +74,7 @@ public class BillingDataGeneratedMailTasklet implements Tasklet {
   @Autowired private CEMailNotificationService emailNotificationService;
   @Autowired private CEMetadataRecordDao metadataRecordDao;
   @Autowired private CEViewService ceViewService;
-
-  private JobParameters parameters;
+  @Autowired TelemetryReporter telemetryReporter;
 
   private static final int MAX_RETRY_COUNT = 3;
   private static final long ONE_DAY_MILLIS = 86400000;
@@ -84,8 +90,9 @@ public class BillingDataGeneratedMailTasklet implements Tasklet {
   @Override
   public RepeatStatus execute(StepContribution stepContribution, ChunkContext chunkContext) throws Exception {
     try {
-      parameters = chunkContext.getStepContext().getStepExecution().getJobParameters();
-      String accountId = parameters.getString(CCMJobConstants.ACCOUNT_ID);
+      final JobConstants jobConstants = CCMJobConstants.fromContext(chunkContext);
+      String accountId = jobConstants.getAccountId();
+
       createDefaultPerspective(accountId);
       CEMetadataRecord ceMetadataRecord = metadataRecordDao.getByAccountId(accountId);
       boolean isApplicationDataPresent = false;
@@ -102,11 +109,21 @@ public class BillingDataGeneratedMailTasklet implements Tasklet {
           }
         }
       }
+      Boolean isSegmentDataReadyEventSent = ceMetadataRecord.getSegmentDataReadyEventSent();
+      if (isSegmentDataReadyEventSent == null || !isSegmentDataReadyEventSent) {
+        HashMap<String, Object> properties = new HashMap<>();
+        properties.put(MODULE, "CCM");
+        properties.put(DATA_TYPE, "CLUSTER");
+        telemetryReporter.sendTrackEvent(FIRST_DATA_RECEIVED, null, accountId, properties,
+            Collections.singletonMap(AMPLITUDE, true), Category.GLOBAL);
+      }
+
       cloudToHarnessMappingService.upsertCEMetaDataRecord(CEMetadataRecord.builder()
                                                               .accountId(accountId)
                                                               .applicationDataPresent(isApplicationDataPresent)
                                                               .clusterDataConfigured(true)
                                                               .clusterConnectorConfigured(true)
+                                                              .segmentDataReadyEventSent(true)
                                                               .build());
       boolean notificationSend = notificationDao.isMailSent(accountId);
       if (!notificationSend) {

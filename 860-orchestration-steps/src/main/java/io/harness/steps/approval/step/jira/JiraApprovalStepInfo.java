@@ -14,7 +14,9 @@ import io.harness.annotation.RecasterAlias;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.beans.SwaggerConstants;
 import io.harness.filters.WithConnectorRef;
+import io.harness.plancreator.steps.TaskSelectorYaml;
 import io.harness.plancreator.steps.common.SpecParameters;
+import io.harness.plancreator.steps.common.WithDelegateSelector;
 import io.harness.plancreator.steps.internal.PMSStepInfo;
 import io.harness.pms.contracts.steps.StepType;
 import io.harness.pms.yaml.ParameterField;
@@ -23,6 +25,7 @@ import io.harness.steps.StepSpecTypeConstants;
 import io.harness.steps.approval.ApprovalFacilitator;
 import io.harness.steps.approval.step.beans.CriteriaSpecWrapper;
 import io.harness.yaml.YamlSchemaTypes;
+import io.harness.yaml.core.VariableExpression;
 
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import io.swagger.annotations.ApiModelProperty;
@@ -43,15 +46,15 @@ import org.springframework.data.annotation.TypeAlias;
 @JsonTypeName(StepSpecTypeConstants.JIRA_APPROVAL)
 @TypeAlias("jiraApprovalStepInfo")
 @RecasterAlias("io.harness.steps.approval.step.jira.JiraApprovalStepInfo")
-public class JiraApprovalStepInfo implements PMSStepInfo, WithConnectorRef {
+public class JiraApprovalStepInfo implements PMSStepInfo, WithConnectorRef, WithDelegateSelector {
   @NotNull @ApiModelProperty(dataType = SwaggerConstants.STRING_CLASSPATH) ParameterField<String> connectorRef;
   @NotNull @ApiModelProperty(dataType = SwaggerConstants.STRING_CLASSPATH) ParameterField<String> issueKey;
-  @NotNull CriteriaSpecWrapper approvalCriteria;
-  CriteriaSpecWrapper rejectionCriteria;
+  @NotNull @VariableExpression(skipVariableExpression = true) CriteriaSpecWrapper approvalCriteria;
+  @VariableExpression(skipVariableExpression = true) CriteriaSpecWrapper rejectionCriteria;
 
   @ApiModelProperty(dataType = SwaggerConstants.STRING_LIST_CLASSPATH)
   @YamlSchemaTypes(value = {runtime})
-  ParameterField<List<String>> delegateSelectors;
+  ParameterField<List<TaskSelectorYaml>> delegateSelectors;
 
   @Override
   public StepType getStepType() {
@@ -79,5 +82,10 @@ public class JiraApprovalStepInfo implements PMSStepInfo, WithConnectorRef {
     Map<String, ParameterField<String>> connectorRefMap = new HashMap<>();
     connectorRefMap.put(YAMLFieldNameConstants.CONNECTOR_REF, connectorRef);
     return connectorRefMap;
+  }
+
+  @Override
+  public ParameterField<List<TaskSelectorYaml>> fetchDelegateSelectors() {
+    return getDelegateSelectors();
   }
 }

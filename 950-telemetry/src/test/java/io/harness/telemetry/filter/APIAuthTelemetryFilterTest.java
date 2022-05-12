@@ -13,9 +13,11 @@ import static io.harness.telemetry.Destination.AMPLITUDE;
 import static io.harness.telemetry.filter.APIAuthTelemetryFilter.ACCOUNT_IDENTIFIER;
 import static io.harness.telemetry.filter.APIAuthTelemetryFilter.API_ENDPOINT;
 import static io.harness.telemetry.filter.APIAuthTelemetryFilter.API_ENDPOINTS_AUTH_SCHEMES;
+import static io.harness.telemetry.filter.APIAuthTelemetryFilter.API_PATTERN;
 import static io.harness.telemetry.filter.APIAuthTelemetryFilter.AUTH_TYPE;
 import static io.harness.telemetry.filter.APIAuthTelemetryFilter.DEFAULT_RATE_LIMIT;
 import static io.harness.telemetry.filter.APIAuthTelemetryFilter.X_API_KEY;
+import static io.harness.telemetry.filter.APIAuthTelemetryResponseFilter.API_TYPE;
 
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -30,12 +32,15 @@ import io.harness.telemetry.TelemetryReporter;
 
 import io.github.resilience4j.ratelimiter.RateLimiterConfig;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.core.MultivaluedMap;
 import lombok.extern.slf4j.Slf4j;
 import org.glassfish.jersey.server.internal.routing.UriRoutingContext;
+import org.glassfish.jersey.uri.UriTemplate;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -51,6 +56,7 @@ public class APIAuthTelemetryFilterTest {
   public static final String SOME_API_KEY = "some-api-key";
   public static final String SOME_ACCOUNT_ID = "some-account-id";
   public static final String SOME_API_ENDPOINT = "/some-api-endpoint";
+  public static final String GET = "GET";
   public static final int CUSTOM_REQUEST_LIMIT = 10;
   @Mock private TelemetryReporter telemetryReporter;
   @Mock private ContainerRequestContext containerRequestContext;
@@ -63,17 +69,24 @@ public class APIAuthTelemetryFilterTest {
   @Before
   public void setup() {
     when(containerRequestContext.getUriInfo()).thenReturn(uriRoutingContext);
+    when(containerRequestContext.getMethod()).thenReturn(GET);
 
     when(uriRoutingContext.getPath()).thenReturn(SOME_API_ENDPOINT);
     when(uriRoutingContext.getQueryParameters()).thenReturn(parametersMap);
     when(uriRoutingContext.getPathParameters()).thenReturn(parametersMap);
 
     when(parametersMap.getFirst(NGCommonEntityConstants.ACCOUNT_KEY)).thenReturn(SOME_ACCOUNT_ID);
+    List<UriTemplate> templates = new ArrayList<>();
+    templates.add(new UriTemplate("/id"));
+    templates.add(new UriTemplate("/pipelines"));
+    when(uriRoutingContext.getMatchedTemplates()).thenReturn(templates);
 
     filter = new APIAuthTelemetryFilter(telemetryReporter);
 
     properties.put(ACCOUNT_IDENTIFIER, SOME_ACCOUNT_ID);
     properties.put(API_ENDPOINT, SOME_API_ENDPOINT);
+    properties.put(API_TYPE, GET);
+    properties.put(API_PATTERN, "/pipelines/id");
   }
 
   @Test

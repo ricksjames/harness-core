@@ -54,6 +54,7 @@ import io.harness.beans.steps.stepinfo.RunStepInfo;
 import io.harness.beans.steps.stepinfo.RunTestsStepInfo;
 import io.harness.beans.steps.stepinfo.SaveCacheGCSStepInfo;
 import io.harness.beans.steps.stepinfo.SaveCacheS3StepInfo;
+import io.harness.beans.steps.stepinfo.SecurityStepInfo;
 import io.harness.beans.steps.stepinfo.TestStepInfo;
 import io.harness.beans.steps.stepinfo.UploadToArtifactoryStepInfo;
 import io.harness.beans.steps.stepinfo.UploadToGCSStepInfo;
@@ -73,11 +74,17 @@ import io.harness.beans.yaml.extended.CustomVariable;
 import io.harness.beans.yaml.extended.infrastrucutre.Infrastructure;
 import io.harness.beans.yaml.extended.infrastrucutre.K8sDirectInfraYaml;
 import io.harness.beans.yaml.extended.infrastrucutre.K8sDirectInfraYaml.K8sDirectInfraYamlSpec;
+import io.harness.beans.yaml.extended.infrastrucutre.K8sHostedInfraYaml;
+import io.harness.beans.yaml.extended.infrastrucutre.K8sHostedInfraYaml.K8sHostedInfraYamlSpec;
 import io.harness.beans.yaml.extended.infrastrucutre.UseFromStageInfraYaml;
 import io.harness.beans.yaml.extended.infrastrucutre.VmInfraSpec;
 import io.harness.beans.yaml.extended.infrastrucutre.VmInfraYaml;
 import io.harness.beans.yaml.extended.infrastrucutre.VmPoolYaml;
 import io.harness.beans.yaml.extended.infrastrucutre.VmPoolYaml.VmPoolYamlSpec;
+import io.harness.beans.yaml.extended.volumes.CIVolume;
+import io.harness.beans.yaml.extended.volumes.EmptyDirYaml;
+import io.harness.beans.yaml.extended.volumes.HostPathYaml;
+import io.harness.beans.yaml.extended.volumes.PersistentVolumeClaimYaml;
 import io.harness.ci.beans.entities.BuildNumberDetails;
 import io.harness.ci.stdvars.BuildStandardVariables;
 import io.harness.ci.stdvars.GitVariables;
@@ -126,6 +133,7 @@ public class CIBeansKryoRegistrar implements KryoRegistrar {
     kryo.register(ExecutionSource.Type.class, 100056);
     kryo.register(CIStepOutcome.class, 100057);
     kryo.register(PluginStepInfo.class, 100058);
+    kryo.register(SecurityStepInfo.class, 110105);
     kryo.register(CustomSecretVariable.class, 100061);
     kryo.register(CustomTextVariable.class, 100062);
     kryo.register(CustomVariable.Type.class, 100063);
@@ -170,7 +178,15 @@ public class CIBeansKryoRegistrar implements KryoRegistrar {
     kryo.register(VmPoolYaml.class, 110103);
     kryo.register(VmPoolYamlSpec.class, 110104);
 
+    kryo.register(K8sHostedInfraYaml.class, 110106);
+    kryo.register(K8sHostedInfraYamlSpec.class, 110107);
+
     kryo.register(BuildUpdateType.class, 390003);
     kryo.register(BuildStatusUpdateParameter.class, 390004);
+
+    kryo.register(CIVolume.class, 390005);
+    kryo.register(EmptyDirYaml.class, 390006);
+    kryo.register(HostPathYaml.class, 390007);
+    kryo.register(PersistentVolumeClaimYaml.class, 390008);
   }
 }

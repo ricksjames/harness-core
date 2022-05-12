@@ -94,7 +94,10 @@ public class K8sYamlToDelegateDTOMapper {
       case SERVICE_ACCOUNT:
         kubernetesConfigBuilder.authType(KubernetesClusterAuthType.SERVICE_ACCOUNT);
         KubernetesServiceAccountDTO serviceAccountDTO = (KubernetesServiceAccountDTO) authDTO.getCredentials();
-        kubernetesConfigBuilder.serviceAccountToken(serviceAccountDTO.getServiceAccountTokenRef().getDecryptedValue());
+        kubernetesConfigBuilder.serviceAccountTokenSupplier(
+            () -> new String(serviceAccountDTO.getServiceAccountTokenRef().getDecryptedValue()));
+        kubernetesConfigBuilder.caCert(
+            serviceAccountDTO.getCaCertRef() != null ? serviceAccountDTO.getCaCertRef().getDecryptedValue() : null);
         break;
 
       case OPEN_ID_CONNECT:

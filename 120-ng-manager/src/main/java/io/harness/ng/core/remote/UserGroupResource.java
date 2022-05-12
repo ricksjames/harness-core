@@ -23,10 +23,10 @@ import static io.harness.utils.PageUtils.getPageRequest;
 
 import io.harness.NGCommonEntityConstants;
 import io.harness.NGResourceFilterConstants;
-import io.harness.accesscontrol.AccessDeniedErrorDTO;
+import io.harness.accesscontrol.acl.api.Resource;
+import io.harness.accesscontrol.acl.api.ResourceScope;
 import io.harness.accesscontrol.clients.AccessControlClient;
-import io.harness.accesscontrol.clients.Resource;
-import io.harness.accesscontrol.clients.ResourceScope;
+import io.harness.accesscontrol.commons.exceptions.AccessDeniedErrorDTO;
 import io.harness.accesscontrol.scopes.ScopeDTO;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.beans.Scope;
@@ -310,8 +310,10 @@ public class UserGroupResource {
         ApiResponse(description = "Returns the list of the user groups selected by a filter in a User Group.")
       })
   public ResponseDTO<List<UserGroupDTO>>
-  list(@RequestBody(
-      description = "User Group Filter", required = true) @Body @NotNull UserGroupFilterDTO userGroupFilterDTO) {
+  list(@Parameter(description = ACCOUNT_PARAM_MESSAGE, required = true) @QueryParam(
+           NGCommonEntityConstants.ACCOUNT_KEY) String accountIdentifier,
+      @RequestBody(
+          description = "User Group Filter", required = true) @Body @NotNull UserGroupFilterDTO userGroupFilterDTO) {
     accessControlClient.checkForAccessOrThrow(
         ResourceScope.of(userGroupFilterDTO.getAccountIdentifier(), userGroupFilterDTO.getOrgIdentifier(),
             userGroupFilterDTO.getProjectIdentifier()),

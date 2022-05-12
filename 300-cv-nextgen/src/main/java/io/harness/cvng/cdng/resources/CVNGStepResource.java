@@ -11,7 +11,11 @@ import io.harness.annotations.ExposeInternalException;
 import io.harness.cvng.activity.beans.DeploymentActivitySummaryDTO;
 import io.harness.cvng.analysis.beans.LogAnalysisClusterChartDTO;
 import io.harness.cvng.analysis.beans.LogAnalysisClusterDTO;
+import io.harness.cvng.analysis.beans.LogAnalysisClusterWithCountDTO;
+import io.harness.cvng.analysis.beans.LogAnalysisRadarChartClusterDTO;
+import io.harness.cvng.analysis.beans.LogAnalysisRadarChartListWithCountDTO;
 import io.harness.cvng.analysis.beans.TransactionMetricInfoSummaryPageDTO;
+import io.harness.cvng.beans.cvnglog.CVNGLogDTO;
 import io.harness.cvng.cdng.beans.InputSetTemplateRequest;
 import io.harness.cvng.cdng.beans.InputSetTemplateResponse;
 import io.harness.cvng.cdng.services.api.CVNGStepService;
@@ -20,6 +24,7 @@ import io.harness.cvng.core.beans.monitoredService.healthSouceSpec.HealthSourceD
 import io.harness.cvng.core.beans.params.PageParams;
 import io.harness.cvng.core.beans.params.filterParams.DeploymentLogAnalysisFilter;
 import io.harness.cvng.core.beans.params.filterParams.DeploymentTimeSeriesAnalysisFilter;
+import io.harness.cvng.core.beans.params.logsFilterParams.DeploymentLogsFilter;
 import io.harness.cvng.verificationjob.entities.VerificationJobInstance;
 import io.harness.ng.beans.PageResponse;
 import io.harness.ng.core.dto.ResponseDTO;
@@ -112,6 +117,34 @@ public class CVNGStepResource {
         stepTaskService.getDeploymentActivityLogAnalysisClusters(accountId, callBackId, deploymentLogAnalysisFilter));
   }
 
+  @GET
+  @Path("/{verifyStepExecutionId}/deployment-log-analysis-radar-chart-clusters")
+  @Timed
+  @ExceptionMetered
+  @ApiOperation(value = "get radar chart logs for given verify step",
+      nickname = "getVerifyStepDeploymentRadarChartLogAnalysisClusters")
+  public RestResponse<List<LogAnalysisRadarChartClusterDTO>>
+  getDeploymentLogAnalysisRadarChartClusters(@NotEmpty @NotNull @QueryParam("accountId") String accountId,
+      @NotNull @NotEmpty @PathParam("verifyStepExecutionId") String callBackId,
+      @BeanParam DeploymentLogAnalysisFilter deploymentLogAnalysisFilter) {
+    return new RestResponse(stepTaskService.getDeploymentActivityRadarCartLogAnalysisClusters(
+        accountId, callBackId, deploymentLogAnalysisFilter));
+  }
+
+  @Path("/{verifyStepExecutionId}/deployment-log-analysis-radar-chart-data")
+  @GET
+  @Timed
+  @ExceptionMetered
+  @ApiOperation(value = "get radar chart logs list for given verify step",
+      nickname = "getVerifyStepDeploymentLogAnalysisRadarChartResult")
+  public RestResponse<LogAnalysisRadarChartListWithCountDTO>
+  getDeploymentLogAnalysisRadarChartResult(@NotEmpty @NotNull @QueryParam("accountId") String accountId,
+      @PathParam("verifyStepExecutionId") String callBackId,
+      @BeanParam DeploymentLogAnalysisFilter deploymentLogAnalysisFilter, @BeanParam PageParams pageParams) {
+    return new RestResponse(stepTaskService.getDeploymentActivityRadarChartLogAnalysisResult(
+        accountId, callBackId, deploymentLogAnalysisFilter, pageParams));
+  }
+
   @Path("/{verifyStepExecutionId}/deployment-log-analysis-data")
   @GET
   @Timed
@@ -122,6 +155,19 @@ public class CVNGStepResource {
       @PathParam("verifyStepExecutionId") String callBackId, @QueryParam("label") Integer label,
       @BeanParam DeploymentLogAnalysisFilter deploymentLogAnalysisFilter, @BeanParam PageParams pageParams) {
     return new RestResponse(stepTaskService.getDeploymentActivityLogAnalysisResult(
+        accountId, callBackId, label, deploymentLogAnalysisFilter, pageParams));
+  }
+
+  @Path("/{verifyStepExecutionId}/deployment-log-analysis-data-v2")
+  @GET
+  @Timed
+  @ExceptionMetered
+  @ApiOperation(value = "get logs for given activity", nickname = "getVerifyStepDeploymentLogAnalysisResultV2")
+  public RestResponse<LogAnalysisClusterWithCountDTO> getDeploymentLogAnalysisResultV2(
+      @NotEmpty @NotNull @QueryParam("accountId") String accountId,
+      @PathParam("verifyStepExecutionId") String callBackId, @QueryParam("label") Integer label,
+      @BeanParam DeploymentLogAnalysisFilter deploymentLogAnalysisFilter, @BeanParam PageParams pageParams) {
+    return new RestResponse(stepTaskService.getDeploymentActivityLogAnalysisResultV2(
         accountId, callBackId, label, deploymentLogAnalysisFilter, pageParams));
   }
 
@@ -140,9 +186,20 @@ public class CVNGStepResource {
   @Timed
   @ExceptionMetered
   @ApiOperation(value = "get all the Node names", nickname = "getVerifyStepNodeNames")
-  public RestResponse<List<String>> getNodeNames(@NotEmpty @NotNull @QueryParam("accountId") String accountId,
+  public RestResponse<Set<String>> getNodeNames(@NotEmpty @NotNull @QueryParam("accountId") String accountId,
       @NotEmpty @NotNull @PathParam("verifyStepExecutionId") String callBackId) {
     return new RestResponse(stepTaskService.getNodeNames(accountId, callBackId));
+  }
+
+  @GET
+  @Path("/{verifyStepExecutionId}/logs")
+  @Timed
+  @ExceptionMetered
+  @ApiOperation(value = "get verify step logs", nickname = "getVerifyStepLogs")
+  public RestResponse<PageResponse<CVNGLogDTO>> getLogs(@NotEmpty @NotNull @QueryParam("accountId") String accountId,
+      @NotEmpty @NotNull @PathParam("verifyStepExecutionId") String callBackId,
+      @BeanParam DeploymentLogsFilter deploymentLogsFilter, @BeanParam PageParams pageParams) {
+    return new RestResponse(stepTaskService.getCVNGLogs(accountId, callBackId, deploymentLogsFilter, pageParams));
   }
 
   /**

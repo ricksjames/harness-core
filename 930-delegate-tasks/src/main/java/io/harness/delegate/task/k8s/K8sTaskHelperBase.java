@@ -14,6 +14,7 @@ import static io.harness.delegate.beans.storeconfig.StoreDelegateConfigType.GIT;
 import static io.harness.delegate.beans.storeconfig.StoreDelegateConfigType.HTTP_HELM;
 import static io.harness.exception.WingsException.USER;
 import static io.harness.filesystem.FileIo.getFilesUnderPath;
+import static io.harness.filesystem.FileIo.getFilesUnderPathMatchesFirstLine;
 import static io.harness.helm.HelmConstants.HELM_PATH_PLACEHOLDER;
 import static io.harness.helm.HelmConstants.HELM_RELEASE_LABEL;
 import static io.harness.k8s.K8sConstants.KUBERNETES_CHANGE_CAUSE_ANNOTATION;
@@ -130,6 +131,7 @@ import io.harness.k8s.kubectl.RolloutStatusCommand;
 import io.harness.k8s.kubectl.ScaleCommand;
 import io.harness.k8s.kubectl.Utils;
 import io.harness.k8s.manifest.ManifestHelper;
+import io.harness.k8s.manifest.VersionUtils;
 import io.harness.k8s.model.HarnessAnnotations;
 import io.harness.k8s.model.HarnessLabelValues;
 import io.harness.k8s.model.HarnessLabels;
@@ -161,16 +163,30 @@ import software.wings.delegatetasks.ExceptionMessageSanitizer;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.TimeLimiter;
 import com.google.common.util.concurrent.UncheckedTimeoutException;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import io.fabric8.istio.api.networking.v1alpha3.Destination;
+import io.fabric8.istio.api.networking.v1alpha3.DestinationRule;
+import io.fabric8.istio.api.networking.v1alpha3.DestinationRuleList;
+import io.fabric8.istio.api.networking.v1alpha3.HTTPRoute;
+import io.fabric8.istio.api.networking.v1alpha3.HTTPRouteDestination;
+import io.fabric8.istio.api.networking.v1alpha3.PortSelector;
+import io.fabric8.istio.api.networking.v1alpha3.Subset;
+import io.fabric8.istio.api.networking.v1alpha3.TCPRoute;
+import io.fabric8.istio.api.networking.v1alpha3.TLSRoute;
+import io.fabric8.istio.api.networking.v1alpha3.VirtualService;
+import io.fabric8.istio.api.networking.v1alpha3.VirtualServiceList;
 import io.fabric8.kubernetes.api.KubernetesHelper;
-import io.fabric8.kubernetes.api.model.KubernetesResourceList;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.github.resilience4j.retry.Retry;
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.models.V1ConfigMap;
+import io.kubernetes.client.openapi.models.V1Deployment;
+import io.kubernetes.client.openapi.models.V1DeploymentSpec;
+import io.kubernetes.client.openapi.models.V1LabelSelector;
 import io.kubernetes.client.openapi.models.V1LoadBalancerIngress;
 import io.kubernetes.client.openapi.models.V1LoadBalancerStatus;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
@@ -181,7 +197,6 @@ import io.kubernetes.client.openapi.models.V1Service;
 import io.kubernetes.client.openapi.models.V1ServicePort;
 import io.kubernetes.client.openapi.models.V1Status;
 import io.kubernetes.client.openapi.models.V1TokenReviewStatus;
-import io.kubernetes.client.openapi.models.VersionInfo;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -204,25 +219,13 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import me.snowdrop.istio.api.networking.v1alpha3.Destination;
-import me.snowdrop.istio.api.networking.v1alpha3.DestinationRule;
-import me.snowdrop.istio.api.networking.v1alpha3.DestinationRuleBuilder;
-import me.snowdrop.istio.api.networking.v1alpha3.DestinationWeight;
-import me.snowdrop.istio.api.networking.v1alpha3.DoneableDestinationRule;
-import me.snowdrop.istio.api.networking.v1alpha3.DoneableVirtualService;
-import me.snowdrop.istio.api.networking.v1alpha3.HTTPRoute;
-import me.snowdrop.istio.api.networking.v1alpha3.PortSelector;
-import me.snowdrop.istio.api.networking.v1alpha3.Subset;
-import me.snowdrop.istio.api.networking.v1alpha3.TCPRoute;
-import me.snowdrop.istio.api.networking.v1alpha3.TLSRoute;
-import me.snowdrop.istio.api.networking.v1alpha3.VirtualService;
-import me.snowdrop.istio.api.networking.v1alpha3.VirtualServiceBuilder;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -268,6 +271,10 @@ public class K8sTaskHelperBase {
 
   public static final String ISTIO_DESTINATION_TEMPLATE = "host: $ISTIO_DESTINATION_HOST_NAME\n"
       + "subset: $ISTIO_DESTINATION_SUBSET_NAME";
+  private static final String INVALID_RESOURCE_SPEC_HINT =
+      "Please check if the rendered manifest is valid and does not contain invalid/missing values.";
+  private static final String INVALID_RESOURCE_SPEC_EXPLANATION =
+      "Failed to load resource spec as a Kubernetes object.";
 
   public static LogOutputStream getExecutionLogOutputStream(LogCallback executionLogCallback, LogLevel logLevel) {
     return new LogOutputStream() {
@@ -327,7 +334,7 @@ public class K8sTaskHelperBase {
       return ProcessResponse.builder()
           .processResult(
               command.execute(k8sDelegateTaskParams.getWorkingDirectory(), logOutputStream, logErrorStream, true))
-          .errorMessage(errorCaptureStream.toString())
+          .errorMessage(ExceptionMessageSanitizer.sanitizeMessage(errorCaptureStream.toString()))
           .kubectlPath(k8sDelegateTaskParams.getKubectlPath())
           .printableCommand(getPrintableCommand(command.command()))
           .build();
@@ -410,6 +417,36 @@ public class K8sTaskHelperBase {
       String color, long timeoutInMillis) throws Exception {
     Map<String, String> labels = ImmutableMap.of(HarnessLabels.releaseName, releaseName, HarnessLabels.color, color);
     return getPodDetailsWithLabels(kubernetesConfig, namespace, releaseName, labels, timeoutInMillis);
+  }
+
+  public List<KubernetesResource> getDeploymentContainingTrackStableSelector(KubernetesConfig kubernetesConfig,
+      List<KubernetesResource> managedWorkloads, Map.Entry<String, String> selector) {
+    List<KubernetesResource> resources = new ArrayList<>();
+    for (KubernetesResource deployment : managedWorkloads) {
+      KubernetesResourceId resourceId = deployment.getResourceId();
+      if (resourceId == null || !resourceId.getKind().equals(Kind.Deployment.name())) {
+        continue;
+      }
+      V1Deployment deploymentFromServer = kubernetesContainerService.getDeployment(kubernetesConfig,
+          isBlank(resourceId.getNamespace()) ? kubernetesConfig.getNamespace() : resourceId.getNamespace(),
+          resourceId.getName());
+      if (deploymentFromServer != null && deploymentContainsHarnessTrackSelector(deploymentFromServer, selector)) {
+        resources.add(deployment);
+      }
+    }
+    return resources;
+  }
+
+  private boolean deploymentContainsHarnessTrackSelector(
+      V1Deployment v1Deployment, Map.Entry<String, String> selector) {
+    AtomicBoolean containsHarnessTrackSelector = new AtomicBoolean(false);
+    Optional.ofNullable(v1Deployment)
+        .map(V1Deployment::getSpec)
+        .map(V1DeploymentSpec::getSelector)
+        .map(V1LabelSelector::getMatchLabels)
+        .ifPresent(selectors -> containsHarnessTrackSelector.set(selectors.entrySet().contains(selector)));
+
+    return containsHarnessTrackSelector.get();
   }
 
   private V1Service waitForLoadBalancerService(
@@ -604,16 +641,16 @@ public class K8sTaskHelperBase {
     }
   }
 
-  private List<DestinationWeight> generateDestinationWeights(
+  private List<HTTPRouteDestination> generateDestinationWeights(
       List<IstioDestinationWeight> istioDestinationWeights, String host, PortSelector portSelector) throws IOException {
-    List<DestinationWeight> destinationWeights = new ArrayList<>();
+    List<HTTPRouteDestination> destinationWeights = new ArrayList<>();
 
     for (IstioDestinationWeight istioDestinationWeight : istioDestinationWeights) {
       String destinationYaml = getDestinationYaml(istioDestinationWeight.getDestination(), host);
       Destination destination = new YamlUtils().read(destinationYaml, Destination.class);
       destination.setPort(portSelector);
 
-      DestinationWeight destinationWeight = new DestinationWeight();
+      HTTPRouteDestination destinationWeight = new HTTPRouteDestination();
       destinationWeight.setWeight(Integer.parseInt(istioDestinationWeight.getWeight()));
       destinationWeight.setDestination(destination);
 
@@ -623,7 +660,7 @@ public class K8sTaskHelperBase {
     return destinationWeights;
   }
 
-  private String getHostFromRoute(List<DestinationWeight> routes) {
+  private String getHostFromRoute(List<HTTPRouteDestination> routes) {
     if (isEmpty(routes)) {
       throw new InvalidRequestException("No routes exist in VirtualService", USER);
     }
@@ -639,7 +676,7 @@ public class K8sTaskHelperBase {
     return routes.get(0).getDestination().getHost();
   }
 
-  private PortSelector getPortSelectorFromRoute(List<DestinationWeight> routes) {
+  private PortSelector getPortSelectorFromRoute(List<HTTPRouteDestination> routes) {
     return routes.get(0).getDestination().getPort();
   }
 
@@ -698,10 +735,7 @@ public class K8sTaskHelperBase {
     }
 
     KubernetesClient kubernetesClient = kubernetesHelperService.getKubernetesClient(kubernetesConfig);
-    kubernetesClient.customResources(
-        kubernetesContainerService.getCustomResourceDefinition(kubernetesClient, new VirtualServiceBuilder().build()),
-        VirtualService.class, KubernetesResourceList.class, DoneableVirtualService.class);
-
+    kubernetesClient.resources(VirtualService.class, VirtualServiceList.class);
     KubernetesResource kubernetesResource = virtualServiceResources.get(0);
     InputStream inputStream = IOUtils.toInputStream(kubernetesResource.getSpec(), UTF_8);
     VirtualService virtualService = (VirtualService) kubernetesClient.load(inputStream).get().get(0);
@@ -745,9 +779,7 @@ public class K8sTaskHelperBase {
     }
 
     KubernetesClient kubernetesClient = kubernetesHelperService.getKubernetesClient(kubernetesConfig);
-    kubernetesClient.customResources(
-        kubernetesContainerService.getCustomResourceDefinition(kubernetesClient, new DestinationRuleBuilder().build()),
-        DestinationRule.class, KubernetesResourceList.class, DoneableDestinationRule.class);
+    kubernetesClient.resources(DestinationRule.class, DestinationRuleList.class);
 
     KubernetesResource kubernetesResource = destinationRuleResources.get(0);
     InputStream inputStream = IOUtils.toInputStream(kubernetesResource.getSpec(), UTF_8);
@@ -837,7 +869,7 @@ public class K8sTaskHelperBase {
         throw new KubernetesCliTaskRuntimeException(response, KubernetesCliCommandType.APPLY);
       }
 
-      executionLogCallback.saveExecutionLog("\nFailed.", INFO, FAILURE);
+      logExecutableFailed(result, executionLogCallback);
       return false;
     }
 
@@ -859,7 +891,8 @@ public class K8sTaskHelperBase {
     ProcessResponse response = runK8sExecutable(k8sDelegateTaskParams, executionLogCallback, deleteCommand);
     ProcessResult result = response.getProcessResult();
     if (result.getExitValue() != 0) {
-      log.warn("Failed to delete manifests. Error {}", result.getOutput());
+      log.warn("Failed to delete manifests with exit code: {}. Error {}", result.getExitValue(),
+          result.hasOutput() ? result.outputUTF8() : "Empty output");
     }
 
     executionLogCallback.saveExecutionLog("\nDone.", INFO, CommandExecutionStatus.SUCCESS);
@@ -873,8 +906,8 @@ public class K8sTaskHelperBase {
 
   @VisibleForTesting
   public ProcessResult executeCommandUsingUtils(String workingDirectory, LogOutputStream statusInfoStream,
-      LogOutputStream statusErrorStream, String command) throws Exception {
-    return Utils.executeScript(workingDirectory, command, statusInfoStream, statusErrorStream);
+      LogOutputStream statusErrorStream, String command, Map<String, String> environment) throws Exception {
+    return Utils.executeScript(workingDirectory, command, statusInfoStream, statusErrorStream, environment);
   }
 
   public boolean scale(Kubectl client, K8sDelegateTaskParams k8sDelegateTaskParams, KubernetesResourceId resourceId,
@@ -891,8 +924,8 @@ public class K8sTaskHelperBase {
       executionLogCallback.saveExecutionLog("\nDone.", INFO, CommandExecutionStatus.SUCCESS);
       return true;
     } else {
-      executionLogCallback.saveExecutionLog("\nFailed.", INFO, FAILURE);
-      log.warn("Failed to scale workload. Error {}", result.getOutput());
+      logExecutableFailed(result, executionLogCallback);
+      log.warn("Failed to scale workload. Error {}", result.hasOutput() ? result.outputUTF8() : "empty output");
       if (isErrorFrameworkEnabled) {
         throw new KubernetesCliTaskRuntimeException(response, KubernetesCliCommandType.SCALE);
       }
@@ -998,9 +1031,10 @@ public class K8sTaskHelperBase {
 
   @VisibleForTesting
   public ProcessResult executeCommandUsingUtils(K8sDelegateTaskParams k8sDelegateTaskParams,
-      LogOutputStream statusInfoStream, LogOutputStream statusErrorStream, String command) throws Exception {
+      LogOutputStream statusInfoStream, LogOutputStream statusErrorStream, String command,
+      Map<String, String> environment) throws Exception {
     return executeCommandUsingUtils(
-        k8sDelegateTaskParams.getWorkingDirectory(), statusInfoStream, statusErrorStream, command);
+        k8sDelegateTaskParams.getWorkingDirectory(), statusInfoStream, statusErrorStream, command, environment);
   }
 
   public String getRolloutStatusCommandForDeploymentConfig(
@@ -1028,8 +1062,8 @@ public class K8sTaskHelperBase {
       String rolloutHistoryCommand = getRolloutHistoryCommandForDeploymentConfig(k8sDelegateTaskParams, resourceId);
 
       try (LogOutputStream emptyLogOutputStream = getEmptyLogOutputStream()) {
-        ProcessResult result = executeCommandUsingUtils(
-            k8sDelegateTaskParams, emptyLogOutputStream, emptyLogOutputStream, rolloutHistoryCommand);
+        ProcessResult result = executeCommandUsingUtils(k8sDelegateTaskParams, emptyLogOutputStream,
+            emptyLogOutputStream, rolloutHistoryCommand, Maps.newHashMap());
 
         if (result.getExitValue() == 0) {
           String[] lines = result.outputUTF8().split("\\r?\\n");
@@ -1105,7 +1139,7 @@ public class K8sTaskHelperBase {
       ProcessResponse response = runK8sExecutable(k8sDelegateTaskParams, executionLogCallback, dryrun);
       ProcessResult result = response.getProcessResult();
       if (result.getExitValue() != 0) {
-        executionLogCallback.saveExecutionLog("\nFailed.", INFO, FAILURE);
+        logExecutableFailed(result, executionLogCallback);
         if (isErrorFrameworkEnabled) {
           throw new KubernetesCliTaskRuntimeException(response, KubernetesCliCommandType.DRY_RUN);
         }
@@ -1190,7 +1224,8 @@ public class K8sTaskHelperBase {
 
         executionLogCallback.saveExecutionLog(printableExecutedCommand + "\n");
 
-        result = executeCommandUsingUtils(workingDirectory, statusInfoStream, statusErrorStream, rolloutStatusCommand);
+        result = executeCommandUsingUtils(
+            workingDirectory, statusInfoStream, statusErrorStream, rolloutStatusCommand, Maps.newHashMap());
       } else {
         RolloutStatusCommand rolloutStatusCommand = client.rollout()
                                                         .status()
@@ -1208,12 +1243,13 @@ public class K8sTaskHelperBase {
       if (!success) {
         log.warn(result.outputUTF8());
         if (isErrorFrameworkEnabled) {
-          ProcessResponse processResponse = ProcessResponse.builder()
-                                                .errorMessage(errorCaptureStream.toString())
-                                                .processResult(result)
-                                                .printableCommand(printableExecutedCommand)
-                                                .kubectlPath(kubectlPath)
-                                                .build();
+          ProcessResponse processResponse =
+              ProcessResponse.builder()
+                  .errorMessage(ExceptionMessageSanitizer.sanitizeMessage(errorCaptureStream.toString()))
+                  .processResult(result)
+                  .printableCommand(printableExecutedCommand)
+                  .kubectlPath(kubectlPath)
+                  .build();
           throw new KubernetesCliTaskRuntimeException(processResponse, KubernetesCliCommandType.STEADY_STATE_CHECK);
         }
       }
@@ -1411,8 +1447,8 @@ public class K8sTaskHelperBase {
         printableExecutedCommand = rolloutStatusCommand.substring(rolloutStatusCommand.indexOf("oc --kubeconfig"));
         executionLogCallback.saveExecutionLog(printableExecutedCommand + "\n");
 
-        result =
-            executeCommandUsingUtils(k8sDelegateTaskParams, statusInfoStream, statusErrorStream, rolloutStatusCommand);
+        result = executeCommandUsingUtils(
+            k8sDelegateTaskParams, statusInfoStream, statusErrorStream, rolloutStatusCommand, Maps.newHashMap());
       } else {
         RolloutStatusCommand rolloutStatusCommand = client.rollout()
                                                         .status()
@@ -1431,12 +1467,13 @@ public class K8sTaskHelperBase {
       if (!success) {
         log.warn(result.outputUTF8());
         if (isErrorFrameworkEnabled) {
-          ProcessResponse processResponse = ProcessResponse.builder()
-                                                .errorMessage(errorCaptureStream.toString())
-                                                .processResult(result)
-                                                .printableCommand(printableExecutedCommand)
-                                                .kubectlPath(k8sDelegateTaskParams.getKubectlPath())
-                                                .build();
+          ProcessResponse processResponse =
+              ProcessResponse.builder()
+                  .errorMessage(ExceptionMessageSanitizer.sanitizeMessage(errorCaptureStream.toString()))
+                  .processResult(result)
+                  .printableCommand(printableExecutedCommand)
+                  .kubectlPath(k8sDelegateTaskParams.getKubectlPath())
+                  .build();
           throw new KubernetesCliTaskRuntimeException(processResponse, KubernetesCliCommandType.STEADY_STATE_CHECK);
         }
       }
@@ -1614,37 +1651,23 @@ public class K8sTaskHelperBase {
 
   public void deleteSkippedManifestFiles(String manifestFilesDirectory, LogCallback executionLogCallback)
       throws Exception {
-    List<FileData> files;
+    List<Path> skippedFilesList;
     Path directory = Paths.get(manifestFilesDirectory);
 
     try {
-      files = getFilesUnderPath(directory.toString());
+      skippedFilesList = getFilesUnderPathMatchesFirstLine(
+          directory.toString(), line -> line.contains(SKIP_FILE_FOR_DEPLOY_PLACEHOLDER_TEXT));
     } catch (Exception ex) {
       log.info(ExceptionUtils.getMessage(ex));
       throw new WingsException("Failed to get files. Error: " + ExceptionUtils.getMessage(ex));
     }
 
-    List<String> skippedFilesList = new ArrayList<>();
-
-    for (FileData fileData : files) {
-      try {
-        String fileContent = new String(fileData.getFileBytes(), UTF_8);
-
-        if (isNotBlank(fileContent)
-            && fileContent.split("\\r?\\n")[0].contains(SKIP_FILE_FOR_DEPLOY_PLACEHOLDER_TEXT)) {
-          skippedFilesList.add(fileData.getFilePath());
-        }
-      } catch (Exception ex) {
-        log.info("Could not convert to string for file" + fileData.getFilePath(), ex);
-      }
-    }
-
     if (isNotEmpty(skippedFilesList)) {
       executionLogCallback.saveExecutionLog("Following manifest files are skipped for applying");
-      for (String file : skippedFilesList) {
-        executionLogCallback.saveExecutionLog(color(file, Yellow, Bold));
+      for (Path path : skippedFilesList) {
+        executionLogCallback.saveExecutionLog(color(path.toString(), Yellow, Bold));
 
-        String filePath = Paths.get(manifestFilesDirectory, file).toString();
+        String filePath = Paths.get(manifestFilesDirectory, path.toString()).toString();
         FileIo.deleteFileIfExists(filePath);
       }
 
@@ -1853,15 +1876,8 @@ public class K8sTaskHelperBase {
       return manifestFiles;
     }
 
-    String valuesFileOptions = null;
-    try {
-      valuesFileOptions = writeValuesToFile(k8sDelegateTaskParams.getWorkingDirectory(), valuesFiles);
-    } catch (KubernetesValuesException kvexception) {
-      String message = kvexception.getParams().get("reason").toString();
-      executionLogCallback.saveExecutionLog(message, ERROR);
-      throw new KubernetesValuesException(message, kvexception.getCause());
-    }
-
+    String valuesFileOptions =
+        createValuesFileOptions(k8sDelegateTaskParams.getWorkingDirectory(), valuesFiles, executionLogCallback);
     log.info("Values file options: " + valuesFileOptions);
 
     List<FileData> result = new ArrayList<>();
@@ -1878,17 +1894,20 @@ public class K8sTaskHelperBase {
       FileIo.writeUtf8StringToFile(
           k8sDelegateTaskParams.getWorkingDirectory() + "/template.yaml", manifestFile.getFileContent());
 
-      try (LogOutputStream logErrorStream = getExecutionLogOutputStream(executionLogCallback, ERROR)) {
+      try (ByteArrayOutputStream errorCaptureStream = new ByteArrayOutputStream(1024);
+           LogOutputStream logErrorStream =
+               getExecutionLogOutputStream(executionLogCallback, ERROR, errorCaptureStream)) {
         String goTemplateCommand = encloseWithQuotesIfNeeded(k8sDelegateTaskParams.getGoTemplateClientPath())
             + " -t template.yaml " + valuesFileOptions;
         ProcessResult processResult = executeShellCommand(
             k8sDelegateTaskParams.getWorkingDirectory(), goTemplateCommand, logErrorStream, timeoutInMillis);
 
         if (processResult.getExitValue() != 0) {
-          throw new InvalidRequestException(
-              getErrorMessageIfProcessFailed(
-                  format("Failed to render template for %s.", manifestFile.getFileName()), processResult),
-              USER);
+          throw NestedExceptionUtils.hintWithExplanationException(
+              KubernetesExceptionHints.MANIFEST_RENDER_ERROR_GO_TEMPLATE,
+              format(KubernetesExceptionExplanation.MANIFEST_RENDER_ERROR_GO_TEMPLATE, errorCaptureStream.toString()),
+              new KubernetesTaskException(getErrorMessageIfProcessFailed(
+                  format("Failed to render template for %s.", manifestFile.getFileName()), processResult)));
         }
 
         String fileContent = processResult.outputUTF8();
@@ -2538,17 +2557,8 @@ public class K8sTaskHelperBase {
   public ConnectorValidationResult validate(
       ConnectorConfigDTO connector, List<EncryptedDataDetail> encryptionDetailList) {
     KubernetesConfig kubernetesConfig = getKubernetesConfig(connector, encryptionDetailList);
-    try {
-      VersionInfo versionInfo = kubernetesContainerService.getVersion(kubernetesConfig);
-      log.debug(versionInfo.toString());
-      return ConnectorValidationResult.builder().status(ConnectivityStatus.SUCCESS).build();
-    } catch (Exception ex) {
-      Exception sanitizedException = ExceptionMessageSanitizer.sanitizeException(ex);
-      log.error(K8sExceptionConstants.KUBERNETES_CLUSTER_CONNECTION_VALIDATION_FAILED, sanitizedException);
-      throw NestedExceptionUtils.hintWithExplanationException(
-          K8sExceptionConstants.KUBERNETES_CLUSTER_CONNECTION_VALIDATION_FAILED, sanitizedException.getMessage(),
-          sanitizedException);
-    }
+    kubernetesContainerService.validateCredentials(kubernetesConfig);
+    return ConnectorValidationResult.builder().status(ConnectivityStatus.SUCCESS).build();
   }
 
   private KubernetesConfig getKubernetesConfig(
@@ -2688,13 +2698,15 @@ public class K8sTaskHelperBase {
   public List<FileData> renderTemplateForHelm(String helmPath, String manifestFilesDirectory, List<String> valuesFiles,
       String releaseName, String namespace, LogCallback executionLogCallback, HelmVersion helmVersion,
       long timeoutInMillis, HelmCommandFlag helmCommandFlag) throws Exception {
-    String valuesFileOptions = writeValuesToFile(manifestFilesDirectory, valuesFiles);
+    String valuesFileOptions = createValuesFileOptions(manifestFilesDirectory, valuesFiles, executionLogCallback);
     log.info("Values file options: " + valuesFileOptions);
 
     printHelmPath(executionLogCallback, helmPath);
 
     List<FileData> result = new ArrayList<>();
-    try (LogOutputStream logErrorStream = K8sTaskHelperBase.getExecutionLogOutputStream(executionLogCallback, ERROR)) {
+    try (ByteArrayOutputStream errorCaptureStream = new ByteArrayOutputStream(1024);
+         LogOutputStream logErrorStream =
+             K8sTaskHelperBase.getExecutionLogOutputStream(executionLogCallback, ERROR, errorCaptureStream)) {
       String helmTemplateCommand = getHelmCommandForRender(
           helmPath, manifestFilesDirectory, releaseName, namespace, valuesFileOptions, helmVersion, helmCommandFlag);
       printHelmTemplateCommand(executionLogCallback, helmTemplateCommand);
@@ -2702,13 +2714,29 @@ public class K8sTaskHelperBase {
       ProcessResult processResult =
           executeShellCommand(manifestFilesDirectory, helmTemplateCommand, logErrorStream, timeoutInMillis);
       if (processResult.getExitValue() != 0) {
-        throw new InvalidRequestException(
-            getErrorMessageIfProcessFailed("Failed to render helm chart.", processResult), USER);
+        throw NestedExceptionUtils.hintWithExplanationException(KubernetesExceptionHints.MANIFEST_RENDER_ERROR_HELM,
+            format(KubernetesExceptionExplanation.MANIFEST_RENDER_ERROR_HELM, errorCaptureStream.toString(),
+                helmTemplateCommand),
+            new HelmClientException(getErrorMessageIfProcessFailed("Failed to render template. ", processResult), USER,
+                HelmCliCommandType.RENDER_CHART));
       }
       result.add(FileData.builder().fileName("manifest.yaml").fileContent(processResult.outputUTF8()).build());
     }
 
     return result;
+  }
+
+  private String createValuesFileOptions(String workingDirectory, List<String> valuesFiles, LogCallback logCallback)
+      throws Exception {
+    try {
+      return writeValuesToFile(workingDirectory, valuesFiles);
+    } catch (KubernetesValuesException exception) {
+      String message = exception.getParams().get("reason").toString();
+      logCallback.saveExecutionLog(message, ERROR);
+      throw NestedExceptionUtils.hintWithExplanationException(KubernetesExceptionHints.INVALID_VALUES_YAML,
+          KubernetesExceptionExplanation.INVALID_VALUES_YAML,
+          new KubernetesValuesException(message, exception.getCause()));
+    }
   }
 
   @VisibleForTesting
@@ -2724,7 +2752,7 @@ public class K8sTaskHelperBase {
       List<String> chartFiles, List<String> valuesFiles, String releaseName, String namespace,
       LogCallback executionLogCallback, HelmVersion helmVersion, long timeoutInMillis, HelmCommandFlag helmCommandFlag)
       throws Exception {
-    String valuesFileOptions = writeValuesToFile(manifestFilesDirectory, valuesFiles);
+    String valuesFileOptions = createValuesFileOptions(manifestFilesDirectory, valuesFiles, executionLogCallback);
     log.info("Values file options: " + valuesFileOptions);
 
     printHelmPath(executionLogCallback, helmPath);
@@ -2733,8 +2761,9 @@ public class K8sTaskHelperBase {
 
     for (String chartFile : chartFiles) {
       if (K8sTaskHelperBase.isValidManifestFile(chartFile)) {
-        try (LogOutputStream logErrorStream =
-                 K8sTaskHelperBase.getExecutionLogOutputStream(executionLogCallback, ERROR)) {
+        try (ByteArrayOutputStream errorCaptureStream = new ByteArrayOutputStream(1024);
+             LogOutputStream logErrorStream =
+                 K8sTaskHelperBase.getExecutionLogOutputStream(executionLogCallback, ERROR, errorCaptureStream)) {
           String helmTemplateCommand = getHelmCommandForRender(helmPath, manifestFilesDirectory, releaseName, namespace,
               valuesFileOptions, chartFile, helmVersion, helmCommandFlag);
           printHelmTemplateCommand(executionLogCallback, helmTemplateCommand);
@@ -2742,7 +2771,12 @@ public class K8sTaskHelperBase {
           ProcessResult processResult =
               executeShellCommand(manifestFilesDirectory, helmTemplateCommand, logErrorStream, timeoutInMillis);
           if (processResult.getExitValue() != 0) {
-            throw new WingsException(format("Failed to render chart file [%s]", chartFile));
+            throw NestedExceptionUtils.hintWithExplanationException(KubernetesExceptionHints.MANIFEST_RENDER_ERROR_HELM,
+                format(KubernetesExceptionExplanation.MANIFEST_RENDER_ERROR_HELM, errorCaptureStream.toString(),
+                    helmTemplateCommand),
+                new HelmClientException(getErrorMessageIfProcessFailed(
+                                            format("Failed to render chart file [%s]", chartFile), processResult),
+                    USER, HelmCliCommandType.RENDER_CHART));
           }
 
           result.add(FileData.builder().fileName(chartFile).fileContent(processResult.outputUTF8()).build());
@@ -2823,6 +2857,16 @@ public class K8sTaskHelperBase {
         .collect(toList());
   }
 
+  private void logExecutableFailed(ProcessResult result, LogCallback logCallback) {
+    String output = result.hasOutput() ? result.outputUTF8() : null;
+    if (isNotEmpty(output)) {
+      logCallback.saveExecutionLog(
+          format("\nFailed with exit code: %d and output: %s.", result.getExitValue(), output), INFO, FAILURE);
+    } else {
+      logCallback.saveExecutionLog(format("\nFailed with exit code: %d.", result.getExitValue()), INFO, FAILURE);
+    }
+  }
+
   public List<KubernetesResourceId> getResourcesToBePrunedInOrder(
       List<KubernetesResource> resourcesFromLastSuccessfulRelease, List<KubernetesResource> resources) {
     List<KubernetesResourceId> currentResources =
@@ -2831,5 +2875,14 @@ public class K8sTaskHelperBase {
     List<KubernetesResourceId> resourceIdsToBeDeleted =
         getResourcesToBePruned(resourcesFromLastSuccessfulRelease, currentResources);
     return arrangeResourceIdsInDeletionOrder(resourceIdsToBeDeleted);
+  }
+
+  public void addRevisionNumber(List<KubernetesResource> resources, int revision) {
+    try {
+      VersionUtils.addRevisionNumber(resources, revision);
+    } catch (KubernetesYamlException exception) {
+      throw NestedExceptionUtils.hintWithExplanationException(
+          INVALID_RESOURCE_SPEC_HINT, INVALID_RESOURCE_SPEC_EXPLANATION, exception);
+    }
   }
 }

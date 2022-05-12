@@ -45,8 +45,10 @@ import io.harness.migrations.timescaledb.CreateBillingData;
 import io.harness.migrations.timescaledb.CreateBillingDataHourly;
 import io.harness.migrations.timescaledb.CreateBudgetAlerts;
 import io.harness.migrations.timescaledb.CreateCeRecommendationTable;
+import io.harness.migrations.timescaledb.CreateCloudProviderTable;
 import io.harness.migrations.timescaledb.CreateDeploymentParentTable;
 import io.harness.migrations.timescaledb.CreateDeploymentStageTable;
+import io.harness.migrations.timescaledb.CreateEnvironmentTable;
 import io.harness.migrations.timescaledb.CreateIndexOnKubernetesUtilizationData;
 import io.harness.migrations.timescaledb.CreateInstanceStatsDayTable;
 import io.harness.migrations.timescaledb.CreateInstanceStatsHourTable;
@@ -59,6 +61,7 @@ import io.harness.migrations.timescaledb.CreateServiceTable;
 import io.harness.migrations.timescaledb.CreateServicesEnvPipelinesIndex;
 import io.harness.migrations.timescaledb.CreateServicesEnvPipelinesTable;
 import io.harness.migrations.timescaledb.CreateTaglinksTables;
+import io.harness.migrations.timescaledb.CreateUserTable;
 import io.harness.migrations.timescaledb.CreateUtilizationData;
 import io.harness.migrations.timescaledb.CreateWorkflowTable;
 import io.harness.migrations.timescaledb.DeploymentAdditionalColumns;
@@ -146,6 +149,9 @@ public class TimescaleDBMigrationList {
         .add(Pair.of(61, CreatePipelineTable.class))
         .add(Pair.of(62, CreateWorkflowTable.class))
         .add(Pair.of(63, CreateTaglinksTables.class))
+        .add(Pair.of(64, CreateEnvironmentTable.class))
+        .add(Pair.of(65, CreateUserTable.class))
+        .add(Pair.of(66, CreateCloudProviderTable.class))
         .build();
   }
 }

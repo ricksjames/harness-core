@@ -87,6 +87,7 @@ import software.wings.beans.alert.Alert;
 import software.wings.beans.alert.Alert.AlertKeys;
 import software.wings.beans.alert.AlertType;
 import software.wings.beans.alert.cv.ContinuousVerificationAlertData;
+import software.wings.delegatetasks.DelegateStateType;
 import software.wings.dl.WingsPersistence;
 import software.wings.metrics.MetricType;
 import software.wings.metrics.TimeSeriesDataRecord;
@@ -129,7 +130,7 @@ import software.wings.service.intfc.SettingsService;
 import software.wings.service.intfc.analysis.ClusterLevel;
 import software.wings.service.intfc.security.SecretManager;
 import software.wings.service.intfc.verification.CVActivityLogService;
-import software.wings.service.intfc.verification.CVActivityLogService.Logger;
+import software.wings.service.intfc.verification.CVActivityLogger;
 import software.wings.service.intfc.verification.CVConfigurationService;
 import software.wings.service.intfc.verification.CVTaskService;
 import software.wings.sm.StateType;
@@ -220,7 +221,7 @@ public class ContinuousVerificationServiceTest extends VerificationBase {
   @Mock private SecretManager secretManager;
   @Mock private AppService appService;
   @Mock private CVActivityLogService cvActivityLogService;
-  @Mock private Logger activityLogger;
+  @Mock private CVActivityLogger activityLogger;
   @Mock private AccountService accountService;
 
   private SumoConfig sumoConfig;
@@ -332,7 +333,8 @@ public class ContinuousVerificationServiceTest extends VerificationBase {
     writeField(alertService, "injector", injector, true);
     writeField(alertService, "alertTypeClassMap", alertTypeClassMap, true);
     writeField(managerVerificationService, "alertService", alertService, true);
-    when(cvActivityLogService.getLoggerByStateExecutionId(anyString(), anyString())).thenReturn(mock(Logger.class));
+    when(cvActivityLogService.getLoggerByStateExecutionId(anyString(), anyString()))
+        .thenReturn(mock(CVActivityLogger.class));
     when(cvActivityLogService.getLoggerByCVConfigId(anyString(), anyString(), anyLong())).thenReturn(activityLogger);
     when(verificationManagerClient.triggerCVDataCollection(anyString(), anyObject(), anyLong(), anyLong()))
         .then(invocation -> {
@@ -1507,7 +1509,7 @@ public class ContinuousVerificationServiceTest extends VerificationBase {
       metricDataRecords.forEach(metricDataRecord -> {
         metricDataRecord.setAppId(appId);
         metricDataRecord.setCvConfigId(configId);
-        metricDataRecord.setStateType(StateType.NEW_RELIC);
+        metricDataRecord.setStateType(DelegateStateType.NEW_RELIC);
         metricDataRecord.setDataCollectionMinute(10);
       });
 
@@ -1704,7 +1706,7 @@ public class ContinuousVerificationServiceTest extends VerificationBase {
                                                          .options(datadogConfig.fetchLogOptionsMap())
                                                          .query("test query")
                                                          .hosts(Sets.newHashSet(DUMMY_HOST_NAME))
-                                                         .stateType(StateType.DATA_DOG_LOG)
+                                                         .stateType(DelegateStateType.DATA_DOG_LOG)
                                                          .applicationId(appId)
                                                          .stateExecutionId(stateExecutionId)
                                                          .workflowId(workflowId)
@@ -2402,7 +2404,7 @@ public class ContinuousVerificationServiceTest extends VerificationBase {
                                             .cvConfigId(cvConfigId)
                                             .dataCollectionMinute((int) time)
                                             .serviceId(serviceId)
-                                            .stateType(cvServiceConfiguration.getStateType())
+                                            .stateType(cvServiceConfiguration.getStateType().getDelegateStateType())
                                             .groupName(DEFAULT_GROUP_NAME)
                                             .build();
       wingsPersistence.save(dataRecord);
@@ -2448,7 +2450,7 @@ public class ContinuousVerificationServiceTest extends VerificationBase {
                                             .cvConfigId(cvConfigId)
                                             .dataCollectionMinute((int) time)
                                             .serviceId(serviceId)
-                                            .stateType(cvServiceConfiguration.getStateType())
+                                            .stateType(cvServiceConfiguration.getStateType().getDelegateStateType())
                                             .groupName(DEFAULT_GROUP_NAME)
                                             .build();
       wingsPersistence.save(dataRecord);
@@ -2530,7 +2532,7 @@ public class ContinuousVerificationServiceTest extends VerificationBase {
                                             .cvConfigId(cvConfigId)
                                             .dataCollectionMinute((int) time)
                                             .serviceId(serviceId)
-                                            .stateType(cvServiceConfiguration.getStateType())
+                                            .stateType(cvServiceConfiguration.getStateType().getDelegateStateType())
                                             .groupName(DEFAULT_GROUP_NAME)
                                             .build();
       wingsPersistence.save(dataRecord);
@@ -2570,7 +2572,7 @@ public class ContinuousVerificationServiceTest extends VerificationBase {
                                             .cvConfigId(cvConfigId)
                                             .dataCollectionMinute((int) time)
                                             .serviceId(serviceId)
-                                            .stateType(cvServiceConfiguration.getStateType())
+                                            .stateType(cvServiceConfiguration.getStateType().getDelegateStateType())
                                             .groupName(DEFAULT_GROUP_NAME)
                                             .build();
       wingsPersistence.save(dataRecord);
@@ -3750,7 +3752,7 @@ public class ContinuousVerificationServiceTest extends VerificationBase {
                               .uuid("timeseriesUuid")
                               .createdAt(currentTime - TimeUnit.MINUTES.toMillis(6))
                               .cvConfigId(cvConfigId)
-                              .stateType(StateType.APP_DYNAMICS)
+                              .stateType(DelegateStateType.APP_DYNAMICS)
                               .level(ClusterLevel.H0)
                               .dataCollectionMinute((int) TimeUnit.MILLISECONDS.toMinutes(currentTime) - 20)
                               .build());
@@ -3777,7 +3779,7 @@ public class ContinuousVerificationServiceTest extends VerificationBase {
                               .uuid("timeseriesUuid")
                               .createdAt(currentTime - TimeUnit.MINUTES.toMillis(35))
                               .cvConfigId(cvConfigId)
-                              .stateType(StateType.APP_DYNAMICS)
+                              .stateType(DelegateStateType.APP_DYNAMICS)
                               .level(ClusterLevel.H0)
                               .dataCollectionMinute((int) TimeUnit.MILLISECONDS.toMinutes(currentTime) - 20)
                               .build());
@@ -3802,7 +3804,7 @@ public class ContinuousVerificationServiceTest extends VerificationBase {
                               .uuid("timeseriesUuid")
                               .createdAt(currentTime - TimeUnit.MINUTES.toMillis(41))
                               .cvConfigId(cvConfigId)
-                              .stateType(StateType.APP_DYNAMICS)
+                              .stateType(DelegateStateType.APP_DYNAMICS)
                               .level(ClusterLevel.H0)
                               .dataCollectionMinute((int) TimeUnit.MILLISECONDS.toMinutes(currentTime) - 20)
                               .build());

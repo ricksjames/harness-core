@@ -1,6 +1,6 @@
 # Any edit in this file should accompany an increment in version.
 name: resourceTypeConfiguration
-version: 5
+version: 9
 resourceTypes:
   - identifier: ACCOUNT
     permissionKey: account
@@ -22,6 +22,8 @@ resourceTypes:
     permissionKey: service
   - identifier: ENVIRONMENT
     permissionKey: environment
+  - identifier: ENVIRONMENT_GROUP
+    permissionKey: environmentgroup
   - identifier: AUDIT
     permissionKey: audit
   - identifier: USER
@@ -68,3 +70,9 @@ resourceTypes:
     permissionKey: gpgkey
   - identifier: GITOPS_CERT
     permissionKey: cert
+  - identifier: FILE
+    permissionKey: file
+  - identifier: VARIABLE
+    permissionKey: variable
+  - identifier: CHAOS_HUB
+    permissionKey: chaoshub

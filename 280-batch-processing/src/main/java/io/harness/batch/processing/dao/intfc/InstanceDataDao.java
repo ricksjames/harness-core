@@ -32,6 +32,8 @@ public interface InstanceDataDao {
 
   void updateInstanceActiveIterationTime(InstanceData instanceData);
 
+  void correctInstanceStateActiveIterationTime(InstanceData instanceData);
+
   InstanceData fetchInstanceData(String accountId, String instanceId);
 
   InstanceData fetchInstanceData(String accountId, String clusterId, String instanceId);

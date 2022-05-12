@@ -41,7 +41,7 @@ import static software.wings.api.DeploymentType.valueOf;
 import static software.wings.beans.ConfigFile.DEFAULT_TEMPLATE_ID;
 import static software.wings.beans.EntityVersion.Builder.anEntityVersion;
 import static software.wings.beans.Service.GLOBAL_SERVICE_NAME_FOR_YAML;
-import static software.wings.beans.ServiceVariable.Type.ENCRYPTED_TEXT;
+import static software.wings.beans.ServiceVariableType.ENCRYPTED_TEXT;
 import static software.wings.beans.appmanifest.ManifestFile.VALUES_YAML_KEY;
 import static software.wings.beans.command.Command.Builder.aCommand;
 import static software.wings.beans.command.CommandUnitType.COMMAND;
@@ -213,6 +213,7 @@ import software.wings.stencils.StencilCategory;
 import software.wings.stencils.StencilPostProcessor;
 import software.wings.utils.ApplicationManifestUtils;
 import software.wings.utils.ArtifactType;
+import software.wings.utils.artifacts.ArtifactCommandHelper;
 import software.wings.verification.CVConfiguration;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -850,7 +851,7 @@ public class ServiceResourceServiceImpl implements ServiceResourceService, DataP
     if (appContainer != null && appContainer.getFamily() != null) {
       isInternal = appContainer.getFamily().isInternal();
     } else if (artifactType != null) {
-      isInternal = artifactType.isInternal();
+      isInternal = ArtifactCommandHelper.getArtifactCommands(artifactType).isInternal();
     }
     return isInternal;
   }
@@ -888,7 +889,7 @@ public class ServiceResourceServiceImpl implements ServiceResourceService, DataP
           }
           break;
         default:
-          commands = artifactType.getDefaultCommands();
+          commands = ArtifactCommandHelper.getArtifactCommands(artifactType).getDefaultCommands();
       }
     }
 
@@ -1124,6 +1125,27 @@ public class ServiceResourceServiceImpl implements ServiceResourceService, DataP
     List<Service> serviceList = wingsPersistence.createQuery(Service.class)
                                     .field(ServiceKeys.appId)
                                     .equal(appId)
+                                    .field(ServiceKeys.uuid)
+                                    .in(serviceIds)
+                                    .project(ServiceKeys.name, true)
+                                    .project(ServiceKeys.uuid, true)
+                                    .asList();
+
+    Map<String, String> mapServiceIdToServiceName = new HashMap<>();
+    for (Service service : serviceList) {
+      mapServiceIdToServiceName.put(service.getUuid(), service.getName());
+    }
+    return mapServiceIdToServiceName;
+  }
+
+  @Override
+  public Map<String, String> getServiceNamesWithAccountId(String accountId, @Nonnull Set<String> serviceIds) {
+    if (isEmpty(serviceIds)) {
+      return Collections.emptyMap();
+    }
+    List<Service> serviceList = wingsPersistence.createQuery(Service.class)
+                                    .field(ServiceKeys.accountId)
+                                    .equal(accountId)
                                     .field(ServiceKeys.uuid)
                                     .in(serviceIds)
                                     .project(ServiceKeys.name, true)
@@ -2914,6 +2936,10 @@ public class ServiceResourceServiceImpl implements ServiceResourceService, DataP
 
   private HelmVersion getHelmVersionWithDefault(Service service) {
     if (service.getHelmVersion() != null) {
+      if (service.getHelmVersion() == HelmVersion.V3
+          && featureFlagService.isEnabled(FeatureName.HELM_VERSION_3_8_0, service.getAccountId())) {
+        return HelmVersion.V380;
+      }
       return service.getHelmVersion();
     } else {
       return getDefaultHelmVersion(service.getDeploymentType());

@@ -9,10 +9,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/pkg/errors"
 	fs "github.com/harness/harness-core/commons/go/lib/filesystem"
 	cgp "github.com/harness/harness-core/product/ci/addon/parser/cg"
 	"github.com/harness/harness-core/product/ci/common/avro"
+	"github.com/pkg/errors"
 	"io"
 	"path/filepath"
 	"strings"
@@ -90,7 +90,7 @@ func (h *tiProxyHandler) SelectTests(ctx context.Context, req *pb.SelectTestsReq
 	if err != nil {
 		return nil, err
 	}
-	selection, err := tc.SelectTests(org, project, pipeline, build, stage, step, repo, sha, source, target, body)
+	selection, err := tc.SelectTests(ctx, org, project, pipeline, build, stage, step, repo, sha, source, target, body)
 	if err != nil {
 		return nil, err
 	}
@@ -228,7 +228,7 @@ func (h *tiProxyHandler) UploadCg(ctx context.Context, req *pb.UploadCgRequest) 
 	if err != nil {
 		return res, errors.Wrap(err, "failed to get avro encoded callgraph")
 	}
-	err = client.UploadCg(org, project, pipeline, build, stage, step, repo, sha, source, target, timeMs, encCg)
+	err = client.UploadCg(ctx, org, project, pipeline, build, stage, step, repo, sha, source, target, timeMs, encCg)
 	if err != nil {
 		return res, errors.Wrap(err, "failed to upload cg to ti server")
 	}

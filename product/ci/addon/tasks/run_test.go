@@ -11,15 +11,14 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"syscall"
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/assert"
 	mexec "github.com/harness/harness-core/commons/go/lib/exec"
 	"github.com/harness/harness-core/commons/go/lib/filesystem"
 	"github.com/harness/harness-core/commons/go/lib/logs"
 	pb "github.com/harness/harness-core/product/ci/engine/proto"
+	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 	//"github.com/harness/harness-core/product/ci/addon/testreports"
 	//mreports "github.com/harness/harness-core/product/ci/addon/testreports/mocks"
@@ -67,7 +66,7 @@ func TestExecuteSuccess(t *testing.T) {
 	cmd.EXPECT().Start().Return(nil)
 	cmd.EXPECT().Pid().Return(int(1))
 	cmd.EXPECT().ProcessState().Return(pstate)
-	pstate.EXPECT().SysUsageUnit().Return(&syscall.Rusage{Maxrss: 100}, nil)
+	pstate.EXPECT().MaxRss().Return(int64(100), nil)
 	cmd.EXPECT().Wait().Return(nil)
 
 	o, retries, err := e.Run(ctx)
@@ -306,7 +305,7 @@ func TestExecuteNonZeroStatus(t *testing.T) {
 	cmd.EXPECT().WithEnvVarsMap(gomock.Any()).Return(cmd)
 	cmd.EXPECT().Start().Return(nil)
 	cmd.EXPECT().ProcessState().Return(pstate)
-	pstate.EXPECT().SysUsageUnit().Return(&syscall.Rusage{Maxrss: 100}, nil)
+	pstate.EXPECT().MaxRss().Return(int64(100), nil)
 	cmd.EXPECT().Wait().Return(&exec.ExitError{})
 
 	o, retries, err := e.Run(ctx)
@@ -363,7 +362,7 @@ func TestExecuteSuccessWithOutput(t *testing.T) {
 	cmd.EXPECT().WithEnvVarsMap(gomock.Any()).Return(cmd)
 	cmd.EXPECT().Start().Return(nil)
 	cmd.EXPECT().ProcessState().Return(pstate)
-	pstate.EXPECT().SysUsageUnit().Return(&syscall.Rusage{Maxrss: 100}, nil)
+	pstate.EXPECT().MaxRss().Return(int64(100), nil)
 	cmd.EXPECT().Wait().Return(nil)
 	fs.EXPECT().Open(gomock.Any()).Return(f1, nil)
 
@@ -415,7 +414,7 @@ func TestExecuteErrorWithOutput(t *testing.T) {
 	cmd.EXPECT().WithEnvVarsMap(gomock.Any()).Return(cmd)
 	cmd.EXPECT().Start().Return(nil)
 	cmd.EXPECT().ProcessState().Return(pstate)
-	pstate.EXPECT().SysUsageUnit().Return(&syscall.Rusage{Maxrss: 100}, nil)
+	pstate.EXPECT().MaxRss().Return(int64(100), nil)
 	cmd.EXPECT().Wait().Return(nil)
 
 	fs.EXPECT().Open(gomock.Any()).Return(nil, fmt.Errorf("Error while opening file"))

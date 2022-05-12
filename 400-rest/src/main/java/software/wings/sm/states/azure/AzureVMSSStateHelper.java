@@ -18,7 +18,8 @@ import static io.harness.exception.WingsException.USER;
 import static io.harness.validation.Validator.notNullCheck;
 
 import static software.wings.beans.Log.Builder.aLog;
-import static software.wings.beans.ServiceVariable.Type.ENCRYPTED_TEXT;
+import static software.wings.beans.ServiceVariableType.ENCRYPTED_TEXT;
+import static software.wings.service.impl.artifact.ArtifactServiceImpl.metadataOnlyBehindFlag;
 import static software.wings.sm.InstanceStatusSummary.InstanceStatusSummaryBuilder.anInstanceStatusSummary;
 
 import static java.lang.String.format;
@@ -97,6 +98,7 @@ import software.wings.sm.ExecutionContext;
 import software.wings.sm.InstanceStatusSummary;
 import software.wings.sm.StateMachineExecutor;
 import software.wings.sm.WorkflowStandardParams;
+import software.wings.sm.WorkflowStandardParamsExtensionService;
 import software.wings.sm.states.ManagerExecutionLogCallback;
 import software.wings.sm.states.azure.appservices.AzureAppServiceStateData;
 import software.wings.sm.states.azure.artifact.ArtifactConnectorMapper;
@@ -140,6 +142,7 @@ public class AzureVMSSStateHelper {
   @Inject private StateMachineExecutor stateMachineExecutor;
   @Inject private WorkflowExecutionService workflowExecutionService;
   @Inject private ArtifactService artifactService;
+  @Inject private WorkflowStandardParamsExtensionService workflowStandardParamsExtensionService;
 
   public boolean isBlueGreenWorkflow(ExecutionContext context) {
     return BLUE_GREEN == context.getOrchestrationWorkflowType();
@@ -289,7 +292,7 @@ public class AzureVMSSStateHelper {
 
   public Application getApplication(ExecutionContext context) {
     return Optional.of(getWorkflowStandardParams(context))
-        .map(WorkflowStandardParams::getApp)
+        .map(standardParams -> this.workflowStandardParamsExtensionService.getApp(standardParams))
         .orElseThrow(
             ()
                 -> new InvalidRequestException(
@@ -298,7 +301,7 @@ public class AzureVMSSStateHelper {
 
   public Environment getEnvironment(ExecutionContext context) {
     return Optional.of(getWorkflowStandardParams(context))
-        .map(WorkflowStandardParams::getEnv)
+        .map(standardParams -> this.workflowStandardParamsExtensionService.getEnv(standardParams))
         .orElseThrow(()
                          -> new InvalidRequestException(
                              format("Env can't be null or empty, accountId: %s", context.getAccountId()), USER));
@@ -698,7 +701,7 @@ public class AzureVMSSStateHelper {
   private boolean onlyMetaForArtifactType(ArtifactStream artifactStream) {
     return METADATA_ONLY_ARTIFACT_STREAM_TYPES.stream().anyMatch(
                streamType -> streamType.name().equals(artifactStream.getArtifactStreamType()))
-        && artifactStream.isMetadataOnly();
+        && metadataOnlyBehindFlag(featureFlagService, artifactStream.getAccountId(), artifactStream.isMetadataOnly());
   }
 
   public void validateAppSettings(List<AzureAppServiceApplicationSetting> appSettings) {

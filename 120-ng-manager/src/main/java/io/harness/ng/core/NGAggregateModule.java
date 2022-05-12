@@ -8,7 +8,6 @@
 package io.harness.ng.core;
 
 import static io.harness.annotations.dev.HarnessTeam.PL;
-import static io.harness.ng.core.user.service.impl.NgUserServiceImpl.THREAD_POOL_NAME;
 
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.manage.ManagedExecutorService;
@@ -20,6 +19,12 @@ import io.harness.ng.core.api.impl.AggregateAccountResourceServiceImpl;
 import io.harness.ng.core.api.impl.AggregateOrganizationServiceImpl;
 import io.harness.ng.core.api.impl.AggregateProjectServiceImpl;
 import io.harness.ng.core.api.impl.AggregateUserGroupServiceImpl;
+import io.harness.ng.core.filestore.api.FileActivityService;
+import io.harness.ng.core.filestore.api.FileFailsafeService;
+import io.harness.ng.core.filestore.api.FileStoreService;
+import io.harness.ng.core.filestore.api.impl.FileActivityServiceImpl;
+import io.harness.ng.core.filestore.api.impl.FileFailsafeServiceImpl;
+import io.harness.ng.core.filestore.api.impl.FileStoreServiceImpl;
 import io.harness.ng.core.service.services.ServiceEntityManagementService;
 import io.harness.ng.core.service.services.ServiceEntityManagementServiceImpl;
 
@@ -39,13 +44,13 @@ public class NGAggregateModule extends AbstractModule {
     bind(ExecutorService.class)
         .annotatedWith(Names.named("aggregate-orgs"))
         .toInstance(new ManagedExecutorService(Executors.newFixedThreadPool(poolSize)));
-    bind(ExecutorService.class)
-        .annotatedWith(Names.named(THREAD_POOL_NAME))
-        .toInstance(new ManagedExecutorService(Executors.newFixedThreadPool(poolSize)));
     bind(AggregateProjectService.class).to(AggregateProjectServiceImpl.class);
     bind(AggregateOrganizationService.class).to(AggregateOrganizationServiceImpl.class);
     bind(AggregateAccountResourceService.class).to(AggregateAccountResourceServiceImpl.class);
     bind(AggregateUserGroupService.class).to(AggregateUserGroupServiceImpl.class);
     bind(ServiceEntityManagementService.class).to(ServiceEntityManagementServiceImpl.class);
+    bind(FileStoreService.class).to(FileStoreServiceImpl.class);
+    bind(FileFailsafeService.class).to(FileFailsafeServiceImpl.class);
+    bind(FileActivityService.class).to(FileActivityServiceImpl.class);
   }
 }

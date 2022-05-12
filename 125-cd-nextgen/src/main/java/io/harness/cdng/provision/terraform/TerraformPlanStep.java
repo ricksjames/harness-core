@@ -11,7 +11,6 @@ import io.harness.EntityType;
 import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.beans.IdentifierRef;
-import io.harness.cdng.featureFlag.CDFeatureFlagHelper;
 import io.harness.common.ParameterFieldHelper;
 import io.harness.delegate.beans.TaskData;
 import io.harness.delegate.task.terraform.TFTaskType;
@@ -26,6 +25,7 @@ import io.harness.executions.steps.ExecutionNodeType;
 import io.harness.logging.CommandExecutionStatus;
 import io.harness.logging.UnitProgress;
 import io.harness.ng.core.EntityDetail;
+import io.harness.plancreator.steps.TaskSelectorYaml;
 import io.harness.plancreator.steps.common.StepElementParameters;
 import io.harness.plancreator.steps.common.rollback.TaskExecutableWithRollbackAndRbac;
 import io.harness.pms.contracts.ambiance.Ambiance;
@@ -50,6 +50,7 @@ import software.wings.beans.TaskType;
 import com.google.inject.Inject;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
@@ -64,7 +65,6 @@ public class TerraformPlanStep extends TaskExecutableWithRollbackAndRbac<Terrafo
 
   @Inject private KryoSerializer kryoSerializer;
   @Inject private TerraformStepHelper helper;
-  @Inject private CDFeatureFlagHelper cdFeatureFlagHelper;
   @Inject private PipelineRbacHelper pipelineRbacHelper;
   @Inject private StepHelper stepHelper;
 
@@ -121,15 +121,21 @@ public class TerraformPlanStep extends TaskExecutableWithRollbackAndRbac<Terrafo
     builder.taskType(TFTaskType.PLAN)
         .terraformCommandUnit(TerraformCommandUnit.Plan)
         .entityId(entityId)
+        .tfModuleSourceInheritSSH(helper.isExportCredentialForSourceModule(
+            ambiance, configuration.getConfigFiles(), stepElementParameters.getType()))
         .currentStateFileId(helper.getLatestFileId(entityId))
         .workspace(ParameterFieldHelper.getParameterFieldValue(configuration.getWorkspace()))
         .configFile(helper.getGitFetchFilesConfig(
+            configuration.getConfigFiles().getStore().getSpec(), ambiance, TerraformStepHelper.TF_CONFIG_FILES))
+        .fileStoreConfigFiles(helper.getFileStoreFetchFilesConfig(
             configuration.getConfigFiles().getStore().getSpec(), ambiance, TerraformStepHelper.TF_CONFIG_FILES))
         .varFileInfos(helper.toTerraformVarFileInfo(configuration.getVarFiles(), ambiance))
         .backendConfig(helper.getBackendConfig(configuration.getBackendConfig()))
         .targets(ParameterFieldHelper.getParameterFieldValue(configuration.getTargets()))
         .saveTerraformStateJson(false)
-        .environmentVariables(helper.getEnvironmentVariablesMap(configuration.getEnvironmentVariables()))
+        .environmentVariables(helper.getEnvironmentVariablesMap(configuration.getEnvironmentVariables()) == null
+                ? new HashMap<>()
+                : helper.getEnvironmentVariablesMap(configuration.getEnvironmentVariables()))
         .encryptionConfig(helper.getEncryptionConfig(ambiance, planStepParameters))
         .terraformCommand(TerraformPlanCommand.APPLY == planStepParameters.getConfiguration().getCommand()
                 ? TerraformCommand.APPLY
@@ -144,10 +150,10 @@ public class TerraformPlanStep extends TaskExecutableWithRollbackAndRbac<Terrafo
             .timeout(StepUtils.getTimeoutMillis(stepElementParameters.getTimeout(), TerraformConstants.DEFAULT_TIMEOUT))
             .parameters(new Object[] {builder.build()})
             .build();
-
     return StepUtils.prepareCDTaskRequest(ambiance, taskData, kryoSerializer,
         Collections.singletonList(TerraformCommandUnit.Plan.name()), TaskType.TERRAFORM_TASK_NG.getDisplayName(),
-        StepUtils.getTaskSelectors(planStepParameters.getDelegateSelectors()), stepHelper.getEnvironmentType(ambiance));
+        TaskSelectorYaml.toTaskSelector(planStepParameters.getDelegateSelectors()),
+        stepHelper.getEnvironmentType(ambiance));
   }
 
   @Override

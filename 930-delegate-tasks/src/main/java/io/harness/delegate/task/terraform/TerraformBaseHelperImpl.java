@@ -14,7 +14,12 @@ import static io.harness.delegate.beans.DelegateFile.Builder.aDelegateFile;
 import static io.harness.delegate.beans.connector.scm.GitAuthType.SSH;
 import static io.harness.delegate.task.terraform.TerraformCommand.APPLY;
 import static io.harness.delegate.task.terraform.TerraformCommand.DESTROY;
+import static io.harness.delegate.task.terraform.TerraformExceptionConstants.Explanation.EXPLANATION_FAILED_TO_DOWNLOAD_FROM_ARTIFACTORY;
+import static io.harness.delegate.task.terraform.TerraformExceptionConstants.Explanation.EXPLANATION_NO_ARTIFACT_DETAILS_FOR_ARTIFACTORY_CONFIG;
+import static io.harness.delegate.task.terraform.TerraformExceptionConstants.Hints.HINT_FAILED_TO_DOWNLOAD_FROM_ARTIFACTORY;
+import static io.harness.delegate.task.terraform.TerraformExceptionConstants.Hints.HINT_NO_ARTIFACT_DETAILS_FOR_ARTIFACTORY_CONFIG;
 import static io.harness.eraro.ErrorCode.DEFAULT_ERROR_CODE;
+import static io.harness.filesystem.FileIo.deleteDirectoryAndItsContentIfExists;
 import static io.harness.logging.LogLevel.ERROR;
 import static io.harness.logging.LogLevel.INFO;
 import static io.harness.logging.LogLevel.WARN;
@@ -31,11 +36,15 @@ import static io.harness.provision.TerraformConstants.TF_WORKING_DIR;
 import static io.harness.provision.TerraformConstants.USER_DIR_KEY;
 import static io.harness.provision.TerraformConstants.WORKSPACE_STATE_FILE_PATH_FORMAT;
 
+import static software.wings.beans.LogColor.White;
+import static software.wings.beans.LogColor.Yellow;
 import static software.wings.beans.LogHelper.color;
 
 import static java.lang.String.format;
 
 import io.harness.annotations.dev.OwnedBy;
+import io.harness.artifactory.ArtifactoryConfigRequest;
+import io.harness.artifactory.ArtifactoryNgService;
 import io.harness.cli.CliResponse;
 import io.harness.connector.service.git.NGGitService;
 import io.harness.connector.task.shell.SshSessionConfigMapper;
@@ -43,13 +52,18 @@ import io.harness.data.structure.EmptyPredicate;
 import io.harness.delegate.beans.DelegateFile;
 import io.harness.delegate.beans.DelegateFileManagerBase;
 import io.harness.delegate.beans.FileBucket;
+import io.harness.delegate.beans.connector.artifactoryconnector.ArtifactoryConnectorDTO;
 import io.harness.delegate.beans.connector.scm.genericgitconnector.GitConfigDTO;
+import io.harness.delegate.beans.storeconfig.ArtifactoryStoreDelegateConfig;
 import io.harness.delegate.beans.storeconfig.GitStoreDelegateConfig;
+import io.harness.delegate.task.artifactory.ArtifactoryRequestMapper;
 import io.harness.delegate.task.git.GitFetchFilesConfig;
 import io.harness.exception.InvalidRequestException;
+import io.harness.exception.NestedExceptionUtils;
 import io.harness.exception.TerraformCommandExecutionException;
 import io.harness.exception.WingsException;
 import io.harness.exception.runtime.JGitRuntimeException;
+import io.harness.filesystem.FileIo;
 import io.harness.git.GitClientHelper;
 import io.harness.git.GitClientV2;
 import io.harness.git.model.DownloadFilesRequest;
@@ -80,8 +94,10 @@ import com.google.inject.Inject;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -92,6 +108,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
@@ -105,6 +123,15 @@ import org.jetbrains.annotations.NotNull;
 @Slf4j
 @OwnedBy(CDP)
 public class TerraformBaseHelperImpl implements TerraformBaseHelper {
+  private static final String ARTIFACT_PATH_METADATA_KEY = "artifactPath";
+  private static final String ARTIFACT_NAME_METADATA_KEY = "artifactName";
+  public static final String SSH_KEY_DIR = ".ssh";
+  public static final String SSH_KEY_FILENAME = "ssh.key";
+  public static final String SSH_COMMAND_PREFIX = "ssh";
+  public static final String GIT_SSH_COMMAND = "GIT_SSH_COMMAND";
+  public static final String TF_SSH_COMMAND_ARG =
+      " -o StrictHostKeyChecking=no -o BatchMode=yes -o PasswordAuthentication=no -i ";
+
   @Inject DelegateFileManagerBase delegateFileManagerBase;
   @Inject TerraformClient terraformClient;
   @Inject EncryptDecryptHelper encryptDecryptHelper;
@@ -114,6 +141,8 @@ public class TerraformBaseHelperImpl implements TerraformBaseHelper {
   @Inject SshSessionConfigMapper sshSessionConfigMapper;
   @Inject NGGitService ngGitService;
   @Inject DelegateFileManagerBase delegateFileManager;
+  @Inject ArtifactoryNgService artifactoryNgService;
+  @Inject ArtifactoryRequestMapper artifactoryRequestMapper;
 
   @Override
   public void downloadTfStateFile(String workspace, String accountId, String currentStateFileId, String scriptDirectory)
@@ -454,22 +483,18 @@ public class TerraformBaseHelperImpl implements TerraformBaseHelper {
         .build();
   }
 
-  public Map<String, String> buildcommitIdToFetchedFilesMap(String accountId, String configFileIdentifier,
-      GitBaseRequest gitBaseRequestForConfigFile, List<TerraformVarFileInfo> varFileInfo) {
-    Map<String, String> commitIdForConfigFilesMap = new HashMap<>();
+  public Map<String, String> buildCommitIdToFetchedFilesMap(String configFileIdentifier,
+      GitBaseRequest gitBaseRequestForConfigFile, Map<String, String> commitIdForConfigFilesMap) {
     // Config File
     commitIdForConfigFilesMap.put(configFileIdentifier, getLatestCommitSHAFromLocalRepo(gitBaseRequestForConfigFile));
-    // Add remote var files
-    if (isNotEmpty(varFileInfo)) {
-      addVarFilescommitIdstoMap(accountId, varFileInfo, commitIdForConfigFilesMap);
-    }
     return commitIdForConfigFilesMap;
   }
 
-  private void addVarFilescommitIdstoMap(
+  public void addVarFilesCommitIdsToMap(
       String accountId, List<TerraformVarFileInfo> varFileInfo, Map<String, String> commitIdForConfigFilesMap) {
     for (TerraformVarFileInfo varFile : varFileInfo) {
-      if (varFile instanceof RemoteTerraformVarFileInfo) {
+      if (varFile instanceof RemoteTerraformVarFileInfo
+          && ((RemoteTerraformVarFileInfo) varFile).gitFetchFilesConfig != null) {
         GitFetchFilesConfig gitFetchFilesConfig = ((RemoteTerraformVarFileInfo) varFile).getGitFetchFilesConfig();
         GitStoreDelegateConfig gitStoreDelegateConfig = gitFetchFilesConfig.getGitStoreDelegateConfig();
         GitConfigDTO gitConfigDTO = (GitConfigDTO) gitStoreDelegateConfig.getGitConfigDTO();
@@ -510,6 +535,52 @@ public class TerraformBaseHelperImpl implements TerraformBaseHelper {
     copyConfigFilestoWorkingDirectory(logCallback, gitBaseRequestForConfigFile, baseDir, workingDir);
 
     String scriptDirectory = resolveScriptDirectory(workingDir, scriptPath);
+    log.info("Script Directory: " + scriptDirectory);
+    logCallback.saveExecutionLog(
+        format("Script Directory: [%s]", scriptDirectory), INFO, CommandExecutionStatus.RUNNING);
+
+    try {
+      TerraformHelperUtils.ensureLocalCleanup(scriptDirectory);
+      downloadTfStateFile(workspace, accountId, currentStateFileId, scriptDirectory);
+    } catch (IOException ioException) {
+      log.warn("Exception Occurred when cleaning Terraform local directory", ioException);
+    }
+    return scriptDirectory;
+  }
+
+  public String fetchConfigFileAndPrepareScriptDir(ArtifactoryStoreDelegateConfig artifactoryStoreDelegateConfig,
+      String accountId, String workspace, String currentStateFileId, LogCallback logCallback, String baseDir) {
+    if (artifactoryStoreDelegateConfig.getArtifacts().size() < 1) {
+      throw NestedExceptionUtils.hintWithExplanationException(HINT_NO_ARTIFACT_DETAILS_FOR_ARTIFACTORY_CONFIG,
+          EXPLANATION_NO_ARTIFACT_DETAILS_FOR_ARTIFACTORY_CONFIG,
+          new TerraformCommandExecutionException("No Artifactory config files details set", WingsException.USER));
+    }
+    ArtifactoryConnectorDTO artifactoryConnectorDTO =
+        (ArtifactoryConnectorDTO) artifactoryStoreDelegateConfig.getConnectorDTO().getConnectorConfig();
+    secretDecryptionService.decrypt(
+        artifactoryConnectorDTO.getAuth().getCredentials(), artifactoryStoreDelegateConfig.getEncryptedDataDetails());
+    ArtifactoryConfigRequest artifactoryConfigRequest =
+        artifactoryRequestMapper.toArtifactoryRequest(artifactoryConnectorDTO);
+    Map<String, String> artifactMetadata = new HashMap<>();
+    String artifactPath = artifactoryStoreDelegateConfig.getArtifacts().get(0);
+    artifactMetadata.put(ARTIFACT_PATH_METADATA_KEY, artifactPath);
+    artifactMetadata.put(ARTIFACT_NAME_METADATA_KEY, artifactPath);
+    InputStream artifactInputStream = artifactoryNgService.downloadArtifacts(artifactoryConfigRequest,
+        artifactoryStoreDelegateConfig.getRepositoryName(), artifactMetadata, ARTIFACT_PATH_METADATA_KEY,
+        ARTIFACT_NAME_METADATA_KEY);
+    if (artifactInputStream == null) {
+      throw NestedExceptionUtils.hintWithExplanationException(HINT_FAILED_TO_DOWNLOAD_FROM_ARTIFACTORY,
+          String.format(EXPLANATION_FAILED_TO_DOWNLOAD_FROM_ARTIFACTORY, artifactPath,
+              artifactoryConfigRequest.getArtifactoryUrl()),
+          new TerraformCommandExecutionException("Failed to download config file", WingsException.USER));
+    }
+    String workingDir = getWorkingDir(baseDir);
+
+    copyConfigFilesToWorkingDirectory(
+        logCallback, artifactInputStream, baseDir, workingDir, artifactoryStoreDelegateConfig.getRepositoryName());
+
+    String scriptDirectory = resolveScriptDirectory(workingDir, artifactoryStoreDelegateConfig.getRepositoryName());
+
     log.info("Script Directory: " + scriptDirectory);
     logCallback.saveExecutionLog(
         format("Script Directory: [%s]", scriptDirectory), INFO, CommandExecutionStatus.RUNNING);
@@ -572,58 +643,95 @@ public class TerraformBaseHelperImpl implements TerraformBaseHelper {
       TerraformHelperUtils.copyFilesToWorkingDirectory(
           gitClientHelper.getRepoDirectory(gitBaseRequestForConfigFile), workingDir);
     } catch (Exception ex) {
-      log.error(String.format("Exception in copying files to provisioner specific directory", ex.getMessage()), ex);
-      FileUtils.deleteQuietly(new File(baseDir));
-      logCallback.saveExecutionLog(
-          "Failed copying files to provisioner specific directory", ERROR, CommandExecutionStatus.RUNNING);
-      throw new TerraformCommandExecutionException(
-          "Error encountered when copying files to provisioner specific directory", WingsException.USER);
+      handleExceptionWhileCopyingConfigFiles(logCallback, baseDir, ex);
     }
+  }
+
+  private void copyConfigFilesToWorkingDirectory(
+      LogCallback logCallback, InputStream inputStream, String baseDir, String workingDir, String scriptDirectory) {
+    try {
+      File dest = new File(workingDir);
+      deleteDirectoryAndItsContentIfExists(dest.getAbsolutePath());
+      File scriptDir = new File(dest, scriptDirectory);
+      scriptDir.mkdirs();
+      unzip(scriptDir, new ZipInputStream(inputStream));
+      FileIo.waitForDirectoryToBeAccessibleOutOfProcess(scriptDir.getPath(), 10);
+    } catch (Exception ex) {
+      handleExceptionWhileCopyingConfigFiles(logCallback, baseDir, ex);
+    }
+  }
+
+  private void handleExceptionWhileCopyingConfigFiles(LogCallback logCallback, String baseDir, Exception ex) {
+    log.error(String.format("Exception in copying files to provisioner specific directory", ex.getMessage()), ex);
+    FileUtils.deleteQuietly(new File(baseDir));
+    logCallback.saveExecutionLog(
+        "Failed copying files to provisioner specific directory", ERROR, CommandExecutionStatus.RUNNING);
+    throw new TerraformCommandExecutionException(
+        "Error encountered when copying files to provisioner specific directory", WingsException.USER);
+  }
+
+  private static void unzip(File destDir, ZipInputStream zipInputStream) throws IOException {
+    byte[] buffer = new byte[1024];
+    ZipEntry zipEntry = zipInputStream.getNextEntry();
+    while (zipEntry != null) {
+      File newFile = getNewFileForZipEntry(destDir, zipEntry);
+      if (zipEntry.isDirectory()) {
+        if (!newFile.isDirectory() && !newFile.mkdirs()) {
+          throw new IOException("Failed to create directory " + newFile);
+        }
+      } else {
+        // fix for Windows-created archives
+        File parent = newFile.getParentFile();
+        if (!parent.isDirectory() && !parent.mkdirs()) {
+          throw new IOException("Failed to create directory " + parent);
+        }
+
+        FileOutputStream fileOutputStream = new FileOutputStream(newFile);
+        int len;
+        while ((len = zipInputStream.read(buffer)) > 0) {
+          fileOutputStream.write(buffer, 0, len);
+        }
+        fileOutputStream.close();
+      }
+      zipEntry = zipInputStream.getNextEntry();
+    }
+    zipInputStream.closeEntry();
+    zipInputStream.close();
+  }
+
+  private static File getNewFileForZipEntry(File destinationDir, ZipEntry zipEntry) throws IOException {
+    File destFile = new File(destinationDir, zipEntry.getName());
+
+    String destDirPath = destinationDir.getCanonicalPath();
+    String destFilePath = destFile.getCanonicalPath();
+
+    if (!destFilePath.startsWith(destDirPath + File.separator)) {
+      throw new IOException("Entry is outside of the target dir: " + zipEntry.getName());
+    }
+
+    return destFile;
   }
 
   public List<String> checkoutRemoteVarFileAndConvertToVarFilePaths(List<TerraformVarFileInfo> varFileInfo,
       String scriptDir, LogCallback logCallback, String accountId, String tfVarDirectory) throws IOException {
+    Path tfVarDirAbsPath = Paths.get(tfVarDirectory).toAbsolutePath();
     if (EmptyPredicate.isNotEmpty(varFileInfo)) {
       List<String> varFilePaths = new ArrayList<>();
-      Path tfVarDirAbsPath = Paths.get(tfVarDirectory).toAbsolutePath();
       for (TerraformVarFileInfo varFile : varFileInfo) {
         if (varFile instanceof InlineTerraformVarFileInfo) {
           varFilePaths.add(TerraformHelperUtils.createFileFromStringContent(
               ((InlineTerraformVarFileInfo) varFile).getVarFileContent(), scriptDir, TERRAFORM_VARIABLES_FILE_NAME));
         } else if (varFile instanceof RemoteTerraformVarFileInfo) {
-          GitStoreDelegateConfig gitStoreDelegateConfig =
-              ((RemoteTerraformVarFileInfo) varFile).getGitFetchFilesConfig().getGitStoreDelegateConfig();
-          GitConfigDTO gitConfigDTO = (GitConfigDTO) gitStoreDelegateConfig.getGitConfigDTO();
-          if (EmptyPredicate.isNotEmpty(gitStoreDelegateConfig.getPaths())) {
-            logCallback.saveExecutionLog(format("Fetching Var files from Git repository: [%s]", gitConfigDTO.getUrl()),
-                INFO, CommandExecutionStatus.RUNNING);
-
-            secretDecryptionService.decrypt(
-                gitConfigDTO.getGitAuth(), gitStoreDelegateConfig.getEncryptedDataDetails());
-
-            SshSessionConfig sshSessionConfig = null;
-            if (gitConfigDTO.getGitAuthType() == SSH) {
-              sshSessionConfig = getSshSessionConfig(gitStoreDelegateConfig);
+          if (((RemoteTerraformVarFileInfo) varFile).getGitFetchFilesConfig() != null) {
+            GitStoreDelegateConfig gitStoreDelegateConfig =
+                ((RemoteTerraformVarFileInfo) varFile).getGitFetchFilesConfig().getGitStoreDelegateConfig();
+            GitConfigDTO gitConfigDTO = (GitConfigDTO) gitStoreDelegateConfig.getGitConfigDTO();
+            if (EmptyPredicate.isNotEmpty(gitStoreDelegateConfig.getPaths())) {
+              handleGitVarFiles(logCallback, accountId, tfVarDirectory, tfVarDirAbsPath, varFilePaths,
+                  gitStoreDelegateConfig, gitConfigDTO);
             }
-
-            gitClient.downloadFiles(DownloadFilesRequest.builder()
-                                        .branch(gitStoreDelegateConfig.getBranch())
-                                        .commitId(gitStoreDelegateConfig.getCommitId())
-                                        .filePaths(gitStoreDelegateConfig.getPaths())
-                                        .connectorId(gitStoreDelegateConfig.getConnectorName())
-                                        .repoUrl(gitConfigDTO.getUrl())
-                                        .accountId(accountId)
-                                        .recursive(true)
-                                        .authRequest(ngGitService.getAuthRequest(gitConfigDTO, sshSessionConfig))
-                                        .repoType(GitRepositoryType.TERRAFORM)
-                                        .destinationDirectory(tfVarDirectory)
-                                        .build());
-
-            // One remote file can have multiple different var file paths provided
-            // Combine them here and add to list.
-            for (String paths : gitStoreDelegateConfig.getPaths()) {
-              varFilePaths.add(tfVarDirAbsPath + "/" + paths);
-            }
+          } else if (((RemoteTerraformVarFileInfo) varFile).getFilestoreFetchFilesConfig() != null) {
+            handleFileStorageVarFiles(logCallback, tfVarDirAbsPath, varFilePaths, (RemoteTerraformVarFileInfo) varFile);
           }
         }
       }
@@ -634,6 +742,80 @@ public class TerraformBaseHelperImpl implements TerraformBaseHelper {
     return Collections.emptyList();
   }
 
+  private void handleFileStorageVarFiles(LogCallback logCallback, Path tfVarDirAbsPath, List<String> varFilePaths,
+      RemoteTerraformVarFileInfo varFile) throws IOException {
+    ArtifactoryStoreDelegateConfig artifactoryStoreDelegateConfig =
+        (ArtifactoryStoreDelegateConfig) varFile.getFilestoreFetchFilesConfig();
+    logCallback.saveExecutionLog(format("Fetching Var files from Artifactory repository: [%s]",
+                                     artifactoryStoreDelegateConfig.getRepositoryName()),
+        INFO, CommandExecutionStatus.RUNNING);
+    ArtifactoryConnectorDTO artifactoryConnectorDTO =
+        (ArtifactoryConnectorDTO) artifactoryStoreDelegateConfig.getConnectorDTO().getConnectorConfig();
+    secretDecryptionService.decrypt(
+        artifactoryConnectorDTO.getAuth().getCredentials(), artifactoryStoreDelegateConfig.getEncryptedDataDetails());
+    ArtifactoryConfigRequest artifactoryConfigRequest =
+        artifactoryRequestMapper.toArtifactoryRequest(artifactoryConnectorDTO);
+
+    for (String artifactPath : artifactoryStoreDelegateConfig.getArtifacts()) {
+      Map<String, String> artifactMetadata = new HashMap<>();
+      artifactMetadata.put(ARTIFACT_PATH_METADATA_KEY, artifactPath);
+      artifactMetadata.put(ARTIFACT_NAME_METADATA_KEY, artifactPath);
+      InputStream artifactInputStream = artifactoryNgService.downloadArtifacts(artifactoryConfigRequest,
+          artifactoryStoreDelegateConfig.getRepositoryName(), artifactMetadata, ARTIFACT_PATH_METADATA_KEY,
+          ARTIFACT_NAME_METADATA_KEY);
+      if (artifactInputStream == null) {
+        throw NestedExceptionUtils.hintWithExplanationException(HINT_FAILED_TO_DOWNLOAD_FROM_ARTIFACTORY,
+            String.format(EXPLANATION_FAILED_TO_DOWNLOAD_FROM_ARTIFACTORY, artifactPath,
+                artifactoryConfigRequest.getArtifactoryUrl()),
+            new TerraformCommandExecutionException("Failed to download config file", WingsException.USER));
+      }
+      File tfVarDir = new File(tfVarDirAbsPath.toString(), artifactPath);
+
+      if (!tfVarDir.exists()) {
+        tfVarDir.mkdirs();
+      }
+      unzip(tfVarDir, new ZipInputStream(artifactInputStream));
+      for (File file : tfVarDir.listFiles()) {
+        if (file.isFile()) {
+          varFilePaths.add(file.getAbsolutePath());
+        }
+      }
+    }
+  }
+
+  private void handleGitVarFiles(LogCallback logCallback, String accountId, String tfVarDirectory, Path tfVarDirAbsPath,
+      List<String> varFilePaths, GitStoreDelegateConfig gitStoreDelegateConfig, GitConfigDTO gitConfigDTO)
+      throws IOException {
+    logCallback.saveExecutionLog(format("Fetching Var files from Git repository: [%s]", gitConfigDTO.getUrl()), INFO,
+        CommandExecutionStatus.RUNNING);
+
+    secretDecryptionService.decrypt(gitConfigDTO.getGitAuth(), gitStoreDelegateConfig.getEncryptedDataDetails());
+
+    SshSessionConfig sshSessionConfig = null;
+    if (gitConfigDTO.getGitAuthType() == SSH) {
+      sshSessionConfig = getSshSessionConfig(gitStoreDelegateConfig);
+    }
+
+    gitClient.downloadFiles(DownloadFilesRequest.builder()
+                                .branch(gitStoreDelegateConfig.getBranch())
+                                .commitId(gitStoreDelegateConfig.getCommitId())
+                                .filePaths(gitStoreDelegateConfig.getPaths())
+                                .connectorId(gitStoreDelegateConfig.getConnectorName())
+                                .repoUrl(gitConfigDTO.getUrl())
+                                .accountId(accountId)
+                                .recursive(true)
+                                .authRequest(ngGitService.getAuthRequest(gitConfigDTO, sshSessionConfig))
+                                .repoType(GitRepositoryType.TERRAFORM)
+                                .destinationDirectory(tfVarDirectory)
+                                .build());
+
+    // One remote file can have multiple different var file paths provided
+    // Combine them here and add to list.
+    for (String paths : gitStoreDelegateConfig.getPaths()) {
+      varFilePaths.add(tfVarDirAbsPath + "/" + paths);
+    }
+  }
+
   private SshSessionConfig getSshSessionConfig(GitStoreDelegateConfig gitStoreDelegateConfig) {
     if (gitStoreDelegateConfig.getSshKeySpecDTO() == null) {
       throw new InvalidRequestException(
@@ -641,6 +823,61 @@ public class TerraformBaseHelperImpl implements TerraformBaseHelper {
     }
     return sshSessionConfigMapper.getSSHSessionConfig(
         gitStoreDelegateConfig.getSshKeySpecDTO(), gitStoreDelegateConfig.getEncryptedDataDetails());
+  }
+
+  public void configureCredentialsForModuleSource(TerraformTaskNGParameters taskParameters,
+      GitStoreDelegateConfig conFileFileGitStore, LogCallback logCallback) throws IOException {
+    GitConfigDTO gitConfigDTO = (GitConfigDTO) conFileFileGitStore.getGitConfigDTO();
+    if (gitConfigDTO.getGitAuthType() == SSH) {
+      String sshKeyPath;
+      SshSessionConfig sshSessionConfig = getSshSessionConfig(conFileFileGitStore);
+      if (isNotEmpty(sshSessionConfig.getKeyPassphrase())) {
+        logCallback.saveExecutionLog(
+            color("\nExporting SSH Key with Passphrase for Module Source is not Supported", Yellow), WARN);
+        return;
+      }
+      if (!sshSessionConfig.isKeyLess() && isNotEmpty(sshSessionConfig.getKey())) {
+        String sshKey = String.valueOf(sshSessionConfig.getKey());
+        String workingDir = getBaseDir(taskParameters.getEntityId());
+        Files.createDirectories(Paths.get(workingDir, SSH_KEY_DIR));
+        sshKeyPath = Paths.get(workingDir, SSH_KEY_DIR, SSH_KEY_FILENAME).toAbsolutePath().toString();
+        FileIo.writeUtf8StringToFile(sshKeyPath, sshKey);
+
+      } else if (sshSessionConfig.isKeyLess() && isNotEmpty(sshSessionConfig.getKeyPath())) {
+        sshKeyPath = sshSessionConfig.getKeyPath();
+
+      } else {
+        logCallback.saveExecutionLog(
+            color("\nExporting Username and Password with SSH for Module Source is not Supported", Yellow), WARN);
+        return;
+      }
+      exportSSHKey(taskParameters, sshKeyPath, logCallback);
+    } else {
+      logCallback.saveExecutionLog(
+          color("\nExporting Username and Password for Module Source is not Supported", Yellow), WARN);
+    }
+  }
+
+  public void exportSSHKey(TerraformTaskNGParameters taskParameters, String sshKeyPath, LogCallback logCallback)
+      throws IOException {
+    logCallback.saveExecutionLog(color("\nExporting SSH Key:", White), INFO);
+
+    File file = new File(Paths.get(sshKeyPath).toString());
+
+    // Giving Read Only Permission to ownerOnly for the SSH File, This is needed to avoided security attack
+    file.setWritable(false);
+    file.setReadable(false, false);
+    file.setExecutable(false);
+    file.setReadable(true);
+
+    String newSSHArg = TF_SSH_COMMAND_ARG + sshKeyPath;
+
+    String sshCommand = System.getenv(GIT_SSH_COMMAND) == null ? SSH_COMMAND_PREFIX + newSSHArg
+                                                               : System.getenv(GIT_SSH_COMMAND) + newSSHArg;
+
+    taskParameters.getEnvironmentVariables().put(GIT_SSH_COMMAND, sshCommand);
+
+    logCallback.saveExecutionLog(color("\n   Successfully Exported SSH Key:", White), INFO);
   }
 
   public void performCleanupOfTfDirs(TerraformTaskNGParameters parameters, LogCallback logCallback) {

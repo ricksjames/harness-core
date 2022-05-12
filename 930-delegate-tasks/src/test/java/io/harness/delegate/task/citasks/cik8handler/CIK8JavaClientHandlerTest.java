@@ -178,7 +178,8 @@ public class CIK8JavaClientHandlerTest extends CategoryTest {
         new KubernetesApiResponse(new V1StatusBuilder().withStatus("Failure").build(), 404);
 
     when(podClient.delete(anyString(), anyString())).thenReturn(kubernetesApiResponse);
-    assertEquals(cik8JavaClientHandler.deletePod(podClient, podName, namespace).getStatus(), "Failure");
+    assertThatThrownBy(() -> cik8JavaClientHandler.deletePod(podClient, podName, namespace).getStatus(), "Failure")
+        .isInstanceOf(PodNotFoundException.class);
   }
 
   @Test
@@ -260,5 +261,29 @@ public class CIK8JavaClientHandlerTest extends CategoryTest {
     selector.put("foo", "bar");
     cik8JavaClientHandler.createService(coreV1Api, namespace, serviceName, selector, ports);
     verify(coreV1Api).createNamespacedService(any(), any(), any(), any(), any());
+  }
+
+  @Test()
+  @Owner(developers = SHUBHAM)
+  @Category(UnitTests.class)
+  public void parseApiExceptionMessageSuccess() {
+    String body =
+        "{\"kind\":\"Status\",\"apiVersion\":\"v1\",\"metadata\":{},\"status\":\"Failure\",\"message\":\"namespaces \\\"test\\\" not found\",\"reason\":\"NotFound\",\"details\":{\"name\":\"test\",\"kind\":\"namespaces\"},\"code\":404}";
+    String defaultMsg = "Invalid test";
+    String expectedMsg = "namespaces \"test\" not found";
+
+    String response = cik8JavaClientHandler.parseApiExceptionMessage(body, defaultMsg);
+    assertThat(response).isEqualTo(expectedMsg);
+  }
+
+  @Test()
+  @Owner(developers = SHUBHAM)
+  @Category(UnitTests.class)
+  public void parseApiExceptionMessageDefaultMsg() {
+    String body = "Unauthorised";
+    String defaultMsg = "Invalid test";
+
+    String response = cik8JavaClientHandler.parseApiExceptionMessage(body, defaultMsg);
+    assertThat(response).isEqualTo(defaultMsg);
   }
 }

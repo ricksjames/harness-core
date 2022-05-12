@@ -8,14 +8,14 @@ package file
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/harness/harness-core/commons/go/lib/logs"
 	pb "github.com/harness/harness-core/product/ci/scm/proto"
+	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 )
 
@@ -23,7 +23,7 @@ func TestFindFilePositivePath(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(200)
-		content, _ := ioutil.ReadFile("testdata/FileFindSource.json")
+		content, _ := os.ReadFile("testdata/FileFindSource.json")
 		fmt.Fprint(w, string(content))
 	}))
 	defer ts.Close()
@@ -57,7 +57,7 @@ func TestFindFileNegativePath(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(404)
-		content, _ := ioutil.ReadFile("testdata/FileErrorSource.json")
+		content, _ := os.ReadFile("testdata/FileErrorSource.json")
 		fmt.Fprint(w, string(content))
 	}))
 	defer ts.Close()
@@ -91,7 +91,7 @@ func TestCreateFile(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(201)
-		content, _ := ioutil.ReadFile("testdata/FileCreateSource.json")
+		content, _ := os.ReadFile("testdata/FileCreateSource.json")
 		fmt.Fprint(w, string(content))
 	}))
 	defer ts.Close()
@@ -123,13 +123,14 @@ func TestCreateFile(t *testing.T) {
 
 	assert.Nil(t, err, "no errors")
 	assert.Equal(t, got.Status, int32(201), "status matches")
+	assert.NotNil(t, got.CommitId)
 }
 
 func TestCreateFileConflict(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(409)
-		content, _ := ioutil.ReadFile("testdata/FileCreateNoMatch.json")
+		content, _ := os.ReadFile("testdata/FileCreateNoMatch.json")
 		fmt.Fprint(w, string(content))
 	}))
 	defer ts.Close()
@@ -169,7 +170,7 @@ func TestUpdateFile(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(200)
-		content, _ := ioutil.ReadFile("testdata/FileUpdateSource.json")
+		content, _ := os.ReadFile("testdata/FileUpdateSource.json")
 		fmt.Fprint(w, string(content))
 	}))
 	defer ts.Close()
@@ -202,13 +203,14 @@ func TestUpdateFile(t *testing.T) {
 
 	assert.Nil(t, err, "no errors")
 	assert.Equal(t, got.Status, int32(200), "status matches")
+	assert.NotNil(t, got.CommitId)
 }
 
-func TestUpdateFileNoMatch(t *testing.T) {
+func TestUpdateFileNoMatchGithub(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(409)
-		content, _ := ioutil.ReadFile("testdata/FileUpdateNoMatch.json")
+		content, _ := os.ReadFile("testdata/FileUpdateNoMatch.json")
 		fmt.Fprint(w, string(content))
 	}))
 	defer ts.Close()
@@ -244,11 +246,40 @@ func TestUpdateFileNoMatch(t *testing.T) {
 	assert.Equal(t, got.Error, "newfile does not match ff9b1a04-7828-4288-8135-b331a38e9fac", "error matches")
 }
 
+// func TestUpdateFilCommtConflictBitbucket(t *testing.T) {
+// 	in := &pb.FileModifyRequest{
+// 		Slug:     "mohitgargharness/test-repository",
+// 		Path:     "test-file.txt",
+// 		Message:  "message",
+// 		Branch:   "main",
+// 		Content:  "data",
+// 		CommitId: "DUMMY",
+// 		Signature: &pb.Signature{
+// 			Name:  "mohitgargharness",
+// 			Email: "mohit.garg@harness.io",
+// 		},
+// 		Provider: &pb.Provider{
+// 			Hook: &pb.Provider_BitbucketCloud{
+// 				BitbucketCloud: &pb.BitbucketCloudProvider{
+// 					Username:    "mohitgargharness",
+// 					AppPassword: "d58ztzmwJksybeatmP4e",
+// 				},
+// 			},
+// 		},
+// 	}
+
+// 	log, _ := logs.GetObservedLogger(zap.InfoLevel)
+// 	got, err := UpdateFile(context.Background(), in, log.Sugar())
+
+// 	assert.Nil(t, err, "no errors")
+// 	assert.Equal(t, got.Status, int32(400), "status matches")
+// }
+
 func TestDeleteFile(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(200)
-		content, _ := ioutil.ReadFile("testdata/FileUpdateSource.json")
+		content, _ := os.ReadFile("testdata/FileUpdateSource.json")
 		fmt.Fprint(w, string(content))
 	}))
 	defer ts.Close()
@@ -290,16 +321,16 @@ func TestPushNewFile(t *testing.T) {
 		if r.Method == http.MethodGet {
 			if serveActualFile {
 				// 3. file find
-				content, _ := ioutil.ReadFile("testdata/FileFindSource.json")
+				content, _ := os.ReadFile("testdata/FileFindSource.json")
 				fmt.Fprint(w, string(content))
 			} else {
 				// 1. file does not exist yet
-				content, _ := ioutil.ReadFile("testdata/FileError.json")
+				content, _ := os.ReadFile("testdata/FileError.json")
 				fmt.Fprint(w, string(content))
 			}
 		} else {
 			// 2. file is created
-			content, _ := ioutil.ReadFile("testdata/FileCreateSource.json")
+			content, _ := os.ReadFile("testdata/FileCreateSource.json")
 			serveActualFile = true
 			fmt.Fprint(w, string(content))
 		}
@@ -338,7 +369,7 @@ func TestFindFilesInBranch(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(200)
-		content, _ := ioutil.ReadFile("testdata/FileList.json")
+		content, _ := os.ReadFile("testdata/FileList.json")
 		fmt.Fprint(w, string(content))
 	}))
 	defer ts.Close()
@@ -367,11 +398,54 @@ func TestFindFilesInBranch(t *testing.T) {
 	assert.Equal(t, int32(0), got.Pagination.Next, "No next page")
 }
 
+// func TestFindFilesInBranchBitbucket(t *testing.T) {
+// 	in := &pb.FindFilesInBranchRequest{
+// 		Slug: "mohitgargharness/test-repository",
+// 		Type: &pb.FindFilesInBranchRequest_Branch{
+// 			Branch: "master",
+// 		},
+// 		Provider: &pb.Provider{
+// 			Hook: &pb.Provider_BitbucketCloud{
+// 				BitbucketCloud: &pb.BitbucketCloudProvider{
+// 					Username:    "mohitgargharness",
+// 					AppPassword: "d58ztzmwJksybeatmP4e",
+// 				},
+// 			},
+// 		},
+// 	}
+
+// 	log, _ := logs.GetObservedLogger(zap.InfoLevel)
+// 	got, err := FindFilesInBranch(context.Background(), in, log.Sugar())
+
+// 	assert.Nil(t, err, "no errors")
+// 	assert.NotNil(t, len(got.File), "Non-Null file count")
+// 	assert.NotNil(t, got.Pagination.NextUrl, "Next page found")
+
+// 	in = &pb.FindFilesInBranchRequest{
+// 		Slug: "mohitgargharness/test-repository",
+// 		Type: &pb.FindFilesInBranchRequest_Branch{
+// 			Branch: "master",
+// 		},
+// 		Pagination: &pb.PageRequest{Url: got.GetPagination().GetNextUrl()},
+// 		Provider: &pb.Provider{
+// 			Hook: &pb.Provider_BitbucketCloud{
+// 				BitbucketCloud: &pb.BitbucketCloudProvider{
+// 					Username:    "mohitgargharness",
+// 					AppPassword: "d58ztzmwJksybeatmP4e",
+// 				},
+// 			},
+// 		},
+// 	}
+
+// 	assert.Nil(t, err, "no errors")
+// 	assert.NotNil(t, len(got.File), "Non-Null file count")
+// }
+
 func TestFindFilesInCommit(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(200)
-		content, _ := ioutil.ReadFile("testdata/FileList.json")
+		content, _ := os.ReadFile("testdata/FileList.json")
 		fmt.Fprint(w, string(content))
 	}))
 	defer ts.Close()
@@ -403,7 +477,7 @@ func TestBatchFindFile(t *testing.T) {
 		if r.URL.Path == "/repos/tphoney/scm-test/contents/README.md" {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(200)
-			content, _ := ioutil.ReadFile("testdata/FileFindSource.json")
+			content, _ := os.ReadFile("testdata/FileFindSource.json")
 			fmt.Fprint(w, string(content))
 		} else {
 			w.Header().Set("Content-Type", "application/json")
@@ -457,4 +531,26 @@ func TestBatchFindFile(t *testing.T) {
 	assert.Nil(t, err, "no errors")
 	assert.Contains(t, got.FileContents[0].Content, "test repo for source control operations")
 	assert.Equal(t, "", got.FileContents[1].Content, "missing file has no content")
+}
+
+func TestGetCommitIdByProvider(t *testing.T) {
+	if azureToken == "" {
+		t.Skip("Skipping, Acceptance test")
+	}
+	provider := &pb.Provider{
+		Hook: &pb.Provider_Azure{
+			Azure: &pb.AzureProvider{
+				PersonalAccessToken: azureToken,
+				Organization:        organization,
+				Project:             project,
+			},
+		},
+		Debug: true,
+	}
+
+	log, _ := logs.GetObservedLogger(zap.InfoLevel)
+	got, err := getCommitIdIfEmptyInRequest(context.Background(), "", repoID, "main", provider, log.Sugar())
+
+	assert.Nil(t, err, "no errors")
+	assert.NotNil(t, got, "There is a commit id")
 }

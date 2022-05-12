@@ -9,6 +9,7 @@ package software.wings.service.impl;
 
 import static io.harness.annotations.dev.HarnessModule._870_CG_ORCHESTRATION;
 import static io.harness.annotations.dev.HarnessTeam.CDC;
+import static io.harness.beans.FeatureName.GITHUB_WEBHOOK_AUTHENTICATION;
 import static io.harness.beans.FeatureName.WEBHOOK_TRIGGER_AUTHORIZATION;
 import static io.harness.data.structure.CollectionUtils.trimmedLowercaseSet;
 import static io.harness.data.structure.EmptyPredicate.isEmpty;
@@ -389,6 +390,11 @@ public class AppServiceImpl implements AppService {
       operations.set(ApplicationKeys.isManualTriggerAuthorized, app.getIsManualTriggerAuthorized());
     }
 
+    if (featureFlagService.isEnabled(GITHUB_WEBHOOK_AUTHENTICATION, savedApp.getAccountId())
+        && app.getAreWebHookSecretsMandated() != null) {
+      operations.set(ApplicationKeys.areWebHookSecretsMandated, app.getAreWebHookSecretsMandated());
+    }
+
     setUnset(operations, "description", app.getDescription());
 
     PersistenceValidator.duplicateCheck(
@@ -415,7 +421,8 @@ public class AppServiceImpl implements AppService {
     }
 
     ensureSafeToDelete(appId, application.getName());
-
+    // added as response of https://harness.atlassian.net/browse/CDS-35910
+    log.info("Deleting app {} by user {}", appId, UserThreadLocal.get());
     String accountId = this.getAccountIdByAppId(appId);
     StaticLimitCheckerWithDecrement checker = (StaticLimitCheckerWithDecrement) limitCheckerFactory.getInstance(
         new io.harness.limits.Action(accountId, ActionType.CREATE_APPLICATION));

@@ -21,6 +21,7 @@ import io.harness.ff.FeatureFlagConfig;
 import io.harness.govern.ProviderModule;
 import io.harness.govern.ServersModule;
 import io.harness.lock.DistributedLockImplementation;
+import io.harness.metrics.modules.MetricsModule;
 import io.harness.mongo.MongoPersistence;
 import io.harness.morphia.MorphiaModule;
 import io.harness.morphia.MorphiaRegistrar;
@@ -45,7 +46,6 @@ import io.harness.testlib.module.MongoRuleMixin;
 import io.harness.testlib.module.TestMongoModule;
 import io.harness.threading.CurrentThreadExecutor;
 import io.harness.threading.ExecutorModule;
-import io.harness.utils.NGObjectMapperHelper;
 import io.harness.waiter.AbstractWaiterModule;
 import io.harness.waiter.WaiterConfiguration;
 import io.harness.waiter.WaiterConfiguration.PersistenceLayer;
@@ -58,6 +58,7 @@ import com.google.inject.Module;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
+import io.serializer.HObjectMapper;
 import java.io.Closeable;
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
@@ -85,6 +86,7 @@ public class DelegateServiceRule implements MethodRule, InjectorRuleMixin, Mongo
     List<Module> modules = new ArrayList<>();
     modules.add(new ClosingFactoryModule(closingFactory));
     modules.add(KryoModule.getInstance());
+    modules.add(new MetricsModule());
 
     modules.add(new ProviderModule() {
       @Override
@@ -208,7 +210,6 @@ public class DelegateServiceRule implements MethodRule, InjectorRuleMixin, Mongo
   @Provides
   @Singleton
   OutboxService getOutboxService(OutboxEventRepository outboxEventRepository) {
-    return new OutboxServiceImpl(
-        new OutboxDaoImpl(outboxEventRepository), NGObjectMapperHelper.NG_PIPELINE_OBJECT_MAPPER);
+    return new OutboxServiceImpl(new OutboxDaoImpl(outboxEventRepository), HObjectMapper.NG_DEFAULT_OBJECT_MAPPER);
   }
 }

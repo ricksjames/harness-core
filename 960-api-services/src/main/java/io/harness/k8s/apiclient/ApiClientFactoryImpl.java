@@ -8,10 +8,12 @@
 package io.harness.k8s.apiclient;
 
 import static io.harness.data.structure.EmptyPredicate.isNotEmpty;
+import static io.harness.k8s.model.KubernetesClusterAuthType.GCP_OAUTH;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
+import io.harness.exception.runtime.KubernetesApiClientRuntimeException;
 import io.harness.k8s.model.KubernetesClusterAuthType;
 import io.harness.k8s.model.KubernetesConfig;
 import io.harness.k8s.oidc.OidcTokenRetriever;
@@ -38,7 +40,13 @@ public class ApiClientFactoryImpl implements ApiClientFactory {
 
   public static ApiClient fromKubernetesConfig(KubernetesConfig kubernetesConfig, OidcTokenRetriever tokenRetriever) {
     // should we cache the client ?
-    return createNewApiClient(kubernetesConfig, tokenRetriever);
+    try {
+      return createNewApiClient(kubernetesConfig, tokenRetriever);
+    } catch (RuntimeException e) {
+      throw new KubernetesApiClientRuntimeException(e.getMessage(), e.getCause());
+    } catch (Exception e) {
+      throw new KubernetesApiClientRuntimeException(e.getMessage(), e);
+    }
   }
 
   private static ApiClient createNewApiClient(KubernetesConfig kubernetesConfig, OidcTokenRetriever tokenRetriever) {
@@ -50,9 +58,13 @@ public class ApiClientFactoryImpl implements ApiClientFactory {
     if (kubernetesConfig.getCaCert() != null) {
       clientBuilder.setCertificateAuthority(decodeIfRequired(kubernetesConfig.getCaCert()));
     }
-    if (kubernetesConfig.getServiceAccountToken() != null) {
-      clientBuilder.setAuthentication(
-          new AccessTokenAuthentication(new String(kubernetesConfig.getServiceAccountToken())));
+    if (kubernetesConfig.getServiceAccountTokenSupplier() != null) {
+      if (GCP_OAUTH == kubernetesConfig.getAuthType()) {
+        clientBuilder.setAuthentication(new GkeTokenAuthentication(kubernetesConfig.getServiceAccountTokenSupplier()));
+      } else {
+        clientBuilder.setAuthentication(
+            new AccessTokenAuthentication(kubernetesConfig.getServiceAccountTokenSupplier().get()));
+      }
     } else if (kubernetesConfig.getUsername() != null && kubernetesConfig.getPassword() != null) {
       clientBuilder.setAuthentication(new UsernamePasswordAuthentication(
           new String(kubernetesConfig.getUsername()), new String(kubernetesConfig.getPassword())));

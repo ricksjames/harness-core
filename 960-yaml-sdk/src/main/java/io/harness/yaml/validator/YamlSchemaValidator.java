@@ -8,14 +8,21 @@
 package io.harness.yaml.validator;
 
 import static io.harness.annotations.dev.HarnessTeam.DX;
+import static io.harness.yaml.schema.beans.SchemaConstants.PARALLEL_NODE;
+import static io.harness.yaml.schema.beans.SchemaConstants.PIPELINE_NODE;
+import static io.harness.yaml.schema.beans.SchemaConstants.STAGES_NODE;
 
 import io.harness.EntityType;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.exception.InvalidRequestException;
+import io.harness.exception.ngexception.beans.yamlschema.YamlSchemaErrorDTO;
+import io.harness.exception.ngexception.beans.yamlschema.YamlSchemaErrorWrapperDTO;
 import io.harness.yaml.schema.beans.YamlSchemaRootClass;
+import io.harness.yaml.utils.SchemaValidationUtils;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
@@ -26,8 +33,8 @@ import com.networknt.schema.ValidationMessage;
 import com.networknt.schema.ValidatorTypeCode;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -42,13 +49,19 @@ import lombok.extern.slf4j.Slf4j;
 public class YamlSchemaValidator {
   public static Map<EntityType, JsonSchema> schemas = new HashMap<>();
   public static final String ENUM_SCHEMA_ERROR_CODE = ValidatorTypeCode.ENUM.getErrorCode();
+  public static final String REQUIRED_SCHEMA_ERROR_CODE = ValidatorTypeCode.REQUIRED.getErrorCode();
   ObjectMapper mapper;
   List<YamlSchemaRootClass> yamlSchemaRootClasses;
+  EnumCodeSchemaHandler enumCodeSchemaHandler;
+  RequiredCodeSchemaHandler requiredCodeSchemaHandler;
 
   @Inject
-  public YamlSchemaValidator(List<YamlSchemaRootClass> yamlSchemaRootClasses) {
+  public YamlSchemaValidator(List<YamlSchemaRootClass> yamlSchemaRootClasses,
+      EnumCodeSchemaHandler enumCodeSchemaHandler, RequiredCodeSchemaHandler requiredCodeSchemaHandler) {
     mapper = new ObjectMapper(new YAMLFactory());
     this.yamlSchemaRootClasses = yamlSchemaRootClasses;
+    this.enumCodeSchemaHandler = enumCodeSchemaHandler;
+    this.requiredCodeSchemaHandler = requiredCodeSchemaHandler;
   }
 
   /**
@@ -71,13 +84,66 @@ public class YamlSchemaValidator {
     return validateMsg.stream().map(ValidationMessage::getMessage).collect(Collectors.toSet());
   }
 
-  public Set<String> validate(String yaml, String stringSchema) throws IOException {
+  public Set<String> validate(String yaml, String stringSchema, boolean shouldValidateParallelStageCount,
+      int allowedParallelStages) throws IOException {
     JsonNode jsonNode = mapper.readTree(yaml);
+    validateParallelStagesCount(jsonNode, shouldValidateParallelStageCount, allowedParallelStages);
     JsonSchemaFactory factory =
         JsonSchemaFactory.builder(JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V7)).build();
     JsonSchema schema = factory.getSchema(stringSchema);
-    Set<ValidationMessage> validateMsg = processValidationMessages(schema.validate(jsonNode));
-    return validateMsg.stream().map(ValidationMessage::getMessage).collect(Collectors.toSet());
+    Set<ValidationMessage> validateMsg = schema.validate(jsonNode);
+    if (!validateMsg.isEmpty()) {
+      log.error(validateMsg.stream().map(ValidationMessage::getMessage).collect(Collectors.joining("\n")));
+    }
+    Set<ValidationMessage> processValidationMessages = processValidationMessages(validateMsg, jsonNode);
+    StringBuilder combinedValidationMessage = new StringBuilder();
+    if (!processValidationMessages.isEmpty()) {
+      List<YamlSchemaErrorDTO> errorDTOS = new ArrayList<>();
+      for (ValidationMessage validationMessage : processValidationMessages) {
+        // Skipping Additional properties messages until Library Upgrade.
+        if (validationMessage.getCode().equals(ValidatorTypeCode.ADDITIONAL_PROPERTIES.getErrorCode())) {
+          continue;
+        }
+        errorDTOS.add(YamlSchemaErrorDTO.builder()
+                          .message(validationMessage.getMessage())
+                          .stageInfo(SchemaValidationUtils.getStageErrorInfo(validationMessage.getPath(), jsonNode))
+                          .stepInfo(SchemaValidationUtils.getStepErrorInfo(validationMessage.getPath(), jsonNode))
+                          .fqn(validationMessage.getPath())
+                          .build());
+        combinedValidationMessage.append(validationMessage.getMessage());
+      }
+      YamlSchemaErrorWrapperDTO errorWrapperDTO = YamlSchemaErrorWrapperDTO.builder().schemaErrors(errorDTOS).build();
+      throw new InvalidYamlException(combinedValidationMessage.toString(), errorWrapperDTO);
+    }
+    return Collections.emptySet();
+  }
+
+  private String removeFqnFromErrorMessage(String message) {
+    String pathInMessage = message.split(":")[0];
+    String[] pathComponents = pathInMessage.split("\\.");
+    return message.replace(pathInMessage, pathComponents[pathComponents.length - 1]);
+  }
+
+  protected void validateParallelStagesCount(
+      JsonNode yaml, boolean shouldValidateParallelStageCount, int allowedParallelStages) {
+    if (shouldValidateParallelStageCount) {
+      return;
+    }
+    ArrayNode stages = (ArrayNode) yaml.get(PIPELINE_NODE).get(STAGES_NODE);
+    if (stages == null) {
+      return;
+    }
+    for (int index = 0; index < stages.size(); index++) {
+      JsonNode parallelNode = stages.get(index).get(PARALLEL_NODE);
+      if (parallelNode == null) {
+        continue;
+      }
+      if (parallelNode.size() > allowedParallelStages) {
+        throw new InvalidRequestException(String.format(
+            "More than %s parallel stages provided at $.pipeline.stages[%s].parallel. \nPlease check the pipeline and ensure that parallel stages count does not exceed allowed value of %s.",
+            allowedParallelStages, index, allowedParallelStages));
+      }
+    }
   }
 
   public void populateSchemaInStaticMap(JsonNode schema, EntityType entityType) {
@@ -99,60 +165,20 @@ public class YamlSchemaValidator {
     schemas.forEach((entityType, jsonNode) -> populateSchemaInStaticMap(jsonNode, entityType));
   }
 
-  protected Set<ValidationMessage> processValidationMessages(Collection<ValidationMessage> validationMessages) {
-    Map<String, List<ValidationMessage>> codes = new HashMap<>();
-    for (ValidationMessage validationMessage : validationMessages) {
-      if (codes.containsKey(validationMessage.getCode())) {
-        codes.get(validationMessage.getCode()).add(validationMessage);
-      } else {
-        List<ValidationMessage> validationMessageList = new ArrayList<>();
-        validationMessageList.add(validationMessage);
-        codes.put(validationMessage.getCode(), validationMessageList);
-      }
-    }
+  protected Set<ValidationMessage> processValidationMessages(
+      Collection<ValidationMessage> validationMessages, JsonNode jsonNode) {
+    Map<String, List<ValidationMessage>> validationMessageCodeMap =
+        SchemaValidationUtils.getValidationMessageCodeMap(validationMessages);
     Set<ValidationMessage> validationMessageList = new HashSet<>();
-    for (Map.Entry<String, List<ValidationMessage>> validationEntry : codes.entrySet()) {
+    for (Map.Entry<String, List<ValidationMessage>> validationEntry : validationMessageCodeMap.entrySet()) {
       if (validationEntry.getKey().equals(ENUM_SCHEMA_ERROR_CODE)) {
-        validationMessageList.addAll(processEnumValidationCode(validationEntry.getValue()));
+        validationMessageList.addAll(enumCodeSchemaHandler.handle(validationEntry.getValue()));
+      } else if (validationEntry.getKey().equals(REQUIRED_SCHEMA_ERROR_CODE)) {
+        validationMessageList.addAll(requiredCodeSchemaHandler.handle(validationEntry.getValue(), jsonNode));
       } else {
         validationMessageList.addAll(validationEntry.getValue());
       }
     }
-    return validationMessageList;
-  }
-
-  private List<ValidationMessage> processEnumValidationCode(List<ValidationMessage> validationMessages) {
-    Map<String, List<ValidationMessage>> pathMap = new HashMap<>();
-    for (ValidationMessage validationMessage : validationMessages) {
-      if (pathMap.containsKey(validationMessage.getPath())) {
-        pathMap.get(validationMessage.getPath()).add(validationMessage);
-      } else {
-        List<ValidationMessage> validationMessageList = new ArrayList<>();
-        validationMessageList.add(validationMessage);
-        pathMap.put(validationMessage.getPath(), validationMessageList);
-      }
-    }
-    List<ValidationMessage> processedValidationMsg = new ArrayList<>();
-    for (List<ValidationMessage> validationMessageList : pathMap.values()) {
-      List<String> arguments = new ArrayList<>();
-      for (ValidationMessage validationMessage : validationMessageList) {
-        arguments.addAll(Arrays.asList(removeParenthesisFromArguments(validationMessage.getArguments())));
-      }
-      ValidationMessage validationMessage = validationMessageList.get(0);
-      processedValidationMsg.add(ValidationMessage.of(validationMessage.getType(), ValidatorTypeCode.ENUM,
-          validationMessage.getPath(), Arrays.toString(arguments.toArray())));
-    }
-    return processedValidationMsg;
-  }
-
-  private String[] removeParenthesisFromArguments(String[] arguments) {
-    List<String> cleanArguments = new ArrayList<>();
-    int length = arguments.length;
-    for (int index = 0; index < length; index++) {
-      if (!arguments[index].equals("[]")) {
-        cleanArguments.add(arguments[index].substring(1, arguments[index].length() - 1));
-      }
-    }
-    return cleanArguments.toArray(new String[0]);
+    return SchemaValidationUtils.filterErrorsIfMoreSpecificErrorIsPresent(validationMessageList);
   }
 }

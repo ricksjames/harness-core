@@ -83,6 +83,9 @@ public interface PcfConstants {
   String CONTEXT_OLD_APP_GUID_EXPR = "pcf.oldAppGuid";
   String CONTEXT_OLD_APP_ROUTES_EXPR = "pcf.oldAppRoutes";
 
+  String CONTEXT_ACTIVE_APP_NAME_EXPR = "pcf.activeAppName";
+  String CONTEXT_INACTIVE_APP_NAME_EXPR = "pcf.inActiveAppName";
+
   String CONTEXT_APP_FINAL_ROUTES_EXPR = "pcf.finalRoutes";
   String CONTEXT_APP_TEMP_ROUTES_EXPR = "pcf.tempRoutes";
   String PCF_CONFIG_FILE_EXTENSION = ".yml";
@@ -111,6 +114,10 @@ public interface PcfConstants {
   String INTERIM = "interim";
   String INTERIM_APP_NAME_SUFFIX = DELIMITER + INTERIM;
   String INACTIVE_APP_NAME_SUFFIX = DELIMITER + HARNESS__INACTIVE__IDENTIFIER;
+
+  String INVALID_MANIFEST_MESSAGE = "Application Manifest cannot be blank or contain invalid characters";
+  String MULTIPLE_APPLICATION_MANIFEST_MESSAGE = "Multiple application manifest files found at %s level";
+  String MULTIPLE_AUTOSCALAR_MANIFEST_MESSAGE = "Multiple autoscalar manifest files found at %s level";
 
   static boolean isInterimApp(String applicationName) {
     return isNotEmpty(applicationName) && applicationName.endsWith(INTERIM_APP_NAME_SUFFIX);

@@ -10,20 +10,25 @@ package software.wings.sm.states.pcf;
 import static io.harness.annotations.dev.HarnessModule._870_CG_ORCHESTRATION;
 import static io.harness.annotations.dev.HarnessTeam.CDP;
 import static io.harness.beans.EnvironmentType.PROD;
+import static io.harness.beans.FeatureName.SINGLE_MANIFEST_SUPPORT;
 import static io.harness.data.structure.UUIDGenerator.generateUuid;
 import static io.harness.delegate.beans.pcf.ResizeStrategy.RESIZE_NEW_FIRST;
 import static io.harness.delegate.task.pcf.CfCommandRequest.PcfCommandType.UPDATE_ROUTE;
 import static io.harness.pcf.model.PcfConstants.INSTANCE_PLACEHOLDER_TOKEN_DEPRECATED;
+import static io.harness.pcf.model.PcfConstants.INTERIM_APP_NAME_SUFFIX;
 import static io.harness.pcf.model.PcfConstants.LEGACY_NAME_PCF_MANIFEST;
 import static io.harness.pcf.model.PcfConstants.MANIFEST_YML;
+import static io.harness.pcf.model.PcfConstants.MULTIPLE_APPLICATION_MANIFEST_MESSAGE;
 import static io.harness.pcf.model.PcfConstants.VARS_YML;
 import static io.harness.rule.OwnerRule.ADWAIT;
+import static io.harness.rule.OwnerRule.ANIL;
 import static io.harness.rule.OwnerRule.ANSHUL;
 import static io.harness.rule.OwnerRule.ARVIND;
 import static io.harness.rule.OwnerRule.IVAN;
 import static io.harness.rule.OwnerRule.PRASHANT;
 import static io.harness.rule.OwnerRule.RIHAZ;
 import static io.harness.rule.OwnerRule.TMACARI;
+import static io.harness.rule.OwnerRule.VAIBHAV_KUMAR;
 
 import static software.wings.beans.Application.Builder.anApplication;
 import static software.wings.beans.Environment.Builder.anEnvironment;
@@ -53,6 +58,7 @@ import static software.wings.utils.WingsTestConstants.WORKFLOW_EXECUTION_ID;
 import static java.util.Collections.emptyList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
@@ -76,17 +82,20 @@ import io.harness.category.element.UnitTests;
 import io.harness.context.ContextElementType;
 import io.harness.delegate.beans.TaskData;
 import io.harness.delegate.beans.pcf.CfAppSetupTimeDetails;
+import io.harness.delegate.beans.pcf.CfInBuiltVariablesUpdateValues;
 import io.harness.delegate.beans.pcf.CfRouteUpdateRequestConfigData;
 import io.harness.delegate.task.manifests.request.CustomManifestValuesFetchParams;
 import io.harness.delegate.task.pcf.PcfManifestsPackage;
 import io.harness.delegate.task.pcf.request.CfCommandRouteUpdateRequest;
 import io.harness.delegate.task.pcf.response.CfCommandExecutionResponse;
+import io.harness.delegate.task.pcf.response.CfRouteUpdateCommandResponse;
 import io.harness.exception.InvalidArgumentsException;
 import io.harness.exception.InvalidRequestException;
 import io.harness.ff.FeatureFlagService;
 import io.harness.git.model.GitFile;
 import io.harness.logging.LogCallback;
 import io.harness.pcf.model.CfCliVersion;
+import io.harness.pcf.model.PcfConstants;
 import io.harness.rule.Owner;
 
 import software.wings.WingsBaseTest;
@@ -107,6 +116,8 @@ import software.wings.api.pcf.SwapRouteRollbackSweepingOutputPcf;
 import software.wings.beans.Activity;
 import software.wings.beans.Activity.ActivityBuilder;
 import software.wings.beans.Activity.Type;
+import software.wings.beans.GitFetchFilesConfig;
+import software.wings.beans.GitFileConfig;
 import software.wings.beans.PcfConfig;
 import software.wings.beans.PcfInfrastructureMapping;
 import software.wings.beans.Service;
@@ -147,6 +158,7 @@ import software.wings.sm.WorkflowStandardParams;
 import software.wings.utils.ApplicationManifestUtils;
 
 import com.google.inject.Inject;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -169,6 +181,7 @@ public class PcfStateHelperTest extends WingsBaseTest {
   private static String SECOND_INFRA_DEFINITION_ID = INFRA_DEFINITION_ID + "2";
   public static final String REPLACE_ME = "REPLACE_ME";
   public static final ServiceElement SERVICE_ELEMENT = ServiceElement.builder().uuid(SERVICE_ID).build();
+  public static final String DUMMY_ACCOUNT_ID = "accountId";
   private LogCallback logCallback = null;
   private String SERVICE_MANIFEST_YML = "applications:\n"
       + "- name: ((PCF_APP_NAME))\n"
@@ -248,6 +261,21 @@ public class PcfStateHelperTest extends WingsBaseTest {
       + "    buildpack: https://github.com/cloudfoundry/java-buildpack.git\n"
       + "    path: ${FILE_LOCATION}\n"
       + "    no-route: true\n";
+  public static final String SAMPLE_APPLICATION_MANIFEST_VALID_SERVICE_LEVEL = "applications:\n"
+      + "- name: sample-manifest-service-level\n"
+      + "  memory: 700M\n"
+      + "  instances : 1\n"
+      + "  random-route: true";
+
+  public static final String SAMPLE_APPLICATION_MANIFEST_VALID_ENVIRONMENT_LEVEL = "applications:\n"
+      + "- name: sample-manifest-environment-level\n"
+      + "  memory: 700M\n"
+      + "  instances : 1\n"
+      + "  random-route: true";
+
+  public static final String SAMPLE_APPLICATION_MANIFEST_INVALID = "applications:\n"
+      + "- name: invalid-manifest\n"
+      + "  memory;";
 
   @Before
   public void setup() throws IllegalAccessException {
@@ -311,8 +339,8 @@ public class PcfStateHelperTest extends WingsBaseTest {
 
     when(applicationManifestService.getManifestFilesByAppManifestId(APP_ID, SERVICE_ID))
         .thenReturn(Arrays.asList(ManifestFile.builder().fileContent(SERVICE_MANIFEST_YML).build()));
-    PcfManifestsPackage pcfManifestsPackage =
-        pcfStateHelper.getFinalManifestFilesMap(appManifestMap, fetchFilesResult, null, logCallback);
+    PcfManifestsPackage pcfManifestsPackage = pcfStateHelper.getFinalManifestFilesMap(
+        appManifestMap, fetchFilesResult, null, logCallback, CFManifestDataInfo.builder().build());
     assertThat(pcfManifestsPackage).isNotNull();
     assertThat(pcfManifestsPackage.getManifestYml()).isEqualTo(SERVICE_MANIFEST_YML);
 
@@ -324,7 +352,8 @@ public class PcfStateHelperTest extends WingsBaseTest {
                                           .build();
     filesFromMultipleRepo.put(K8sValuesLocation.EnvironmentGlobal.name(), filesResult);
     fetchFilesResult.setFilesFromMultipleRepo(filesFromMultipleRepo);
-    pcfManifestsPackage = pcfStateHelper.getFinalManifestFilesMap(appManifestMap, fetchFilesResult, null, logCallback);
+    pcfManifestsPackage = pcfStateHelper.getFinalManifestFilesMap(
+        appManifestMap, fetchFilesResult, null, logCallback, CFManifestDataInfo.builder().build());
     assertThat(pcfManifestsPackage).isNotNull();
     assertThat(pcfManifestsPackage.getManifestYml()).isEqualTo(ENV_MANIFEST_YML);
 
@@ -334,7 +363,8 @@ public class PcfStateHelperTest extends WingsBaseTest {
 
     when(applicationManifestService.getManifestFilesByAppManifestId(APP_ID, envServiceId))
         .thenReturn(Arrays.asList(ManifestFile.builder().fileContent(ENV_SERVICE_MANIFEST_YML).build()));
-    pcfManifestsPackage = pcfStateHelper.getFinalManifestFilesMap(appManifestMap, fetchFilesResult, null, logCallback);
+    pcfManifestsPackage = pcfStateHelper.getFinalManifestFilesMap(
+        appManifestMap, fetchFilesResult, null, logCallback, CFManifestDataInfo.builder().build());
     assertThat(pcfManifestsPackage).isNotNull();
     assertThat(pcfManifestsPackage.getManifestYml()).isEqualTo(ENV_SERVICE_MANIFEST_YML);
 
@@ -344,7 +374,8 @@ public class PcfStateHelperTest extends WingsBaseTest {
     appManifestMap.put(K8sValuesLocation.Service, customApplicationManifest);
     Map<K8sValuesLocation, Collection<String>> manifests = new HashMap<>();
     manifests.put(K8sValuesLocation.Service, Arrays.asList(SERVICE_MANIFEST_YML, TEST_VAR));
-    pcfManifestsPackage = pcfStateHelper.getFinalManifestFilesMap(appManifestMap, null, manifests, logCallback);
+    pcfManifestsPackage = pcfStateHelper.getFinalManifestFilesMap(
+        appManifestMap, null, manifests, logCallback, CFManifestDataInfo.builder().build());
     assertThat(pcfManifestsPackage).isNotNull();
     assertThat(pcfManifestsPackage.getManifestYml()).isEqualTo(SERVICE_MANIFEST_YML);
     assertThat(pcfManifestsPackage.getVariableYmls()).contains(TEST_VAR);
@@ -354,10 +385,1017 @@ public class PcfStateHelperTest extends WingsBaseTest {
     appManifestMap.put(K8sValuesLocation.Service, customApplicationManifest);
     appManifestMap.put(K8sValuesLocation.Environment, customApplicationManifest);
     manifests.put(K8sValuesLocation.Environment, Arrays.asList(ENV_SERVICE_MANIFEST_YML, TEST_VAR));
-    pcfManifestsPackage = pcfStateHelper.getFinalManifestFilesMap(appManifestMap, null, manifests, logCallback);
+    pcfManifestsPackage = pcfStateHelper.getFinalManifestFilesMap(
+        appManifestMap, null, manifests, logCallback, CFManifestDataInfo.builder().build());
     assertThat(pcfManifestsPackage).isNotNull();
     assertThat(pcfManifestsPackage.getManifestYml()).isEqualTo(ENV_SERVICE_MANIFEST_YML);
     assertThat(pcfManifestsPackage.getVariableYmls()).contains(TEST_VAR);
+  }
+
+  @Test
+  @Owner(developers = VAIBHAV_KUMAR)
+  @Category(UnitTests.class)
+  public void testSingleManifestSupportFFDisabledEnvironmentLevel() {
+    Service service = Service.builder().uuid(SERVICE_ID).isPcfV2(true).build();
+    doReturn(service).when(serviceResourceService).get(anyString());
+
+    // FF disabled
+    doReturn(false).when(featureFlagService).isEnabled(SINGLE_MANIFEST_SUPPORT, DUMMY_ACCOUNT_ID);
+
+    // Test case 1: EnvService - Inline - Valid Manifest
+    // Expected Behaviour: The environment level manifest is set as final manifest
+    Map<K8sValuesLocation, ApplicationManifest> envServiceInlineManifestMap = new HashMap<>();
+    envServiceInlineManifestMap.put(K8sValuesLocation.Service,
+        ApplicationManifest.builder()
+            .storeType(StoreType.Local)
+            .serviceId(SERVICE_ID)
+            .kind(AppManifestKind.PCF_OVERRIDE)
+            .build());
+    envServiceInlineManifestMap.put(K8sValuesLocation.Environment,
+        ApplicationManifest.builder()
+            .storeType(StoreType.Local)
+            .serviceId(SERVICE_ID)
+            .kind(AppManifestKind.PCF_OVERRIDE)
+            .build());
+    doReturn(Collections.singletonList(
+                 ManifestFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_VALID_SERVICE_LEVEL).build()))
+        .doReturn(Collections.singletonList(
+            ManifestFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_VALID_ENVIRONMENT_LEVEL).build()))
+        .when(applicationManifestService)
+        .getManifestFilesByAppManifestId(anyString(), anyString());
+    assertThat(
+        pcfStateHelper
+            .generateManifestMap(context, envServiceInlineManifestMap, SERVICE_ELEMENT, ACTIVITY_ID, DUMMY_ACCOUNT_ID)
+            .getManifestYml())
+        .isEqualTo(SAMPLE_APPLICATION_MANIFEST_VALID_ENVIRONMENT_LEVEL);
+
+    // Test case 2: EnvService - Inline - Invalid Manifest
+    // Expected Behaviour: Throws error
+    doReturn(Collections.singletonList(
+                 ManifestFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_VALID_SERVICE_LEVEL).build()))
+        .doReturn(
+            Collections.singletonList(ManifestFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_INVALID).build()))
+        .when(applicationManifestService)
+        .getManifestFilesByAppManifestId(anyString(), anyString());
+    assertThatThrownBy(()
+                           -> pcfStateHelper.generateManifestMap(
+                               context, envServiceInlineManifestMap, SERVICE_ELEMENT, ACTIVITY_ID, DUMMY_ACCOUNT_ID))
+        .isInstanceOf(InvalidRequestException.class)
+        .hasMessage("No valid manifest files found at Environment level");
+
+    // Test case 3: EnvService - Remote - Single Manifest - Valid Manifest
+    // Expected Behaviour: The environment level manifest is set as final manifest
+    Map<K8sValuesLocation, ApplicationManifest> envServiceRemoteManifestMap = new HashMap<>();
+    envServiceRemoteManifestMap.put(K8sValuesLocation.Service,
+        ApplicationManifest.builder()
+            .storeType(StoreType.Local)
+            .serviceId(SERVICE_ID)
+            .kind(AppManifestKind.PCF_OVERRIDE)
+            .build());
+    envServiceRemoteManifestMap.put(K8sValuesLocation.Environment,
+        ApplicationManifest.builder()
+            .storeType(StoreType.Remote)
+            .serviceId(SERVICE_ID)
+            .kind(AppManifestKind.PCF_OVERRIDE)
+            .build());
+    List<GitFile> files = new ArrayList<GitFile>() {
+      { add(GitFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_VALID_ENVIRONMENT_LEVEL).build()); }
+    };
+    GitFetchFilesResult gitFetchFilesResult = GitFetchFilesResult.builder().files(files).build();
+    Map<String, GitFetchFilesResult> filesFromMultipleRepo =
+        Collections.singletonMap(K8sValuesLocation.Environment.name(), gitFetchFilesResult);
+    final GitFetchFilesConfig gitFetchFilesConfig =
+        GitFetchFilesConfig.builder().gitFileConfig(GitFileConfig.builder().filePath("filePath").build()).build();
+    Map<String, GitFetchFilesConfig> gitFetchFilesConfigMap = new HashMap<String, GitFetchFilesConfig>() {
+      { put(K8sValuesLocation.Environment.name(), gitFetchFilesConfig); }
+    };
+    GitFetchFilesFromMultipleRepoResult gitFetchFilesFromMultipleRepoResult =
+        GitFetchFilesFromMultipleRepoResult.builder()
+            .filesFromMultipleRepo(filesFromMultipleRepo)
+            .gitFetchFilesConfigMap(gitFetchFilesConfigMap)
+            .build();
+
+    doReturn(PcfSetupStateExecutionData.builder()
+                 .appManifestMap(envServiceRemoteManifestMap)
+                 .fetchFilesResult(gitFetchFilesFromMultipleRepoResult)
+                 .build())
+        .doReturn(null)
+        .when(context)
+        .getStateExecutionData();
+    doReturn(Collections.singletonList(
+                 ManifestFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_VALID_SERVICE_LEVEL).build()))
+        .when(applicationManifestService)
+        .getManifestFilesByAppManifestId(anyString(), anyString());
+    assertThat(
+        pcfStateHelper
+            .generateManifestMap(context, envServiceRemoteManifestMap, SERVICE_ELEMENT, ACTIVITY_ID, DUMMY_ACCOUNT_ID)
+            .getManifestYml())
+        .isEqualTo(SAMPLE_APPLICATION_MANIFEST_VALID_ENVIRONMENT_LEVEL);
+
+    // Test case 4: EnvService - Remote - Single Manifest - Invalid Manifest
+    // Expected Behaviour: Throws error
+    files = new ArrayList<GitFile>() {
+      { add(GitFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_INVALID).build()); }
+    };
+    gitFetchFilesResult = GitFetchFilesResult.builder().files(files).build();
+    filesFromMultipleRepo = Collections.singletonMap(K8sValuesLocation.Environment.name(), gitFetchFilesResult);
+    gitFetchFilesConfigMap = new HashMap<String, GitFetchFilesConfig>() {
+      { put(K8sValuesLocation.Environment.name(), gitFetchFilesConfig); }
+    };
+    gitFetchFilesFromMultipleRepoResult = GitFetchFilesFromMultipleRepoResult.builder()
+                                              .filesFromMultipleRepo(filesFromMultipleRepo)
+                                              .gitFetchFilesConfigMap(gitFetchFilesConfigMap)
+                                              .build();
+
+    doReturn(PcfSetupStateExecutionData.builder()
+                 .appManifestMap(envServiceRemoteManifestMap)
+                 .fetchFilesResult(gitFetchFilesFromMultipleRepoResult)
+                 .build())
+        .doReturn(null)
+        .when(context)
+        .getStateExecutionData();
+    doReturn(Collections.singletonList(
+                 ManifestFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_VALID_SERVICE_LEVEL).build()))
+        .when(applicationManifestService)
+        .getManifestFilesByAppManifestId(anyString(), anyString());
+    assertThatThrownBy(()
+                           -> pcfStateHelper.generateManifestMap(
+                               context, envServiceRemoteManifestMap, SERVICE_ELEMENT, ACTIVITY_ID, DUMMY_ACCOUNT_ID))
+        .isInstanceOf(InvalidRequestException.class)
+        .hasMessage("No valid manifest files found filePath");
+
+    // Test case 5: EnvService - Remote - Multiple Manifest - Valid Manifest
+    // Expected Behaviour: Any randomly chosen manifest at env level is set as final manifest
+    files = new ArrayList<GitFile>() {
+      {
+        add(GitFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_VALID_ENVIRONMENT_LEVEL).build());
+        add(GitFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_VALID_ENVIRONMENT_LEVEL).build());
+      }
+    };
+    gitFetchFilesResult = GitFetchFilesResult.builder().files(files).build();
+    filesFromMultipleRepo = Collections.singletonMap(K8sValuesLocation.Environment.name(), gitFetchFilesResult);
+    gitFetchFilesConfigMap = new HashMap<String, GitFetchFilesConfig>() {
+      { put(K8sValuesLocation.Environment.name(), gitFetchFilesConfig); }
+    };
+    gitFetchFilesFromMultipleRepoResult = GitFetchFilesFromMultipleRepoResult.builder()
+                                              .filesFromMultipleRepo(filesFromMultipleRepo)
+                                              .gitFetchFilesConfigMap(gitFetchFilesConfigMap)
+                                              .build();
+
+    doReturn(PcfSetupStateExecutionData.builder()
+                 .appManifestMap(envServiceRemoteManifestMap)
+                 .fetchFilesResult(gitFetchFilesFromMultipleRepoResult)
+                 .build())
+        .doReturn(null)
+        .when(context)
+        .getStateExecutionData();
+    doReturn(Collections.singletonList(
+                 ManifestFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_VALID_SERVICE_LEVEL).build()))
+        .when(applicationManifestService)
+        .getManifestFilesByAppManifestId(anyString(), anyString());
+    assertThat(
+        pcfStateHelper
+            .generateManifestMap(context, envServiceRemoteManifestMap, SERVICE_ELEMENT, ACTIVITY_ID, DUMMY_ACCOUNT_ID)
+            .getManifestYml())
+        .isEqualTo(SAMPLE_APPLICATION_MANIFEST_VALID_ENVIRONMENT_LEVEL);
+
+    // Test case 6: EnvService - Remote - Multiple Manifest - Invalid Manifest
+    // Expected Behaviour: Throws error
+    files = new ArrayList<GitFile>() {
+      {
+        add(GitFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_INVALID).build());
+        add(GitFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_INVALID).build());
+      }
+    };
+    gitFetchFilesResult = GitFetchFilesResult.builder().files(files).build();
+    filesFromMultipleRepo = Collections.singletonMap(K8sValuesLocation.Environment.name(), gitFetchFilesResult);
+    gitFetchFilesConfigMap = new HashMap<String, GitFetchFilesConfig>() {
+      { put(K8sValuesLocation.Environment.name(), gitFetchFilesConfig); }
+    };
+    gitFetchFilesFromMultipleRepoResult = GitFetchFilesFromMultipleRepoResult.builder()
+                                              .filesFromMultipleRepo(filesFromMultipleRepo)
+                                              .gitFetchFilesConfigMap(gitFetchFilesConfigMap)
+                                              .build();
+
+    doReturn(PcfSetupStateExecutionData.builder()
+                 .appManifestMap(envServiceRemoteManifestMap)
+                 .fetchFilesResult(gitFetchFilesFromMultipleRepoResult)
+                 .build())
+        .doReturn(null)
+        .when(context)
+        .getStateExecutionData();
+    doReturn(Collections.singletonList(
+                 ManifestFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_VALID_SERVICE_LEVEL).build()))
+        .when(applicationManifestService)
+        .getManifestFilesByAppManifestId(anyString(), anyString());
+    assertThatThrownBy(()
+                           -> pcfStateHelper.generateManifestMap(
+                               context, envServiceRemoteManifestMap, SERVICE_ELEMENT, ACTIVITY_ID, DUMMY_ACCOUNT_ID))
+        .isInstanceOf(InvalidRequestException.class)
+        .hasMessage("No valid manifest files found filePath");
+  }
+
+  @Test
+  @Owner(developers = VAIBHAV_KUMAR)
+  @Category(UnitTests.class)
+  public void testSingleManifestSupportFFDisabledEnvironmentGlobalLevel() {
+    Service service = Service.builder().uuid(SERVICE_ID).isPcfV2(true).build();
+    doReturn(service).when(serviceResourceService).get(anyString());
+
+    // FF disabled
+    doReturn(false).when(featureFlagService).isEnabled(SINGLE_MANIFEST_SUPPORT, DUMMY_ACCOUNT_ID);
+
+    // Test case 1: All Service manifest - Inline - Valid Manifest
+    // Expected Behaviour: The environment level manifest is set as final manifest
+    Map<K8sValuesLocation, ApplicationManifest> envInlineManifestMap = new HashMap<>();
+    envInlineManifestMap.put(K8sValuesLocation.Service,
+        ApplicationManifest.builder()
+            .storeType(StoreType.Local)
+            .serviceId(SERVICE_ID)
+            .kind(AppManifestKind.PCF_OVERRIDE)
+            .build());
+    envInlineManifestMap.put(K8sValuesLocation.EnvironmentGlobal,
+        ApplicationManifest.builder()
+            .storeType(StoreType.Local)
+            .serviceId(SERVICE_ID)
+            .kind(AppManifestKind.PCF_OVERRIDE)
+            .build());
+    doReturn(Collections.singletonList(
+                 ManifestFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_VALID_SERVICE_LEVEL).build()))
+        .doReturn(Collections.singletonList(
+            ManifestFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_VALID_ENVIRONMENT_LEVEL).build()))
+        .when(applicationManifestService)
+        .getManifestFilesByAppManifestId(anyString(), anyString());
+    assertThat(pcfStateHelper
+                   .generateManifestMap(context, envInlineManifestMap, SERVICE_ELEMENT, ACTIVITY_ID, DUMMY_ACCOUNT_ID)
+                   .getManifestYml())
+        .isEqualTo(SAMPLE_APPLICATION_MANIFEST_VALID_ENVIRONMENT_LEVEL);
+
+    // Test case 2: All Service manifest - Inline - Invalid Manifest
+    // Expected Behaviour: Throws error
+    doReturn(Collections.singletonList(
+                 ManifestFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_VALID_SERVICE_LEVEL).build()))
+        .doReturn(
+            Collections.singletonList(ManifestFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_INVALID).build()))
+        .when(applicationManifestService)
+        .getManifestFilesByAppManifestId(anyString(), anyString());
+    assertThatThrownBy(()
+                           -> pcfStateHelper.generateManifestMap(
+                               context, envInlineManifestMap, SERVICE_ELEMENT, ACTIVITY_ID, DUMMY_ACCOUNT_ID))
+        .isInstanceOf(InvalidRequestException.class)
+        .hasMessage("No valid manifest files found at EnvironmentGlobal level");
+
+    // Test case 3: All Service manifest - Remote - Single Manifest - Valid Manifest
+    // Expected Behaviour: The environment level manifest is set as final manifest
+    Map<K8sValuesLocation, ApplicationManifest> envRemoteManifestMap = new HashMap<>();
+    envRemoteManifestMap.put(K8sValuesLocation.Service,
+        ApplicationManifest.builder()
+            .storeType(StoreType.Local)
+            .serviceId(SERVICE_ID)
+            .kind(AppManifestKind.PCF_OVERRIDE)
+            .build());
+    envRemoteManifestMap.put(K8sValuesLocation.EnvironmentGlobal,
+        ApplicationManifest.builder()
+            .storeType(StoreType.Remote)
+            .serviceId(SERVICE_ID)
+            .kind(AppManifestKind.PCF_OVERRIDE)
+            .build());
+    List<GitFile> files = new ArrayList<GitFile>() {
+      { add(GitFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_VALID_ENVIRONMENT_LEVEL).build()); }
+    };
+    GitFetchFilesResult gitFetchFilesResult = GitFetchFilesResult.builder().files(files).build();
+    Map<String, GitFetchFilesResult> filesFromMultipleRepo =
+        Collections.singletonMap(K8sValuesLocation.EnvironmentGlobal.name(), gitFetchFilesResult);
+    final GitFetchFilesConfig gitFetchFilesConfig =
+        GitFetchFilesConfig.builder().gitFileConfig(GitFileConfig.builder().filePath("filePath").build()).build();
+    Map<String, GitFetchFilesConfig> gitFetchFilesConfigMap = new HashMap<String, GitFetchFilesConfig>() {
+      { put(K8sValuesLocation.EnvironmentGlobal.name(), gitFetchFilesConfig); }
+    };
+    GitFetchFilesFromMultipleRepoResult gitFetchFilesFromMultipleRepoResult =
+        GitFetchFilesFromMultipleRepoResult.builder()
+            .filesFromMultipleRepo(filesFromMultipleRepo)
+            .gitFetchFilesConfigMap(gitFetchFilesConfigMap)
+            .build();
+
+    doReturn(PcfSetupStateExecutionData.builder()
+                 .appManifestMap(envRemoteManifestMap)
+                 .fetchFilesResult(gitFetchFilesFromMultipleRepoResult)
+                 .build())
+        .doReturn(null)
+        .when(context)
+        .getStateExecutionData();
+    doReturn(Collections.singletonList(
+                 ManifestFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_VALID_SERVICE_LEVEL).build()))
+        .when(applicationManifestService)
+        .getManifestFilesByAppManifestId(anyString(), anyString());
+    assertThat(pcfStateHelper
+                   .generateManifestMap(context, envRemoteManifestMap, SERVICE_ELEMENT, ACTIVITY_ID, DUMMY_ACCOUNT_ID)
+                   .getManifestYml())
+        .isEqualTo(SAMPLE_APPLICATION_MANIFEST_VALID_ENVIRONMENT_LEVEL);
+
+    // Test case 4: All Service manifest - Remote - Single Manifest - Invalid Manifest
+    // Expected Behaviour: Throws error
+    files = new ArrayList<GitFile>() {
+      { add(GitFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_INVALID).build()); }
+    };
+    gitFetchFilesResult = GitFetchFilesResult.builder().files(files).build();
+    filesFromMultipleRepo = Collections.singletonMap(K8sValuesLocation.EnvironmentGlobal.name(), gitFetchFilesResult);
+    gitFetchFilesConfigMap = new HashMap<String, GitFetchFilesConfig>() {
+      { put(K8sValuesLocation.EnvironmentGlobal.name(), gitFetchFilesConfig); }
+    };
+    gitFetchFilesFromMultipleRepoResult = GitFetchFilesFromMultipleRepoResult.builder()
+                                              .filesFromMultipleRepo(filesFromMultipleRepo)
+                                              .gitFetchFilesConfigMap(gitFetchFilesConfigMap)
+                                              .build();
+
+    doReturn(PcfSetupStateExecutionData.builder()
+                 .appManifestMap(envRemoteManifestMap)
+                 .fetchFilesResult(gitFetchFilesFromMultipleRepoResult)
+                 .build())
+        .doReturn(null)
+        .when(context)
+        .getStateExecutionData();
+    doReturn(Collections.singletonList(
+                 ManifestFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_VALID_SERVICE_LEVEL).build()))
+        .when(applicationManifestService)
+        .getManifestFilesByAppManifestId(anyString(), anyString());
+    assertThatThrownBy(()
+                           -> pcfStateHelper.generateManifestMap(
+                               context, envRemoteManifestMap, SERVICE_ELEMENT, ACTIVITY_ID, DUMMY_ACCOUNT_ID))
+        .isInstanceOf(InvalidRequestException.class)
+        .hasMessage("No valid manifest files found filePath");
+
+    // Test case 5: All Service manifest - Remote - Multiple Manifest - Valid
+    // Expected Behaviour: Any randomly chosen manifest at env level is set as final manifest
+    files = new ArrayList<GitFile>() {
+      {
+        add(GitFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_VALID_ENVIRONMENT_LEVEL).build());
+        add(GitFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_VALID_ENVIRONMENT_LEVEL).build());
+      }
+    };
+    gitFetchFilesResult = GitFetchFilesResult.builder().files(files).build();
+    filesFromMultipleRepo = Collections.singletonMap(K8sValuesLocation.EnvironmentGlobal.name(), gitFetchFilesResult);
+    gitFetchFilesConfigMap = new HashMap<String, GitFetchFilesConfig>() {
+      { put(K8sValuesLocation.EnvironmentGlobal.name(), gitFetchFilesConfig); }
+    };
+    gitFetchFilesFromMultipleRepoResult = GitFetchFilesFromMultipleRepoResult.builder()
+                                              .filesFromMultipleRepo(filesFromMultipleRepo)
+                                              .gitFetchFilesConfigMap(gitFetchFilesConfigMap)
+                                              .build();
+
+    doReturn(PcfSetupStateExecutionData.builder()
+                 .appManifestMap(envRemoteManifestMap)
+                 .fetchFilesResult(gitFetchFilesFromMultipleRepoResult)
+                 .build())
+        .doReturn(null)
+        .when(context)
+        .getStateExecutionData();
+    doReturn(Collections.singletonList(
+                 ManifestFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_VALID_SERVICE_LEVEL).build()))
+        .when(applicationManifestService)
+        .getManifestFilesByAppManifestId(anyString(), anyString());
+    assertThat(pcfStateHelper
+                   .generateManifestMap(context, envRemoteManifestMap, SERVICE_ELEMENT, ACTIVITY_ID, DUMMY_ACCOUNT_ID)
+                   .getManifestYml())
+        .isEqualTo(SAMPLE_APPLICATION_MANIFEST_VALID_ENVIRONMENT_LEVEL);
+
+    // Test case 6: All Service manifest - Remote - Multiple Manifest - Invalid
+    // Expected Behaviour: Throws error
+    files = new ArrayList<GitFile>() {
+      {
+        add(GitFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_INVALID).build());
+        add(GitFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_INVALID).build());
+      }
+    };
+    gitFetchFilesResult = GitFetchFilesResult.builder().files(files).build();
+    filesFromMultipleRepo = Collections.singletonMap(K8sValuesLocation.EnvironmentGlobal.name(), gitFetchFilesResult);
+    gitFetchFilesConfigMap = new HashMap<String, GitFetchFilesConfig>() {
+      { put(K8sValuesLocation.EnvironmentGlobal.name(), gitFetchFilesConfig); }
+    };
+    gitFetchFilesFromMultipleRepoResult = GitFetchFilesFromMultipleRepoResult.builder()
+                                              .filesFromMultipleRepo(filesFromMultipleRepo)
+                                              .gitFetchFilesConfigMap(gitFetchFilesConfigMap)
+                                              .build();
+
+    doReturn(PcfSetupStateExecutionData.builder()
+                 .appManifestMap(envRemoteManifestMap)
+                 .fetchFilesResult(gitFetchFilesFromMultipleRepoResult)
+                 .build())
+        .doReturn(null)
+        .when(context)
+        .getStateExecutionData();
+    doReturn(Collections.singletonList(
+                 ManifestFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_VALID_SERVICE_LEVEL).build()))
+        .when(applicationManifestService)
+        .getManifestFilesByAppManifestId(anyString(), anyString());
+    assertThatThrownBy(()
+                           -> pcfStateHelper.generateManifestMap(
+                               context, envRemoteManifestMap, SERVICE_ELEMENT, ACTIVITY_ID, DUMMY_ACCOUNT_ID))
+        .isInstanceOf(InvalidRequestException.class)
+        .hasMessage("No valid manifest files found filePath");
+  }
+
+  @Test
+  @Owner(developers = VAIBHAV_KUMAR)
+  @Category(UnitTests.class)
+  public void testSingleManifestSupportFFDisabledServiceLevel() {
+    Service service = Service.builder().uuid(SERVICE_ID).isPcfV2(true).build();
+    doReturn(service).when(serviceResourceService).get(anyString());
+
+    // FF disabled
+    doReturn(false).when(featureFlagService).isEnabled(SINGLE_MANIFEST_SUPPORT, DUMMY_ACCOUNT_ID);
+
+    // Test case 1: Inline manifest present only at Service
+    // Expected Behaviour: The inline manifest is set as final manifest
+    Map<K8sValuesLocation, ApplicationManifest> localManifestMap = Collections.singletonMap(K8sValuesLocation.Service,
+        ApplicationManifest.builder()
+            .storeType(StoreType.Local)
+            .serviceId(SERVICE_ID)
+            .kind(AppManifestKind.PCF_OVERRIDE)
+            .build());
+
+    doReturn(Collections.singletonList(
+                 ManifestFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_VALID_SERVICE_LEVEL).build()))
+        .when(applicationManifestService)
+        .getManifestFilesByAppManifestId(anyString(), anyString());
+
+    assertThat(
+        pcfStateHelper.generateManifestMap(context, localManifestMap, SERVICE_ELEMENT, ACTIVITY_ID, DUMMY_ACCOUNT_ID)
+            .getManifestYml())
+        .isEqualTo(SAMPLE_APPLICATION_MANIFEST_VALID_SERVICE_LEVEL);
+
+    // Test case 2: Remote manifest present only at Service
+    // Expected Behaviour: The remote manifest is set as final manifest
+    Map<K8sValuesLocation, ApplicationManifest> remoteManifestMap = Collections.singletonMap(K8sValuesLocation.Service,
+        ApplicationManifest.builder()
+            .storeType(StoreType.Remote)
+            .serviceId(SERVICE_ID)
+            .kind(AppManifestKind.PCF_OVERRIDE)
+            .build());
+    List<GitFile> files = new ArrayList<GitFile>() {
+      { add(GitFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_VALID_SERVICE_LEVEL).build()); }
+    };
+    GitFetchFilesResult gitFetchFilesResult = GitFetchFilesResult.builder().files(files).build();
+    Map<String, GitFetchFilesResult> filesFromMultipleRepo =
+        Collections.singletonMap(K8sValuesLocation.Service.name(), gitFetchFilesResult);
+    final GitFetchFilesConfig gitFetchFilesConfig =
+        GitFetchFilesConfig.builder().gitFileConfig(GitFileConfig.builder().filePath("filePath").build()).build();
+    Map<String, GitFetchFilesConfig> gitFetchFilesConfigMap = new HashMap<String, GitFetchFilesConfig>() {
+      { put(K8sValuesLocation.Service.name(), gitFetchFilesConfig); }
+    };
+    GitFetchFilesFromMultipleRepoResult gitFetchFilesFromMultipleRepoResult =
+        GitFetchFilesFromMultipleRepoResult.builder()
+            .filesFromMultipleRepo(filesFromMultipleRepo)
+            .gitFetchFilesConfigMap(gitFetchFilesConfigMap)
+            .build();
+
+    doReturn(PcfSetupStateExecutionData.builder()
+                 .appManifestMap(remoteManifestMap)
+                 .fetchFilesResult(gitFetchFilesFromMultipleRepoResult)
+                 .build())
+        .doReturn(null)
+        .when(context)
+        .getStateExecutionData();
+
+    assertThat(
+        pcfStateHelper.generateManifestMap(context, remoteManifestMap, SERVICE_ELEMENT, ACTIVITY_ID, DUMMY_ACCOUNT_ID)
+            .getManifestYml())
+        .isEqualTo(SAMPLE_APPLICATION_MANIFEST_VALID_SERVICE_LEVEL);
+
+    // Test case 3: Remote folder present only at Service with multiple manifests
+    // Expected Behaviour: Any randomly chosen manifest is set as final manifest
+    files = new ArrayList<GitFile>() {
+      {
+        add(GitFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_VALID_SERVICE_LEVEL).build());
+        add(GitFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_VALID_SERVICE_LEVEL).build());
+      }
+    };
+    gitFetchFilesResult = GitFetchFilesResult.builder().files(files).build();
+    filesFromMultipleRepo = Collections.singletonMap(K8sValuesLocation.Service.name(), gitFetchFilesResult);
+    gitFetchFilesConfigMap = new HashMap<String, GitFetchFilesConfig>() {
+      { put(K8sValuesLocation.Service.name(), gitFetchFilesConfig); }
+    };
+    gitFetchFilesFromMultipleRepoResult = GitFetchFilesFromMultipleRepoResult.builder()
+                                              .filesFromMultipleRepo(filesFromMultipleRepo)
+                                              .gitFetchFilesConfigMap(gitFetchFilesConfigMap)
+                                              .build();
+
+    doReturn(PcfSetupStateExecutionData.builder()
+                 .appManifestMap(remoteManifestMap)
+                 .fetchFilesResult(gitFetchFilesFromMultipleRepoResult)
+                 .build())
+        .doReturn(null)
+        .when(context)
+        .getStateExecutionData();
+
+    assertThat(
+        pcfStateHelper.generateManifestMap(context, remoteManifestMap, SERVICE_ELEMENT, ACTIVITY_ID, DUMMY_ACCOUNT_ID)
+            .getManifestYml())
+        .isEqualTo(SAMPLE_APPLICATION_MANIFEST_VALID_SERVICE_LEVEL);
+  }
+
+  @Test
+  @Owner(developers = VAIBHAV_KUMAR)
+  @Category(UnitTests.class)
+  public void testSingleManifestSupportFFEnabledEnvironmentLevel() {
+    Service service = Service.builder().uuid(SERVICE_ID).isPcfV2(true).build();
+    doReturn(service).when(serviceResourceService).get(anyString());
+
+    // FF enabled
+    doReturn(true).when(featureFlagService).isEnabled(SINGLE_MANIFEST_SUPPORT, DUMMY_ACCOUNT_ID);
+
+    // Test case 1: EnvService - Inline - Valid Manifest
+    // Expected Behaviour: The environment level manifest is set as final manifest
+    Map<K8sValuesLocation, ApplicationManifest> envServiceInlineManifestMap = new HashMap<>();
+    envServiceInlineManifestMap.put(K8sValuesLocation.Service,
+        ApplicationManifest.builder()
+            .storeType(StoreType.Local)
+            .serviceId(SERVICE_ID)
+            .kind(AppManifestKind.PCF_OVERRIDE)
+            .build());
+    envServiceInlineManifestMap.put(K8sValuesLocation.Environment,
+        ApplicationManifest.builder()
+            .storeType(StoreType.Local)
+            .serviceId(SERVICE_ID)
+            .kind(AppManifestKind.PCF_OVERRIDE)
+            .build());
+    doReturn(Collections.singletonList(
+                 ManifestFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_VALID_SERVICE_LEVEL).build()))
+        .doReturn(Collections.singletonList(
+            ManifestFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_VALID_ENVIRONMENT_LEVEL).build()))
+        .when(applicationManifestService)
+        .getManifestFilesByAppManifestId(anyString(), anyString());
+    assertThat(
+        pcfStateHelper
+            .generateManifestMap(context, envServiceInlineManifestMap, SERVICE_ELEMENT, ACTIVITY_ID, DUMMY_ACCOUNT_ID)
+            .getManifestYml())
+        .isEqualTo(SAMPLE_APPLICATION_MANIFEST_VALID_ENVIRONMENT_LEVEL);
+
+    // Test case 2: EnvService - Inline - Invalid Manifest
+    // Expected Behaviour: Throws error
+    doReturn(Collections.singletonList(
+                 ManifestFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_VALID_SERVICE_LEVEL).build()))
+        .doReturn(
+            Collections.singletonList(ManifestFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_INVALID).build()))
+        .when(applicationManifestService)
+        .getManifestFilesByAppManifestId(anyString(), anyString());
+    assertThatThrownBy(()
+                           -> pcfStateHelper.generateManifestMap(
+                               context, envServiceInlineManifestMap, SERVICE_ELEMENT, ACTIVITY_ID, DUMMY_ACCOUNT_ID))
+        .isInstanceOf(InvalidRequestException.class)
+        .hasMessage("No valid manifest files found at Environment level");
+
+    // Test case 3: EnvService - Remote - Single Manifest - Valid Manifest
+    // Expected Behaviour: The environment level manifest is set as final manifest
+    Map<K8sValuesLocation, ApplicationManifest> envServiceRemoteManifestMap = new HashMap<>();
+    envServiceRemoteManifestMap.put(K8sValuesLocation.Service,
+        ApplicationManifest.builder()
+            .storeType(StoreType.Local)
+            .serviceId(SERVICE_ID)
+            .kind(AppManifestKind.PCF_OVERRIDE)
+            .build());
+    envServiceRemoteManifestMap.put(K8sValuesLocation.Environment,
+        ApplicationManifest.builder()
+            .storeType(StoreType.Remote)
+            .serviceId(SERVICE_ID)
+            .kind(AppManifestKind.PCF_OVERRIDE)
+            .build());
+    List<GitFile> files = new ArrayList<GitFile>() {
+      { add(GitFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_VALID_ENVIRONMENT_LEVEL).build()); }
+    };
+    GitFetchFilesResult gitFetchFilesResult = GitFetchFilesResult.builder().files(files).build();
+    Map<String, GitFetchFilesResult> filesFromMultipleRepo =
+        Collections.singletonMap(K8sValuesLocation.Environment.name(), gitFetchFilesResult);
+    final GitFetchFilesConfig gitFetchFilesConfig =
+        GitFetchFilesConfig.builder().gitFileConfig(GitFileConfig.builder().filePath("filePath").build()).build();
+    Map<String, GitFetchFilesConfig> gitFetchFilesConfigMap = new HashMap<String, GitFetchFilesConfig>() {
+      { put(K8sValuesLocation.Environment.name(), gitFetchFilesConfig); }
+    };
+    GitFetchFilesFromMultipleRepoResult gitFetchFilesFromMultipleRepoResult =
+        GitFetchFilesFromMultipleRepoResult.builder()
+            .filesFromMultipleRepo(filesFromMultipleRepo)
+            .gitFetchFilesConfigMap(gitFetchFilesConfigMap)
+            .build();
+
+    doReturn(PcfSetupStateExecutionData.builder()
+                 .appManifestMap(envServiceRemoteManifestMap)
+                 .fetchFilesResult(gitFetchFilesFromMultipleRepoResult)
+                 .build())
+        .doReturn(null)
+        .when(context)
+        .getStateExecutionData();
+    doReturn(Collections.singletonList(
+                 ManifestFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_VALID_SERVICE_LEVEL).build()))
+        .when(applicationManifestService)
+        .getManifestFilesByAppManifestId(anyString(), anyString());
+    assertThat(
+        pcfStateHelper
+            .generateManifestMap(context, envServiceRemoteManifestMap, SERVICE_ELEMENT, ACTIVITY_ID, DUMMY_ACCOUNT_ID)
+            .getManifestYml())
+        .isEqualTo(SAMPLE_APPLICATION_MANIFEST_VALID_ENVIRONMENT_LEVEL);
+
+    // Test case 4: EnvService - Remote - Single Manifest - Invalid Manifest
+    // Expected Behaviour: Throws error
+    files = new ArrayList<GitFile>() {
+      { add(GitFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_INVALID).build()); }
+    };
+    gitFetchFilesResult = GitFetchFilesResult.builder().files(files).build();
+    filesFromMultipleRepo = Collections.singletonMap(K8sValuesLocation.Environment.name(), gitFetchFilesResult);
+    gitFetchFilesConfigMap = new HashMap<String, GitFetchFilesConfig>() {
+      { put(K8sValuesLocation.Environment.name(), gitFetchFilesConfig); }
+    };
+    gitFetchFilesFromMultipleRepoResult = GitFetchFilesFromMultipleRepoResult.builder()
+                                              .filesFromMultipleRepo(filesFromMultipleRepo)
+                                              .gitFetchFilesConfigMap(gitFetchFilesConfigMap)
+                                              .build();
+
+    doReturn(PcfSetupStateExecutionData.builder()
+                 .appManifestMap(envServiceRemoteManifestMap)
+                 .fetchFilesResult(gitFetchFilesFromMultipleRepoResult)
+                 .build())
+        .doReturn(null)
+        .when(context)
+        .getStateExecutionData();
+    doReturn(Collections.singletonList(
+                 ManifestFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_VALID_SERVICE_LEVEL).build()))
+        .when(applicationManifestService)
+        .getManifestFilesByAppManifestId(anyString(), anyString());
+    assertThatThrownBy(()
+                           -> pcfStateHelper.generateManifestMap(
+                               context, envServiceRemoteManifestMap, SERVICE_ELEMENT, ACTIVITY_ID, DUMMY_ACCOUNT_ID))
+        .isInstanceOf(InvalidRequestException.class)
+        .hasMessage("No valid manifest files found filePath");
+
+    // Test case 5: EnvService - Remote - Multiple Manifest - Valid Manifest
+    // Expected Behaviour: Throws error
+    files = new ArrayList<GitFile>() {
+      {
+        add(GitFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_VALID_ENVIRONMENT_LEVEL).build());
+        add(GitFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_VALID_ENVIRONMENT_LEVEL).build());
+      }
+    };
+    gitFetchFilesResult = GitFetchFilesResult.builder().files(files).build();
+    filesFromMultipleRepo = Collections.singletonMap(K8sValuesLocation.Environment.name(), gitFetchFilesResult);
+    gitFetchFilesConfigMap = new HashMap<String, GitFetchFilesConfig>() {
+      { put(K8sValuesLocation.Environment.name(), gitFetchFilesConfig); }
+    };
+    gitFetchFilesFromMultipleRepoResult = GitFetchFilesFromMultipleRepoResult.builder()
+                                              .filesFromMultipleRepo(filesFromMultipleRepo)
+                                              .gitFetchFilesConfigMap(gitFetchFilesConfigMap)
+                                              .build();
+
+    doReturn(PcfSetupStateExecutionData.builder()
+                 .appManifestMap(envServiceRemoteManifestMap)
+                 .fetchFilesResult(gitFetchFilesFromMultipleRepoResult)
+                 .build())
+        .doReturn(null)
+        .when(context)
+        .getStateExecutionData();
+    doReturn(Collections.singletonList(
+                 ManifestFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_VALID_SERVICE_LEVEL).build()))
+        .when(applicationManifestService)
+        .getManifestFilesByAppManifestId(anyString(), anyString());
+    assertThatThrownBy(()
+                           -> pcfStateHelper.generateManifestMap(
+                               context, envServiceRemoteManifestMap, SERVICE_ELEMENT, ACTIVITY_ID, DUMMY_ACCOUNT_ID))
+        .isInstanceOf(InvalidRequestException.class)
+        .hasMessage(String.format(MULTIPLE_APPLICATION_MANIFEST_MESSAGE, K8sValuesLocation.Environment.name()));
+
+    // Test case 6: EnvService - Remote - Multiple Manifest - Invalid Manifest
+    // Expected Behaviour: Throws error
+    files = new ArrayList<GitFile>() {
+      {
+        add(GitFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_INVALID).build());
+        add(GitFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_INVALID).build());
+      }
+    };
+    gitFetchFilesResult = GitFetchFilesResult.builder().files(files).build();
+    filesFromMultipleRepo = Collections.singletonMap(K8sValuesLocation.Environment.name(), gitFetchFilesResult);
+    gitFetchFilesConfigMap = new HashMap<String, GitFetchFilesConfig>() {
+      { put(K8sValuesLocation.Environment.name(), gitFetchFilesConfig); }
+    };
+    gitFetchFilesFromMultipleRepoResult = GitFetchFilesFromMultipleRepoResult.builder()
+                                              .filesFromMultipleRepo(filesFromMultipleRepo)
+                                              .gitFetchFilesConfigMap(gitFetchFilesConfigMap)
+                                              .build();
+
+    doReturn(PcfSetupStateExecutionData.builder()
+                 .appManifestMap(envServiceRemoteManifestMap)
+                 .fetchFilesResult(gitFetchFilesFromMultipleRepoResult)
+                 .build())
+        .doReturn(null)
+        .when(context)
+        .getStateExecutionData();
+    doReturn(Collections.singletonList(
+                 ManifestFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_VALID_SERVICE_LEVEL).build()))
+        .when(applicationManifestService)
+        .getManifestFilesByAppManifestId(anyString(), anyString());
+    assertThatThrownBy(()
+                           -> pcfStateHelper.generateManifestMap(
+                               context, envServiceRemoteManifestMap, SERVICE_ELEMENT, ACTIVITY_ID, DUMMY_ACCOUNT_ID))
+        .isInstanceOf(InvalidRequestException.class)
+        .hasMessage("No valid manifest files found filePath");
+  }
+
+  @Test
+  @Owner(developers = VAIBHAV_KUMAR)
+  @Category(UnitTests.class)
+  public void testSingleManifestSupportFFEnabledEnvironmentGlobalLevel() {
+    Service service = Service.builder().uuid(SERVICE_ID).isPcfV2(true).build();
+    doReturn(service).when(serviceResourceService).get(anyString());
+
+    // FF enabled
+    doReturn(true).when(featureFlagService).isEnabled(SINGLE_MANIFEST_SUPPORT, DUMMY_ACCOUNT_ID);
+
+    // Test case 1: All Service manifest - Inline - Valid Manifest
+    // Expected Behaviour: The environment level manifest is set as final manifest
+    Map<K8sValuesLocation, ApplicationManifest> envInlineManifestMap = new HashMap<>();
+    envInlineManifestMap.put(K8sValuesLocation.Service,
+        ApplicationManifest.builder()
+            .storeType(StoreType.Local)
+            .serviceId(SERVICE_ID)
+            .kind(AppManifestKind.PCF_OVERRIDE)
+            .build());
+    envInlineManifestMap.put(K8sValuesLocation.EnvironmentGlobal,
+        ApplicationManifest.builder()
+            .storeType(StoreType.Local)
+            .serviceId(SERVICE_ID)
+            .kind(AppManifestKind.PCF_OVERRIDE)
+            .build());
+    doReturn(Collections.singletonList(
+                 ManifestFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_VALID_SERVICE_LEVEL).build()))
+        .doReturn(Collections.singletonList(
+            ManifestFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_VALID_ENVIRONMENT_LEVEL).build()))
+        .when(applicationManifestService)
+        .getManifestFilesByAppManifestId(anyString(), anyString());
+    assertThat(pcfStateHelper
+                   .generateManifestMap(context, envInlineManifestMap, SERVICE_ELEMENT, ACTIVITY_ID, DUMMY_ACCOUNT_ID)
+                   .getManifestYml())
+        .isEqualTo(SAMPLE_APPLICATION_MANIFEST_VALID_ENVIRONMENT_LEVEL);
+
+    // Test case 2: All Service manifest - Inline - Invalid Manifest
+    // Expected Behaviour: Throws error
+    doReturn(Collections.singletonList(
+                 ManifestFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_VALID_SERVICE_LEVEL).build()))
+        .doReturn(
+            Collections.singletonList(ManifestFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_INVALID).build()))
+        .when(applicationManifestService)
+        .getManifestFilesByAppManifestId(anyString(), anyString());
+    assertThatThrownBy(()
+                           -> pcfStateHelper.generateManifestMap(
+                               context, envInlineManifestMap, SERVICE_ELEMENT, ACTIVITY_ID, DUMMY_ACCOUNT_ID))
+        .isInstanceOf(InvalidRequestException.class)
+        .hasMessage("No valid manifest files found at EnvironmentGlobal level");
+
+    // Test case 3: All Service manifest - Remote - Single Manifest - Valid Manifest
+    // Expected Behaviour: The environment level manifest is set as final manifest
+    Map<K8sValuesLocation, ApplicationManifest> envRemoteManifestMap = new HashMap<>();
+    envRemoteManifestMap.put(K8sValuesLocation.Service,
+        ApplicationManifest.builder()
+            .storeType(StoreType.Local)
+            .serviceId(SERVICE_ID)
+            .kind(AppManifestKind.PCF_OVERRIDE)
+            .build());
+    envRemoteManifestMap.put(K8sValuesLocation.EnvironmentGlobal,
+        ApplicationManifest.builder()
+            .storeType(StoreType.Remote)
+            .serviceId(SERVICE_ID)
+            .kind(AppManifestKind.PCF_OVERRIDE)
+            .build());
+    List<GitFile> files = new ArrayList<GitFile>() {
+      { add(GitFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_VALID_ENVIRONMENT_LEVEL).build()); }
+    };
+    GitFetchFilesResult gitFetchFilesResult = GitFetchFilesResult.builder().files(files).build();
+    Map<String, GitFetchFilesResult> filesFromMultipleRepo =
+        Collections.singletonMap(K8sValuesLocation.EnvironmentGlobal.name(), gitFetchFilesResult);
+    final GitFetchFilesConfig gitFetchFilesConfig =
+        GitFetchFilesConfig.builder().gitFileConfig(GitFileConfig.builder().filePath("filePath").build()).build();
+    Map<String, GitFetchFilesConfig> gitFetchFilesConfigMap = new HashMap<String, GitFetchFilesConfig>() {
+      { put(K8sValuesLocation.EnvironmentGlobal.name(), gitFetchFilesConfig); }
+    };
+    GitFetchFilesFromMultipleRepoResult gitFetchFilesFromMultipleRepoResult =
+        GitFetchFilesFromMultipleRepoResult.builder()
+            .filesFromMultipleRepo(filesFromMultipleRepo)
+            .gitFetchFilesConfigMap(gitFetchFilesConfigMap)
+            .build();
+
+    doReturn(PcfSetupStateExecutionData.builder()
+                 .appManifestMap(envRemoteManifestMap)
+                 .fetchFilesResult(gitFetchFilesFromMultipleRepoResult)
+                 .build())
+        .doReturn(null)
+        .when(context)
+        .getStateExecutionData();
+    doReturn(Collections.singletonList(
+                 ManifestFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_VALID_SERVICE_LEVEL).build()))
+        .when(applicationManifestService)
+        .getManifestFilesByAppManifestId(anyString(), anyString());
+    assertThat(pcfStateHelper
+                   .generateManifestMap(context, envRemoteManifestMap, SERVICE_ELEMENT, ACTIVITY_ID, DUMMY_ACCOUNT_ID)
+                   .getManifestYml())
+        .isEqualTo(SAMPLE_APPLICATION_MANIFEST_VALID_ENVIRONMENT_LEVEL);
+
+    // Test case 4: All Service manifest - Remote - Single Manifest - Invalid Manifest
+    // Expected Behaviour: Throws error
+    files = new ArrayList<GitFile>() {
+      { add(GitFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_INVALID).build()); }
+    };
+    gitFetchFilesResult = GitFetchFilesResult.builder().files(files).build();
+    filesFromMultipleRepo = Collections.singletonMap(K8sValuesLocation.EnvironmentGlobal.name(), gitFetchFilesResult);
+    gitFetchFilesConfigMap = new HashMap<String, GitFetchFilesConfig>() {
+      { put(K8sValuesLocation.EnvironmentGlobal.name(), gitFetchFilesConfig); }
+    };
+    gitFetchFilesFromMultipleRepoResult = GitFetchFilesFromMultipleRepoResult.builder()
+                                              .filesFromMultipleRepo(filesFromMultipleRepo)
+                                              .gitFetchFilesConfigMap(gitFetchFilesConfigMap)
+                                              .build();
+
+    doReturn(PcfSetupStateExecutionData.builder()
+                 .appManifestMap(envRemoteManifestMap)
+                 .fetchFilesResult(gitFetchFilesFromMultipleRepoResult)
+                 .build())
+        .doReturn(null)
+        .when(context)
+        .getStateExecutionData();
+    doReturn(Collections.singletonList(
+                 ManifestFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_VALID_SERVICE_LEVEL).build()))
+        .when(applicationManifestService)
+        .getManifestFilesByAppManifestId(anyString(), anyString());
+    assertThatThrownBy(()
+                           -> pcfStateHelper.generateManifestMap(
+                               context, envRemoteManifestMap, SERVICE_ELEMENT, ACTIVITY_ID, DUMMY_ACCOUNT_ID))
+        .isInstanceOf(InvalidRequestException.class)
+        .hasMessage("No valid manifest files found filePath");
+
+    // Test case 5: All Service manifest - Remote - Multiple Manifest - Valid
+    // Expected Behaviour: Throws error
+    files = new ArrayList<GitFile>() {
+      {
+        add(GitFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_VALID_ENVIRONMENT_LEVEL).build());
+        add(GitFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_VALID_ENVIRONMENT_LEVEL).build());
+      }
+    };
+    gitFetchFilesResult = GitFetchFilesResult.builder().files(files).build();
+    filesFromMultipleRepo = Collections.singletonMap(K8sValuesLocation.EnvironmentGlobal.name(), gitFetchFilesResult);
+    gitFetchFilesConfigMap = new HashMap<String, GitFetchFilesConfig>() {
+      { put(K8sValuesLocation.EnvironmentGlobal.name(), gitFetchFilesConfig); }
+    };
+    gitFetchFilesFromMultipleRepoResult = GitFetchFilesFromMultipleRepoResult.builder()
+                                              .filesFromMultipleRepo(filesFromMultipleRepo)
+                                              .gitFetchFilesConfigMap(gitFetchFilesConfigMap)
+                                              .build();
+
+    doReturn(PcfSetupStateExecutionData.builder()
+                 .appManifestMap(envRemoteManifestMap)
+                 .fetchFilesResult(gitFetchFilesFromMultipleRepoResult)
+                 .build())
+        .doReturn(null)
+        .when(context)
+        .getStateExecutionData();
+    doReturn(Collections.singletonList(
+                 ManifestFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_VALID_SERVICE_LEVEL).build()))
+        .when(applicationManifestService)
+        .getManifestFilesByAppManifestId(anyString(), anyString());
+    assertThatThrownBy(()
+                           -> pcfStateHelper.generateManifestMap(
+                               context, envRemoteManifestMap, SERVICE_ELEMENT, ACTIVITY_ID, DUMMY_ACCOUNT_ID))
+        .isInstanceOf(InvalidRequestException.class)
+        .hasMessage(String.format(MULTIPLE_APPLICATION_MANIFEST_MESSAGE, K8sValuesLocation.EnvironmentGlobal.name()));
+
+    // Test case 6: All Service manifest - Remote - Multiple Manifest - Invalid
+    // Expected Behaviour: Throws error
+    files = new ArrayList<GitFile>() {
+      {
+        add(GitFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_INVALID).build());
+        add(GitFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_INVALID).build());
+      }
+    };
+    gitFetchFilesResult = GitFetchFilesResult.builder().files(files).build();
+    filesFromMultipleRepo = Collections.singletonMap(K8sValuesLocation.EnvironmentGlobal.name(), gitFetchFilesResult);
+    gitFetchFilesConfigMap = new HashMap<String, GitFetchFilesConfig>() {
+      { put(K8sValuesLocation.EnvironmentGlobal.name(), gitFetchFilesConfig); }
+    };
+    gitFetchFilesFromMultipleRepoResult = GitFetchFilesFromMultipleRepoResult.builder()
+                                              .filesFromMultipleRepo(filesFromMultipleRepo)
+                                              .gitFetchFilesConfigMap(gitFetchFilesConfigMap)
+                                              .build();
+
+    doReturn(PcfSetupStateExecutionData.builder()
+                 .appManifestMap(envRemoteManifestMap)
+                 .fetchFilesResult(gitFetchFilesFromMultipleRepoResult)
+                 .build())
+        .doReturn(null)
+        .when(context)
+        .getStateExecutionData();
+    doReturn(Collections.singletonList(
+                 ManifestFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_VALID_SERVICE_LEVEL).build()))
+        .when(applicationManifestService)
+        .getManifestFilesByAppManifestId(anyString(), anyString());
+    assertThatThrownBy(()
+                           -> pcfStateHelper.generateManifestMap(
+                               context, envRemoteManifestMap, SERVICE_ELEMENT, ACTIVITY_ID, DUMMY_ACCOUNT_ID))
+        .isInstanceOf(InvalidRequestException.class)
+        .hasMessage("No valid manifest files found filePath");
+  }
+
+  @Test
+  @Owner(developers = VAIBHAV_KUMAR)
+  @Category(UnitTests.class)
+  public void testSingleManifestSupportFFEnabledServiceLevel() {
+    Service service = Service.builder().uuid(SERVICE_ID).isPcfV2(true).build();
+    doReturn(service).when(serviceResourceService).get(anyString());
+
+    // FF enabled
+    doReturn(true).when(featureFlagService).isEnabled(SINGLE_MANIFEST_SUPPORT, DUMMY_ACCOUNT_ID);
+
+    // Test case 1: Inline manifest present only at Service
+    // Expected Behaviour: The inline manifest is set as final manifest
+    Map<K8sValuesLocation, ApplicationManifest> localManifestMap = Collections.singletonMap(K8sValuesLocation.Service,
+        ApplicationManifest.builder()
+            .storeType(StoreType.Local)
+            .serviceId(SERVICE_ID)
+            .kind(AppManifestKind.PCF_OVERRIDE)
+            .build());
+
+    doReturn(Collections.singletonList(
+                 ManifestFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_VALID_SERVICE_LEVEL).build()))
+        .when(applicationManifestService)
+        .getManifestFilesByAppManifestId(anyString(), anyString());
+
+    assertThat(
+        pcfStateHelper.generateManifestMap(context, localManifestMap, SERVICE_ELEMENT, ACTIVITY_ID, DUMMY_ACCOUNT_ID)
+            .getManifestYml())
+        .isEqualTo(SAMPLE_APPLICATION_MANIFEST_VALID_SERVICE_LEVEL);
+
+    // Test case 2: Remote manifest present only at Service
+    // Expected Behaviour: The remote manifest is set as final manifest
+    Map<K8sValuesLocation, ApplicationManifest> remoteManifestMap = Collections.singletonMap(K8sValuesLocation.Service,
+        ApplicationManifest.builder()
+            .storeType(StoreType.Remote)
+            .serviceId(SERVICE_ID)
+            .kind(AppManifestKind.PCF_OVERRIDE)
+            .build());
+    List<GitFile> files = new ArrayList<GitFile>() {
+      { add(GitFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_VALID_SERVICE_LEVEL).build()); }
+    };
+    GitFetchFilesResult gitFetchFilesResult = GitFetchFilesResult.builder().files(files).build();
+    Map<String, GitFetchFilesResult> filesFromMultipleRepo =
+        Collections.singletonMap(K8sValuesLocation.Service.name(), gitFetchFilesResult);
+    final GitFetchFilesConfig gitFetchFilesConfig =
+        GitFetchFilesConfig.builder().gitFileConfig(GitFileConfig.builder().filePath("filePath").build()).build();
+    Map<String, GitFetchFilesConfig> gitFetchFilesConfigMap = new HashMap<String, GitFetchFilesConfig>() {
+      { put(K8sValuesLocation.Service.name(), gitFetchFilesConfig); }
+    };
+    GitFetchFilesFromMultipleRepoResult gitFetchFilesFromMultipleRepoResult =
+        GitFetchFilesFromMultipleRepoResult.builder()
+            .filesFromMultipleRepo(filesFromMultipleRepo)
+            .gitFetchFilesConfigMap(gitFetchFilesConfigMap)
+            .build();
+
+    doReturn(PcfSetupStateExecutionData.builder()
+                 .appManifestMap(remoteManifestMap)
+                 .fetchFilesResult(gitFetchFilesFromMultipleRepoResult)
+                 .build())
+        .doReturn(null)
+        .when(context)
+        .getStateExecutionData();
+
+    assertThat(
+        pcfStateHelper.generateManifestMap(context, remoteManifestMap, SERVICE_ELEMENT, ACTIVITY_ID, DUMMY_ACCOUNT_ID)
+            .getManifestYml())
+        .isEqualTo(SAMPLE_APPLICATION_MANIFEST_VALID_SERVICE_LEVEL);
+
+    // Test case 3: Remote folder present only at Service with multiple manifests
+    // Expected Behaviour: Throws error
+    files = new ArrayList<GitFile>() {
+      {
+        add(GitFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_VALID_SERVICE_LEVEL).build());
+        add(GitFile.builder().fileContent(SAMPLE_APPLICATION_MANIFEST_VALID_SERVICE_LEVEL).build());
+      }
+    };
+    gitFetchFilesResult = GitFetchFilesResult.builder().files(files).build();
+    filesFromMultipleRepo = Collections.singletonMap(K8sValuesLocation.Service.name(), gitFetchFilesResult);
+    gitFetchFilesConfigMap = new HashMap<String, GitFetchFilesConfig>() {
+      { put(K8sValuesLocation.Service.name(), gitFetchFilesConfig); }
+    };
+    gitFetchFilesFromMultipleRepoResult = GitFetchFilesFromMultipleRepoResult.builder()
+                                              .filesFromMultipleRepo(filesFromMultipleRepo)
+                                              .gitFetchFilesConfigMap(gitFetchFilesConfigMap)
+                                              .build();
+
+    doReturn(PcfSetupStateExecutionData.builder()
+                 .appManifestMap(remoteManifestMap)
+                 .fetchFilesResult(gitFetchFilesFromMultipleRepoResult)
+                 .build())
+        .doReturn(null)
+        .when(context)
+        .getStateExecutionData();
+
+    assertThatThrownBy(()
+                           -> pcfStateHelper.generateManifestMap(
+                               context, remoteManifestMap, SERVICE_ELEMENT, ACTIVITY_ID, DUMMY_ACCOUNT_ID))
+        .isInstanceOf(InvalidRequestException.class)
+        .hasMessage(String.format(MULTIPLE_APPLICATION_MANIFEST_MESSAGE, K8sValuesLocation.Service.name()));
   }
 
   @Test
@@ -372,13 +1410,14 @@ public class PcfStateHelperTest extends WingsBaseTest {
     appManifestMap.put(K8sValuesLocation.Service, serviceApplicationManifest);
 
     PcfManifestsPackage pcfManifestsPackage =
-        pcfStateHelper.getFinalManifestFilesMap(appManifestMap, fetchFilesResult, null, logCallback);
+        pcfStateHelper.getFinalManifestFilesMap(appManifestMap, fetchFilesResult, null, logCallback, null);
     assertThat(pcfManifestsPackage.getManifestYml()).isNull();
     assertThat(pcfManifestsPackage.getVariableYmls()).isNull();
 
     filesFromMultipleRepo.put(K8sValuesLocation.Service.name(), null);
     fetchFilesResult.setFilesFromMultipleRepo(filesFromMultipleRepo);
-    pcfManifestsPackage = pcfStateHelper.getFinalManifestFilesMap(appManifestMap, fetchFilesResult, null, logCallback);
+    pcfManifestsPackage =
+        pcfStateHelper.getFinalManifestFilesMap(appManifestMap, fetchFilesResult, null, logCallback, null);
     assertThat(pcfManifestsPackage.getManifestYml()).isNull();
     assertThat(pcfManifestsPackage.getVariableYmls()).isNull();
   }
@@ -396,10 +1435,10 @@ public class PcfStateHelperTest extends WingsBaseTest {
 
     when(applicationManifestService.getManifestFilesByAppManifestId(APP_ID, SERVICE_ID))
         .thenReturn(Arrays.asList(ManifestFile.builder().fileContent("abc").build()));
-    PcfManifestsPackage pcfManifestsPackage =
-        pcfStateHelper.getFinalManifestFilesMap(appManifestMap, fetchFilesResult, null, logCallback);
-    assertThat(pcfManifestsPackage).isNotNull();
-    assertThat(pcfManifestsPackage.getManifestYml()).isBlank();
+    assertThatThrownBy(
+        () -> pcfStateHelper.getFinalManifestFilesMap(appManifestMap, fetchFilesResult, null, logCallback, null))
+        .isInstanceOf(InvalidRequestException.class)
+        .hasMessage("No valid manifest files found at Service level");
   }
 
   private ApplicationManifest generateAppManifest(StoreType storeType, String id) {
@@ -734,18 +1773,21 @@ public class PcfStateHelperTest extends WingsBaseTest {
   @Category(UnitTests.class)
   public void testAddToPcfManifestFilesMap() {
     PcfManifestsPackage pcfManifestsPackage = PcfManifestsPackage.builder().build();
-    pcfStateHelper.addToPcfManifestFilesMap(TEST_APP_MANIFEST, pcfManifestsPackage, null, logCallback);
+    pcfStateHelper.addToPcfManifestFilesMap(
+        TEST_APP_MANIFEST, pcfManifestsPackage, null, logCallback, null, CFManifestDataInfo.builder().build());
 
     // 1
     assertThat(pcfManifestsPackage.getManifestYml()).isEqualTo(TEST_APP_MANIFEST);
 
     // 2
-    pcfStateHelper.addToPcfManifestFilesMap(TEST_VAR, pcfManifestsPackage, null, logCallback);
+    pcfStateHelper.addToPcfManifestFilesMap(
+        TEST_VAR, pcfManifestsPackage, null, logCallback, null, CFManifestDataInfo.builder().build());
     assertThat(pcfManifestsPackage.getVariableYmls()).isNotEmpty();
     assertThat(pcfManifestsPackage.getVariableYmls().get(0)).isEqualTo(TEST_VAR);
 
     // 3
-    pcfStateHelper.addToPcfManifestFilesMap(TEST_VAR_1, pcfManifestsPackage, null, logCallback);
+    pcfStateHelper.addToPcfManifestFilesMap(
+        TEST_VAR_1, pcfManifestsPackage, null, logCallback, null, CFManifestDataInfo.builder().build());
     assertThat(pcfManifestsPackage.getVariableYmls()).isNotEmpty();
     assertThat(pcfManifestsPackage.getVariableYmls().get(0)).isEqualTo(TEST_VAR);
     assertThat(pcfManifestsPackage.getVariableYmls().get(1)).isEqualTo(TEST_VAR_1);
@@ -857,11 +1899,12 @@ public class PcfStateHelperTest extends WingsBaseTest {
         .getManifestFilesByAppManifestId(anyString(), anyString());
 
     PcfManifestsPackage pcfManifestsPackage =
-        pcfStateHelper.generateManifestMap(context, map, SERVICE_ELEMENT, ACTIVITY_ID);
+        pcfStateHelper.generateManifestMap(context, map, SERVICE_ELEMENT, ACTIVITY_ID, DUMMY_ACCOUNT_ID);
 
     assertThat(pcfManifestsPackage.getManifestYml()).isEqualTo(TEST_APP_MANIFEST);
 
-    pcfManifestsPackage = pcfStateHelper.generateManifestMap(context, map, SERVICE_ELEMENT, ACTIVITY_ID);
+    pcfManifestsPackage =
+        pcfStateHelper.generateManifestMap(context, map, SERVICE_ELEMENT, ACTIVITY_ID, DUMMY_ACCOUNT_ID);
     assertThat(pcfManifestsPackage.getManifestYml()).isEqualTo(TEST_APP_MANIFEST);
   }
 
@@ -1550,7 +2593,7 @@ public class PcfStateHelperTest extends WingsBaseTest {
     ArgumentCaptor<SweepingOutputInstance> captor = ArgumentCaptor.forClass(SweepingOutputInstance.class);
 
     pcfStateHelper.updateInfoVariables(
-        context, stateExecutionData, CfCommandExecutionResponse.builder().build(), false, false);
+        context, stateExecutionData, CfCommandExecutionResponse.builder().build(), false);
 
     verify(sweepingOutputService, times(1)).deleteById(APP_ID, "1");
     verify(sweepingOutputService, times(1)).ensure(captor.capture());
@@ -1596,5 +2639,447 @@ public class PcfStateHelperTest extends WingsBaseTest {
 
     assertThat(cfCliVersionOrDefault).isNotNull();
     assertThat(cfCliVersionOrDefault).isEqualTo(CfCliVersion.V6);
+  }
+
+  @Test
+  @Owner(developers = ANIL)
+  @Category(UnitTests.class)
+  public void testActiveInActiveInBuiltVariablesVersionToVersion() {
+    String appPrefix = "PaymentApp";
+    String oldAppName = "PaymentApp__2";
+    String oldAppId = "oldAppId";
+    String newAppId = "newAppId";
+    String newAppName = appPrefix + "__3";
+    String prevInActiveAppOldName = "PaymentApp__1";
+
+    // app should not have been renamed during version to version deployment
+    CfInBuiltVariablesUpdateValues updatedValues = CfInBuiltVariablesUpdateValues.builder().build();
+    CfCommandExecutionResponse response =
+        CfCommandExecutionResponse.builder()
+            .pcfCommandResponse(CfRouteUpdateCommandResponse.builder().updateValues(updatedValues).build())
+            .build();
+
+    // this should have been saved with this content after app setup step
+    InfoVariables existingInfoVariables = InfoVariables.builder()
+                                              .activeAppName(oldAppName)
+                                              .inActiveAppName(newAppName)
+                                              .oldAppName(oldAppName)
+                                              .oldAppGuid(oldAppId)
+                                              .newAppName(newAppName)
+                                              .newAppGuid(newAppId)
+                                              .mostRecentInactiveAppVersionOldName(prevInActiveAppOldName)
+                                              .build();
+
+    PcfRouteUpdateStateExecutionData executionData = PcfRouteUpdateStateExecutionData.builder().build();
+    SweepingOutputInstance outputInstance = SweepingOutputInstance.builder().value(existingInfoVariables).build();
+    doReturn(outputInstance).when(sweepingOutputService).find(any());
+    doReturn(SweepingOutputInquiry.builder()).when(context).prepareSweepingOutputInquiryBuilder();
+    doReturn(SweepingOutputInstance.builder()).when(context).prepareSweepingOutputBuilder(any());
+
+    pcfStateHelper.updateInfoVariables(context, executionData, response, false);
+
+    ArgumentCaptor<SweepingOutputInstance> outputInstanceArgumentCaptor =
+        ArgumentCaptor.forClass(SweepingOutputInstance.class);
+
+    verify(sweepingOutputService, times(1)).deleteById(any(), any());
+    verify(sweepingOutputService, times(1)).ensure(outputInstanceArgumentCaptor.capture());
+
+    SweepingOutputInstance captorValue = outputInstanceArgumentCaptor.getValue();
+    assertThat(captorValue).isNotNull();
+    InfoVariables updatedInfoVariables = (InfoVariables) captorValue.getValue();
+
+    assertThat(updatedInfoVariables.getNewAppName()).isEqualTo(newAppName);
+    assertThat(updatedInfoVariables.getOldAppName()).isEqualTo(oldAppName);
+
+    assertThat(updatedInfoVariables.getActiveAppName()).isEqualTo(newAppName);
+    assertThat(updatedInfoVariables.getInActiveAppName()).isEqualTo(oldAppName);
+  }
+
+  @Test
+  @Owner(developers = ANIL)
+  @Category(UnitTests.class)
+  public void testActiveInActiveInBuiltVariablesVersionToVersionRollback() {
+    String appPrefix = "PaymentApp";
+    String oldAppName = "PaymentApp__2";
+    String oldAppId = "oldAppId";
+    String newAppId = "newAppId";
+    String newAppName = appPrefix + "__3";
+    String prevInActiveAppOldName = "PaymentApp__1";
+    // app should not have been renamed during version to version rollback deployment
+    CfInBuiltVariablesUpdateValues updatedValues = CfInBuiltVariablesUpdateValues.builder().build();
+    CfCommandExecutionResponse response =
+        CfCommandExecutionResponse.builder()
+            .pcfCommandResponse(CfRouteUpdateCommandResponse.builder().updateValues(updatedValues).build())
+            .build();
+
+    InfoVariables afterSwapInfoVariables = InfoVariables.builder()
+                                               .activeAppName(newAppName)
+                                               .inActiveAppName(oldAppName)
+                                               .oldAppName(oldAppName)
+                                               .oldAppGuid(oldAppId)
+                                               .newAppName(newAppName)
+                                               .newAppGuid(newAppId)
+                                               .mostRecentInactiveAppVersionOldName(prevInActiveAppOldName)
+                                               .build();
+    PcfRouteUpdateStateExecutionData executionData = PcfRouteUpdateStateExecutionData.builder().build();
+    SweepingOutputInstance outputInstance = SweepingOutputInstance.builder().value(afterSwapInfoVariables).build();
+    doReturn(outputInstance).when(sweepingOutputService).find(any());
+    doReturn(SweepingOutputInquiry.builder()).when(context).prepareSweepingOutputInquiryBuilder();
+    doReturn(SweepingOutputInstance.builder()).when(context).prepareSweepingOutputBuilder(any());
+
+    pcfStateHelper.updateInfoVariables(context, executionData, response, true);
+    ArgumentCaptor<SweepingOutputInstance> rollbackSweepingCaptor =
+        ArgumentCaptor.forClass(SweepingOutputInstance.class);
+
+    verify(sweepingOutputService, times(1)).deleteById(any(), any());
+    verify(sweepingOutputService, times(1)).ensure(rollbackSweepingCaptor.capture());
+    SweepingOutputInstance rollbackValue = rollbackSweepingCaptor.getValue();
+    assertThat(rollbackSweepingCaptor).isNotNull();
+    InfoVariables rollbackInfoVariables = (InfoVariables) rollbackValue.getValue();
+    assertThat(rollbackInfoVariables.getNewAppName()).isEqualTo(newAppName);
+    assertThat(rollbackInfoVariables.getOldAppName()).isEqualTo(oldAppName);
+
+    assertThat(rollbackInfoVariables.getActiveAppName()).isEqualTo(oldAppName);
+    assertThat(rollbackInfoVariables.getInActiveAppName()).isEqualTo(prevInActiveAppOldName);
+  }
+
+  @Test
+  @Owner(developers = ANIL)
+  @Category(UnitTests.class)
+  public void testActiveInActiveInBuiltVariablesVersionToNonVersion() {
+    String appPrefix = "PaymentApp";
+    String oldAppName = "PaymentApp__2";
+    String oldAppId = "oldAppId";
+    String newAppId = "newAppId";
+    String newAppName = "PaymentApp__INACTIVE";
+    String prevInActiveAppOldName = "PaymentApp__1";
+
+    CfInBuiltVariablesUpdateValues updatedValues = CfInBuiltVariablesUpdateValues.builder()
+                                                       .oldAppGuid(oldAppId)
+                                                       .oldAppName(newAppName)
+                                                       .newAppGuid(newAppId)
+                                                       .newAppName(appPrefix)
+                                                       .build();
+    CfCommandExecutionResponse response =
+        CfCommandExecutionResponse.builder()
+            .pcfCommandResponse(CfRouteUpdateCommandResponse.builder().updateValues(updatedValues).build())
+            .build();
+
+    // this should have been saved with this content after app setup step
+    InfoVariables existingInfoVariables = InfoVariables.builder()
+                                              .activeAppName(oldAppName)
+                                              .inActiveAppName(newAppName)
+                                              .oldAppName(oldAppName)
+                                              .oldAppGuid(oldAppId)
+                                              .newAppName(newAppName)
+                                              .newAppGuid(newAppId)
+                                              .mostRecentInactiveAppVersionOldName(prevInActiveAppOldName)
+                                              .build();
+
+    PcfRouteUpdateStateExecutionData executionData = PcfRouteUpdateStateExecutionData.builder().build();
+    SweepingOutputInstance outputInstance = SweepingOutputInstance.builder().value(existingInfoVariables).build();
+    doReturn(outputInstance).when(sweepingOutputService).find(any());
+    doReturn(SweepingOutputInquiry.builder()).when(context).prepareSweepingOutputInquiryBuilder();
+    doReturn(SweepingOutputInstance.builder()).when(context).prepareSweepingOutputBuilder(any());
+
+    pcfStateHelper.updateInfoVariables(context, executionData, response, false);
+
+    ArgumentCaptor<SweepingOutputInstance> outputInstanceArgumentCaptor =
+        ArgumentCaptor.forClass(SweepingOutputInstance.class);
+
+    verify(sweepingOutputService, times(1)).deleteById(any(), any());
+    verify(sweepingOutputService, times(1)).ensure(outputInstanceArgumentCaptor.capture());
+
+    SweepingOutputInstance captorValue = outputInstanceArgumentCaptor.getValue();
+    assertThat(captorValue).isNotNull();
+    InfoVariables updatedInfoVariables = (InfoVariables) captorValue.getValue();
+
+    assertThat(updatedInfoVariables.getNewAppName()).isEqualTo(updatedValues.getNewAppName());
+    assertThat(updatedInfoVariables.getOldAppName()).isEqualTo(updatedValues.getOldAppName());
+
+    assertThat(updatedInfoVariables.getActiveAppName()).isEqualTo(appPrefix);
+    assertThat(updatedInfoVariables.getInActiveAppName()).isEqualTo(newAppName);
+  }
+
+  @Test
+  @Owner(developers = ANIL)
+  @Category(UnitTests.class)
+  public void testActiveInActiveInBuiltVariablesVersionToNonVersionRollback() {
+    String appPrefix = "PaymentApp";
+    String oldAppName = "PaymentApp__2";
+    String oldAppId = "oldAppId";
+    String newAppId = "newAppId";
+    String newAppName = appPrefix + INTERIM_APP_NAME_SUFFIX;
+    String prevInActiveAppOldName = "PaymentApp__1";
+
+    // app names would be renamed back to what it was before the deployment started during rollback
+    CfInBuiltVariablesUpdateValues updatedValues = CfInBuiltVariablesUpdateValues.builder()
+                                                       .oldAppGuid(oldAppId)
+                                                       .oldAppName(oldAppName)
+                                                       .newAppGuid(newAppId)
+                                                       .newAppName(newAppName)
+                                                       .build();
+
+    CfCommandExecutionResponse response =
+        CfCommandExecutionResponse.builder()
+            .pcfCommandResponse(CfRouteUpdateCommandResponse.builder().updateValues(updatedValues).build())
+            .build();
+
+    InfoVariables afterSwapInfoVariables = InfoVariables.builder()
+                                               .activeAppName(newAppName)
+                                               .inActiveAppName(oldAppName)
+                                               .oldAppName(oldAppName)
+                                               .oldAppGuid(oldAppId)
+                                               .newAppName(newAppName)
+                                               .newAppGuid(newAppId)
+                                               .mostRecentInactiveAppVersionOldName(prevInActiveAppOldName)
+                                               .build();
+    PcfRouteUpdateStateExecutionData executionData = PcfRouteUpdateStateExecutionData.builder().build();
+    SweepingOutputInstance outputInstance = SweepingOutputInstance.builder().value(afterSwapInfoVariables).build();
+    doReturn(outputInstance).when(sweepingOutputService).find(any());
+    doReturn(SweepingOutputInquiry.builder()).when(context).prepareSweepingOutputInquiryBuilder();
+    doReturn(SweepingOutputInstance.builder()).when(context).prepareSweepingOutputBuilder(any());
+
+    pcfStateHelper.updateInfoVariables(context, executionData, response, true);
+    ArgumentCaptor<SweepingOutputInstance> rollbackSweepingCaptor =
+        ArgumentCaptor.forClass(SweepingOutputInstance.class);
+
+    verify(sweepingOutputService, times(1)).deleteById(any(), any());
+    verify(sweepingOutputService, times(1)).ensure(rollbackSweepingCaptor.capture());
+    SweepingOutputInstance rollbackValue = rollbackSweepingCaptor.getValue();
+    assertThat(rollbackSweepingCaptor).isNotNull();
+    InfoVariables rollbackInfoVariables = (InfoVariables) rollbackValue.getValue();
+    assertThat(rollbackInfoVariables.getNewAppName()).isEqualTo(newAppName);
+    assertThat(rollbackInfoVariables.getOldAppName()).isEqualTo(oldAppName);
+
+    assertThat(rollbackInfoVariables.getActiveAppName()).isEqualTo(oldAppName);
+    assertThat(rollbackInfoVariables.getInActiveAppName()).isEqualTo(prevInActiveAppOldName);
+  }
+
+  @Test
+  @Owner(developers = ANIL)
+  @Category(UnitTests.class)
+  public void testActiveInActiveInBuiltVariablesNonVersionToNonVersion() {
+    String appPrefix = "PaymentApp";
+    String oldAppName = "PaymentApp";
+    String oldAppId = "oldAppId";
+    String newAppId = "newAppId";
+    String newAppName = appPrefix + PcfConstants.INACTIVE_APP_NAME_SUFFIX;
+    String prevInActiveAppOldName = "PaymentApp__INACTIVE";
+
+    CfInBuiltVariablesUpdateValues updatedValues = CfInBuiltVariablesUpdateValues.builder()
+                                                       .oldAppGuid(oldAppId)
+                                                       .oldAppName(newAppName)
+                                                       .newAppGuid(newAppId)
+                                                       .newAppName(appPrefix)
+                                                       .build();
+    CfCommandExecutionResponse response =
+        CfCommandExecutionResponse.builder()
+            .pcfCommandResponse(CfRouteUpdateCommandResponse.builder().updateValues(updatedValues).build())
+            .build();
+
+    // this should have been saved with this content after app setup step
+    InfoVariables existingInfoVariables = InfoVariables.builder()
+                                              .activeAppName(oldAppName)
+                                              .inActiveAppName(newAppName)
+                                              .oldAppName(oldAppName)
+                                              .oldAppGuid(oldAppId)
+                                              .newAppName(newAppName)
+                                              .newAppGuid(newAppId)
+                                              .mostRecentInactiveAppVersionOldName(prevInActiveAppOldName)
+                                              .build();
+
+    PcfRouteUpdateStateExecutionData executionData = PcfRouteUpdateStateExecutionData.builder().build();
+    SweepingOutputInstance outputInstance = SweepingOutputInstance.builder().value(existingInfoVariables).build();
+    doReturn(outputInstance).when(sweepingOutputService).find(any());
+    doReturn(SweepingOutputInquiry.builder()).when(context).prepareSweepingOutputInquiryBuilder();
+    doReturn(SweepingOutputInstance.builder()).when(context).prepareSweepingOutputBuilder(any());
+
+    pcfStateHelper.updateInfoVariables(context, executionData, response, false);
+
+    ArgumentCaptor<SweepingOutputInstance> outputInstanceArgumentCaptor =
+        ArgumentCaptor.forClass(SweepingOutputInstance.class);
+
+    verify(sweepingOutputService, times(1)).deleteById(any(), any());
+    verify(sweepingOutputService, times(1)).ensure(outputInstanceArgumentCaptor.capture());
+
+    SweepingOutputInstance captorValue = outputInstanceArgumentCaptor.getValue();
+    assertThat(captorValue).isNotNull();
+    InfoVariables updatedInfoVariables = (InfoVariables) captorValue.getValue();
+
+    assertThat(updatedInfoVariables.getNewAppName()).isEqualTo(updatedValues.getNewAppName());
+    assertThat(updatedInfoVariables.getOldAppName()).isEqualTo(updatedValues.getOldAppName());
+
+    assertThat(updatedInfoVariables.getActiveAppName()).isEqualTo(appPrefix);
+    assertThat(updatedInfoVariables.getInActiveAppName()).isEqualTo(newAppName);
+  }
+
+  @Test
+  @Owner(developers = ANIL)
+  @Category(UnitTests.class)
+  public void testActiveInActiveInBuiltVariablesNonVersionToNonVersionRollback() {
+    String appPrefix = "PaymentApp";
+    String oldAppName = "PaymentApp";
+    String oldAppId = "oldAppId";
+    String newAppId = "newAppId";
+    String newAppName = appPrefix + INTERIM_APP_NAME_SUFFIX;
+    String prevInActiveAppOldName = "PaymentApp__INACTIVE";
+
+    // app names would be renamed back to what it was before the deployment started during rollback
+    CfInBuiltVariablesUpdateValues updatedValues = CfInBuiltVariablesUpdateValues.builder()
+                                                       .oldAppGuid(oldAppId)
+                                                       .oldAppName(oldAppName)
+                                                       .newAppGuid(newAppId)
+                                                       .newAppName(newAppName)
+                                                       .build();
+
+    CfCommandExecutionResponse response =
+        CfCommandExecutionResponse.builder()
+            .pcfCommandResponse(CfRouteUpdateCommandResponse.builder().updateValues(updatedValues).build())
+            .build();
+
+    InfoVariables afterSwapInfoVariables = InfoVariables.builder()
+                                               .activeAppName(newAppName)
+                                               .inActiveAppName(oldAppName)
+                                               .oldAppName(oldAppName)
+                                               .oldAppGuid(oldAppId)
+                                               .newAppName(newAppName)
+                                               .newAppGuid(newAppId)
+                                               .mostRecentInactiveAppVersionOldName(prevInActiveAppOldName)
+                                               .build();
+    PcfRouteUpdateStateExecutionData executionData = PcfRouteUpdateStateExecutionData.builder().build();
+    SweepingOutputInstance outputInstance = SweepingOutputInstance.builder().value(afterSwapInfoVariables).build();
+    doReturn(outputInstance).when(sweepingOutputService).find(any());
+    doReturn(SweepingOutputInquiry.builder()).when(context).prepareSweepingOutputInquiryBuilder();
+    doReturn(SweepingOutputInstance.builder()).when(context).prepareSweepingOutputBuilder(any());
+
+    pcfStateHelper.updateInfoVariables(context, executionData, response, true);
+    ArgumentCaptor<SweepingOutputInstance> rollbackSweepingCaptor =
+        ArgumentCaptor.forClass(SweepingOutputInstance.class);
+
+    verify(sweepingOutputService, times(1)).deleteById(any(), any());
+    verify(sweepingOutputService, times(1)).ensure(rollbackSweepingCaptor.capture());
+    SweepingOutputInstance rollbackValue = rollbackSweepingCaptor.getValue();
+    assertThat(rollbackSweepingCaptor).isNotNull();
+    InfoVariables rollbackInfoVariables = (InfoVariables) rollbackValue.getValue();
+    assertThat(rollbackInfoVariables.getNewAppName()).isEqualTo(newAppName);
+    assertThat(rollbackInfoVariables.getOldAppName()).isEqualTo(oldAppName);
+
+    assertThat(rollbackInfoVariables.getActiveAppName()).isEqualTo(oldAppName);
+    assertThat(rollbackInfoVariables.getInActiveAppName()).isEqualTo(prevInActiveAppOldName);
+  }
+
+  @Test
+  @Owner(developers = ANIL)
+  @Category(UnitTests.class)
+  public void testActiveInActiveInBuiltVariablesNonVersionToVersion() {
+    String appPrefix = "PaymentApp";
+    String oldAppName = "PaymentApp";
+    String oldAppId = "oldAppId";
+    String newAppId = "newAppId";
+    String newAppName = appPrefix + PcfConstants.INACTIVE_APP_NAME_SUFFIX;
+    String prevInActiveAppOldName = "PaymentApp__INACTIVE";
+
+    CfInBuiltVariablesUpdateValues updatedValues =
+        CfInBuiltVariablesUpdateValues.builder()
+            .oldAppGuid(oldAppId)
+            .oldAppName(appPrefix + PcfConstants.INACTIVE_APP_NAME_SUFFIX + "1")
+            .newAppGuid(newAppId)
+            .newAppName(appPrefix + PcfConstants.INACTIVE_APP_NAME_SUFFIX + "2")
+            .build();
+    CfCommandExecutionResponse response =
+        CfCommandExecutionResponse.builder()
+            .pcfCommandResponse(CfRouteUpdateCommandResponse.builder().updateValues(updatedValues).build())
+            .build();
+
+    // this should have been saved with this content after app setup step
+    InfoVariables existingInfoVariables = InfoVariables.builder()
+                                              .activeAppName(oldAppName)
+                                              .inActiveAppName(newAppName)
+                                              .oldAppName(oldAppName)
+                                              .oldAppGuid(oldAppId)
+                                              .newAppName(newAppName)
+                                              .newAppGuid(newAppId)
+                                              .mostRecentInactiveAppVersionOldName(prevInActiveAppOldName)
+                                              .build();
+
+    PcfRouteUpdateStateExecutionData executionData = PcfRouteUpdateStateExecutionData.builder().build();
+    SweepingOutputInstance outputInstance = SweepingOutputInstance.builder().value(existingInfoVariables).build();
+    doReturn(outputInstance).when(sweepingOutputService).find(any());
+    doReturn(SweepingOutputInquiry.builder()).when(context).prepareSweepingOutputInquiryBuilder();
+    doReturn(SweepingOutputInstance.builder()).when(context).prepareSweepingOutputBuilder(any());
+
+    pcfStateHelper.updateInfoVariables(context, executionData, response, false);
+
+    ArgumentCaptor<SweepingOutputInstance> outputInstanceArgumentCaptor =
+        ArgumentCaptor.forClass(SweepingOutputInstance.class);
+
+    verify(sweepingOutputService, times(1)).deleteById(any(), any());
+    verify(sweepingOutputService, times(1)).ensure(outputInstanceArgumentCaptor.capture());
+
+    SweepingOutputInstance captorValue = outputInstanceArgumentCaptor.getValue();
+    assertThat(captorValue).isNotNull();
+    InfoVariables updatedInfoVariables = (InfoVariables) captorValue.getValue();
+
+    assertThat(updatedInfoVariables.getNewAppName()).isEqualTo(updatedValues.getNewAppName());
+    assertThat(updatedInfoVariables.getOldAppName()).isEqualTo(updatedValues.getOldAppName());
+
+    assertThat(updatedInfoVariables.getActiveAppName()).isEqualTo(updatedValues.getNewAppName());
+    assertThat(updatedInfoVariables.getInActiveAppName()).isEqualTo(updatedValues.getOldAppName());
+  }
+
+  @Test
+  @Owner(developers = ANIL)
+  @Category(UnitTests.class)
+  public void testActiveInActiveInBuiltVariablesNonVersionToVersionRollback() {
+    String appPrefix = "PaymentApp";
+    String oldAppName = "PaymentApp";
+    String oldAppId = "oldAppId";
+    String newAppId = "newAppId";
+    String newAppName = appPrefix + INTERIM_APP_NAME_SUFFIX;
+    String prevInActiveAppOldName = "PaymentApp__INACTIVE";
+
+    // app names would be renamed back to what it was before the deployment started during rollback
+    CfInBuiltVariablesUpdateValues updatedValues = CfInBuiltVariablesUpdateValues.builder()
+                                                       .oldAppGuid(oldAppId)
+                                                       .oldAppName(oldAppName)
+                                                       .newAppGuid(newAppId)
+                                                       .newAppName(newAppName)
+                                                       .build();
+
+    CfCommandExecutionResponse response =
+        CfCommandExecutionResponse.builder()
+            .pcfCommandResponse(CfRouteUpdateCommandResponse.builder().updateValues(updatedValues).build())
+            .build();
+
+    InfoVariables afterSwapInfoVariables = InfoVariables.builder()
+                                               .activeAppName(newAppName)
+                                               .inActiveAppName(oldAppName)
+                                               .oldAppName(oldAppName)
+                                               .oldAppGuid(oldAppId)
+                                               .newAppName(newAppName)
+                                               .newAppGuid(newAppId)
+                                               .mostRecentInactiveAppVersionOldName(prevInActiveAppOldName)
+                                               .build();
+    PcfRouteUpdateStateExecutionData executionData = PcfRouteUpdateStateExecutionData.builder().build();
+    SweepingOutputInstance outputInstance = SweepingOutputInstance.builder().value(afterSwapInfoVariables).build();
+    doReturn(outputInstance).when(sweepingOutputService).find(any());
+    doReturn(SweepingOutputInquiry.builder()).when(context).prepareSweepingOutputInquiryBuilder();
+    doReturn(SweepingOutputInstance.builder()).when(context).prepareSweepingOutputBuilder(any());
+
+    pcfStateHelper.updateInfoVariables(context, executionData, response, true);
+    ArgumentCaptor<SweepingOutputInstance> rollbackSweepingCaptor =
+        ArgumentCaptor.forClass(SweepingOutputInstance.class);
+
+    verify(sweepingOutputService, times(1)).deleteById(any(), any());
+    verify(sweepingOutputService, times(1)).ensure(rollbackSweepingCaptor.capture());
+    SweepingOutputInstance rollbackValue = rollbackSweepingCaptor.getValue();
+    assertThat(rollbackSweepingCaptor).isNotNull();
+    InfoVariables rollbackInfoVariables = (InfoVariables) rollbackValue.getValue();
+    assertThat(rollbackInfoVariables.getNewAppName()).isEqualTo(newAppName);
+    assertThat(rollbackInfoVariables.getOldAppName()).isEqualTo(oldAppName);
+
+    assertThat(rollbackInfoVariables.getActiveAppName()).isEqualTo(oldAppName);
+    assertThat(rollbackInfoVariables.getInActiveAppName()).isEqualTo(prevInActiveAppOldName);
   }
 }

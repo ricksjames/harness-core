@@ -8,15 +8,23 @@
 package io.harness.delegate.task.terraform;
 
 import static io.harness.annotations.dev.HarnessTeam.CDP;
+import static io.harness.delegate.task.terraform.TerraformBaseHelperImpl.SSH_KEY_FILENAME;
+import static io.harness.logging.LogLevel.WARN;
 import static io.harness.provision.TerraformConstants.TERRAFORM_PLAN_FILE_OUTPUT_NAME;
 import static io.harness.provision.TerraformConstants.TERRAFORM_PLAN_JSON_FILE_NAME;
 import static io.harness.rule.OwnerRule.ABOSII;
+import static io.harness.rule.OwnerRule.NAMAN_TALAYCHA;
 import static io.harness.rule.OwnerRule.ROHITKARELIA;
+import static io.harness.rule.OwnerRule.TMACARI;
 import static io.harness.rule.OwnerRule.VAIBHAV_SI;
+
+import static software.wings.beans.LogColor.Yellow;
+import static software.wings.beans.LogHelper.color;
 
 import static java.lang.String.format;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -26,16 +34,25 @@ import static org.mockito.Mockito.when;
 
 import io.harness.CategoryTest;
 import io.harness.annotations.dev.OwnedBy;
+import io.harness.artifactory.ArtifactoryConfigRequest;
+import io.harness.artifactory.ArtifactoryNgService;
 import io.harness.beans.FileData;
 import io.harness.category.element.UnitTests;
 import io.harness.cli.CliResponse;
+import io.harness.connector.ConnectorInfoDTO;
 import io.harness.connector.service.git.NGGitService;
 import io.harness.connector.task.shell.SshSessionConfigMapper;
 import io.harness.delegate.beans.DelegateFile;
 import io.harness.delegate.beans.DelegateFileManagerBase;
 import io.harness.delegate.beans.FileBucket;
+import io.harness.delegate.beans.connector.artifactoryconnector.ArtifactoryAuthenticationDTO;
+import io.harness.delegate.beans.connector.artifactoryconnector.ArtifactoryConnectorDTO;
+import io.harness.delegate.beans.connector.artifactoryconnector.ArtifactoryUsernamePasswordAuthDTO;
+import io.harness.delegate.beans.connector.scm.GitAuthType;
 import io.harness.delegate.beans.connector.scm.genericgitconnector.GitConfigDTO;
+import io.harness.delegate.beans.storeconfig.ArtifactoryStoreDelegateConfig;
 import io.harness.delegate.beans.storeconfig.GitStoreDelegateConfig;
+import io.harness.delegate.task.artifactory.ArtifactoryRequestMapper;
 import io.harness.delegate.task.git.GitFetchFilesConfig;
 import io.harness.filesystem.FileIo;
 import io.harness.git.GitClientHelper;
@@ -50,6 +67,7 @@ import io.harness.security.encryption.EncryptedDataDetail;
 import io.harness.security.encryption.EncryptedRecordData;
 import io.harness.security.encryption.EncryptionConfig;
 import io.harness.security.encryption.SecretDecryptionService;
+import io.harness.shell.SshSessionConfig;
 import io.harness.terraform.TerraformClientImpl;
 import io.harness.terraform.request.TerraformApplyCommandRequest;
 import io.harness.terraform.request.TerraformDestroyCommandRequest;
@@ -60,6 +78,7 @@ import io.harness.terraform.request.TerraformPlanCommandRequest;
 import io.harness.terraform.request.TerraformRefreshCommandRequest;
 
 import com.google.inject.Inject;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -67,6 +86,7 @@ import java.io.InputStream;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -95,6 +115,8 @@ public class TerraformBaseHelperImplTest extends CategoryTest {
   @Mock GitClientV2 gitClient;
   @Mock private EncryptDecryptHelper encryptDecryptHelper;
   @Mock private DelegateFileManagerBase delegateFileManager;
+  @Mock ArtifactoryNgService artifactoryNgService;
+  @Mock ArtifactoryRequestMapper artifactoryRequestMapper;
 
   private final EncryptedRecordData encryptedPlanContent =
       EncryptedRecordData.builder().name("planName").encryptedValue("encryptedPlan".toCharArray()).build();
@@ -249,36 +271,345 @@ public class TerraformBaseHelperImplTest extends CategoryTest {
   @Test
   @Owner(developers = ROHITKARELIA)
   @Category(UnitTests.class)
-  public void testbuildcommitIdToFetchedFilesMapHasConfigFileAndVarFileCommitInfo() {
+  public void testBuildCommitIdToFetchedFilesMapHasConfigFile() {
     GitBaseRequest mockGitBaseRequest = mock(GitBaseRequest.class);
-    EncryptedDataDetail encryptedDataDetail = mock(EncryptedDataDetail.class);
-    List<EncryptedDataDetail> encryptedDataDetailList = new ArrayList<>();
-    encryptedDataDetailList.add(encryptedDataDetail);
-
     doReturn("commitsha").when(spyTerraformBaseHelper).getLatestCommitSHA(new File("repoDir"));
     doReturn("repoDir").when(gitClientHelper).getRepoDirectory(any(GitBaseRequest.class));
     doReturn("commitsha").when(spyTerraformBaseHelper).getLatestCommitSHAFromLocalRepo(any(GitBaseRequest.class));
 
-    Map<String, String> resultMap = terraformBaseHelper.buildcommitIdToFetchedFilesMap(
-        "accountId", "configFileIdentifier", mockGitBaseRequest, getTerraformFileInfoList());
+    Map<String, String> resultMap =
+        terraformBaseHelper.buildCommitIdToFetchedFilesMap("configFileIdentifier", mockGitBaseRequest, new HashMap<>());
     assertThat(resultMap).isNotNull();
-    assertThat(resultMap.size()).isGreaterThan(1); // should atleast have config file and it's identifier
+    assertThat(resultMap.size()).isEqualTo(1);
   }
+
+  @Test
+  @Owner(developers = TMACARI)
+  @Category(UnitTests.class)
+  public void testBuildCommitIdToFetchedFilesMapHasVarFiles() {
+    Map<String, String> commitIdMap = new HashMap<>();
+    doReturn("commitsha").when(spyTerraformBaseHelper).getLatestCommitSHA(new File("repoDir"));
+    doReturn("repoDir").when(gitClientHelper).getRepoDirectory(any(GitBaseRequest.class));
+    doReturn("commitsha").when(spyTerraformBaseHelper).getLatestCommitSHAFromLocalRepo(any(GitBaseRequest.class));
+
+    terraformBaseHelper.addVarFilesCommitIdsToMap("configFileIdentifier", getGitTerraformFileInfoList(), commitIdMap);
+    assertThat(commitIdMap).isNotNull();
+    assertThat(commitIdMap.size()).isEqualTo(1);
+  }
+
+  @Test
+  @Owner(developers = TMACARI)
+  @Category(UnitTests.class)
+  public void testFetchConfigFileAndPrepareScriptDir() throws IOException {
+    ClassLoader classLoader = TerraformBaseHelperImplTest.class.getClassLoader();
+
+    List<EncryptedDataDetail> encryptedDataDetails = Collections.singletonList(mock(EncryptedDataDetail.class));
+    ArtifactoryUsernamePasswordAuthDTO credentials = ArtifactoryUsernamePasswordAuthDTO.builder().build();
+    ArtifactoryConnectorDTO artifactoryConnectorDTO =
+        ArtifactoryConnectorDTO.builder()
+            .auth(ArtifactoryAuthenticationDTO.builder().credentials(credentials).build())
+            .build();
+    ArtifactoryStoreDelegateConfig artifactoryStoreDelegateConfig =
+        ArtifactoryStoreDelegateConfig.builder()
+            .artifacts(Arrays.asList("artifactPath"))
+            .repositoryName("repoName")
+            .encryptedDataDetails(encryptedDataDetails)
+            .connectorDTO(ConnectorInfoDTO.builder().connectorConfig(artifactoryConnectorDTO).build())
+            .build();
+    ArtifactoryConfigRequest artifactoryConfigRequest = ArtifactoryConfigRequest.builder().build();
+    doReturn(null).when(secretDecryptionService).decrypt(credentials, encryptedDataDetails);
+    doReturn(artifactoryConfigRequest).when(artifactoryRequestMapper).toArtifactoryRequest(artifactoryConnectorDTO);
+    doReturn(classLoader.getResourceAsStream("terraform/localresource.tfvar.zip"))
+        .when(artifactoryNgService)
+        .downloadArtifacts(eq(artifactoryConfigRequest), any(), any(), eq("artifactPath"), eq("artifactName"));
+    doReturn(new ByteArrayInputStream("test".getBytes()))
+        .when(delegateFileManager)
+        .downloadByFileId(any(), any(), any());
+
+    terraformBaseHelper.fetchConfigFileAndPrepareScriptDir(
+        artifactoryStoreDelegateConfig, "accountId", "workspace", "stateFileId", logCallback, "baseDir");
+    File configFile = new File("baseDir/script-repository/repoName/localresource.tfvar");
+    File stateFile = new File("baseDir/script-repository/repoName/terraform.tfstate.d/workspace/terraform.tfstate");
+    assertThat(configFile.exists()).isTrue();
+    assertThat(stateFile.exists()).isTrue();
+  }
+
+  @Test
+  @Owner(developers = NAMAN_TALAYCHA)
+  @Category(UnitTests.class)
+  public void testConfigureCredentialsForModuleSource() throws IOException {
+    TerraformTaskNGParameters taskNGParameters = TerraformTaskNGParameters.builder()
+                                                     .entityId("entityId")
+                                                     .accountId("account_id")
+                                                     .taskType(TFTaskType.APPLY)
+                                                     .environmentVariables(new HashMap<>())
+                                                     .build();
+
+    GitStoreDelegateConfig gitStoreDelegateConfig =
+        GitStoreDelegateConfig.builder()
+            .gitConfigDTO(GitConfigDTO.builder().gitAuthType(GitAuthType.SSH).url("repourl").build())
+            .connectorName("connectorId")
+            .paths(Arrays.asList("filepath1", "filepath2"))
+            .branch("master")
+            .sshKeySpecDTO(SSHKeySpecDTO.builder().build())
+            .build();
+
+    SshSessionConfig sshSessionConfig = SshSessionConfig.Builder.aSshSessionConfig()
+                                            .withKeyLess(false)
+                                            .withKeyPassphrase(null)
+                                            .withKey(new char[] {'a', 'b'})
+                                            .withKeyPath("ExpectedKeyPath")
+                                            .build();
+
+    when(sshSessionConfigMapper.getSSHSessionConfig(any(), any())).thenReturn(sshSessionConfig);
+
+    terraformBaseHelper.configureCredentialsForModuleSource(taskNGParameters, gitStoreDelegateConfig, logCallback);
+    assertThat(taskNGParameters.getEnvironmentVariables().size()).isEqualTo(1);
+    assertThat(taskNGParameters.getEnvironmentVariables().get(TerraformBaseHelperImpl.GIT_SSH_COMMAND))
+        .contains("ssh -o StrictHostKeyChecking=no -o BatchMode=yes -o PasswordAuthentication=no -i");
+    assertThat(taskNGParameters.getEnvironmentVariables().get(TerraformBaseHelperImpl.GIT_SSH_COMMAND))
+        .contains("./terraform-working-dir/entityId/.ssh/ssh.key");
+  }
+
+  @Test
+  @Owner(developers = NAMAN_TALAYCHA)
+  @Category(UnitTests.class)
+  public void testConfigureCredentialsForModuleSourceSSHKeyPath() throws IOException {
+    TerraformTaskNGParameters taskNGParameters = TerraformTaskNGParameters.builder()
+                                                     .entityId("entityId")
+                                                     .accountId("account_id")
+                                                     .taskType(TFTaskType.APPLY)
+                                                     .environmentVariables(new HashMap<>())
+                                                     .build();
+
+    GitStoreDelegateConfig gitStoreDelegateConfig =
+        GitStoreDelegateConfig.builder()
+            .gitConfigDTO(GitConfigDTO.builder().gitAuthType(GitAuthType.SSH).url("repourl").build())
+            .connectorName("connectorId")
+            .paths(Arrays.asList("filepath1", "filepath2"))
+            .branch("master")
+            .sshKeySpecDTO(SSHKeySpecDTO.builder().build())
+            .build();
+
+    SshSessionConfig sshSessionConfig = SshSessionConfig.Builder.aSshSessionConfig()
+                                            .withKeyLess(true)
+                                            .withKeyPassphrase(null)
+                                            .withKeyPath("/home/user/.ssh/id.key")
+                                            .build();
+
+    when(sshSessionConfigMapper.getSSHSessionConfig(any(), any())).thenReturn(sshSessionConfig);
+
+    terraformBaseHelper.configureCredentialsForModuleSource(taskNGParameters, gitStoreDelegateConfig, logCallback);
+    assertThat(taskNGParameters.getEnvironmentVariables().size()).isEqualTo(1);
+    assertThat(taskNGParameters.getEnvironmentVariables().get(TerraformBaseHelperImpl.GIT_SSH_COMMAND))
+        .contains("ssh -o StrictHostKeyChecking=no -o BatchMode=yes -o PasswordAuthentication=no -i");
+    assertThat(taskNGParameters.getEnvironmentVariables().get(TerraformBaseHelperImpl.GIT_SSH_COMMAND))
+        .contains("/home/user/.ssh/id.key");
+  }
+
+  @Test
+  @Owner(developers = NAMAN_TALAYCHA)
+  @Category(UnitTests.class)
+  public void testConfigureCredentialsForModuleSourcePassPhrase() throws IOException {
+    TerraformTaskNGParameters taskNGParameters = TerraformTaskNGParameters.builder()
+                                                     .entityId("entityId")
+                                                     .accountId("account_id")
+                                                     .taskType(TFTaskType.APPLY)
+                                                     .environmentVariables(new HashMap<>())
+                                                     .build();
+
+    GitStoreDelegateConfig gitStoreDelegateConfig =
+        GitStoreDelegateConfig.builder()
+            .gitConfigDTO(GitConfigDTO.builder().gitAuthType(GitAuthType.SSH).url("repourl").build())
+            .connectorName("connectorId")
+            .paths(Arrays.asList("filepath1", "filepath2"))
+            .branch("master")
+            .sshKeySpecDTO(SSHKeySpecDTO.builder().build())
+            .build();
+
+    SshSessionConfig sshSessionConfig = SshSessionConfig.Builder.aSshSessionConfig()
+                                            .withKeyLess(true)
+                                            .withKeyPassphrase(new char[] {'a', 'b'})
+                                            .withKeyPath("/home/user/.ssh/id.key")
+                                            .build();
+
+    when(sshSessionConfigMapper.getSSHSessionConfig(any(), any())).thenReturn(sshSessionConfig);
+
+    terraformBaseHelper.configureCredentialsForModuleSource(taskNGParameters, gitStoreDelegateConfig, logCallback);
+    verify(logCallback, times(1))
+        .saveExecutionLog(
+            color("\nExporting SSH Key with Passphrase for Module Source is not Supported", Yellow), WARN);
+    assertThat(taskNGParameters.getEnvironmentVariables().size()).isEqualTo(0);
+  }
+
+  @Test
+  @Owner(developers = NAMAN_TALAYCHA)
+  @Category(UnitTests.class)
+  public void testConfigureCredentialsForModuleSourceSSHUsername() throws IOException {
+    TerraformTaskNGParameters taskNGParameters = TerraformTaskNGParameters.builder()
+                                                     .entityId("entityId")
+                                                     .accountId("account_id")
+                                                     .taskType(TFTaskType.APPLY)
+                                                     .environmentVariables(new HashMap<>())
+                                                     .build();
+
+    GitStoreDelegateConfig gitStoreDelegateConfig =
+        GitStoreDelegateConfig.builder()
+            .gitConfigDTO(GitConfigDTO.builder().gitAuthType(GitAuthType.SSH).url("repourl").build())
+            .connectorName("connectorId")
+            .paths(Arrays.asList("filepath1", "filepath2"))
+            .branch("master")
+            .sshKeySpecDTO(SSHKeySpecDTO.builder().build())
+            .build();
+
+    SshSessionConfig sshSessionConfig = SshSessionConfig.Builder.aSshSessionConfig()
+                                            .withKeyLess(false)
+                                            .withUserName("username")
+                                            .withPassword(new char[] {'p', 'w'})
+                                            .build();
+
+    when(sshSessionConfigMapper.getSSHSessionConfig(any(), any())).thenReturn(sshSessionConfig);
+
+    terraformBaseHelper.configureCredentialsForModuleSource(taskNGParameters, gitStoreDelegateConfig, logCallback);
+    verify(logCallback, times(1))
+        .saveExecutionLog(
+            color("\nExporting Username and Password with SSH for Module Source is not Supported", Yellow), WARN);
+    assertThat(taskNGParameters.getEnvironmentVariables().size()).isEqualTo(0);
+  }
+
+  @Test
+  @Owner(developers = NAMAN_TALAYCHA)
+  @Category(UnitTests.class)
+  public void testConfigureCredentialsForModuleSourceHTTPAuth() throws IOException {
+    try {
+      TerraformTaskNGParameters taskNGParameters = TerraformTaskNGParameters.builder()
+                                                       .entityId("entityId")
+                                                       .accountId("account_id")
+                                                       .taskType(TFTaskType.APPLY)
+                                                       .environmentVariables(new HashMap<>())
+                                                       .build();
+
+      GitStoreDelegateConfig gitStoreDelegateConfig =
+          GitStoreDelegateConfig.builder()
+              .gitConfigDTO(GitConfigDTO.builder().gitAuthType(GitAuthType.HTTP).url("repourl").build())
+              .connectorName("connectorId")
+              .paths(Arrays.asList("filepath1", "filepath2"))
+              .branch("master")
+              .sshKeySpecDTO(SSHKeySpecDTO.builder().build())
+              .build();
+
+      terraformBaseHelper.configureCredentialsForModuleSource(taskNGParameters, gitStoreDelegateConfig, logCallback);
+      verify(logCallback, times(1))
+          .saveExecutionLog(
+              color("\nExporting Username and Password for Module Source is not Supported", Yellow), WARN);
+      assertThat(taskNGParameters.getEnvironmentVariables().size()).isEqualTo(0);
+    } finally {
+      FileIo.deleteFileIfExists(Paths.get(SSH_KEY_FILENAME).toAbsolutePath().toString());
+    }
+  }
+
   @Test
   @Owner(developers = ROHITKARELIA)
   @Category(UnitTests.class)
-  public void testCheckoutRemoteVarFileAndConvertToVarFilePaths() throws IOException {
+  public void testCheckoutRemoteGitVarFileAndConvertToVarFilePaths() throws IOException {
     String scriptDirectory = "repository/testSaveAndGetTerraformPlanFile";
     FileIo.createDirectoryIfDoesNotExist(scriptDirectory);
     String tfvarDir = "repository/tfVarDir";
     FileIo.createDirectoryIfDoesNotExist(tfvarDir);
 
     List<String> varFilePaths = terraformBaseHelper.checkoutRemoteVarFileAndConvertToVarFilePaths(
-        getTerraformFileInfoList(), scriptDirectory, logCallback, "accountId", tfvarDir);
+        getGitTerraformFileInfoList(), scriptDirectory, logCallback, "accountId", tfvarDir);
     assertThat(varFilePaths.size()).isEqualTo(2);
     assertThat(varFilePaths.get(0))
         .isEqualTo(Paths.get(tfvarDir).toAbsolutePath() + "/"
             + "filepath1");
+  }
+
+  @Test
+  @Owner(developers = TMACARI)
+  @Category(UnitTests.class)
+  public void testCheckoutRemoteArtifactoryVarFileAndConvertToVarFilePaths() throws IOException {
+    String scriptDirectory = "repository/testSaveAndGetTerraformPlanFile";
+    FileIo.createDirectoryIfDoesNotExist(scriptDirectory);
+    String tfvarDir = "repository/tfVarDir";
+    FileIo.createDirectoryIfDoesNotExist(tfvarDir);
+    ClassLoader classLoader = TerraformBaseHelperImplTest.class.getClassLoader();
+
+    List<EncryptedDataDetail> encryptedDataDetails = Collections.singletonList(mock(EncryptedDataDetail.class));
+    ArtifactoryUsernamePasswordAuthDTO credentials = ArtifactoryUsernamePasswordAuthDTO.builder().build();
+    ArtifactoryConnectorDTO artifactoryConnectorDTO =
+        ArtifactoryConnectorDTO.builder()
+            .auth(ArtifactoryAuthenticationDTO.builder().credentials(credentials).build())
+            .build();
+    ArtifactoryStoreDelegateConfig artifactoryStoreDelegateConfig =
+        ArtifactoryStoreDelegateConfig.builder()
+            .artifacts(Arrays.asList("artifactPath", "/artifactPath/artifactPath"))
+            .repositoryName("repoName")
+            .encryptedDataDetails(encryptedDataDetails)
+            .connectorDTO(ConnectorInfoDTO.builder().connectorConfig(artifactoryConnectorDTO).build())
+            .build();
+    ArtifactoryConfigRequest artifactoryConfigRequest = ArtifactoryConfigRequest.builder().build();
+    doReturn(null).when(secretDecryptionService).decrypt(credentials, encryptedDataDetails);
+    doReturn(artifactoryConfigRequest).when(artifactoryRequestMapper).toArtifactoryRequest(artifactoryConnectorDTO);
+    when(artifactoryNgService.downloadArtifacts(eq(artifactoryConfigRequest), any(), any(), any(), eq("artifactName")))
+        .thenReturn(classLoader.getResourceAsStream("terraform/localresource.tfvar.zip"))
+        .thenReturn(classLoader.getResourceAsStream("terraform/localresource.tfvar.zip"));
+    doReturn(new ByteArrayInputStream("test".getBytes()))
+        .when(delegateFileManager)
+        .downloadByFileId(any(), any(), any());
+
+    List<String> varFilePaths = terraformBaseHelper.checkoutRemoteVarFileAndConvertToVarFilePaths(
+        Arrays.asList(
+            RemoteTerraformVarFileInfo.builder().filestoreFetchFilesConfig(artifactoryStoreDelegateConfig).build()),
+        scriptDirectory, logCallback, "accountId", tfvarDir);
+
+    verify(artifactoryNgService, times(2)).downloadArtifacts(any(), any(), any(), any(), any());
+    assertThat(varFilePaths.size()).isEqualTo(2);
+    assertThat(varFilePaths.get(0)).contains("localresource.tfvar");
+    assertThat(varFilePaths.get(1)).contains("localresource.tfvar");
+  }
+
+  @Test
+  @Owner(developers = TMACARI)
+  @Category(UnitTests.class)
+  public void testCheckoutRemoteGitAndArtifactoryVarFileAndConvertToVarFilePaths() throws IOException {
+    String scriptDirectory = "repository/testSaveAndGetTerraformPlanFile";
+    FileIo.createDirectoryIfDoesNotExist(scriptDirectory);
+    String tfvarDir = "repository/tfVarDir";
+    FileIo.createDirectoryIfDoesNotExist(tfvarDir);
+    ClassLoader classLoader = TerraformBaseHelperImplTest.class.getClassLoader();
+
+    List<EncryptedDataDetail> encryptedDataDetails = Collections.singletonList(mock(EncryptedDataDetail.class));
+    ArtifactoryUsernamePasswordAuthDTO credentials = ArtifactoryUsernamePasswordAuthDTO.builder().build();
+    ArtifactoryConnectorDTO artifactoryConnectorDTO =
+        ArtifactoryConnectorDTO.builder()
+            .auth(ArtifactoryAuthenticationDTO.builder().credentials(credentials).build())
+            .build();
+    ArtifactoryStoreDelegateConfig artifactoryStoreDelegateConfig =
+        ArtifactoryStoreDelegateConfig.builder()
+            .artifacts(Arrays.asList("artifactPath"))
+            .repositoryName("repoName")
+            .encryptedDataDetails(encryptedDataDetails)
+            .connectorDTO(ConnectorInfoDTO.builder().connectorConfig(artifactoryConnectorDTO).build())
+            .build();
+    ArtifactoryConfigRequest artifactoryConfigRequest = ArtifactoryConfigRequest.builder().build();
+    doReturn(null).when(secretDecryptionService).decrypt(credentials, encryptedDataDetails);
+    doReturn(artifactoryConfigRequest).when(artifactoryRequestMapper).toArtifactoryRequest(artifactoryConnectorDTO);
+    doReturn(classLoader.getResourceAsStream("terraform/localresource.tfvar.zip"))
+        .when(artifactoryNgService)
+        .downloadArtifacts(eq(artifactoryConfigRequest), any(), any(), eq("artifactPath"), eq("artifactName"));
+    doReturn(new ByteArrayInputStream("test".getBytes()))
+        .when(delegateFileManager)
+        .downloadByFileId(any(), any(), any());
+
+    List<TerraformVarFileInfo> terraformVarFileInfos = getGitTerraformFileInfoList();
+    terraformVarFileInfos.add(
+        RemoteTerraformVarFileInfo.builder().filestoreFetchFilesConfig(artifactoryStoreDelegateConfig).build());
+
+    List<String> varFilePaths = terraformBaseHelper.checkoutRemoteVarFileAndConvertToVarFilePaths(
+        terraformVarFileInfos, scriptDirectory, logCallback, "accountId", tfvarDir);
+
+    assertThat(varFilePaths.size()).isEqualTo(3);
   }
 
   @Test
@@ -308,7 +639,7 @@ public class TerraformBaseHelperImplTest extends CategoryTest {
     FileIo.deleteFileIfExists(tfPlanJsonFile.getAbsolutePath());
   }
 
-  private List<TerraformVarFileInfo> getTerraformFileInfoList() {
+  private List<TerraformVarFileInfo> getGitTerraformFileInfoList() {
     List<TerraformVarFileInfo> varFileInfos = new ArrayList<>();
     GitStoreDelegateConfig gitStoreDelegateConfig = getGitStoreDelegateConfig();
     RemoteTerraformVarFileInfo remoteTerraformVarFileInfo =

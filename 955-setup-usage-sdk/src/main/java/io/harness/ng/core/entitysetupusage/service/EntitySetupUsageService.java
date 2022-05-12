@@ -17,11 +17,15 @@ import io.harness.ng.core.entitysetupusage.entity.EntitySetupUsage;
 
 import java.util.List;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Sort;
 
 @OwnedBy(DX)
 public interface EntitySetupUsageService {
   Page<EntitySetupUsageDTO> listAllEntityUsage(int page, int size, String accountIdentifier, String referredEntityFQN,
       EntityType referredEntityType, String searchTerm);
+
+  Page<EntitySetupUsageDTO> listAllEntityUsage(int page, int size, String accountIdentifier, String referredEntityFQN,
+      EntityType referredEntityType, EntityType referredByEntityType, String searchTerm, Sort sort);
 
   List<EntitySetupUsageDTO> listAllReferredUsages(int page, int size, String accountIdentifier,
       String referredByEntityFQN, EntityType referredEntityType, String searchTerm);
@@ -36,6 +40,8 @@ public interface EntitySetupUsageService {
 
   Boolean isEntityReferenced(String accountIdentifier, String referredEntityFQN, EntityType referredEntityType);
 
+  Long referredByEntityCount(String accountIdentifier, String referredEntityFQN, EntityType referredEntityType);
+
   // todo(abhinav): make delete and create a transactional operation
   Boolean flushSave(List<EntitySetupUsage> entitySetupUsage, EntityType entityTypeFromChannel,
       boolean deleteOldReferredByRecords, String accountId);
@@ -44,4 +50,7 @@ public interface EntitySetupUsageService {
       EntityType referredByEntityType, EntityType referredEntityType);
 
   long deleteByReferredByEntityType(EntityType referredByEntityType);
+
+  Page<EntitySetupUsageDTO> listAllEntityUsagePerEntityScope(int page, int size, String accountIdentifier,
+      String referredEntityFQScope, EntityType referredEntityType, EntityType referredByEntityType, Sort sort);
 }

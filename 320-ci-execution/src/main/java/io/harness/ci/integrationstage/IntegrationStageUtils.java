@@ -85,11 +85,7 @@ public class IntegrationStageUtils {
   public static final String PR_EXPRESSION = "<+trigger.prNumber>";
 
   public IntegrationStageConfig getIntegrationStageConfig(StageElementConfig stageElementConfig) {
-    if (stageElementConfig.getType().equals("CI")) {
-      return (IntegrationStageConfig) stageElementConfig.getStageType();
-    } else {
-      throw new CIStageExecutionException("Invalid stage type: " + stageElementConfig.getStageType());
-    }
+    return (IntegrationStageConfig) stageElementConfig.getStageType();
   }
 
   public ParallelStepElementConfig getParallelStepElementConfig(ExecutionWrapperConfig executionWrapperConfig) {
@@ -255,7 +251,7 @@ public class IntegrationStageUtils {
   public String getGitURL(CodeBase ciCodebase, GitConnectionType connectionType, String url) {
     String gitUrl = retrieveGenericGitConnectorURL(ciCodebase, connectionType, url);
 
-    if (!url.endsWith(GIT_URL_SUFFIX) && !url.contains("dev.azure.com")) {
+    if (!gitUrl.endsWith(GIT_URL_SUFFIX) && !gitUrl.contains("dev.azure.com")) {
       gitUrl += GIT_URL_SUFFIX;
     }
     return gitUrl;
@@ -270,11 +266,11 @@ public class IntegrationStageUtils {
         throw new IllegalArgumentException("CI codebase spec is not set");
       }
 
-      if (isEmpty(ciCodebase.getRepoName())) {
+      if (isEmpty(ciCodebase.getRepoName().getValue())) {
         throw new IllegalArgumentException("Repo name is not set in CI codebase spec");
       }
 
-      String repoName = ciCodebase.getRepoName();
+      String repoName = ciCodebase.getRepoName().getValue();
       if (url.endsWith(PATH_SEPARATOR)) {
         gitUrl = url + repoName;
       } else {

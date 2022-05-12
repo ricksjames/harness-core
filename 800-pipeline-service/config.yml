@@ -227,9 +227,9 @@ iteratorsConfig:
     enabled: true
     targetIntervalInSeconds: 60
   resourceRestraint:
-    threadPoolCount: 5
+    threadPoolCount: 2
     enabled: true
-    targetIntervalInSeconds: 60
+    targetIntervalInSeconds: 300
   interruptMonitor:
     threadPoolCount: 2
     enabled: true
@@ -329,6 +329,8 @@ pipelineEventConsumersConfig:
     threads: 1
   webhookEvent:
     threads: 1
+  initiateNode:
+    threads: 2
 
 delegatePollingConfig:
   syncDelay: 2000
@@ -343,7 +345,7 @@ segmentConfiguration:
 enforcementClientConfiguration:
   enforcementCheckEnabled: false
 
-shouldUseInstanceCache: ${SHOULD_USE_INSTANCE_CACHE:-false}
+shouldUseInstanceCache: ${SHOULD_USE_INSTANCE_CACHE:-true}
 
 pmsPlanCreatorServicePoolConfig:
   corePoolSize: ${PLAN_CREATOR_SERVICE_EXECUTOR_POOL_CORE_SIZE:-2}
@@ -390,3 +392,24 @@ orchestrationRedisEventsConfig:
     maxTopicSize: ${PIPELINE_NODE_RESUME_MAX_TOPIC_SIZE:-5000}
   pipelineStartPartialPlanCreator:
     maxTopicSize: ${START_PARTIAL_PLAN_CREATOR_MAX_TOPIC_SIZE:-5000}
+
+allowedParallelStages: ${ALLOWED_PARALLEL_STAGES:-25}
+
+orchestrationLogConfiguration:
+  reduceOrchestrationLog: ${REDUCE_ORCHESTRATION_EVENT_LOG:-false}
+  shouldUseBatching: ${ORCHESTRATION_LOG_SHOULD_USE_BATCHING:-false}
+  orchestrationLogBatchSize: ${ORCHESTRATION_LOG_BATCH_SIZE:-5}
+
+planCreatorMergeServiceDependencyBatch: ${PLAN_CREATOR_DEPENDENCY_BATCH:-50}
+
+############ Json Expansion Config variables #################
+
+jsonExpansionPoolConfig:
+  corePoolSize: ${JSON_EXPANSION_EXECUTOR_POOL_CORE_SIZE:-5}
+  maxPoolSize: ${JSON_EXPANSION_EXECUTOR_POOL_MAX_SIZE:-10}
+  idleTime: ${JSON_EXPANSION_EXECUTOR_POOL_IDLE_TIME:-30}
+  timeUnit: ${JSON_EXPANSION_EXECUTOR_POOL_IDLE_TIME_TIME_UNIT:-SECONDS}
+
+jsonExpansionRequestBatchSize: ${JSON_EXPANSION_BATCH_SIZE:-50}
+
+#############################################################

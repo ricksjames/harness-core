@@ -78,7 +78,7 @@ import lombok.extern.slf4j.Slf4j;
 public class CIModuleInfoProvider implements ExecutionSummaryModuleInfoProvider {
   @Inject private ExecutionSweepingOutputService executionSweepingOutputService;
   @Inject private ConnectorUtils connectorUtils;
-
+  String NULL_STR = "null";
   @Override
   public boolean shouldRun(OrchestrationEvent event) {
     StepType currentStepType = AmbianceUtils.getCurrentStepType(event.getAmbiance());
@@ -112,20 +112,20 @@ public class CIModuleInfoProvider implements ExecutionSummaryModuleInfoProvider 
       if (initializeStepInfo.getCiCodebase() != null) {
         buildParameterField = initializeStepInfo.getCiCodebase().getBuild();
 
-        if (initializeStepInfo.getCiCodebase().getRepoName() != null) {
-          repoName = initializeStepInfo.getCiCodebase().getRepoName();
+        if (isNotEmpty(initializeStepInfo.getCiCodebase().getRepoName().getValue())) {
+          repoName = initializeStepInfo.getCiCodebase().getRepoName().getValue();
         }
-        if (initializeStepInfo.getCiCodebase().getConnectorRef() != null) {
+        if (initializeStepInfo.getCiCodebase().getConnectorRef().getValue() != null) {
           try {
-            ConnectorDetails connectorDetails =
-                connectorUtils.getConnectorDetails(baseNGAccess, initializeStepInfo.getCiCodebase().getConnectorRef());
+            ConnectorDetails connectorDetails = connectorUtils.getConnectorDetails(
+                baseNGAccess, initializeStepInfo.getCiCodebase().getConnectorRef().getValue());
             if (executionTriggerInfo.getTriggerType() == TriggerType.WEBHOOK) {
               url = IntegrationStageUtils.getGitURLFromConnector(connectorDetails, initializeStepInfo.getCiCodebase());
             }
             if (url == null) {
               url = connectorUtils.retrieveURL(connectorDetails);
             }
-            if (repoName == null) {
+            if (isEmpty(repoName) || repoName.equals(NULL_STR)) {
               repoName = getGitRepo(url);
             }
 

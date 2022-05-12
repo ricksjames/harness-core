@@ -76,6 +76,7 @@ import org.mongodb.morphia.query.Query;
 @TargetModule(HarnessModule._870_CG_ORCHESTRATION)
 public interface WorkflowExecutionService extends StateStatusUpdate {
   void refreshPipelineExecution(WorkflowExecution workflowExecution);
+  void refreshStatus(WorkflowExecution workflowExecution);
 
   HIterator<WorkflowExecution> executions(String appId, long startedFrom, long statedTo, Set<String> includeOnlyFields);
 
@@ -108,6 +109,8 @@ public interface WorkflowExecutionService extends StateStatusUpdate {
   WorkflowExecution getExecutionWithoutSummary(@NotNull String appId, @NotNull String workflowExecutionId);
 
   WorkflowExecution getWorkflowExecution(@NotNull String appId, @NotNull String workflowExecutionId);
+
+  String getPipelineExecutionId(@NotNull String appId, @NotNull String workflowExecutionId);
 
   WorkflowExecution getExecutionDetailsWithoutGraph(String appId, String workflowExecutionId);
 

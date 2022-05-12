@@ -15,6 +15,7 @@ import io.harness.annotations.dev.OwnedBy;
 import io.harness.data.algorithm.IdentifierName;
 import io.harness.exception.CriticalExpressionEvaluationException;
 
+import com.google.common.collect.ImmutableSet;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -25,6 +26,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import javax.validation.constraints.NotNull;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
@@ -244,6 +246,15 @@ public class ExpressionEvaluatorUtils {
       return o;
     }
 
+    if (o instanceof Set && !(o instanceof ImmutableSet)) {
+      Set l = (Set) o;
+      Object newSet =
+          l.stream().map(ob -> updateExpressionsInternal(ob, functor, depth - 1, cache)).collect(Collectors.toSet());
+      l.clear();
+      l.addAll((Set) newSet);
+      return o;
+    }
+
     if (o instanceof Map) {
       Map m = (Map) o;
       m.replaceAll((k, v) -> updateExpressionsInternal(v, functor, depth - 1, cache));
@@ -288,6 +299,7 @@ public class ExpressionEvaluatorUtils {
     StrSubstitutor substitutor = new StrSubstitutor();
     substitutor.setEnableSubstitutionInVariables(true);
     substitutor.setVariableResolver(variableResolver);
+    substitutor.setValueDelimiter("");
     if (newDelimiters) {
       substitutor.setVariablePrefix(EngineExpressionEvaluator.EXPR_START);
       substitutor.setVariableSuffix(EngineExpressionEvaluator.EXPR_END);

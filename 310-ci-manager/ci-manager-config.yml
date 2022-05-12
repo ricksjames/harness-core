@@ -82,6 +82,10 @@ tiServiceConfig:
   baseUrl: http://localhost:8078
   globalToken: "78d16b66-4b4c-11eb-8377-acde48001122"
 
+stoServiceConfig:
+  baseUrl: http://localhost:4000
+  globalToken: "551715ea-ca71-11ec-9d64-0242ac120002"
+
 managerTarget: localhost:9880
 managerAuthority: localhost
 managerServiceSecret: "IC04LYMBf1lDP5oeY4hupxd4HJhLmN6azUku3xEbeE3SUx5G3ZYzhbiwVtK4i7AmqyU9OZkwB4v8E9qM"
@@ -106,8 +110,8 @@ ciExecutionServiceConfig:
   defaultInternalImageConnector: ''
   pvcDefaultStorageSize: 25600
   delegateServiceEndpointVariableValue: "delegate-service:8080"
-  addonImage: harness/ci-addon:release-61
-  liteEngineImage: harness/ci-lite-engine:release-30
+  addonImage: harness/ci-addon:1.14.0
+  liteEngineImage: harness/ci-lite-engine:1.14.0
   isLocal: false
   stepConfig:
     # The below config is for K8 steps
@@ -133,19 +137,25 @@ ciExecutionServiceConfig:
       entrypoint:
         - /bin/drone-gcs
     s3UploadConfig:
-      image: plugins/s3:1.0.3
+      image: plugins/s3:1.0.4
       entrypoint:
         - /bin/drone-s3
+    securityConfig:
+      image: zeronorth/sto_plugin:dev
+      entrypoint:
+        - /bin/sh
+        - -c
+        - python3 ${DOCKER_ENTRYPOINT}
     artifactoryUploadConfig:
-      image: plugins/artifactory:1.0.4
+      image: plugins/artifactory:1.0.6
       entrypoint:
         - /bin/plugin
     cacheGCSConfig:
-      image: plugins/cache:1.3.6
+      image: plugins/cache:1.3.7
       entrypoint:
         - /bin/drone-cache
     cacheS3Config:
-      image: plugins/cache:1.3.6
+      image: plugins/cache:1.3.7
       entrypoint:
         - /bin/drone-cache
 
@@ -156,10 +166,11 @@ ciExecutionServiceConfig:
       buildAndPushECR: plugins/ecr:latest
       buildAndPushGCR: plugins/gcr:latest
       gcsUpload: plugins/gcs:1.2.4
-      s3Upload: plugins/s3:1.0.3
-      artifactoryUpload: plugins/artifactory:1.0.4
-      cacheGCS: plugins/cache:1.3.6
-      cacheS3: plugins/cache:1.3.6
+      s3Upload: plugins/s3:1.0.4
+      security: plugin/sto_plugin:dev
+      artifactoryUpload: plugins/artifactory:1.0.6
+      cacheGCS: plugins/cache:1.3.7
+      cacheS3: plugins/cache:1.3.7
 
 pmsSdkExecutionPoolConfig:
   corePoolSize: ${PMS_SDK_EXECUTION_POOL_CORE_SIZE:-50}
