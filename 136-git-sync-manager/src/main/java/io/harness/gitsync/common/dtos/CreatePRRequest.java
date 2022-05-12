@@ -20,7 +20,6 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Builder
 public class CreatePRRequest {
-  String accountIdentifier;
   String orgIdentifier;
   String projectIdentifier;
   String repoName;

@@ -245,13 +245,15 @@ public class ScmFacilitatorResource {
   @Operation(operationId = "createPR", summary = "creates a Pull Request",
       responses = { @io.swagger.v3.oas.annotations.responses.ApiResponse(description = "Successfully created a PR") })
   public ResponseDTO<CreatePRResponse>
-  createPRV2(@RequestBody(
-      description = "Details to create a PR", required = true) @Valid @NotNull CreatePRRequest createPRRequest) {
+  createPRV2(@Parameter(description = ACCOUNT_PARAM_MESSAGE) @NotBlank @NotNull @QueryParam(
+                 NGCommonEntityConstants.ACCOUNT_KEY) String accountIdentifier,
+      @RequestBody(
+          description = "Details to create a PR", required = true) @Valid @NotNull CreatePRRequest createPRRequest) {
     ScmCreatePRResponseDTO scmCreatePRResponseDTO =
         scmFacilitatorService.createPR(ScmCreatePRRequestDTO.builder()
                                            .title(createPRRequest.getTitle())
                                            .scope(Scope.builder()
-                                                      .accountIdentifier(createPRRequest.getAccountIdentifier())
+                                                      .accountIdentifier(accountIdentifier)
                                                       .orgIdentifier(createPRRequest.getOrgIdentifier())
                                                       .projectIdentifier(createPRRequest.getProjectIdentifier())
                                                       .build())
