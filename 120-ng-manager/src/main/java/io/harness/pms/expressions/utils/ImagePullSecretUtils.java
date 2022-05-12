@@ -259,11 +259,13 @@ public class ImagePullSecretUtils {
         && connectorConfig.getCredential().getAzureCredentialType() == AzureCredentialType.MANUAL_CREDENTIALS) {
       AzureManualDetailsDTO config = (AzureManualDetailsDTO) connectorConfig.getCredential().getConfig();
       if (config.getAuthDTO().getAzureSecretType() == AzureSecretType.SECRET_KEY) {
+        log.info("Generating image pull credentials for SP with secret");
         imageDetailsBuilder.username(config.getClientId());
         imageDetailsBuilder.password(getPasswordExpression(
             ((AzureClientSecretKeyDTO) config.getAuthDTO().getCredentials()).getSecretKey().toSecretRefStringValue(),
             ambiance));
       } else {
+        log.info("Generating image pull credentials for SP with certificate");
         BaseNGAccess baseNGAccess = azureHelperService.getBaseNGAccess(AmbianceUtils.getAccountId(ambiance),
             AmbianceUtils.getOrgIdentifier(ambiance), AmbianceUtils.getProjectIdentifier(ambiance));
 
@@ -287,9 +289,15 @@ public class ImagePullSecretUtils {
 
         String accessToken = format("\"%s\"", accessTokenResponse.getToken());
 
+//        if (log.isDebugEnabled()) {
+          log.info(format("Token for ACR is: %s", accessToken));
+//        }
+
         imageDetailsBuilder.username(ACR_SP_CERT_DOCKER_USERNAME);
         imageDetailsBuilder.password(accessToken);
       }
+    } else {
+      log.info("This is a Managed Identity config. No credentials necessary for image pull.");
     }
   }
 
