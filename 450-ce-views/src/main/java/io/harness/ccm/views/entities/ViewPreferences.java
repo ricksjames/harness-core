@@ -9,6 +9,6 @@ import lombok.experimental.FieldDefaults;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class ViewPreferences {
-  Boolean showOthers;
-  Boolean showUnallocated;
+  Boolean includeOthers;
+  Boolean includeUnallocatedCost;
 }

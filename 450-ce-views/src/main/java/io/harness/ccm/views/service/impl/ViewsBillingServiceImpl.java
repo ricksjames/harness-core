@@ -11,6 +11,11 @@ import static io.harness.annotations.dev.HarnessTeam.CE;
 import static io.harness.beans.FeatureName.CE_BILLING_DATA_PRE_AGGREGATION;
 import static io.harness.ccm.commons.constants.ViewFieldConstants.AWS_ACCOUNT_FIELD;
 import static io.harness.ccm.commons.constants.ViewFieldConstants.AWS_ACCOUNT_FIELD_ID;
+import static io.harness.ccm.commons.constants.ViewFieldConstants.CLOUD_SERVICE_NAME_FIELD_ID;
+import static io.harness.ccm.commons.constants.ViewFieldConstants.LAUNCH_TYPE_FIELD_ID;
+import static io.harness.ccm.commons.constants.ViewFieldConstants.NAMESPACE_FIELD_ID;
+import static io.harness.ccm.commons.constants.ViewFieldConstants.TASK_FIELD_ID;
+import static io.harness.ccm.commons.constants.ViewFieldConstants.WORKLOAD_NAME_FIELD_ID;
 import static io.harness.ccm.views.entities.ViewFieldIdentifier.CLUSTER;
 import static io.harness.ccm.views.entities.ViewFieldIdentifier.LABEL;
 import static io.harness.ccm.views.graphql.QLCEViewAggregateOperation.MAX;
@@ -89,7 +94,6 @@ import static io.harness.ccm.views.utils.ClusterTableKeys.WORKLOAD_TYPE;
 import static java.lang.String.format;
 
 import io.harness.annotations.dev.OwnedBy;
-import io.harness.ccm.commons.constants.ViewFieldConstants;
 import io.harness.ccm.commons.service.intf.EntityMetadataService;
 import io.harness.ccm.views.businessMapping.entities.BusinessMapping;
 import io.harness.ccm.views.businessMapping.entities.UnallocatedCostStrategy;
@@ -211,8 +215,8 @@ public class ViewsBillingServiceImpl implements ViewsBillingService {
   private static final String STANDARD_TIME_ZONE = "GMT";
   private static final long ONE_DAY_MILLIS = 86400000L;
   private static final long OBSERVATION_PERIOD = 29 * ONE_DAY_MILLIS;
-  private static final List<String> UNALLOCATED_COST_CLUSTER_FIELDS =
-      ImmutableList.of(ViewFieldConstants.NAMESPACE_FIELD_ID, ViewFieldConstants.WORKLOAD_NAME_FIELD_ID);
+  private static final List<String> UNALLOCATED_COST_CLUSTER_FIELDS = ImmutableList.of(
+      NAMESPACE_FIELD_ID, WORKLOAD_NAME_FIELD_ID, CLOUD_SERVICE_NAME_FIELD_ID, TASK_FIELD_ID, LAUNCH_TYPE_FIELD_ID);
 
   @Override
   public List<String> getFilterValueStats(BigQuery bigQuery, List<QLCEViewFilterWrapper> filters,
