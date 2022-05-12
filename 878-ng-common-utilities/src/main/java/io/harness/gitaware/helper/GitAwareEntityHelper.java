@@ -99,14 +99,16 @@ public class GitAwareEntityHelper {
     if (gitEntityInfo.isNewBranch() && isNullOrDefault(baseBranch)) {
       throw new InvalidRequestException("No base branch provided for committing to new branch");
     }
+    String branch = isNullOrDefault(gitEntityInfo.getBranch()) ? "" : gitEntityInfo.getBranch();
+    String commitMsg = isNullOrDefault(gitEntityInfo.getCommitMsg()) ? "" : gitEntityInfo.getCommitMsg();
     ScmCreateFileGitRequest scmCreateFileGitRequest = ScmCreateFileGitRequest.builder()
                                                           .repoName(repoName)
-                                                          .branchName(gitEntityInfo.getBranch())
+                                                          .branchName(branch)
                                                           .fileContent(yaml)
                                                           .filePath(filePath)
                                                           .connectorRef(connectorRef)
                                                           .isCommitToNewBranch(gitEntityInfo.isNewBranch())
-                                                          .commitMessage(gitEntityInfo.getCommitMsg())
+                                                          .commitMessage(commitMsg)
                                                           .baseBranch(baseBranch)
                                                           .build();
 
@@ -131,14 +133,16 @@ public class GitAwareEntityHelper {
     if (gitEntityInfo.isNewBranch() && isNullOrDefault(baseBranch)) {
       throw new InvalidRequestException("No base branch provided for committing to new branch");
     }
+    String branch = isNullOrDefault(gitEntityInfo.getBranch()) ? "" : gitEntityInfo.getBranch();
+    String commitMsg = isNullOrDefault(gitEntityInfo.getCommitMsg()) ? "" : gitEntityInfo.getCommitMsg();
     ScmUpdateFileGitRequest scmUpdateFileGitRequest = ScmUpdateFileGitRequest.builder()
                                                           .repoName(repoName)
-                                                          .branchName(gitEntityInfo.getBranch())
+                                                          .branchName(branch)
                                                           .fileContent(yaml)
                                                           .filePath(filePath)
                                                           .connectorRef(connectorRef)
                                                           .isCommitToNewBranch(gitEntityInfo.isNewBranch())
-                                                          .commitMessage(gitEntityInfo.getCommitMsg())
+                                                          .commitMessage(commitMsg)
                                                           .baseBranch(baseBranch)
                                                           .oldFileSha(gitEntityInfo.getLastObjectId())
                                                           .oldCommitId(gitEntityInfo.getCommitId())
