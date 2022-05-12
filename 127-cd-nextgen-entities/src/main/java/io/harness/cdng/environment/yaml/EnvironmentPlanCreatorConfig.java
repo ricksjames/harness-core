@@ -12,18 +12,25 @@ import static io.harness.annotations.dev.HarnessTeam.CDC;
 import io.harness.annotation.RecasterAlias;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.beans.SwaggerConstants;
-import io.harness.cdng.environment.helper.EnvironmentYamlV2VisitorHelper;
+import io.harness.cdng.environment.helper.EnvironmentPlanCreatorConfigVisitorHelper;
 import io.harness.cdng.infra.yaml.InfraStructureDefinition;
+import io.harness.data.validator.EntityIdentifier;
+import io.harness.data.validator.EntityName;
+import io.harness.ng.core.environment.beans.EnvironmentType;
 import io.harness.pms.yaml.ParameterField;
 import io.harness.pms.yaml.YamlNode;
+import io.harness.validator.NGRegexValidatorConstants;
 import io.harness.walktree.visitor.SimpleVisitorHelper;
 import io.harness.walktree.visitor.Visitable;
+import io.harness.yaml.core.variables.NGServiceOverrides;
+import io.harness.yaml.core.variables.NGVariable;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.JsonNode;
 import io.swagger.annotations.ApiModelProperty;
 import java.util.List;
+import java.util.Map;
 import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Pattern;
 import lombok.Builder;
 import lombok.Data;
 import lombok.Getter;
@@ -31,23 +38,31 @@ import org.springframework.data.annotation.TypeAlias;
 
 @Data
 @Builder
-@SimpleVisitorHelper(helperClass = EnvironmentYamlV2VisitorHelper.class)
-@TypeAlias("environmentYamlV2")
+@TypeAlias("environmentPlanCreatorConfig")
+@SimpleVisitorHelper(helperClass = EnvironmentPlanCreatorConfigVisitorHelper.class)
 @OwnedBy(CDC)
-@RecasterAlias("io.harness.cdng.environment.yaml.EnvironmentYamlV2")
-public class EnvironmentYamlV2 implements Visitable {
+@RecasterAlias("io.harness.cdng.environment.yaml.EnvironmentPlanCreatorConfig")
+public class EnvironmentPlanCreatorConfig implements Visitable {
   @JsonProperty(YamlNode.UUID_FIELD_NAME)
   @Getter(onMethod_ = { @ApiModelProperty(hidden = true) })
   @ApiModelProperty(hidden = true)
   private String uuid;
 
-  // For New Service Yaml
   @NotNull
   @ApiModelProperty(dataType = SwaggerConstants.STRING_CLASSPATH)
   private ParameterField<String> environmentRef;
 
-  List<InfraStructureDefinition> infrastructureDefinitions;
+  // Environment Basic Info
+  String orgIdentifier;
+  String projectIdentifier;
+  @NotNull @EntityIdentifier @Pattern(regexp = NGRegexValidatorConstants.IDENTIFIER_PATTERN) String identifier;
+  Map<String, String> tags;
+  @NotNull @EntityName @Pattern(regexp = NGRegexValidatorConstants.NAME_PATTERN) String name;
+  @ApiModelProperty(dataType = SwaggerConstants.STRING_CLASSPATH) String description;
+  @ApiModelProperty(required = true) EnvironmentType type;
+  List<NGVariable> variables;
+  List<NGServiceOverrides> serviceOverrides;
 
-  // environmentInputs
-  JsonNode environmentInputs;
+  // linked Infra Info
+  List<InfraStructureDefinition> infrastructureDefinitions;
 }
