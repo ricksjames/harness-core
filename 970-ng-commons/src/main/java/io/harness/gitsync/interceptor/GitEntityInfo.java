@@ -50,10 +50,7 @@ public class GitEntityInfo {
     final String DEFAULT = "__default__";
     boolean isRepoNull = isEmpty(yamlGitConfigId) || yamlGitConfigId.equals(DEFAULT);
     boolean isBranchNull = isEmpty(branch) || branch.equals(DEFAULT);
-    if (!isRepoNull && isBranchNull || isRepoNull && !isBranchNull) {
-      return true;
-    }
-    return isRepoNull;
+    return isRepoNull && isBranchNull;
   }
 
   public EntityGitDetails toEntityGitDetails() {
