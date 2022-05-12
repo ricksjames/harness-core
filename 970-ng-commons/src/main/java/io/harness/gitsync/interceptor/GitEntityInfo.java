@@ -51,8 +51,7 @@ public class GitEntityInfo {
     boolean isRepoNull = isEmpty(yamlGitConfigId) || yamlGitConfigId.equals(DEFAULT);
     boolean isBranchNull = isEmpty(branch) || branch.equals(DEFAULT);
     if (!isRepoNull && isBranchNull || isRepoNull && !isBranchNull) {
-      throw new InvalidRequestException(String.format(
-          "The repo should be provided with the branch, the request has repo %s, branch %s", yamlGitConfigId, branch));
+      return true;
     }
     return isRepoNull;
   }
