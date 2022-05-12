@@ -74,7 +74,7 @@ public class InstancePricingDataTasklet implements Tasklet {
     // for testing
     startTime = startTime.minus(Period.ofDays(1));
     endTime = startTime.plus(Period.ofDays(1));
-    batchJobType = CCMJobConstants.getBatchJobTypeFromJobParams(parameters, CCMJobConstants.BATCH_JOB_TYPE);
+    batchJobType = CCMJobConstants.getBatchJobTypeFromJobParams(parameters);
     List<InstanceData> instanceDataLists;
     Instant activeInstanceIterator = startTime;
 
