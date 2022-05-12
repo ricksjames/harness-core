@@ -1,4 +1,4 @@
-FROM us.gcr.io/platform-205701/alpine:safe-alpine3.12-jdk11
+FROM harness/ubi:safe-ubi8.5
 
 COPY --chown=65534:65534 keystore.jks /opt/harness/
 COPY --chown=65534:65534 verification-config.yml /opt/harness/
