@@ -38,15 +38,23 @@
         </encoder>
     </appender>
 
-    <if condition='isNull("STACK_DRIVER_LOGGING_ENABLED") || property("STACK_DRIVER_LOGGING_ENABLED").equalsIgnoreCase("true")'>
-        <then>
-            <appender name="REST2" class="io.harness.delegate.logging.DelegateStackdriverLogAppender">
-                <threshold>TRACE</threshold>
-                <managerHost>${MANAGER_HOST_AND_PORT}</managerHost>
-                <accountId>${ACCOUNT_ID}</accountId>
-            </appender>
-        </then>
-    </if>
+    <appender name="cloud" class="com.google.cloud.logging.logback.LoggingAppender">
+<!--            <resourceType>k8s_pod</resourceType>-->
+<!--            <loggingEventEnhancer>YOUR_PACKAGE.StackDriverLoggingEnhancer-->
+<!--            </loggingEventEnhancer>-->
+            <log>delegate.log</log> <!-- Optional : default java.log -->
+            <flushLevel>INFO</flushLevel> <!-- Optional : default ERROR -->
+    </appender>
+
+<!--    <if condition='isNull("STACK_DRIVER_LOGGING_ENABLED") || property("STACK_DRIVER_LOGGING_ENABLED").equalsIgnoreCase("true")'>-->
+<!--        <then>-->
+<!--            <appender name="REST2" class="io.harness.delegate.logging.DelegateStackdriverLogAppender">-->
+<!--                <threshold>TRACE</threshold>-->
+<!--                <managerHost>${MANAGER_HOST_AND_PORT}</managerHost>-->
+<!--                <accountId>${ACCOUNT_ID}</accountId>-->
+<!--            </appender>-->
+<!--        </then>-->
+<!--    </if>-->
 
     <logger name="software.wings" level="INFO"/>
     <logger name="org.zeroturnaround" level="WARN"/>
@@ -58,8 +66,9 @@
     <logger name="io.fabric8.kubernetes.client.Config" level="CRITICAL"/>
     <root level="INFO">
         <appender-ref ref="file"/>
-        <appender-ref ref="REST2"/>
+<!--        <appender-ref ref="REST2"/>-->
         <appender-ref ref="stdout"/>
+        <appender-ref ref="cloud"/>
     </root>
 
 </configuration>
