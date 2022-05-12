@@ -141,6 +141,10 @@ public class CIStepGroupUtils {
       return ParameterField.createValueField(Timeout.fromString("10m"));
     }
 
+    if (infrastructure.getType() == Infrastructure.Type.KUBERNETES_HOSTED) {
+      return ParameterField.createValueField(Timeout.fromString("10m"));
+    }
+
     if (((K8sDirectInfraYaml) infrastructure).getSpec() == null) {
       throw new CIStageExecutionException("Input infrastructure can not be empty");
     }

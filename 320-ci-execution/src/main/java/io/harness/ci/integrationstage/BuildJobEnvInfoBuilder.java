@@ -62,6 +62,10 @@ public class BuildJobEnvInfoBuilder {
       return getK8Timeout((K8sDirectInfraYaml) infrastructure);
     }
 
+    if (infrastructure.getType() == Infrastructure.Type.KUBERNETES_HOSTED) {
+      return (int)Timeout.fromString("10m").getTimeoutInMillis();
+    }
+
     return InitializeStepInfo.DEFAULT_TIMEOUT;
   }
 
