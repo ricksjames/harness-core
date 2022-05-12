@@ -17,7 +17,6 @@ import io.harness.encryption.SecretRefData;
 import io.harness.eventsframework.schemas.entity.EntityDetailProtoDTO;
 import io.harness.plancreator.stages.stage.AbstractStageNode;
 import io.harness.plancreator.stages.stage.StageInfoConfig;
-import io.harness.pms.exception.runtime.InvalidYamlRuntimeException;
 import io.harness.pms.filter.creation.FilterCreationResponse;
 import io.harness.pms.filter.creation.FilterCreationResponse.FilterCreationResponseBuilder;
 import io.harness.pms.pipeline.filter.PipelineFilter;
@@ -71,12 +70,6 @@ public abstract class GenericStageFilterJsonCreatorV2<T extends AbstractStageNod
         filterCreationContext.getCurrentField().getNode().getField(YAMLFieldNameConstants.VARIABLES);
     if (variablesField != null) {
       FilterCreatorHelper.checkIfVariableNamesAreValid(variablesField);
-    }
-
-    if (stageNode.getStageInfoConfig() == null || stageNode.getStageInfoConfig().getExecution() == null) {
-      throw new InvalidYamlRuntimeException(
-          String.format("Execution section is required in %s stage [%s]. Please add it and try again",
-              stageNode.getType(), YamlUtils.getFullyQualifiedName(filterCreationContext.getCurrentField().getNode())));
     }
 
     creationResponse.referredEntities(new ArrayList<>(getReferredEntities(filterCreationContext, stageNode)));
