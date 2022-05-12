@@ -4336,7 +4336,7 @@ plain_artifacts = [
     "ch.qos.logback:logback-classic:1.2.3",
     "ch.qos.logback:logback-core:1.2.11",
     "com.auth0:java-jwt:3.1.0",
-    "com.azure:azure-core:1.10.0",
+    "com.azure:azure-core:1.28.0",
     "com.azure:azure-identity:1.1.2",
     "com.azure:azure-storage-blob:12.16.0",
     "com.azure:azure-storage-common:12.9.0",
