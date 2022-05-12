@@ -64,7 +64,7 @@ public class InstanceMapperUtils {
           HashMap::new, (m, v) -> m.put(v, JsonUtils.jsonPath(hostJson, hostAttributes.get(v))), HashMap::putAll);
 
       return HostProperties.builder()
-          .hostName(JsonUtils.jsonPath(JsonUtils.asJson(instance), hostNameKey))
+          .hostName(JsonUtils.jsonPath(JsonUtils.asJson(instance, mapper), hostNameKey))
           .otherPropeties(otherHostProperties)
           .build();
     };
