@@ -482,6 +482,7 @@ public class DelegateTasksKryoRegistrar implements KryoRegistrar {
     kryo.register(StackdriverGcpConfigTaskParams.class, 7361);
     kryo.register(StackDriverMetricDefinition.Aggregation.class, 7380);
     kryo.register(GitConnectionCapability.class, 7391);
+    kryo.register(GcbDelegateResponse.class, 7409);
     kryo.register(AwsAmiServiceTrafficShiftAlbSetupResponse.class, 7432);
     kryo.register(AwsAmiServiceTrafficShiftAlbSetupRequest.class, 7433);
     kryo.register(AwsAmiServiceTrafficShiftAlbDeployRequest.class, 7434);
@@ -550,6 +551,5 @@ public class DelegateTasksKryoRegistrar implements KryoRegistrar {
     kryo.register(CollaborationProviderRequest.CommunicationType.class, 5307);
     kryo.register(CollaborationProviderRequest.class, 5306);
     kryo.register(CollaborationProviderResponse.class, 5308);
-    kryo.register(GcbDelegateResponse.class, 74090);
   }
 }
