@@ -356,11 +356,10 @@ public class PerspectiveTimeSeriesHelper {
       }
 
       if (Objects.nonNull(unallocatedCostMapping) && unallocatedCostMapping.containsKey(dataPoint.getTime())) {
-        limitProcessedValues.add(
-            DataPoint.builder()
-                .key(Reference.builder().id(UNALLOCATED_COST + ":" + UNALLOCATED_COST).name(UNALLOCATED_COST).build())
-                .value(unallocatedCostMapping.get(dataPoint.getTime()))
-                .build());
+        limitProcessedValues.add(DataPoint.builder()
+                                     .key(Reference.builder().id(UNALLOCATED_COST).name(UNALLOCATED_COST).build())
+                                     .value(unallocatedCostMapping.get(dataPoint.getTime()))
+                                     .build());
       }
 
       if (others.getValue().doubleValue() > 0 && includeOthers) {
