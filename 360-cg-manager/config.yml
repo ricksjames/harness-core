@@ -363,7 +363,7 @@ totp:
     durationUnit: MINUTES
 
 cacheConfig:
-  cacheBackend: HAZELCAST
+  cacheBackend: REDIS
   cacheNamespace: ""
   disabledCaches: []
 
