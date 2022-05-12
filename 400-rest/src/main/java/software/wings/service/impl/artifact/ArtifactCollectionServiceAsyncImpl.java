@@ -207,6 +207,9 @@ public class ArtifactCollectionServiceAsyncImpl implements ArtifactCollectionSer
   }
 
   private Artifact saveCustomArtifactWithNoScript(CustomArtifactStream artifactStream, String buildNumber) {
+    if (artifactStream.getScripts() == null) {
+      return null;
+    }
     CustomArtifactStream.Script versionScript =
         artifactStream.getScripts()
             .stream()
