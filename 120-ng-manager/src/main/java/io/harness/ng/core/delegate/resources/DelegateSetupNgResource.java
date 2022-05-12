@@ -10,6 +10,8 @@ package io.harness.ng.core.delegate.resources;
 import static io.harness.delegate.utils.RbacConstants.DELEGATE_EDIT_PERMISSION;
 import static io.harness.delegate.utils.RbacConstants.DELEGATE_RESOURCE_TYPE;
 
+import static software.wings.service.impl.DelegateServiceImpl.HARNESS_DELEGATE_VALUES_YAML;
+
 import io.harness.NGCommonEntityConstants;
 import io.harness.accesscontrol.acl.api.Resource;
 import io.harness.accesscontrol.acl.api.ResourceScope;
@@ -21,7 +23,6 @@ import io.harness.ng.core.delegate.client.DelegateNgManagerCgManagerClient;
 import io.harness.ng.core.dto.ErrorDTO;
 import io.harness.ng.core.dto.FailureDTO;
 import io.harness.remote.client.RestClientUtils;
-import io.harness.rest.RestResponse;
 
 import com.codahale.metrics.annotation.ExceptionMetered;
 import com.codahale.metrics.annotation.Timed;
@@ -36,21 +37,19 @@ import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.io.File;
-import java.io.IOException;
-import javax.servlet.http.HttpServletRequest;
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Context;
+import javax.ws.rs.core.Response;
 import lombok.extern.slf4j.Slf4j;
-import org.hibernate.validator.constraints.NotEmpty;
 
 @Api("delegate-setup-ng")
 @Path("/delegate-setup-ng")
 @Consumes({"application/json"})
+@Produces({"application/json"})
 @Slf4j
 @OwnedBy(HarnessTeam.DEL)
 @Tag(name = "Delegate Setup Resource", description = "Contains APIs related to Delegate Setup in ng")
@@ -67,6 +66,12 @@ import org.hibernate.validator.constraints.NotEmpty;
       , @Content(mediaType = "application/yaml", schema = @Schema(implementation = ErrorDTO.class))
     })
 public class DelegateSetupNgResource {
+  private static final String CONTENT_TRANSFER_ENCODING = "Content-Transfer-Encoding";
+  private static final String BINARY = "binary";
+  private static final String CONTENT_DISPOSITION = "Content-Disposition";
+  private static final String ATTACHMENT_FILENAME = "attachment; filename=";
+  public static final String YAML = ".yaml";
+
   private final DelegateNgManagerCgManagerClient delegateNgManagerCgManagerClient;
   private final AccessControlClient accessControlClient;
 
@@ -85,10 +90,9 @@ public class DelegateSetupNgResource {
   @Operation(operationId = "generateNgHelmValuesYaml",
       summary = "Generates helm values yaml file from the data specified in request body (Delegate setup details).",
       responses = { @ApiResponse(responseCode = "default", description = "Generated yaml file.") })
-  public RestResponse<File>
-  generateNgHelmValuesYaml(
-      @Parameter(description = NGCommonEntityConstants.ACCOUNT_PARAM_MESSAGE) @QueryParam(
-          NGCommonEntityConstants.ACCOUNT_KEY) @NotNull String accountIdentifier,
+  public Response
+  generateNgHelmValuesYaml(@Parameter(description = NGCommonEntityConstants.ACCOUNT_PARAM_MESSAGE) @QueryParam(
+                               NGCommonEntityConstants.ACCOUNT_KEY) @NotNull String accountIdentifier,
       @Parameter(description = NGCommonEntityConstants.ORG_PARAM_MESSAGE) @QueryParam(
           NGCommonEntityConstants.ORG_KEY) String orgIdentifier,
       @Parameter(description = NGCommonEntityConstants.PROJECT_PARAM_MESSAGE) @QueryParam(
@@ -98,7 +102,12 @@ public class DelegateSetupNgResource {
       DelegateSetupDetails delegateSetupDetails) {
     accessControlClient.checkForAccessOrThrow(ResourceScope.of(accountIdentifier, orgIdentifier, projectIdentifier),
         Resource.of(DELEGATE_RESOURCE_TYPE, null), DELEGATE_EDIT_PERMISSION);
-    return new RestResponse<>(RestClientUtils.getResponse(delegateNgManagerCgManagerClient.generateHelmValuesFile(
-        accountIdentifier, orgIdentifier, projectIdentifier, delegateSetupDetails)));
+    File delegateFile = RestClientUtils.getResponse(delegateNgManagerCgManagerClient.generateHelmValuesFile(
+        accountIdentifier, orgIdentifier, projectIdentifier, delegateSetupDetails));
+    return Response.ok(delegateFile)
+        .header(CONTENT_TRANSFER_ENCODING, BINARY)
+        .type("text/plain; charset=UTF-8")
+        .header(CONTENT_DISPOSITION, ATTACHMENT_FILENAME + HARNESS_DELEGATE_VALUES_YAML + YAML)
+        .build();
   }
 }

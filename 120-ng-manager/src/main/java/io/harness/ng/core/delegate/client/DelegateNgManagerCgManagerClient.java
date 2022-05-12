@@ -155,9 +155,8 @@ public interface DelegateNgManagerCgManagerClient {
 
   @POST(DELEGATE_SETUP_NG_API + "/delegate-helm-values-yaml")
   Call<RestResponse<File>> generateHelmValuesFile(
-          @Query(NGCommonEntityConstants.ACCOUNT_KEY) @NotNull String accountIdentifier,
-          @Query(NGCommonEntityConstants.ORG_KEY) String orgIdentifier,
-          @Query(NGCommonEntityConstants.PROJECT_KEY) String projectIdentifier,
-          @Body @NotNull DelegateSetupDetails delegateSetupDetails);
-
+      @Query(NGCommonEntityConstants.ACCOUNT_KEY) @NotNull String accountIdentifier,
+      @Query(NGCommonEntityConstants.ORG_KEY) String orgIdentifier,
+      @Query(NGCommonEntityConstants.PROJECT_KEY) String projectIdentifier,
+      @Body @NotNull DelegateSetupDetails delegateSetupDetails);
 }
