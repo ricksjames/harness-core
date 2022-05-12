@@ -30,7 +30,7 @@ import java.util.Map;
 @Singleton
 public class GitAwareEntityHelper {
   @Inject SCMGitSyncHelper scmGitSyncHelper;
-  private static String DEFAULT = "__default__";
+  private static final String DEFAULT = "__default__";
 
   public GitAware fetchEntityFromRemote(
       GitAware entity, Scope scope, GitContextRequestParams gitContextRequestParams, Map<String, String> contextMap) {
