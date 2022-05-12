@@ -185,11 +185,6 @@ public class ConnectorUtils {
       StageInfraDetails stageInfraDetails = (StageInfraDetails) optionalSweepingOutput.getOutput();
       if (stageInfraDetails.getType() == StageInfraDetails.Type.K8) {
         K8StageInfraDetails k8StageInfraDetails = (K8StageInfraDetails) stageInfraDetails;
-        if (k8StageInfraDetails.getInfrastructure() == null
-            || ((K8sDirectInfraYaml) k8StageInfraDetails.getInfrastructure()).getSpec() == null) {
-          throw new CIStageExecutionException("Input infrastructure can not be empty");
-        }
-
         String clusterConnectorRef;
 
         if (k8StageInfraDetails.getInfrastructure().getType() == Infrastructure.Type.KUBERNETES_DIRECT) {
