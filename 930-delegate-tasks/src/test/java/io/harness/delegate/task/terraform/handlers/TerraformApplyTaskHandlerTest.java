@@ -48,7 +48,6 @@ import io.harness.encryption.SecretRefData;
 import io.harness.filesystem.FileIo;
 import io.harness.git.GitClientHelper;
 import io.harness.git.GitClientV2;
-import io.harness.git.model.GitBaseRequest;
 import io.harness.logging.CommandExecutionStatus;
 import io.harness.logging.LogCallback;
 import io.harness.rule.Owner;

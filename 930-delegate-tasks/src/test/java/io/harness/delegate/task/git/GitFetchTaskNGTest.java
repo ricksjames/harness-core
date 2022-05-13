@@ -40,7 +40,6 @@ import io.harness.logging.LogCallback;
 import io.harness.ng.core.dto.secrets.SSHKeySpecDTO;
 import io.harness.rule.Owner;
 import io.harness.security.encryption.EncryptedDataDetail;
-import io.harness.security.encryption.SecretDecryptionService;
 import io.harness.shell.SshSessionConfig;
 
 import java.io.IOException;

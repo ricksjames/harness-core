@@ -63,7 +63,6 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 
 public class WorkflowYamlHandlerTest extends WorkflowYamlHandlerTestBase {
   @Mock private LimitCheckerFactory limitCheckerFactory;

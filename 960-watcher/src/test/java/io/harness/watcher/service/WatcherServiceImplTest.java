@@ -29,7 +29,6 @@ import io.harness.annotations.dev.OwnedBy;
 import io.harness.category.element.UnitTests;
 import io.harness.concurent.HTimeLimiterMocker;
 import io.harness.delegate.beans.DelegateConfiguration;
-import io.harness.delegate.message.MessageService;
 import io.harness.event.client.impl.tailer.ChronicleEventTailer;
 import io.harness.rest.RestResponse;
 import io.harness.rule.Owner;
