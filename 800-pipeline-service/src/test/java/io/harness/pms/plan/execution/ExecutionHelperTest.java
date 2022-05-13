@@ -53,6 +53,7 @@ import io.harness.pms.pipeline.service.PMSPipelineServiceHelper;
 import io.harness.pms.pipeline.service.PMSPipelineTemplateHelper;
 import io.harness.pms.pipeline.service.PMSYamlSchemaService;
 import io.harness.pms.pipeline.service.PipelineEnforcementService;
+import io.harness.pms.pipeline.service.PipelineMetadataService;
 import io.harness.pms.plan.creation.PlanCreatorMergeService;
 import io.harness.pms.plan.execution.beans.ExecArgs;
 import io.harness.pms.rbac.validator.PipelineRbacService;
@@ -80,6 +81,7 @@ import org.powermock.core.classloader.annotations.PrepareForTest;
 public class ExecutionHelperTest extends CategoryTest {
   @InjectMocks ExecutionHelper executionHelper;
   @Mock PMSPipelineService pmsPipelineService;
+  @Mock PipelineMetadataService pipelineMetadataService;
   @Mock PMSPipelineServiceHelper pmsPipelineServiceHelper;
   @Mock TriggeredByHelper triggeredByHelper;
   @Mock PlanExecutionService planExecutionService;
@@ -114,7 +116,8 @@ public class ExecutionHelperTest extends CategoryTest {
       + "      description: <+input>\n"
       + "  - stage:\n"
       + "      identifier: s2\n"
-      + "      description: <+input>\n";
+      + "      description: <+input>\n"
+      + "  allowStageExecutions: true\n";
   String pipelineYamlWithExpressions = "pipeline:\n"
       + "  stages:\n"
       + "  - stage:\n"
@@ -122,7 +125,8 @@ public class ExecutionHelperTest extends CategoryTest {
       + "      description: \"desc\"\n"
       + "  - stage:\n"
       + "      identifier: \"s2\"\n"
-      + "      description: \"<+pipeline.stages.s1.description>\"\n";
+      + "      description: \"<+pipeline.stages.s1.description>\"\n"
+      + "  allowStageExecutions: true\n";
   Map<String, String> expressionValues = Collections.singletonMap("<+pipeline.stages.s1.description>", "desc");
   String mergedPipelineYaml = "pipeline:\n"
       + "  stages:\n"
@@ -131,12 +135,14 @@ public class ExecutionHelperTest extends CategoryTest {
       + "      description: \"desc\"\n"
       + "  - stage:\n"
       + "      identifier: \"s2\"\n"
-      + "      description: \"desc\"\n";
+      + "      description: \"desc\"\n"
+      + "  allowStageExecutions: true\n";
   String mergedPipelineYamlForS2 = "pipeline:\n"
       + "  stages:\n"
       + "  - stage:\n"
       + "      identifier: \"s2\"\n"
-      + "      description: \"desc\"\n";
+      + "      description: \"desc\"\n"
+      + "  allowStageExecutions: true\n";
   String originalExecutionId = "originalExecutionId";
   String generatedExecutionId = "newExecId";
 
@@ -170,7 +176,6 @@ public class ExecutionHelperTest extends CategoryTest {
         ExecutionTriggerInfo.newBuilder().setTriggeredBy(triggeredBy).setTriggerType(MANUAL).setIsRerun(false).build();
     executionPrincipalInfo = ExecutionPrincipalInfo.newBuilder().build();
     doNothing().when(pipelineEnforcementService).validateExecutionEnforcementsBasedOnStage(anyString(), any());
-    doReturn(394).when(pmsPipelineService).incrementRunSequence(accountId, orgId, projectId, pipelineId, false);
   }
 
   @Test
@@ -307,7 +312,7 @@ public class ExecutionHelperTest extends CategoryTest {
     buildExecutionArgsMocks();
 
     TemplateMergeResponseDTO templateMergeResponseDTO =
-        TemplateMergeResponseDTO.builder().mergedPipelineYaml(mergedPipelineYaml).build();
+        TemplateMergeResponseDTO.builder().mergedPipelineYaml(mergedPipelineYamlForS2).build();
     String mergedYaml = InputSetMergeHelper.mergeInputSetIntoPipeline(pipelineEntity.getYaml(), runtimeInputYaml, true);
     doReturn(templateMergeResponseDTO)
         .when(pipelineTemplateHelper)
@@ -379,7 +384,7 @@ public class ExecutionHelperTest extends CategoryTest {
     aStatic.when(UUIDGenerator::generateUuid).thenReturn(generatedExecutionId);
 
     doReturn(executionPrincipalInfo).when(principalInfoHelper).getPrincipalInfoFromSecurityContext();
-    doReturn(394).when(pmsPipelineService).incrementRunSequence(any());
+    doReturn(394).when(pipelineMetadataService).incrementRunSequence(any());
     doReturn(null).when(pmsGitSyncHelper).getGitSyncBranchContextBytesThreadLocal(pipelineEntity);
     doNothing().when(pmsYamlSchemaService).validateYamlSchema(accountId, orgId, projectId, mergedPipelineYaml);
     doNothing()
