@@ -1416,11 +1416,12 @@ public class TriggerServiceImpl implements TriggerService {
     return workflowExecution;
   }
 
-  static void validateWorkflowVariable(Map<String, String> workflowVariables, List<Variable> allowedValues) {
-    for (Variable x : allowedValues) {
-      if (isNotEmpty(x.getAllowedValues())) {
-        List<String> allowedVals = Arrays.asList(x.getAllowedValues().split(","));
-        if (!allowedVals.contains(workflowVariables.get(x.getName()))) {
+  private void validateWorkflowVariable(Map<String, String> nameToVariableValueMap, List<Variable> workflowVariables) {
+    for (Variable variable : workflowVariables) {
+      if (isNotEmpty(variable.getAllowedValues())) {
+        List<String> allowedValues = Arrays.asList(variable.getAllowedValues().split(","));
+        String variableValue = nameToVariableValueMap.get(variable.getName());
+        if (isNotEmpty(variableValue) && !allowedValues.contains(variableValue)) {
           throw new WingsException(
               "Trigger rejected because a passed workflow variable was not present in allowed values");
         }
