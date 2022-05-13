@@ -113,7 +113,7 @@ public class ExportExecutionsResourceServiceTest extends CategoryTest {
     exportExecutionsResourceService.export(ACCOUNT_ID, query, userParamsWithGroupIdsNotSet);
     verify(exportExecutionsRequestService, times(1))
         .queueExportExecutionRequest(eq(ACCOUNT_ID), eq(query), eq(userParamsWithGroupIdsNotSet));
-    verify(exportExecutionsRequestService, times(1)).get(eq(ACCOUNT_ID), anyString());
+    verify(exportExecutionsRequestService, times(1)).get(eq(ACCOUNT_ID), any());
     verify(exportExecutionsRequestHelper, times(1)).prepareSummary(any());
 
     // With notifyOnlyTriggeringUser true and not empty userGroupIds InvalidRequestException should be thrown
@@ -149,7 +149,7 @@ public class ExportExecutionsResourceServiceTest extends CategoryTest {
     exportExecutionsResourceService.export(ACCOUNT_ID, query, userParamsWithEmptyGroupIds);
     verify(exportExecutionsRequestService, times(1))
         .queueExportExecutionRequest(eq(ACCOUNT_ID), eq(query), eq(userParamsWithEmptyGroupIds));
-    verify(exportExecutionsRequestService, times(1)).get(eq(ACCOUNT_ID), anyString());
+    verify(exportExecutionsRequestService, times(1)).get(eq(ACCOUNT_ID), any());
     verify(exportExecutionsRequestHelper, times(1)).prepareSummary(any());
 
     // With notifyOnlyTriggeringUser false and not empty userGroupIds export should work.
@@ -160,7 +160,7 @@ public class ExportExecutionsResourceServiceTest extends CategoryTest {
     exportExecutionsResourceService.export(ACCOUNT_ID, query, userParamsWithValidUserIds);
     verify(exportExecutionsRequestService, times(1))
         .queueExportExecutionRequest(eq(ACCOUNT_ID), eq(query), eq(userParamsWithValidUserIds));
-    verify(exportExecutionsRequestService, times(2)).get(eq(ACCOUNT_ID), anyString());
+    verify(exportExecutionsRequestService, times(2)).get(eq(ACCOUNT_ID), any());
     verify(exportExecutionsRequestHelper, times(2)).prepareSummary(any());
   }
 
@@ -207,7 +207,7 @@ public class ExportExecutionsResourceServiceTest extends CategoryTest {
     exportExecutionsResourceService.export(ACCOUNT_ID, query, userParams);
     verify(exportExecutionsRequestService, times(1))
         .queueExportExecutionRequest(eq(ACCOUNT_ID), eq(query), eq(userParams));
-    verify(exportExecutionsRequestService, times(1)).get(eq(ACCOUNT_ID), anyString());
+    verify(exportExecutionsRequestService, times(1)).get(eq(ACCOUNT_ID), any());
     verify(exportExecutionsRequestHelper, times(1)).prepareSummary(any());
   }
 

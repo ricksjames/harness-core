@@ -62,7 +62,8 @@ import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.powermock.api.mockito.PowerMockito;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
@@ -96,8 +97,8 @@ public class ServiceNowApprovalHelperServiceImplTest extends CategoryTest {
   @Owner(developers = PRABU)
   @Category(UnitTests.class)
   public void testHandlePollingEvent() {
-    PowerMockito.mockStatic(NGRestUtils.class);
-    PowerMockito.mockStatic(StepUtils.class);
+    MockedStatic<NGRestUtils> mockStatic = Mockito.mockStatic(NGRestUtils.class);
+    Mockito.mockStatic(StepUtils.class);
     Ambiance ambiance = Ambiance.newBuilder()
                             .putSetupAbstractions("accountId", accountId)
                             .putSetupAbstractions("orgIdentifier", orgIdentifier)
@@ -107,7 +108,7 @@ public class ServiceNowApprovalHelperServiceImplTest extends CategoryTest {
     doReturn(iLogStreamingStepClient).when(logStreamingStepClientFactory).getLogStreamingStepClient(ambiance);
 
     ServiceNowApprovalInstance instance = getServiceNowApprovalInstance(ambiance);
-    when(NGRestUtils.getResponse(any())).thenReturn(Collections.EMPTY_LIST);
+    mockStatic.when(() -> NGRestUtils.getResponse(any())).thenReturn(Collections.EMPTY_LIST);
     doReturn(ServiceNowConnectorDTO.builder().build())
         .when(serviceNowApprovalHelperService)
         .getServiceNowConnector(eq(accountId), eq(orgIdentifier), eq(projectIdentifier), any());
@@ -115,7 +116,7 @@ public class ServiceNowApprovalHelperServiceImplTest extends CategoryTest {
 
     ArgumentCaptor<TaskDetails> taskDetailsArgumentCaptor = ArgumentCaptor.forClass(TaskDetails.class);
     when(StepUtils.prepareTaskRequest(
-             any(), taskDetailsArgumentCaptor.capture(), anyList(), anyList(), anyString(), anyBoolean()))
+             any(), taskDetailsArgumentCaptor.capture(), anyList(), anyList(), any(), anyBoolean()))
         .thenReturn(null);
 
     serviceNowApprovalHelperService.handlePollingEvent(instance);
@@ -131,7 +132,7 @@ public class ServiceNowApprovalHelperServiceImplTest extends CategoryTest {
   @Owner(developers = PRABU)
   @Category(UnitTests.class)
   public void testGetConnector() {
-    PowerMockito.mockStatic(NGRestUtils.class);
+    MockedStatic<NGRestUtils> mockStatic = Mockito.mockStatic(NGRestUtils.class);
 
     Optional<ConnectorDTO> connectorDTO = Optional.of(
         ConnectorDTO.builder()
@@ -141,7 +142,7 @@ public class ServiceNowApprovalHelperServiceImplTest extends CategoryTest {
         ConnectorDTO.builder()
             .connectorInfo(ConnectorInfoDTO.builder().connectorConfig(AwsConnectorDTO.builder().build()).build())
             .build());
-    when(NGRestUtils.getResponse(any())).thenReturn(connectorDTO);
+    mockStatic.when(() -> NGRestUtils.getResponse(any())).thenReturn(connectorDTO);
     serviceNowApprovalHelperService.getServiceNowConnector(accountId, orgIdentifier, projectIdentifier, "connectorRef");
     when(NGRestUtils.getResponse(any())).thenReturn(connectorDTO1);
     assertThatThrownBy(()

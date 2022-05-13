@@ -148,7 +148,7 @@ public class WorkflowYamlHandlerTest extends WorkflowYamlHandlerTestBase {
   @Before
   public void setup() {
     setup(yamlFilePath, workflowName);
-    when(limitCheckerFactory.getInstance(new Action(Mockito.anyString(), ActionType.CREATE_WORKFLOW)))
+    when(limitCheckerFactory.getInstance(new Action(any(), ActionType.CREATE_WORKFLOW)))
         .thenReturn(new WingsTestConstants.MockChecker(true, ActionType.CREATE_WORKFLOW));
     on(workflowServiceTemplateHelper).set("templateService", templateService);
     when(templateService.fetchTemplateIdFromUri(any(), any(), any())).thenReturn(templateId);

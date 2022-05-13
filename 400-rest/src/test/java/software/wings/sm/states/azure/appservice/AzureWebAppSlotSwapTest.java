@@ -19,9 +19,9 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyListOf;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.powermock.api.mockito.PowerMockito.when;
@@ -244,7 +244,7 @@ public class AzureWebAppSlotSwapTest extends WingsBaseTest {
     }
 
     if (failActivityCreation) {
-      doThrow(Exception.class)
+      doAnswer(invocation -> { throw new Exception(); })
           .when(azureVMSSStateHelper)
           .createAndSaveActivity(any(), any(), anyString(), anyString(), any(), anyListOf(CommandUnit.class));
     } else {
@@ -266,7 +266,7 @@ public class AzureWebAppSlotSwapTest extends WingsBaseTest {
       return (String) args[0];
     });
     if (!successEnequeueDelegateTask) {
-      doThrow(Exception.class).when(delegateService).queueTask(any());
+      doAnswer(invocation -> { throw new Exception(); }).when(delegateService).queueTask(any());
     }
     return mockContext;
   }
@@ -288,7 +288,9 @@ public class AzureWebAppSlotSwapTest extends WingsBaseTest {
         .getAppServiceExecutionStatus(eq(taskExecutionResponse));
 
     if (genericFailure) {
-      doThrow(Exception.class).when(azureVMSSStateHelper).getAppServiceExecutionStatus(eq(taskExecutionResponse));
+      doAnswer(invocation -> { throw new Exception(); })
+          .when(azureVMSSStateHelper)
+          .getAppServiceExecutionStatus(eq(taskExecutionResponse));
     } else {
       doReturn(isSuccess ? SUCCESS : FAILED)
           .when(azureVMSSStateHelper)

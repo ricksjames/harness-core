@@ -77,7 +77,7 @@ public class PcfRunPluginCommandTaskHandlerTest extends CategoryTest {
   @Before
   public void setUp() throws Exception {
     MockitoAnnotations.initMocks(this);
-    doReturn(executionLogCallback).when(logStreamingTaskClient).obtainLogCallback(anyString());
+    doReturn(executionLogCallback).when(logStreamingTaskClient).obtainLogCallback(any());
   }
 
   private CfInternalConfig getPcfConfig() {
