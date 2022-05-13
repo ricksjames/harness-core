@@ -9,10 +9,6 @@ java_library(
     visibility = ["//visibility:public"],
     deps = [
         "//:lombok",
-        "//960-persistence:module",
-        "//970-ng-commons:module",
-        "//980-commons:module",
-        "//999-annotations:module",
         "@maven//:com_fasterxml_jackson_core_jackson_annotations",
         "@maven//:com_fasterxml_jackson_core_jackson_core",
         "@maven//:com_fasterxml_jackson_core_jackson_databind",
@@ -39,12 +35,7 @@ java_library(
     srcs = glob(["src/test/**/*.java"]),
     visibility = ["//visibility:public"],
     deps = [
-        ":module",
         "//:lombok",
-        "//960-persistence:module",
-        "//970-ng-commons:module",
-        "//990-commons-test:module",
-        "//999-annotations:module",
         "@maven//:com_google_code_findbugs_annotations",
         "@maven//:javax_validation_validation_api",
         "@maven//:junit_junit",

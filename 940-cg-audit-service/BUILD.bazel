@@ -8,11 +8,7 @@ java_library(
     resources = [
     ],
     visibility = ["//visibility:public"],
-    deps = [
-        "//:lombok",
-        "//980-commons:module",
-        "//999-annotations:module",
-    ],
+    deps = ["//:lombok"],
 )
 
 java_library(
@@ -20,11 +16,7 @@ java_library(
     testonly = True,
     srcs = glob(["src/test/**/*.java"]),
     visibility = ["//visibility:public"],
-    deps = [
-        ":module",
-        "//:lombok",
-        "//999-annotations:module",
-    ],
+    deps = ["//:lombok"],
 )
 
 run_analysis()

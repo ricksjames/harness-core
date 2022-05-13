@@ -11,9 +11,6 @@ java_library(
     visibility = ["//visibility:public"],
     deps = [
         "//:lombok",
-        "//870-cg-orchestration:module",
-        "//960-persistence:module",
-        "//980-commons:module",
         "@maven//:com_fasterxml_jackson_core_jackson_annotations",
         "@maven//:com_github_reinert_jjschema",
         "@maven//:com_google_code_findbugs_annotations",
@@ -29,13 +26,7 @@ java_library(
     srcs = glob(["src/test/**/*.java"]),
     visibility = ["//visibility:public"],
     deps = [
-        ":module",
         "//:lombok",
-        "//870-cg-orchestration:module",
-        "//960-persistence:module",
-        "//960-persistence:supporter-test",
-        "//980-commons:module",
-        "//990-commons-test:module",
         "@maven//:com_google_code_findbugs_annotations",
         "@maven//:com_google_guava_guava",
         "@maven//:com_google_inject_guice",

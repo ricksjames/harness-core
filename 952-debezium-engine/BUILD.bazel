@@ -7,16 +7,13 @@ java_library(
     srcs = glob(["src/main/java/**/*.java"]),
     visibility = ["//visibility:public"],
     deps = [
-        "@maven_debezium//:org_mongodb_mongodb_driver_core",
-        "@maven_debezium//:org_mongodb_mongodb_driver_sync",
-    ] + [
         "//:lombok",
-        "//953-events-api:module",
-        "//959-debezium-beans:module",
         "@maven_debezium//:io_debezium_debezium_api",
         "@maven_debezium//:io_debezium_debezium_connector_mongodb",
         "@maven_debezium//:io_debezium_debezium_core",
         "@maven_debezium//:io_debezium_debezium_embedded",
+        "@maven_debezium//:org_mongodb_mongodb_driver_core",
+        "@maven_debezium//:org_mongodb_mongodb_driver_sync",
     ],
 )
 
@@ -26,10 +23,6 @@ java_library(
     srcs = glob(["src/test/**/*.java"]),
     resources = ["//952-debezium-engine/src/test/resources:resource"],
     visibility = ["//visibility:public"],
-    deps = [
-        ":module",
-        "//990-commons-test:module",
-    ],
 )
 
 run_tests()

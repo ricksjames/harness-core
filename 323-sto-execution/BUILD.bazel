@@ -23,11 +23,7 @@ java_library(
     srcs = glob(["src/test/**/*.java"]),
     resources = [],
     visibility = ["//visibility:public"],
-    deps = shared_dependencies + [
-        "module",
-        "//:lombok",
-        "//990-commons-test:module",
-    ],
+    deps = shared_dependencies + ["//:lombok"],
 )
 
 run_tests()

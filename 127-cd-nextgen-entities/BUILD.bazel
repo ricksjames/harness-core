@@ -11,13 +11,6 @@ java_library(
     visibility = ["//visibility:public"],
     deps = [
         "//:lombok",
-        "//400-rest:module",
-        "//860-orchestration-steps:module",  # This should be removed from here
-        "//878-ng-common-utilities:module",
-        "//879-pms-sdk:module",
-        "//960-ng-core-beans:module",
-        "//960-ng-license-usage-beans:module",
-        "//979-recaster:module",
         "@maven//:com_fasterxml_jackson_core_jackson_annotations",
         "@maven//:io_swagger_swagger_annotations",
         "@maven//:javax_validation_validation_api",
@@ -31,11 +24,7 @@ java_library(
     srcs = glob(["src/test/**/*.java"]),
     visibility = ["//visibility:public"],
     deps = [
-        ":module",
         "//:lombok",
-        "//950-ng-core:tests",
-        "//960-persistence:supporter-test",
-        "//990-commons-test:module",
         "@maven//:junit_junit",
         "@maven//:org_assertj_assertj_core",
         "@maven//:org_mockito_mockito_core",

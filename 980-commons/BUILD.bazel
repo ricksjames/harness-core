@@ -16,8 +16,6 @@ java_library(
     visibility = ["//visibility:public"],
     deps = [
         "//:lombok",
-        "//980-commons/src/main/proto:980_commons_java_proto",
-        "//999-annotations:module",
         "@maven//:aopalliance_aopalliance",
         "@maven//:ch_qos_logback_contrib_logback_jackson",
         "@maven//:ch_qos_logback_contrib_logback_json_classic",
@@ -108,10 +106,7 @@ java_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
-        ":module",
         "//:lombok",
-        "//990-commons-test:module",
-        "//999-annotations:module",
         "@maven//:com_auth0_java_jwt",
         "@maven//:com_fasterxml_jackson_core_jackson_annotations",
         "@maven//:com_fasterxml_jackson_core_jackson_core",

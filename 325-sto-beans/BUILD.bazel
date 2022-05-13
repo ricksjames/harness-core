@@ -27,11 +27,7 @@ java_library(
         "//999-annotations:module",
     ],
     visibility = ["//visibility:public"],
-    deps = shared_dependencies + [
-        "module",
-        "//:lombok",
-        "//990-commons-test:module",
-    ],
+    deps = shared_dependencies + ["//:lombok"],
 )
 
 run_tests()

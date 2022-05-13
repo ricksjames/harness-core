@@ -72,8 +72,6 @@ java_library(
     visibility = ["//visibility:public"],
     deps = shared_dependencies + [
         "module",
-        "//960-persistence:supporter-test",
-        "//990-commons-test:module",
         "@maven//:io_dropwizard_dropwizard_testing",
         "@maven//:io_github_benas_random_beans",
         "@maven//:junit_junit",
