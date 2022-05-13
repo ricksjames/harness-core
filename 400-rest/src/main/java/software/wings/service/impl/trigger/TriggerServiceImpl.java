@@ -164,7 +164,6 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -1416,14 +1415,16 @@ public class TriggerServiceImpl implements TriggerService {
     return workflowExecution;
   }
 
-  private void validateWorkflowVariable(Map<String, String> nameToVariableValueMap, List<Variable> workflowVariables) {
+  @VisibleForTesting
+  void validateWorkflowVariable(Map<String, String> nameToVariableValueMap, List<Variable> workflowVariables) {
     for (Variable variable : workflowVariables) {
-      if (isNotEmpty(variable.getAllowedValues())) {
-        List<String> allowedValues = Arrays.asList(variable.getAllowedValues().split(","));
+      List<String> allowedValues = variable.getAllowedList();
+      if (isNotEmpty(allowedValues)) {
         String variableValue = nameToVariableValueMap.get(variable.getName());
         if (isNotEmpty(variableValue) && !allowedValues.contains(variableValue)) {
-          throw new WingsException(
-              "Trigger rejected because a passed workflow variable was not present in allowed values");
+          throw new WingsException(String.format(
+              "Trigger rejected because passed workflow variable %s was not present in allowed values list [%s]",
+              variableValue, String.join(",", allowedValues)));
         }
       }
     }

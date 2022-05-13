@@ -543,7 +543,7 @@ public class TriggerServiceTest extends WingsBaseTest {
     List<Variable> allowedValues = new ArrayList<>();
     allowedValues.add(var1);
     allowedValues.add(var2);
-    assertThatThrownBy(() -> TriggerServiceImpl.validateWorkflowVariable(workflowVariables, allowedValues))
+    assertThatThrownBy(() -> triggerService.validateWorkflowVariable(workflowVariables, allowedValues))
         .isInstanceOf(WingsException.class)
         .hasMessageContaining("Trigger rejected because a passed workflow variable was not present in allowed values");
   }
