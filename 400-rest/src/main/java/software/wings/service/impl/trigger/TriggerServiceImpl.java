@@ -1417,6 +1417,9 @@ public class TriggerServiceImpl implements TriggerService {
 
   @VisibleForTesting
   void validateWorkflowVariable(Map<String, String> nameToVariableValueMap, List<Variable> workflowVariables) {
+    if (isEmpty(nameToVariableValueMap)) {
+      return;
+    }
     for (Variable variable : workflowVariables) {
       List<String> allowedValues = variable.getAllowedList();
       if (isNotEmpty(allowedValues)) {
