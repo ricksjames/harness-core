@@ -93,7 +93,7 @@ public class WinRmSessionTest extends CategoryTest {
   public void setUp() throws Exception {
     MockitoAnnotations.initMocks(this);
     mockStatic(InstallUtils.class);
-    PowerMockito.when(InstallUtils.getPath(any(), any())).thenReturn("/tmp/dummypath/tool");
+    PowerMockito.when(InstallUtils.getPath(any(), any())).thenAnswer(invocationOnMock -> "/tmp/dummypath/tool");
   }
 
   @Test
