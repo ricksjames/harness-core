@@ -931,7 +931,7 @@ public class WatcherServiceImpl implements WatcherService {
   public void restartDelegateToUpgradeJre(String delegateJreVersion, String migrateToJreVersion) {
     if (!delegateJreVersion.equals(migrateToJreVersion)
         && clock.millis() - delegateRestartedToUpgradeJreAt > DELEGATE_RESTART_TO_UPGRADE_JRE_TIMEOUT) {
-      log.debug("Delegate JRE: {} MigrateTo JRE: {} ", delegateJreVersion, migrateToJreVersion);
+      log.info("Delegate JRE: {} MigrateTo JRE: {} ", delegateJreVersion, migrateToJreVersion);
       boolean downloadSuccessful = downloadRunScriptsBeforeRestartingDelegateAndWatcher();
       if (downloadSuccessful) {
         delegateRestartedToUpgradeJreAt = clock.millis();
@@ -950,7 +950,7 @@ public class WatcherServiceImpl implements WatcherService {
   @VisibleForTesting
   public void restartWatcherToUpgradeJre(String migrateToJreVersion) {
     if (!migrateToJreVersion.equals(watcherJreVersion) && !watcherRestartedToUpgradeJre) {
-      log.debug("Watcher JRE: {} MigrateTo JRE: {} ", watcherJreVersion, migrateToJreVersion);
+      log.info("Watcher JRE: {} MigrateTo JRE: {} ", watcherJreVersion, migrateToJreVersion);
       boolean downloadSuccessful = downloadRunScriptsBeforeRestartingDelegateAndWatcher();
       if (downloadSuccessful) {
         watcherRestartedToUpgradeJre = true;
