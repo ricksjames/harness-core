@@ -1425,8 +1425,8 @@ public class TriggerServiceImpl implements TriggerService {
       if (isNotEmpty(allowedValues)) {
         String variableValue = nameToVariableValueMap.get(variable.getName());
         if (isNotEmpty(variableValue) && !allowedValues.contains(variableValue)) {
-          throw new WingsException(String.format(
-              "Trigger rejected because passed workflow variable %s was not present in allowed values list [%s]",
+          throw new InvalidRequestException(String.format(
+              "Trigger rejected because passed workflow variable value %s was not present in allowed values list [%s]",
               variableValue, String.join(",", allowedValues)));
         }
       }
