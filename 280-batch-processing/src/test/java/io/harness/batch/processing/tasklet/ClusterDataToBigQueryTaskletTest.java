@@ -37,7 +37,6 @@ import io.harness.testsupport.BaseTaskletTest;
 import software.wings.security.authentication.BatchQueryConfig;
 
 import com.google.common.collect.ImmutableList;
-import com.sun.istack.internal.NotNull;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -59,6 +58,8 @@ import org.springframework.batch.core.StepExecution;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.scope.context.StepContext;
 import org.springframework.batch.repeat.RepeatStatus;
+
+import javax.validation.constraints.NotNull;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ClusterDataToBigQueryTaskletTest extends BaseTaskletTest {
