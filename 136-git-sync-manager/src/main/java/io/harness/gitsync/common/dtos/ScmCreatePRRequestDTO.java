@@ -10,8 +10,6 @@ package io.harness.gitsync.common.dtos;
 import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.beans.Scope;
-import io.harness.exception.ScmBadRequestException;
-import io.harness.gitsync.common.helper.ScmRequestValidationHelper;
 
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -29,15 +27,4 @@ public class ScmCreatePRRequestDTO {
   String title;
   String connectorRef;
   String repoName;
-
-  public void validate() {
-    ScmRequestValidationHelper.isEmptyParam(sourceBranch, "source branch");
-    ScmRequestValidationHelper.isEmptyParam(targetBranch, "target branch");
-    ScmRequestValidationHelper.isEmptyParam(connectorRef, "connectorRef");
-    ScmRequestValidationHelper.isEmptyParam(repoName, "repository name");
-
-    if (sourceBranch.equals(targetBranch)) {
-      throw new ScmBadRequestException("source branch and target branch are same");
-    }
-  }
 }

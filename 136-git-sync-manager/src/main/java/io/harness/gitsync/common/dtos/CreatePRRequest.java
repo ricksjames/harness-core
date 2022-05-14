@@ -14,6 +14,7 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.experimental.FieldDefaults;
+import org.hibernate.validator.constraints.NotBlank;
 
 @OwnedBy(HarnessTeam.PL)
 @Getter
@@ -22,9 +23,9 @@ import lombok.experimental.FieldDefaults;
 public class CreatePRRequest {
   String orgIdentifier;
   String projectIdentifier;
-  String repoName;
-  String sourceBranchName;
-  String targetBranchName;
-  String connectorRef;
+  @NotBlank String repoName;
+  @NotBlank String sourceBranchName;
+  @NotBlank String targetBranchName;
+  @NotBlank String connectorRef;
   String title;
 }
