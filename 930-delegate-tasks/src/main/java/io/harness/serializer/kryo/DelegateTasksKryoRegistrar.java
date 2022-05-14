@@ -779,6 +779,7 @@ public class DelegateTasksKryoRegistrar implements KryoRegistrar {
     kryo.register(NotificationTaskResponse.class, 55216);
     kryo.register(NotificationProcessingResponse.class, 55217);
     kryo.register(SmtpConfigResponse.class, 55219);
+    kryo.register(io.harness.notification.SmtpConfig.class, 55299);
     kryo.register(LdapConnectionSettings.class, 5496);
     kryo.register(LdapGroupResponse.class, 5501);
     kryo.register(LdapUserResponse.class, 5502);
