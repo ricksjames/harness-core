@@ -229,7 +229,7 @@ public class ConnectorResourceTest extends CategoryTest {
     assertThat(responseDTO.getStatus().toString()).isEqualTo("SUCCESS");
   }
 
-  @Test
+  //@Test TODO: https://harness.slack.com/archives/C02VC1CQJKE/p1652507087618059?thread_ts=1651901466.629299&cid=C02VC1CQJKE
   @Owner(developers = OwnerRule.DEV_MITTAL)
   @Category(UnitTests.class)
   public void connectorDTOObjectValidationTest() {
