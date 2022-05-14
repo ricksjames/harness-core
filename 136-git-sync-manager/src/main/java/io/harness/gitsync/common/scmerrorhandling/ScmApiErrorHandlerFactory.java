@@ -17,6 +17,7 @@ import io.harness.gitsync.common.scmerrorhandling.handlers.ScmApiErrorHandler;
 import io.harness.gitsync.common.scmerrorhandling.handlers.bitbucket.BitbucketCreateBranchScmApiErrorHandler;
 import io.harness.gitsync.common.scmerrorhandling.handlers.bitbucket.BitbucketCreateFileScmApiErrorHandler;
 import io.harness.gitsync.common.scmerrorhandling.handlers.bitbucket.BitbucketCreatePullRequestScmApiErrorHandler;
+import io.harness.gitsync.common.scmerrorhandling.handlers.bitbucket.BitbucketGetDefaultBranchScmApiErrorHandler;
 import io.harness.gitsync.common.scmerrorhandling.handlers.bitbucket.BitbucketGetFileScmApiErrorHandler;
 import io.harness.gitsync.common.scmerrorhandling.handlers.bitbucket.BitbucketListBranchesScmApiErrorHandler;
 import io.harness.gitsync.common.scmerrorhandling.handlers.bitbucket.BitbucketListRepoScmApiErrorHandler;
@@ -24,6 +25,7 @@ import io.harness.gitsync.common.scmerrorhandling.handlers.bitbucket.BitbucketUp
 import io.harness.gitsync.common.scmerrorhandling.handlers.github.GithubCreateBranchScmApiErrorHandler;
 import io.harness.gitsync.common.scmerrorhandling.handlers.github.GithubCreateFileScmApiErrorHandler;
 import io.harness.gitsync.common.scmerrorhandling.handlers.github.GithubCreatePullRequestScmApiErrorHandler;
+import io.harness.gitsync.common.scmerrorhandling.handlers.github.GithubGetDefaultBranchScmApiErrorHandler;
 import io.harness.gitsync.common.scmerrorhandling.handlers.github.GithubGetFileScmApiErrorHandler;
 import io.harness.gitsync.common.scmerrorhandling.handlers.github.GithubListBranchesScmApiErrorHandler;
 import io.harness.gitsync.common.scmerrorhandling.handlers.github.GithubListRepoScmApiErrorHandler;
@@ -57,6 +59,10 @@ class ScmApiErrorHandlerFactory {
           .put(Pair.of(ScmApis.CREATE_BRANCH, RepoProviders.GITHUB), GithubCreateBranchScmApiErrorHandler.class)
           .put(Pair.of(ScmApis.LIST_BRANCHES, RepoProviders.BITBUCKET), BitbucketListBranchesScmApiErrorHandler.class)
           .put(Pair.of(ScmApis.LIST_BRANCHES, RepoProviders.GITHUB), GithubListBranchesScmApiErrorHandler.class)
+          .put(Pair.of(ScmApis.GET_DEFAULT_BRANCH, RepoProviders.BITBUCKET),
+              BitbucketGetDefaultBranchScmApiErrorHandler.class)
+          .put(
+              Pair.of(ScmApis.GET_DEFAULT_BRANCH, RepoProviders.GITHUB), GithubGetDefaultBranchScmApiErrorHandler.class)
           .build();
 
   public ScmApiErrorHandler getHandler(ScmApis scmApi, RepoProviders repoProvider) {
