@@ -220,7 +220,6 @@ public class PMSPipelineRepositoryCustomImpl implements PMSPipelineRepositoryCus
               .build(),
           GitContextRequestParams.builder()
               .branchName(gitEntityInfo.getBranch())
-              .commitId(gitEntityInfo.getCommitId())
               .connectorRef(savedEntity.getConnectorRef())
               .filePath(savedEntity.getFilePath())
               .repoName(savedEntity.getRepo())
