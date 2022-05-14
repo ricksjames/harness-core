@@ -547,7 +547,7 @@ public class TriggerServiceTest extends WingsBaseTest {
     assertThatThrownBy(() -> triggerService.validateWorkflowVariable(workflowVariables, allowedValues))
         .isInstanceOf(InvalidRequestException.class)
         .hasMessage(
-            "Trigger rejected because passed workflow variable value val2 was not present in allowed values [val4,val5]");
+            "Trigger rejected because passed workflow variable value val2 was not present in allowed values list [val4,val5]");
   }
 
   @Test(expected = InvalidRequestException.class)
