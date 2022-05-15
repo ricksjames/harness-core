@@ -2315,6 +2315,25 @@ public class MonitoredServiceServiceImplTest extends CvNextGenTestBase {
         .isFalse();
   }
 
+  @Test
+  @Owner(developers = KAPIL)
+  @Category(UnitTests.class)
+  public void testDeleteNotificationRuleRef() {
+    MonitoredServiceDTO monitoredServiceDTO = createMonitoredServiceDTOWithCustomDependencies(
+        "service_1_local", environmentParams.getServiceIdentifier(), Sets.newHashSet());
+    monitoredServiceDTO.setNotificationRuleRefs(
+        Arrays.asList(NotificationRuleRefDTO.builder().notificationRuleRef("rule1").enabled(true).build(),
+            NotificationRuleRefDTO.builder().notificationRuleRef("rule2").enabled(true).build(),
+            NotificationRuleRefDTO.builder().notificationRuleRef("rule3").enabled(true).build()));
+    monitoredServiceService.create(builderFactory.getContext().getAccountId(), monitoredServiceDTO);
+    monitoredServiceService.deleteNotificationRuleRef(builderFactory.getContext().getProjectParams(), "rule1");
+    MonitoredService monitoredService = getMonitoredService(monitoredServiceDTO.getIdentifier());
+
+    assertThat(monitoredService.getNotificationRuleRefs().size()).isEqualTo(2);
+    monitoredService.getNotificationRuleRefs().forEach(
+        notificationRuleRef -> assertThat(notificationRuleRef.getNotificationRuleRef().equals("rule1")).isFalse());
+  }
+
   private void createActivity(MonitoredServiceDTO monitoredServiceDTO) {
     useMockedPersistentLocker();
     Activity activity = builderFactory.getDeploymentActivityBuilder()

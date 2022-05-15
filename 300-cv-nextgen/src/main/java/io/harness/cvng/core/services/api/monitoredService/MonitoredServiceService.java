@@ -104,4 +104,5 @@ public interface MonitoredServiceService extends DeleteEntityByHandler<Monitored
   List<MonitoredServiceChangeDetailSLO> getMonitoredServiceChangeDetails(
       ProjectParams projectParams, String monitoredServiceIdentifier, Long startTime, Long endTime);
   void sendNotification(MonitoredService monitoredService);
+  void deleteNotificationRuleRef(ProjectParams projectParams, String notificationRuleRef);
 }

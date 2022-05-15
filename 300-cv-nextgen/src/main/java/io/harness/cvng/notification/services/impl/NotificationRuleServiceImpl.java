@@ -12,6 +12,7 @@ import static io.harness.persistence.HQuery.excludeAuthority;
 
 import io.harness.cvng.core.beans.params.ProjectParams;
 import io.harness.cvng.core.services.api.UpdatableEntity;
+import io.harness.cvng.core.services.api.monitoredService.MonitoredServiceService;
 import io.harness.cvng.notification.beans.NotificationRuleDTO;
 import io.harness.cvng.notification.beans.NotificationRuleRef;
 import io.harness.cvng.notification.beans.NotificationRuleRefDTO;
@@ -47,6 +48,7 @@ public class NotificationRuleServiceImpl implements NotificationRuleService {
       notificationRuleTypeNotificationRuleConditionTransformerMap;
   @Inject private Map<NotificationRuleType, NotificationRuleUpdatableEntity> notificationRuleMapBinder;
   @Inject private ServiceLevelObjectiveService serviceLevelObjectiveService;
+  @Inject private MonitoredServiceService monitoredServiceService;
   @Inject private Clock clock;
 
   @Override
@@ -114,6 +116,7 @@ public class NotificationRuleServiceImpl implements NotificationRuleService {
           projectParams.getProjectIdentifier()));
     }
     serviceLevelObjectiveService.deleteNotificationRuleRef(projectParams, identifier);
+    monitoredServiceService.deleteNotificationRuleRef(projectParams, identifier);
     return hPersistence.delete(notificationRules.get(0));
   }
 

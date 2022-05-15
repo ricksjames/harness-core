@@ -125,8 +125,10 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.ws.rs.NotFoundException;
+import lombok.Builder;
 import lombok.NonNull;
 import lombok.SneakyThrows;
+import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -1451,6 +1453,45 @@ public class MonitoredServiceServiceImpl implements MonitoredServiceService {
     updateNotificationRuleRefInMonitoredService(monitoredService, new ArrayList<>(notificationRuleRefsWithChange));
   }
 
+  @Override
+  public void deleteNotificationRuleRef(ProjectParams projectParams, String notificationRuleRef) {
+    List<MonitoredService> monitoredServices =
+        get(projectParams, Filter.builder().notificationRuleRef(notificationRuleRef).build());
+    for (MonitoredService monitoredService : monitoredServices) {
+      List<NotificationRuleRef> notificationRuleRefs =
+          monitoredService.getNotificationRuleRefs()
+              .stream()
+              .filter(ref -> !ref.getNotificationRuleRef().equals(notificationRuleRef))
+              .collect(Collectors.toList());
+      UpdateOperations<MonitoredService> updateOperations = hPersistence.createUpdateOperations(MonitoredService.class);
+      updateOperations.set(MonitoredServiceKeys.notificationRuleRefs, notificationRuleRefs);
+      hPersistence.update(monitoredService, updateOperations);
+    }
+  }
+
+  private List<MonitoredService> get(ProjectParams projectParams, Filter filter) {
+    List<MonitoredService> monitoredServiceList =
+        hPersistence.createQuery(MonitoredService.class)
+            .disableValidation()
+            .filter(MonitoredServiceKeys.accountId, projectParams.getAccountIdentifier())
+            .filter(MonitoredServiceKeys.orgIdentifier, projectParams.getOrgIdentifier())
+            .filter(MonitoredServiceKeys.projectIdentifier, projectParams.getProjectIdentifier())
+            .asList();
+    if (filter.getNotificationRuleRef() != null) {
+      monitoredServiceList =
+          monitoredServiceList.stream()
+              .filter(monitoredService
+                  -> monitoredService.getNotificationRuleRefs()
+                          .stream()
+                          .filter(ref -> ref.getNotificationRuleRef().equals(filter.getNotificationRuleRef()))
+                          .collect(Collectors.toList())
+                          .size()
+                      > 0)
+              .collect(Collectors.toList());
+    }
+    return monitoredServiceList;
+  }
+
   private void updateNotificationRuleRefInMonitoredService(
       MonitoredService monitoredService, List<String> notificationRuleRefs) {
     List<NotificationRuleRef> allNotificationRuleRefs = new ArrayList<>();
@@ -1517,5 +1558,11 @@ public class MonitoredServiceServiceImpl implements MonitoredServiceService {
       default:
         return false;
     }
+  }
+
+  @Value
+  @Builder
+  private static class Filter {
+    String notificationRuleRef;
   }
 }
