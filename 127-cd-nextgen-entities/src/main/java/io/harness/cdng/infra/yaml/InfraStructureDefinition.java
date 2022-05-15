@@ -42,5 +42,5 @@ public class InfraStructureDefinition implements Visitable {
   @NotNull @ApiModelProperty(dataType = SwaggerConstants.STRING_CLASSPATH) private ParameterField<String> ref;
 
   // inputs
-  JsonNode infraDefinitionsInputs;
+  JsonNode inputs;
 }
