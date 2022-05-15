@@ -50,4 +50,5 @@ public interface ServiceLevelObjectiveService {
   List<SLOErrorBudgetResetDTO> getErrorBudgetResetHistory(ProjectParams projectParams, String sloIdentifier);
   SLOErrorBudgetResetDTO resetErrorBudget(ProjectParams projectParams, SLOErrorBudgetResetDTO resetDTO);
   void sendNotification(ServiceLevelObjective serviceLevelObjective);
+  void deleteNotificationRuleRef(ProjectParams projectParams, String notificationRuleRef);
 }

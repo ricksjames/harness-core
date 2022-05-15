@@ -22,6 +22,7 @@ import io.harness.cvng.notification.entities.NotificationRule.NotificationRuleKe
 import io.harness.cvng.notification.entities.NotificationRule.NotificationRuleUpdatableEntity;
 import io.harness.cvng.notification.services.api.NotificationRuleService;
 import io.harness.cvng.notification.transformer.NotificationRuleConditionTransformer;
+import io.harness.cvng.servicelevelobjective.services.api.ServiceLevelObjectiveService;
 import io.harness.exception.DuplicateFieldException;
 import io.harness.exception.InvalidRequestException;
 import io.harness.ng.beans.PageResponse;
@@ -45,7 +46,8 @@ public class NotificationRuleServiceImpl implements NotificationRuleService {
   private Map<NotificationRuleType, NotificationRuleConditionTransformer>
       notificationRuleTypeNotificationRuleConditionTransformerMap;
   @Inject private Map<NotificationRuleType, NotificationRuleUpdatableEntity> notificationRuleMapBinder;
-  @Inject Clock clock;
+  @Inject private ServiceLevelObjectiveService serviceLevelObjectiveService;
+  @Inject private Clock clock;
 
   @Override
   public NotificationRuleResponse create(ProjectParams projectParams, NotificationRuleDTO notificationRuleDTO) {
@@ -111,7 +113,7 @@ public class NotificationRuleServiceImpl implements NotificationRuleService {
           identifier, projectParams.getAccountIdentifier(), projectParams.getOrgIdentifier(),
           projectParams.getProjectIdentifier()));
     }
-    // TODO: all the references of this notificationRule should also be deleted e.g. inside SLO and MonitoredService
+    serviceLevelObjectiveService.deleteNotificationRuleRef(projectParams, identifier);
     return hPersistence.delete(notificationRules.get(0));
   }
 

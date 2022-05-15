@@ -1059,6 +1059,25 @@ public class ServiceLevelObjectiveServiceImplTest extends CvNextGenTestBase {
         .isFalse();
   }
 
+  @Test
+  @Owner(developers = KAPIL)
+  @Category(UnitTests.class)
+  public void testDeleteNotificationRuleRef() {
+    ServiceLevelObjectiveDTO sloDTO = createSLOBuilder();
+    sloDTO.setNotificationRuleRefs(
+        Arrays.asList(NotificationRuleRefDTO.builder().notificationRuleRef("rule1").enabled(true).build(),
+            NotificationRuleRefDTO.builder().notificationRuleRef("rule2").enabled(true).build(),
+            NotificationRuleRefDTO.builder().notificationRuleRef("rule3").enabled(true).build()));
+    createMonitoredService();
+    serviceLevelObjectiveService.create(projectParams, sloDTO);
+    serviceLevelObjectiveService.deleteNotificationRuleRef(builderFactory.getContext().getProjectParams(), "rule1");
+    ServiceLevelObjective serviceLevelObjective = getServiceLevelObjective(sloDTO.getIdentifier());
+
+    assertThat(serviceLevelObjective.getNotificationRuleRefs().size()).isEqualTo(2);
+    serviceLevelObjective.getNotificationRuleRefs().forEach(
+        notificationRuleRef -> assertThat(notificationRuleRef.getNotificationRuleRef() != "rule1"));
+  }
+
   private void createSLIRecords(String sliId) {
     Instant startTime = clock.instant().minus(Duration.ofMinutes(10));
     List<SLIRecord.SLIState> sliStates = Arrays.asList(BAD, GOOD, GOOD, NO_DATA, GOOD, GOOD, BAD, BAD, BAD, BAD);

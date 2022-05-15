@@ -247,6 +247,20 @@ public class ServiceLevelObjectiveServiceImpl implements ServiceLevelObjectiveSe
       sloQuery.filter(ServiceLevelObjectiveKeys.monitoredServiceIdentifier, filter.monitoredServiceIdentifier);
     }
     List<ServiceLevelObjective> serviceLevelObjectiveList = sloQuery.asList();
+
+    if (filter.getNotificationRuleRef() != null) {
+      serviceLevelObjectiveList =
+          serviceLevelObjectiveList.stream()
+              .filter(slo
+                  -> slo.getNotificationRuleRefs()
+                          .stream()
+                          .filter(notificationRuleRef
+                              -> notificationRuleRef.getNotificationRuleRef().equals(filter.getNotificationRuleRef()))
+                          .collect(Collectors.toList())
+                          .size()
+                      > 0)
+              .collect(Collectors.toList());
+    }
     if (isNotEmpty(filter.getErrorBudgetRisks())) {
       List<SLOHealthIndicator> sloHealthIndicators = sloHealthIndicatorService.getBySLOIdentifiers(projectParams,
           serviceLevelObjectiveList.stream()
@@ -411,6 +425,23 @@ public class ServiceLevelObjectiveServiceImpl implements ServiceLevelObjectiveSe
       }
     }
     updateNotificationRuleRefInSLO(serviceLevelObjective, new ArrayList<>(notificationRuleRefsWithChange));
+  }
+
+  @Override
+  public void deleteNotificationRuleRef(ProjectParams projectParams, String notificationRuleRef) {
+    List<ServiceLevelObjective> serviceLevelObjectives =
+        get(projectParams, Filter.builder().notificationRuleRef(notificationRuleRef).build());
+    for (ServiceLevelObjective serviceLevelObjective : serviceLevelObjectives) {
+      List<NotificationRuleRef> notificationRuleRefs =
+          serviceLevelObjective.getNotificationRuleRefs()
+              .stream()
+              .filter(ref -> !ref.getNotificationRuleRef().equals(notificationRuleRef))
+              .collect(Collectors.toList());
+      UpdateOperations<ServiceLevelObjective> updateOperations =
+          hPersistence.createUpdateOperations(ServiceLevelObjective.class);
+      updateOperations.set(ServiceLevelObjectiveKeys.notificationRuleRefs, notificationRuleRefs);
+      hPersistence.update(serviceLevelObjective, updateOperations);
+    }
   }
 
   private void updateNotificationRuleRefInSLO(
@@ -580,5 +611,6 @@ public class ServiceLevelObjectiveServiceImpl implements ServiceLevelObjectiveSe
     List<SLOTargetType> targetTypes;
     List<ErrorBudgetRisk> errorBudgetRisks;
     String monitoredServiceIdentifier;
+    String notificationRuleRef;
   }
 }
