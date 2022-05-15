@@ -20,6 +20,9 @@ import io.harness.cvng.notification.beans.NotificationRuleCondition;
 import io.harness.cvng.notification.beans.NotificationRuleConditionType;
 import io.harness.cvng.notification.beans.NotificationRuleDTO;
 import io.harness.cvng.notification.beans.NotificationRuleType;
+import io.harness.cvng.notification.channelDetails.CVNGEmailChannelSpec;
+import io.harness.cvng.notification.channelDetails.CVNGNotificationChannel;
+import io.harness.cvng.notification.channelDetails.CVNGNotificationChannelType;
 import io.harness.cvng.notification.services.api.NotificationRuleService;
 import io.harness.rule.Owner;
 import io.harness.rule.ResourceTestRule;
@@ -136,6 +139,13 @@ public class NotificationRuleResourceTest extends CvNextGenTestBase {
             .identifier("notificationRuleDTO")
             .name("notificationRuleDTO")
             .type(NotificationRuleType.SLO)
+            .notificationMethod(CVNGNotificationChannel.builder()
+                                    .type(CVNGNotificationChannelType.EMAIL)
+                                    .spec(CVNGEmailChannelSpec.builder()
+                                              .userGroups(Arrays.asList("testUserGroup"))
+                                              .recipients(Arrays.asList("test@harness.io"))
+                                              .build())
+                                    .build())
             .conditions(
                 Arrays.asList(NotificationRuleCondition.builder()
                                   .type(NotificationRuleConditionType.ERROR_BUDGET_REMAINING_PERCENTAGE)

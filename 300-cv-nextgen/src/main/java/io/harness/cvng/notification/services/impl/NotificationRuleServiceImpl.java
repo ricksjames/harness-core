@@ -195,17 +195,8 @@ public class NotificationRuleServiceImpl implements NotificationRuleService {
 
   private NotificationRuleResponse notificationRuleEntityToResponse(NotificationRule notificationRule) {
     NotificationRuleDTO notificationRuleDTO =
-        NotificationRuleDTO.builder()
-            .orgIdentifier(notificationRule.getOrgIdentifier())
-            .projectIdentifier(notificationRule.getProjectIdentifier())
-            .identifier(notificationRule.getIdentifier())
-            .name(notificationRule.getName())
-            .type(notificationRule.getType())
-            .notificationMethod(notificationRule.getNotificationMethod())
-            .conditions(notificationRuleTypeNotificationRuleConditionTransformerMap.get(notificationRule.getType())
-                            .getDto(notificationRule)
-                            .getConditions())
-            .build();
+        notificationRuleTypeNotificationRuleConditionTransformerMap.get(notificationRule.getType())
+            .getDto(notificationRule);
     return NotificationRuleResponse.builder()
         .notificationRule(notificationRuleDTO)
         .createdAt(notificationRule.getCreatedAt())

@@ -23,8 +23,8 @@ import io.harness.cvng.core.utils.DateTimeUtils;
 import io.harness.cvng.notification.beans.NotificationRuleConditionType;
 import io.harness.cvng.notification.beans.NotificationRuleRef;
 import io.harness.cvng.notification.beans.NotificationRuleRefDTO;
-import io.harness.cvng.notification.channelDetails.CVNGNotificationChannel;
 import io.harness.cvng.notification.entities.NotificationRule;
+import io.harness.cvng.notification.entities.NotificationRule.CVNGNotificationChannel;
 import io.harness.cvng.notification.entities.SLONotificationRule;
 import io.harness.cvng.notification.entities.SLONotificationRule.SLOErrorBudgetBurnRateCondition;
 import io.harness.cvng.notification.entities.SLONotificationRule.SLONotificationRuleCondition;
@@ -402,7 +402,7 @@ public class ServiceLevelObjectiveServiceImpl implements ServiceLevelObjectiveSe
           CVNGNotificationChannel notificationChannel = notificationRule.getNotificationMethod();
           String templateId = getNotificationTemplateId(notificationRule.getType(), notificationChannel.getType());
           NotificationResult notificationResult =
-              notificationClient.sendNotificationAsync(notificationChannel.getSpec().toNotificationChannel(
+              notificationClient.sendNotificationAsync(notificationChannel.toNotificationChannel(
                   serviceLevelObjective.getAccountId(), serviceLevelObjective.getOrgIdentifier(),
                   serviceLevelObjective.getProjectIdentifier(), templateId, templateData));
           log.info("Notification with Notification ID {} sent", notificationResult.getNotificationId());
