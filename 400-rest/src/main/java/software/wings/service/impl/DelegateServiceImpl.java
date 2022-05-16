@@ -1558,7 +1558,7 @@ public class DelegateServiceImpl implements DelegateService {
    * @return
    */
   private JreConfig getJreConfig(final String accountId, final boolean isWatcher) {
-    final boolean enabled = featureFlagService.isEnabled(JDK11_DELEGATE, accountId) && !isWatcher;
+    final boolean enabled = featureFlagService.isEnabledReloadCache(JDK11_DELEGATE, accountId) && !isWatcher;
     final String jreVersion = enabled ? mainConfiguration.getMigrateToJre() : mainConfiguration.getCurrentJre();
     JreConfig jreConfig = mainConfiguration.getJreConfigs().get(jreVersion);
     final CdnConfig cdnConfig = mainConfiguration.getCdnConfig();
