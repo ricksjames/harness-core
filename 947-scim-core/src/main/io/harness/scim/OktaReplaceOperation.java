@@ -45,8 +45,7 @@ public class OktaReplaceOperation extends PatchOperation {
   @Override
   public <T> T getValue(final Class<T> cls) throws JsonProcessingException {
     if (value.isArray()) {
-      throw new IllegalArgumentException("Replace Patch operation contains "
-          + "multiple values");
+      return getValues(cls).get(0);
     }
     return jsonObjectMapper.treeToValue(value, cls);
   }
