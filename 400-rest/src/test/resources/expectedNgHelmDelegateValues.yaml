@@ -1,0 +1,28 @@
+# Account Id to which the delegate will be connecting
+accountId: ACCOUNT_ID
+
+# Secret identifier associated with the account
+delegateToken: ACCOUNT_KEY
+
+# Short 6 character identifier of the account
+accountIdShort: accoun
+delegateName: harness-delegate
+delegateType: HELM_DELEGATE
+delegateDockerImage: harness/delegate:latest
+managerHostAndPort: https://localhost:9090
+
+nextGen: true
+delegateTags:
+delegateDescription:
+k8sPermissionsType: CLUSTER_ADMIN
+delegateReplicas: 1
+delegateCpu: 0.5
+delegateRam: 2048
+delegateNamespace: harness-delegate-ng
+
+watcherStorageUrl: http://localhost:8888
+watcherCheckLocation: watcherci.txt
+delegateStorageUrl: http://localhost:8888
+delegateCheckLocation: delegateci.txt
+useCdn: false
+jreVersion: 1.8.0_242

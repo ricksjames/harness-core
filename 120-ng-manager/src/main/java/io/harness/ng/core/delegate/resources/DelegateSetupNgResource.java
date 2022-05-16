@@ -43,6 +43,7 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import lombok.extern.slf4j.Slf4j;
 
@@ -52,7 +53,7 @@ import lombok.extern.slf4j.Slf4j;
 @Produces({"application/json"})
 @Slf4j
 @OwnedBy(HarnessTeam.DEL)
-@Tag(name = "Delegate Setup Resource", description = "Contains APIs related to Delegate Setup in ng")
+@Tag(name = "Delegate Setup Resource", description = "Contains Delegate Setup APIs")
 @ApiResponse(responseCode = "400", description = "Bad Request",
     content =
     {
@@ -70,7 +71,10 @@ public class DelegateSetupNgResource {
   private static final String BINARY = "binary";
   private static final String CONTENT_DISPOSITION = "Content-Disposition";
   private static final String ATTACHMENT_FILENAME = "attachment; filename=";
-  public static final String YAML = ".yaml";
+  private static final String YAML = ".yaml";
+  private static final String APPLICATION_ZIP_CHARSET_BINARY = "application/zip; charset=binary";
+  private static final String TAR_GZ = ".tar.gz";
+  private static final String HARNESS_NG_DELEGATE = "harness-ng-delegate";
 
   private final DelegateNgManagerCgManagerClient delegateNgManagerCgManagerClient;
   private final AccessControlClient accessControlClient;
@@ -97,17 +101,29 @@ public class DelegateSetupNgResource {
           NGCommonEntityConstants.ORG_KEY) String orgIdentifier,
       @Parameter(description = NGCommonEntityConstants.PROJECT_PARAM_MESSAGE) @QueryParam(
           NGCommonEntityConstants.PROJECT_KEY) String projectIdentifier,
+          @Parameter(description = "File format: text/plain for .yaml file, otherwise tar.gz will be generated.")
+                           @QueryParam("fileFormat") MediaType fileFormat,
       @RequestBody(
           required = true, description = "Delegate setup details, containing data to populate yaml file values.")
-      DelegateSetupDetails delegateSetupDetails) {
+      DelegateSetupDetails delegateSetupDetails
+                           ) {
     accessControlClient.checkForAccessOrThrow(ResourceScope.of(accountIdentifier, orgIdentifier, projectIdentifier),
         Resource.of(DELEGATE_RESOURCE_TYPE, null), DELEGATE_EDIT_PERMISSION);
     File delegateFile = RestClientUtils.getResponse(delegateNgManagerCgManagerClient.generateHelmValuesFile(
-        accountIdentifier, orgIdentifier, projectIdentifier, delegateSetupDetails));
+        accountIdentifier, orgIdentifier, projectIdentifier, fileFormat, delegateSetupDetails));
+
+    if (fileFormat != null && fileFormat.equals(MediaType.TEXT_PLAIN_TYPE)) {
+      return Response.ok(delegateFile)
+              .header(CONTENT_TRANSFER_ENCODING, BINARY)
+              .type("text/plain; charset=UTF-8")
+              .header(CONTENT_DISPOSITION, ATTACHMENT_FILENAME + HARNESS_DELEGATE_VALUES_YAML + YAML)
+              .build();
+    }
+
     return Response.ok(delegateFile)
-        .header(CONTENT_TRANSFER_ENCODING, BINARY)
-        .type("text/plain; charset=UTF-8")
-        .header(CONTENT_DISPOSITION, ATTACHMENT_FILENAME + HARNESS_DELEGATE_VALUES_YAML + YAML)
-        .build();
+            .header(CONTENT_TRANSFER_ENCODING, BINARY)
+            .type(APPLICATION_ZIP_CHARSET_BINARY)
+            .header(CONTENT_DISPOSITION, ATTACHMENT_FILENAME + HARNESS_NG_DELEGATE + TAR_GZ)
+            .build();
   }
 }

@@ -24,6 +24,7 @@ import java.io.File;
 import java.util.List;
 import java.util.Optional;
 import javax.validation.constraints.NotNull;
+import javax.ws.rs.core.MediaType;
 import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.DELETE;
@@ -37,7 +38,7 @@ import retrofit2.http.Query;
 public interface DelegateNgManagerCgManagerClient {
   String DELEGATE_TOKEN_NG_API = "delegate-token/ng";
   String DELEGATE_GROUP_TAGS_API = "delegate-group-tags-internal";
-  String DELEGATE_SETUP_NG_API = "delegate-setup/ng";
+  String DELEGATE_SETUP_NG_API = "delegate-setup/internal";
   String DELEGATE_MTLS_ENDPOINT_API =
       DelegateMtlsApiConstants.API_ROOT_RELATIVE_NG_INTERNAL + "/" + DelegateMtlsApiConstants.API_PATH_ENDPOINT;
   String DELEGATE_MTLS_PREFIX_AVAILABLE_API = DelegateMtlsApiConstants.API_ROOT_RELATIVE_NG_INTERNAL + "/"
@@ -151,12 +152,12 @@ public interface DelegateNgManagerCgManagerClient {
       @Query(NGCommonEntityConstants.ACCOUNT_KEY) @NotNull String accountIdentifier,
       @Query(DelegateMtlsApiConstants.API_PARAM_DOMAIN_PREFIX_NAME) @NotNull String domainPrefix);
 
-  //------------------------ Delegate Setup New Apis -----------------------------------
+  //------------------------ NG Delegate Setup Apis -----------------------------------
 
   @POST(DELEGATE_SETUP_NG_API + "/delegate-helm-values-yaml")
   Call<RestResponse<File>> generateHelmValuesFile(
       @Query(NGCommonEntityConstants.ACCOUNT_KEY) @NotNull String accountIdentifier,
       @Query(NGCommonEntityConstants.ORG_KEY) String orgIdentifier,
-      @Query(NGCommonEntityConstants.PROJECT_KEY) String projectIdentifier,
+      @Query(NGCommonEntityConstants.PROJECT_KEY) String projectIdentifier, @Query("fileFormat") MediaType fileFormat,
       @Body @NotNull DelegateSetupDetails delegateSetupDetails);
 }

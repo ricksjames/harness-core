@@ -84,7 +84,7 @@ public interface DelegateService extends OwnedByAccount {
       String verificationServiceUrl, MediaType fileFormat) throws IOException;
 
   File generateNgHelmValuesYaml(String accountId, DelegateSetupDetails delegateSetupDetails, String managerHost,
-      String verificationServiceUrl) throws IOException;
+      String verificationServiceUrl, MediaType fileFormat) throws IOException;
 
   Delegate update(@Valid Delegate delegate);
 

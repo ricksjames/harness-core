@@ -28,6 +28,7 @@ import static io.harness.persistence.HQuery.excludeAuthority;
 import static io.harness.rule.OwnerRule.ALEKSANDAR;
 import static io.harness.rule.OwnerRule.ANKIT;
 import static io.harness.rule.OwnerRule.ANSHUL;
+import static io.harness.rule.OwnerRule.ANUPAM;
 import static io.harness.rule.OwnerRule.ARPIT;
 import static io.harness.rule.OwnerRule.BOJAN;
 import static io.harness.rule.OwnerRule.BRETT;
@@ -273,6 +274,7 @@ public class DelegateServiceTest extends WingsBaseTest {
   private static final String UNIQUE_DELEGATE_NAME_ERROR_MESSAGE =
       "Delegate with same name exists. Delegate name must be unique across account.";
   private static final String DELEGATE_TOKEN_ERROR_MESSAGE = "Delegate Token must be provided.";
+  private static final String HARNESS_NG_DELEGATE = "harness-ng-delegate";
 
   @Mock private AccountService accountService;
   @Mock private LicenseService licenseService;
@@ -3729,6 +3731,48 @@ public class DelegateServiceTest extends WingsBaseTest {
                 ACCOUNT_ID, UNIQUE_DELEGATE_NAME, DELEGATE_PROFILE_ID, TOKEN_NAME))
         .isInstanceOf(InvalidRequestException.class)
         .hasMessage(UNIQUE_DELEGATE_NAME_ERROR_MESSAGE);
+  }
+
+  @Test
+  @Owner(developers = ANUPAM)
+  @Category(UnitTests.class)
+  public void shouldGenerateNgHelmValuesYamlFile() throws IOException {
+    when(accountService.get(ACCOUNT_ID))
+            .thenReturn(anAccount().withAccountKey("ACCOUNT_KEY").withUuid(ACCOUNT_ID).build());
+    when(delegateVersionService.getDelegateImageTag(ACCOUNT_ID, HELM_DELEGATE)).thenReturn(DELEGATE_IMAGE_TAG);
+    when(delegateVersionService.getUpgraderImageTag(ACCOUNT_ID, HELM_DELEGATE)).thenReturn(UPGRADER_IMAGE_TAG);
+    DelegateSetupDetails setupDetails =
+            DelegateSetupDetails.builder()
+                    .delegateConfigurationId("delConfigId")
+                    .name("harness-delegate")
+                    .identifier("_delegateGroupId1")
+                    .size(DelegateSize.LAPTOP)
+                    .delegateType(DelegateType.KUBERNETES)
+                    .k8sConfigDetails(K8sConfigDetails.builder().k8sPermissionType(CLUSTER_ADMIN).build())
+                    .tokenName(TOKEN_NAME)
+                    .build();
+    when(delegateProfileService.get(ACCOUNT_ID, "delConfigId")).thenReturn(DelegateProfile.builder().build());
+
+    File gzipFile = delegateService.generateNgHelmValuesYaml(ACCOUNT_ID, setupDetails, "https://localhost:9090",
+            "https://localhost:7070", MediaType.MULTIPART_FORM_DATA_TYPE);
+    File tarFile = File.createTempFile(DELEGATE_DIR, ".tar");
+    uncompressGzipFile(gzipFile, tarFile);
+    try (TarArchiveInputStream tarArchiveInputStream = new TarArchiveInputStream(new FileInputStream(tarFile))) {
+      assertThat(tarArchiveInputStream.getNextEntry().getName()).isEqualTo(HELM_DELEGATE + "/");
+
+      TarArchiveEntry file = (TarArchiveEntry) tarArchiveInputStream.getNextEntry();
+      assertThat(file).extracting(ArchiveEntry::getName).isEqualTo(HELM_DELEGATE + "/harness-ng-delegate.yaml");
+      byte[] buffer = new byte[(int) file.getSize()];
+      IOUtils.read(tarArchiveInputStream, buffer);
+      assertThat(new String(buffer))
+              .isEqualTo(CharStreams
+                      .toString(new InputStreamReader(
+                              getClass().getResourceAsStream("/expectedNgHelmDelegateValues.yaml")))
+                      .replaceAll("8888", "" + port));
+
+      file = (TarArchiveEntry) tarArchiveInputStream.getNextEntry();
+      assertThat(file).extracting(TarArchiveEntry::getName).isEqualTo(HELM_DELEGATE + "/README.txt");
+    }
   }
 
   @Test
