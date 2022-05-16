@@ -323,12 +323,14 @@ public class PMSPipelineServiceHelper {
         Collections.singletonMap(AMPLITUDE, true), io.harness.telemetry.Category.GLOBAL);
   }
 
-  public static InvalidYamlException buildInvalidYamlException(String errorMessage) {
+  public static InvalidYamlException buildInvalidYamlException(String errorMessage, String pipelineYaml) {
     YamlSchemaErrorWrapperDTO errorWrapperDTO =
         YamlSchemaErrorWrapperDTO.builder()
             .schemaErrors(
                 Collections.singletonList(YamlSchemaErrorDTO.builder().message(errorMessage).fqn("$.pipeline").build()))
             .build();
-    throw new InvalidYamlException(errorMessage, errorWrapperDTO);
+    InvalidYamlException invalidYamlException = new InvalidYamlException(errorMessage, errorWrapperDTO);
+    invalidYamlException.setYaml(pipelineYaml);
+    return invalidYamlException;
   }
 }
