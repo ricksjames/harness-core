@@ -49,5 +49,5 @@ public class EnvironmentYamlV2 implements Visitable {
   List<InfraStructureDefinitionYaml> infrastructureDefinitions;
 
   // environmentInputs
-  Map<String,Object> environmentInputs;
+  Map<String, Object> environmentInputs;
 }
