@@ -4668,7 +4668,7 @@ plain_artifacts = [
     "io.netty:netty:3.10.6.Final",
     "io.netty:netty-all:4.1.51.Final",
     "io.netty:netty-buffer:4.1.52.Final",
-    "io.netty:netty-common:4.1.52.Final",
+    "io.netty:netty-common:4.1.75.Final",
     "io.netty:netty-handler-proxy:4.1.52.Final",
     "io.netty:netty-handler:4.1.52.Final",
     "io.netty:netty-codec-http:4.1.75.Final",
