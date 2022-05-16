@@ -19,6 +19,7 @@ import io.harness.cdng.infra.beans.K8sDirectInfrastructureOutcome;
 import io.harness.cdng.infra.beans.K8sGcpInfrastructureOutcome;
 import io.harness.cdng.infra.beans.PdcInfrastructureOutcome;
 import io.harness.cdng.infra.beans.ServerlessAwsLambdaInfrastructureOutcome;
+import io.harness.cdng.infra.beans.SshWinRmAwsInfrastructureOutcome;
 import io.harness.cdng.infra.beans.SshWinRmAzureInfrastructureOutcome;
 import io.harness.cdng.infra.yaml.Infrastructure;
 import io.harness.cdng.infra.yaml.K8SDirectInfrastructure;
@@ -26,6 +27,7 @@ import io.harness.cdng.infra.yaml.K8sAzureInfrastructure;
 import io.harness.cdng.infra.yaml.K8sGcpInfrastructure;
 import io.harness.cdng.infra.yaml.PdcInfrastructure;
 import io.harness.cdng.infra.yaml.ServerlessAwsLambdaInfrastructure;
+import io.harness.cdng.infra.yaml.SshWinRmAwsInfrastructure;
 import io.harness.cdng.infra.yaml.SshWinRmAzureInfrastructure;
 import io.harness.cdng.service.steps.ServiceStepOutcome;
 import io.harness.common.ParameterFieldHelper;
@@ -109,6 +111,17 @@ public class InfrastructureMapper {
             .environment(environmentOutcome)
             .infrastructureKey(
                 InfrastructureKey.generate(service, environmentOutcome, pdcInfrastructure.getInfrastructureKeyValues()))
+            .build();
+
+      case InfrastructureKind.SSH_WINRM_AWS:
+        SshWinRmAwsInfrastructure sshWinRmAwsInfrastructure = (SshWinRmAwsInfrastructure) infrastructure;
+        // TODO validate
+        return SshWinRmAwsInfrastructureOutcome.builder()
+            .connectorRef(ParameterFieldHelper.getParameterFieldValue(sshWinRmAwsInfrastructure.getConnectorRef()))
+            .region(ParameterFieldHelper.getParameterFieldValue(sshWinRmAwsInfrastructure.getRegion()))
+            .environment(environmentOutcome)
+            .infrastructureKey(
+                InfrastructureKey.generate(service, environmentOutcome, infrastructure.getInfrastructureKeyValues()))
             .build();
 
       case InfrastructureKind.SSH_WINRM_AZURE:

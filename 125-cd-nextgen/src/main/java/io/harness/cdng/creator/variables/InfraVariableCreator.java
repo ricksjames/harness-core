@@ -194,10 +194,9 @@ public class InfraVariableCreator {
       return;
     }
 
-    addVariableForYamlType(YamlTypes.CLOUD_PROVIDER, infraSpecNode, yamlPropertiesMap);
+    addVariableForYamlType(YamlTypes.CONNECTOR_REF, infraSpecNode, yamlPropertiesMap);
     addVariableForYamlType(YamlTypes.REGION, infraSpecNode, yamlPropertiesMap);
     addVariableForYamlType(YamlTypes.LOAD_BALANCER, infraSpecNode, yamlPropertiesMap);
-    addVariableForYamlType(YamlTypes.CONNECTOR_REF, infraSpecNode, yamlPropertiesMap);
     addVariableForYamlType(YamlTypes.HOST_NAME_CONVENTION, infraSpecNode, yamlPropertiesMap);
   }
 

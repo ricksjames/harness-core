@@ -8,6 +8,7 @@
 package io.harness.cdng.infra.yaml;
 
 import static io.harness.annotations.dev.HarnessTeam.CDP;
+import static io.harness.yaml.schema.beans.SupportedPossibleFieldTypes.runtime;
 import static io.harness.yaml.schema.beans.SupportedPossibleFieldTypes.string;
 
 import io.harness.annotation.RecasterAlias;
@@ -31,18 +32,19 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 import io.swagger.annotations.ApiModelProperty;
 import java.util.Collections;
 import java.util.Map;
+import javax.validation.constraints.NotNull;
 import lombok.Builder;
+import lombok.Data;
 import lombok.Getter;
 import lombok.Value;
 import lombok.experimental.Wither;
+import org.hibernate.validator.constraints.NotEmpty;
 import org.springframework.data.annotation.TypeAlias;
 
 @OwnedBy(CDP)
 @Value
 @Builder
 @JsonTypeName(InfrastructureKind.SSH_WINRM_AWS)
-@OneOfSet(fields = {"connectorRef", "cloudProvider", "region", "loadBalancer"},
-    requiredFieldNames = {"connectorRef", "cloudProvider", "region", "loadBalancer"})
 @SimpleVisitorHelper(helperClass = ConnectorRefExtractorHelper.class)
 @TypeAlias("SshWinRmAwsInfrastructure")
 @RecasterAlias("io.harness.cdng.infra.yaml.SshWinRmAwsInfrastructure")
@@ -52,17 +54,36 @@ public class SshWinRmAwsInfrastructure implements Infrastructure, Visitable, Wit
   @ApiModelProperty(hidden = true)
   String uuid;
 
-  @ApiModelProperty(dataType = SwaggerConstants.STRING_CLASSPATH) @Wither ParameterField<String> connectorRef;
+  @NotNull
+  @NotEmpty
+  @ApiModelProperty(dataType = SwaggerConstants.STRING_CLASSPATH)
+  @Wither
+  ParameterField<String> connectorRef;
 
-  @YamlSchemaTypes({string})
+  @NotNull
+  @NotEmpty
   @ApiModelProperty(dataType = SwaggerConstants.STRING_CLASSPATH)
   @Wither
   ParameterField<String> region;
 
-  @YamlSchemaTypes({string})
+  @NotNull
+  @NotEmpty
   @ApiModelProperty(dataType = SwaggerConstants.STRING_CLASSPATH)
   @Wither
   ParameterField<String> loadBalancer;
+
+  @NotNull
+  @NotEmpty
+  @YamlSchemaTypes({runtime})
+  @ApiModelProperty(dataType = SwaggerConstants.STRING_CLASSPATH)
+  @Wither
+  ParameterField<String> hostNameConvention;
+
+  @ApiModelProperty(dataType = SwaggerConstants.BOOLEAN_CLASSPATH) ParameterField<Boolean> useAutoScalingGroup;
+
+  @ApiModelProperty(dataType = SwaggerConstants.STRING_CLASSPATH) @Wither ParameterField<String> autoScalingGroupName;
+
+  AwsInstanceFilter awsInstanceFilter;
 
   // For Visitor Framework Impl
   @Getter(onMethod_ = { @ApiModelProperty(hidden = true) }) @ApiModelProperty(hidden = true) String metadata;
