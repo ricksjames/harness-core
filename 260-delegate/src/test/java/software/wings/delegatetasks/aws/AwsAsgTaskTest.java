@@ -64,17 +64,17 @@ public class AwsAsgTaskTest extends WingsBaseTest {
   public void testRun() {
     AwsAsgRequest request = AwsAsgListAllNamesRequest.builder().build();
     task.run(request);
-    verify(mockAwsAsgHelperServiceDelegate).listAutoScalingGroupNames(any(), anyList(), anyString());
+    verify(mockAwsAsgHelperServiceDelegate).listAutoScalingGroupNames(any(), any(), any());
     request = AwsAsgListInstancesRequest.builder().build();
     task.run(request);
     verify(mockAwsAsgHelperServiceDelegate)
-        .listAutoScalingGroupInstances(any(), anyList(), anyString(), anyString(), anyBoolean());
+        .listAutoScalingGroupInstances(any(), any(), any(), any(), anyBoolean());
     request = AwsAsgListDesiredCapacitiesRequest.builder().build();
     task.run(request);
-    verify(mockAwsAsgHelperServiceDelegate).getDesiredCapacitiesOfAsgs(any(), anyList(), anyString(), anyList());
+    verify(mockAwsAsgHelperServiceDelegate).getDesiredCapacitiesOfAsgs(any(), any(), any(), any());
     request = AwsAsgGetRunningCountRequest.builder().build();
     task.run(request);
     verify(mockAwsAsgHelperServiceDelegate)
-        .getCurrentlyRunningInstanceCount(any(), anyList(), anyString(), anyString());
+        .getCurrentlyRunningInstanceCount(any(), any(), any(), any());
   }
 }

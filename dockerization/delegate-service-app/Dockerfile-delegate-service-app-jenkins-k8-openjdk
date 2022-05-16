@@ -1,5 +1,5 @@
 # to be used when building
-FROM us.gcr.io/platform-205701/alpine:safe-alpine3.12-jdk11
+FROM us.gcr.io/platform-205701/alpine:safe-alpine3.15.4-bt1276
 
 # Add the capsule JAR and config.yml
 COPY delegate-service-capsule.jar keystore.jks delegate-service-config.yml redisson-jcache.yaml /opt/harness/

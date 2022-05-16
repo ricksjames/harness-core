@@ -64,19 +64,19 @@ public class AwsCodeDeployTaskTest extends WingsBaseTest {
   public void testRun() {
     AwsCodeDeployRequest request = AwsCodeDeployListAppRequest.builder().build();
     task.run(new Object[] {request});
-    verify(mockAwsCodeDeployHelperServiceDelegate).listApplications(any(), anyList(), anyString());
+    verify(mockAwsCodeDeployHelperServiceDelegate).listApplications(any(), any(), any());
     request = AwsCodeDeployListDeploymentConfigRequest.builder().build();
     task.run(new Object[] {request});
-    verify(mockAwsCodeDeployHelperServiceDelegate).listDeploymentConfiguration(any(), anyList(), anyString());
+    verify(mockAwsCodeDeployHelperServiceDelegate).listDeploymentConfiguration(any(), any(), any());
     request = AwsCodeDeployListDeploymentGroupRequest.builder().build();
     task.run(new Object[] {request});
-    verify(mockAwsCodeDeployHelperServiceDelegate).listDeploymentGroups(any(), anyList(), anyString(), anyString());
+    verify(mockAwsCodeDeployHelperServiceDelegate).listDeploymentGroups(any(), any(), any(), any());
     request = AwsCodeDeployListDeploymentInstancesRequest.builder().build();
     task.run(new Object[] {request});
-    verify(mockAwsCodeDeployHelperServiceDelegate).listDeploymentInstances(any(), anyList(), anyString(), anyString());
+    verify(mockAwsCodeDeployHelperServiceDelegate).listDeploymentInstances(any(), any(), any(), any());
     request = AwsCodeDeployListAppRevisionRequest.builder().build();
     task.run(new Object[] {request});
     verify(mockAwsCodeDeployHelperServiceDelegate)
-        .listAppRevision(any(), anyList(), anyString(), anyString(), anyString());
+        .listAppRevision(any(), any(), any(), any(), any());
   }
 }

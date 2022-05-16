@@ -1,4 +1,4 @@
-FROM us.gcr.io/platform-205701/alpine:safe-alpine3.12-jdk11
+FROM us.gcr.io/platform-205701/alpine:safe-alpine3.15.4-bt1276
 
 COPY --chown=65534:65534 redisson-jcache.yaml /opt/harness/
 COPY --chown=65534:65534 config.yml /opt/harness/

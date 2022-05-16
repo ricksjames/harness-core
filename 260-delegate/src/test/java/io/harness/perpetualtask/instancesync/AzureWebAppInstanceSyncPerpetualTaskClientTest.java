@@ -63,7 +63,7 @@ public class AzureWebAppInstanceSyncPerpetualTaskClientTest extends WingsBaseTes
     doReturn(infrastructureMapping).when(mockInfraMappingService).get(anyString(), anyString());
     doReturn(aSettingAttribute().withValue(AzureConfig.builder().build()).build())
         .when(mockSettingsService)
-        .get(anyString());
+        .get(any());
     doReturn(emptyList()).when(mockSecretManager).getEncryptionDetails(any(), anyString(), anyString());
   }
 

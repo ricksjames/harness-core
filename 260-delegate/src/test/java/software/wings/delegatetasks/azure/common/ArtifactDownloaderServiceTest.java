@@ -109,7 +109,7 @@ public class ArtifactDownloaderServiceTest extends WingsBaseTest {
     whenNew(FileOutputStream.class).withArguments(mockWorkingDirectory).thenReturn(mockFileOutputStream);
 
     PowerMockito.mockStatic(IOUtils.class);
-    when(IOUtils.copy(mockArtifactFileStream, mockFileOutputStream)).thenReturn(1024);
+    when(IOUtils.copy(mockArtifactFileStream, mockFileOutputStream)).thenAnswer(invocationOnMock -> 1024);
   }
 
   private void mockCreateArtifactFileInWorkingDirectory(File workingDirectory, String artifactName) throws Exception {
