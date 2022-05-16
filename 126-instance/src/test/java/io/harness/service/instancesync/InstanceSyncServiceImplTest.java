@@ -13,6 +13,8 @@ import com.mongodb.DuplicateKeyException;
 import io.harness.InstancesTestBase;
 import io.harness.category.element.UnitTests;
 import io.harness.delegate.AccountId;
+import io.harness.delegate.beans.instancesync.InstanceSyncPerpetualTaskResponse;
+import io.harness.delegate.beans.instancesync.K8sInstanceSyncPerpetualTaskResponse;
 import io.harness.dtos.DeploymentSummaryDTO;
 import io.harness.dtos.InstanceDTO;
 import io.harness.dtos.instancesyncperpetualtaskinfo.InstanceSyncPerpetualTaskInfoDTO;
@@ -221,5 +223,27 @@ public class InstanceSyncServiceImplTest extends InstancesTestBase {
         when(instanceSyncHandlerFactoryService.getInstanceSyncHandler(deploymentSummaryDTO.getDeploymentInfoDTO().getType())).thenReturn(abstractInstanceSyncHandler);
         instanceSyncService.processInstanceSyncForNewDeployment(deploymentEvent);
         verify(instanceSyncHandlerFactoryService, times(3)).getInstanceSyncHandler(deploymentSummaryDTO.getDeploymentInfoDTO().getType());
+    }
+
+    @Test
+    @Owner(developers = PIYUSH_BHUWALKA)
+    @Category(UnitTests.class)
+    public void processInstanceSyncByPerpetualTaskTest() {
+
+        InfrastructureMappingDTO infrastructureMappingDTO = InfrastructureMappingDTO.builder().accountIdentifier(ACCOUNT_IDENTIFIER).id(ID).orgIdentifier(ORG_IDENTIFIER)
+                .projectIdentifier(PROJECT_IDENTIFIER).envIdentifier(ENV_IDENTIFIER).serviceIdentifier(SERVICE_IDENTIFIER)
+                .infrastructureKind(InfrastructureKind.KUBERNETES_DIRECT).connectorRef(CONNECTOR_REF).infrastructureKey(INFRASTRUCTURE_KEY).build();
+        ServerInstanceInfo serverInstanceInfo = K8sServerInstanceInfo.builder().build();
+        InstanceSyncPerpetualTaskResponse instanceSyncPerpetualTaskResponse = K8sInstanceSyncPerpetualTaskResponse.builder().serverInstanceDetails(Arrays.asList(serverInstanceInfo)).build();
+        InstanceSyncPerpetualTaskInfoDTO instanceSyncPerpetualTaskInfoDTO = InstanceSyncPerpetualTaskInfoDTO.builder().infrastructureMappingId(INFRASTRUCTURE_MAPPING_ID).build();
+        when(instanceSyncPerpetualTaskInfoService.findByPerpetualTaskId(ACCOUNT_IDENTIFIER, PERPETUAL_TASK)).thenReturn(Optional.of(instanceSyncPerpetualTaskInfoDTO));
+        when(infrastructureMappingService.getByInfrastructureMappingId(instanceSyncPerpetualTaskInfoDTO.getInfrastructureMappingId())).thenReturn(Optional.of(infrastructureMappingDTO));
+        when(persistentLocker.waitToAcquireLock(InstanceSyncConstants.INSTANCE_SYNC_PREFIX
+                        + instanceSyncPerpetualTaskInfoDTO.getInfrastructureMappingId(),
+                InstanceSyncConstants.INSTANCE_SYNC_LOCK_TIMEOUT, InstanceSyncConstants.INSTANCE_SYNC_WAIT_TIMEOUT)).thenReturn(acquiredLock);
+        when(instanceSyncHandlerFactoryService.getInstanceSyncHandler(
+                instanceSyncPerpetualTaskResponse.getDeploymentType())).thenReturn(abstractInstanceSyncHandler);
+        instanceSyncService.processInstanceSyncByPerpetualTask(ACCOUNT_IDENTIFIER, PERPETUAL_TASK, instanceSyncPerpetualTaskResponse);
+        verify(instanceSyncHandlerFactoryService, times(1)).getInstanceSyncHandler(instanceSyncPerpetualTaskResponse.getDeploymentType());
     }
 }
