@@ -45,7 +45,7 @@ public class DelegateSetupDetails implements YamlDTO {
   @NotNull private String delegateType;
   private String tokenName;
 
-  public Set<String> getTags() {
-    return tags.stream().filter(StringUtils::isNotBlank).map(String::trim).collect(Collectors.toSet());
-  }
+  //  public Set<String> getTags() {
+  //    return tags.stream().filter(StringUtils::isNotBlank).map(String::trim).collect(Collectors.toSet());
+  //  }
 }

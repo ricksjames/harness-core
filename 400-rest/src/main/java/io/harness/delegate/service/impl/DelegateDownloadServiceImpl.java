@@ -37,6 +37,7 @@ import software.wings.service.intfc.DelegateService;
 import com.google.inject.Inject;
 import java.io.File;
 import java.util.Arrays;
+import javax.ws.rs.core.MediaType;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -51,13 +52,14 @@ public class DelegateDownloadServiceImpl implements DelegateDownloadService {
   }
 
   @Override
-  public DelegateDownloadResponse downloadNgDelegate(String accountId, DelegateSetupDetails delegateSetupDetails) {
+  public DelegateDownloadResponse downloadNgDelegate(
+      String accountId, DelegateSetupDetails delegateSetupDetails, String managerHost, String verificationServiceUrl) {
     try {
       if (DOCKER.equals(delegateSetupDetails.getDelegateType())) {
-        return downloadNgDockerDelegate(accountId, delegateSetupDetails);
+        return downloadNgDockerDelegate(accountId, delegateSetupDetails, managerHost, verificationServiceUrl);
       }
       if (KUBERNETES.equals(delegateSetupDetails.getDelegateType())) {
-        return downloadNgKubernetesDelegate(accountId, delegateSetupDetails);
+        return downloadNgKubernetesDelegate(accountId, delegateSetupDetails, managerHost, verificationServiceUrl);
       }
       return new DelegateDownloadResponse(
           "Invalid delegate type given. Delegate type must be either of KUBERNETES or DOCKER.", null);
@@ -68,11 +70,12 @@ public class DelegateDownloadServiceImpl implements DelegateDownloadService {
   }
 
   private DelegateDownloadResponse downloadNgKubernetesDelegate(
-      String accountId, DelegateSetupDetails delegateSetupDetails) {
+      String accountId, DelegateSetupDetails delegateSetupDetails, String managerHost, String verificationServiceUrl) {
     try {
       checkAndBuildProperDelegateSetupDetails(accountId, delegateSetupDetails, KUBERNETES);
-      File delegateFile = delegateService.generateKubernetesYaml(accountId, delegateSetupDetails,
-          subdomainUrlHelper.getManagerUrl(request, accountId), getVerificationUrl(request), fileFormat);
+      File delegateFile = delegateService.generateKubernetesYaml(
+          accountId, delegateSetupDetails, managerHost, verificationServiceUrl, MediaType.TEXT_PLAIN_TYPE);
+      return new DelegateDownloadResponse(null, delegateFile);
     } catch (Exception e) {
       log.error("Error occurred during downloading ng kubernetes delegate.", e);
       return new DelegateDownloadResponse(ExceptionUtils.getMessage(e), null);
@@ -80,18 +83,24 @@ public class DelegateDownloadServiceImpl implements DelegateDownloadService {
   }
 
   private DelegateDownloadResponse downloadNgDockerDelegate(
-      String accountId, DelegateSetupDetails delegateSetupDetails) {}
+      String accountId, DelegateSetupDetails delegateSetupDetails, String managerHost, String verificationServiceUrl) {
+    try {
+      checkAndBuildProperDelegateSetupDetails(accountId, delegateSetupDetails, DOCKER);
+      File delegateFile =
+          delegateService.downloadNgDocker(managerHost, verificationServiceUrl, accountId, delegateSetupDetails);
+      return new DelegateDownloadResponse(null, delegateFile);
+    } catch (Exception e) {
+      log.error("Error occurred during downloading ng docker delegate.", e);
+      return new DelegateDownloadResponse(ExceptionUtils.getMessage(e), null);
+    }
+  }
 
-  private DelegateSetupDetails checkAndBuildProperDelegateSetupDetails(
+  private void checkAndBuildProperDelegateSetupDetails(
       String accountId, DelegateSetupDetails delegateSetupDetails, String delegateType) {
     delegateService.checkUniquenessOfDelegateName(accountId, delegateSetupDetails.getName(), true);
 
     DelegateEntityOwner owner = DelegateEntityOwnerHelper.buildOwner(
         delegateSetupDetails.getOrgIdentifier(), delegateSetupDetails.getProjectIdentifier());
-
-    if (!Arrays.asList(LAPTOP, SMALL, MEDIUM, LARGE).contains(delegateSetupDetails.getSize())) {
-      delegateSetupDetails.setSize(LAPTOP);
-    }
 
     String delegateToken = delegateSetupDetails.getTokenName();
     if (isEmpty(delegateToken)) {
@@ -105,7 +114,12 @@ public class DelegateDownloadServiceImpl implements DelegateDownloadService {
     }
     delegateSetupDetails.setTokenName(delegateToken);
 
+    // properties specific for k8s delegate
     if (delegateType.equals(KUBERNETES)) {
+      if (!Arrays.asList(LAPTOP, SMALL, MEDIUM, LARGE).contains(delegateSetupDetails.getSize())) {
+        delegateSetupDetails.setSize(LAPTOP);
+      }
+
       K8sConfigDetails k8sConfigDetails = delegateSetupDetails.getK8sConfigDetails();
       if (k8sConfigDetails == null
           || !Arrays.asList(CLUSTER_ADMIN, CLUSTER_VIEWER, NAMESPACE_ADMIN)
@@ -116,7 +130,5 @@ public class DelegateDownloadServiceImpl implements DelegateDownloadService {
         throw new InvalidRequestException("K8s namespace must be provided for this type of permission.");
       }
     }
-
-    return delegateSetupDetails;
   }
 }
