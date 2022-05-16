@@ -259,7 +259,6 @@ public class ServicePlanCreator extends ChildrenPlanCreator<ServiceConfig> {
   public boolean shouldCreatePlanNodeForConfigFiles(ServiceConfig actualServiceConfig) {
     List<ConfigFileWrapper> configFiles = actualServiceConfig.getServiceDefinition().getServiceSpec().getConfigFiles();
 
-    // Contains either primary artifacts or side-car artifacts
     if (EmptyPredicate.isNotEmpty(configFiles)) {
       return true;
     }

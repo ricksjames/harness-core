@@ -73,6 +73,7 @@ public class KubernetesServiceSpec implements ServiceSpec, Visitable {
     if (EmptyPredicate.isNotEmpty(configFiles)) {
       configFiles.forEach(configFile -> children.add("configFiles", configFile));
     }
+
     return children;
   }
 }
