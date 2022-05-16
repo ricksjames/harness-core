@@ -366,7 +366,7 @@ public class PMSPipelineServiceImpl implements PMSPipelineService {
     if (EmptyPredicate.isEmpty(importedPipeline)) {
       String errorMessage = PipelineCRUDErrorResponse.errorMessageForEmptyYamlOnGit(
           orgIdentifier, projectIdentifier, pipelineIdentifier, GitAwareContextHelper.getBranchInRequest());
-      throw PMSPipelineServiceHelper.buildInvalidYamlException(errorMessage);
+      throw PMSPipelineServiceHelper.buildInvalidYamlException(errorMessage, importedPipeline);
     }
     YamlField pipelineYamlField;
     try {
@@ -374,26 +374,26 @@ public class PMSPipelineServiceImpl implements PMSPipelineService {
     } catch (IOException e) {
       String errorMessage = PipelineCRUDErrorResponse.errorMessageForNotAYAMLFile(
           GitAwareContextHelper.getBranchInRequest(), GitAwareContextHelper.getFilepathInRequest());
-      throw PMSPipelineServiceHelper.buildInvalidYamlException(errorMessage);
+      throw PMSPipelineServiceHelper.buildInvalidYamlException(errorMessage, importedPipeline);
     }
     YamlField pipelineInnerField = pipelineYamlField.getNode().getField(YAMLFieldNameConstants.PIPELINE);
     if (pipelineInnerField == null) {
       String errorMessage = PipelineCRUDErrorResponse.errorMessageForNotAPipelineYAML(
           GitAwareContextHelper.getBranchInRequest(), GitAwareContextHelper.getFilepathInRequest());
-      throw PMSPipelineServiceHelper.buildInvalidYamlException(errorMessage);
+      throw PMSPipelineServiceHelper.buildInvalidYamlException(errorMessage, importedPipeline);
     }
     String identifierFromGit = pipelineInnerField.getNode().getIdentifier();
     if (!pipelineIdentifier.equals(identifierFromGit)) {
       String errorMessage = PipelineCRUDErrorResponse.errorMessageForInvalidField(
           YAMLFieldNameConstants.IDENTIFIER, identifierFromGit, pipelineIdentifier);
-      throw PMSPipelineServiceHelper.buildInvalidYamlException(errorMessage);
+      throw PMSPipelineServiceHelper.buildInvalidYamlException(errorMessage, importedPipeline);
     }
 
     String nameFromGit = pipelineInnerField.getNode().getName();
     if (!pipelineImportRequest.getPipelineName().equals(nameFromGit)) {
       String errorMessage = PipelineCRUDErrorResponse.errorMessageForInvalidField(
           YAMLFieldNameConstants.NAME, nameFromGit, pipelineImportRequest.getPipelineName());
-      throw PMSPipelineServiceHelper.buildInvalidYamlException(errorMessage);
+      throw PMSPipelineServiceHelper.buildInvalidYamlException(errorMessage, importedPipeline);
     }
     if (EmptyPredicate.isNotEmpty(pipelineImportRequest.getPipelineDescription())) {
       YamlUtils.setStringValueForField(
