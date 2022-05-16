@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="UTF-8"?>
 <testsuites>
   <testsuite name="Shorty" tests="40" assertions="124" errors="0" failures="0" skipped="0" time="0.032823">
     <testsuite name="TheIconic\ShortyTest\Controller\ApiControllerTest" file="/harness/tests/unit/Controller/ApiControllerTest.php" tests="17" assertions="80" errors="0" failures="0" skipped="0" time="0.017899">
