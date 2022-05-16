@@ -321,7 +321,7 @@ public class K8sStepHelperTest extends CategoryTest {
                         .connector(ConnectorInfoDTO.builder().connectorConfig(GitConfigDTO.builder().build()).build())
                         .build()))
         .when(connectorService)
-        .get(anyString(), anyString(), anyString(), anyString());
+        .get(any(), any(), any(), any());
 
     ManifestDelegateConfig delegateConfig = k8sStepHelper.getManifestDelegateConfig(manifestOutcome, ambiance);
     assertThat(delegateConfig.getManifestType()).isEqualTo(ManifestType.K8S_MANIFEST);
@@ -355,7 +355,7 @@ public class K8sStepHelperTest extends CategoryTest {
                         .connector(ConnectorInfoDTO.builder().connectorConfig(GitConfigDTO.builder().build()).build())
                         .build()))
         .when(connectorService)
-        .get(anyString(), anyString(), anyString(), anyString());
+        .get(any(), any(), any(), any());
 
     ManifestDelegateConfig delegateConfig = k8sStepHelper.getManifestDelegateConfig(manifestOutcome, ambiance);
     assertThat(delegateConfig.getManifestType()).isEqualTo(ManifestType.HELM_CHART);
@@ -421,7 +421,7 @@ public class K8sStepHelperTest extends CategoryTest {
                         .connector(ConnectorInfoDTO.builder().connectorConfig(GitConfigDTO.builder().build()).build())
                         .build()))
         .when(connectorService)
-        .get(anyString(), anyString(), anyString(), anyString());
+        .get(any(), any(), any(), any());
 
     ManifestDelegateConfig delegateConfig = k8sStepHelper.getManifestDelegateConfig(manifestOutcome, ambiance);
     assertThat(delegateConfig.getManifestType()).isEqualTo(ManifestType.KUSTOMIZE);
@@ -461,7 +461,7 @@ public class K8sStepHelperTest extends CategoryTest {
                                             .build())
                              .build()))
         .when(connectorService)
-        .get(anyString(), anyString(), anyString(), anyString());
+        .get(any(), any(), any(), any());
 
     ManifestDelegateConfig delegateConfig = k8sStepHelper.getManifestDelegateConfig(manifestOutcome, ambiance);
     assertThat(delegateConfig.getManifestType()).isEqualTo(ManifestType.HELM_CHART);
@@ -489,7 +489,7 @@ public class K8sStepHelperTest extends CategoryTest {
                         .connector(ConnectorInfoDTO.builder().connectorConfig(GitConfigDTO.builder().build()).build())
                         .build()))
         .when(connectorService)
-        .get(anyString(), anyString(), anyString(), anyString());
+        .get(any(), any(), any(), any());
 
     ManifestDelegateConfig delegateConfig = k8sStepHelper.getManifestDelegateConfig(manifestOutcome, ambiance);
     assertThat(delegateConfig.getManifestType()).isEqualTo(ManifestType.OPENSHIFT_TEMPLATE);
@@ -586,7 +586,7 @@ public class K8sStepHelperTest extends CategoryTest {
                 .connector(ConnectorInfoDTO.builder().connectorType(AWS).connectorConfig(awsConnectorConfig).build())
                 .build()))
         .when(connectorService)
-        .get(anyString(), anyString(), anyString(), anyString());
+        .get(any(), any(), any(), any());
 
     ManifestDelegateConfig delegateConfig = k8sStepHelper.getManifestDelegateConfig(manifestOutcome, ambiance);
     assertThat(delegateConfig.getManifestType()).isEqualTo(ManifestType.HELM_CHART);
@@ -633,7 +633,7 @@ public class K8sStepHelperTest extends CategoryTest {
                      .connector(ConnectorInfoDTO.builder().connectorType(GCP).connectorConfig(gcpConnectorDTO).build())
                      .build()))
         .when(connectorService)
-        .get(anyString(), anyString(), anyString(), anyString());
+        .get(any(), any(), any(), any());
 
     ManifestDelegateConfig delegateConfig = k8sStepHelper.getManifestDelegateConfig(helmChartManifestOutcome, ambiance);
     assertThat(delegateConfig.getManifestType()).isEqualTo(ManifestType.HELM_CHART);

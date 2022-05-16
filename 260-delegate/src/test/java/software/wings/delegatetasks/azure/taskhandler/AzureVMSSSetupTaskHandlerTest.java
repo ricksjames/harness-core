@@ -133,8 +133,8 @@ public class AzureVMSSSetupTaskHandlerTest extends WingsBaseTest {
     doReturn("virtualMachineScaleSetVersion2ShouldBeDownSized").when(virtualMachineScaleSetVersion2).name();
     doNothing()
         .when(azureVMSSSetupTaskHandler)
-        .updateVMSSCapacityAndWaitForSteadyState(any(AzureConfig.class), any(AzureVMSSTaskParameters.class),
-            anyString(), anyString(), anyString(), anyInt(), anyInt(), anyString(), anyString());
+        .updateVMSSCapacityAndWaitForSteadyState(
+            any(), any(), anyString(), anyString(), anyString(), anyInt(), anyInt(), anyString(), anyString());
     Date dateVersion3 = Date.from(instant.minus(3, ChronoUnit.DAYS));
     when(virtualMachineScaleSetVersion3.tags()).thenReturn(new HashMap<String, String>() {
       {
@@ -215,7 +215,7 @@ public class AzureVMSSSetupTaskHandlerTest extends WingsBaseTest {
 
     doReturn(azureMachineImageArtifact)
         .when(azureVMSSSetupTaskHandler)
-        .getAzureMachineImageArtifact(any(AzureConfig.class), any(AzureMachineImageArtifactDTO.class), any());
+        .getAzureMachineImageArtifact(any(), any(), any());
 
     AzureVMSSTaskExecutionResponse response =
         azureVMSSSetupTaskHandler.executeTaskInternal(azureVMSSSetupTaskParameters, azureConfig);

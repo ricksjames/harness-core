@@ -116,20 +116,12 @@ public class K8sCanaryDeployTaskHandlerTest extends WingsBaseTest {
         .when(k8sTaskHelper)
         .fetchManifestFilesAndWriteToDirectory(
             any(K8sDelegateManifestConfig.class), anyString(), any(ExecutionLogCallback.class), anyLong());
-    doReturn(true)
-        .when(k8sTaskHelperBase)
-        .applyManifests(any(Kubectl.class), anyList(), any(K8sDelegateTaskParams.class),
-            any(ExecutionLogCallback.class), anyBoolean());
-    doReturn(true)
-        .when(k8sTaskHelperBase)
-        .doStatusCheck(any(Kubectl.class), any(KubernetesResourceId.class), any(K8sDelegateTaskParams.class),
-            any(ExecutionLogCallback.class));
-    doReturn(Mockito.mock(ExecutionLogCallback.class))
-        .when(k8sTaskHelper)
-        .getExecutionLogCallback(any(K8sCanaryDeployTaskParameters.class), anyString());
+    doReturn(true).when(k8sTaskHelperBase).applyManifests(any(), any(), any(), any(), anyBoolean());
+    doReturn(true).when(k8sTaskHelperBase).doStatusCheck(any(), any(), any(), any());
+    doReturn(Mockito.mock(ExecutionLogCallback.class)).when(k8sTaskHelper).getExecutionLogCallback(any(), any());
     doReturn(KubernetesConfig.builder().namespace("default").build())
         .when(containerDeploymentDelegateHelper)
-        .getKubernetesConfig(any(K8sClusterConfig.class), anyBoolean());
+        .getKubernetesConfig(any(), anyBoolean());
   }
 
   @Test
@@ -140,7 +132,7 @@ public class K8sCanaryDeployTaskHandlerTest extends WingsBaseTest {
         K8sCanaryDeployTaskParameters.builder().skipDryRun(true).build();
     K8sDelegateTaskParams delegateTaskParams = K8sDelegateTaskParams.builder().build();
 
-    when(containerDeploymentDelegateHelper.getKubernetesConfig(any(K8sClusterConfig.class), anyBoolean()))
+    when(containerDeploymentDelegateHelper.getKubernetesConfig(any(), anyBoolean()))
         .thenReturn(KubernetesConfig.builder().build());
     when(k8sTaskHelperBase.getReleaseHistoryDataFromConfigMap(any(), any())).thenReturn(null);
     doNothing().when(k8sTaskHelperBase).deleteSkippedManifestFiles(any(), any());
@@ -157,7 +149,7 @@ public class K8sCanaryDeployTaskHandlerTest extends WingsBaseTest {
     verify(k8sTaskHelperBase, times(1)).readManifests(any(), any());
     verify(k8sTaskHelper, times(1)).renderTemplate(any(), any(), any(), any(), any(), any(), any(), any());
     verify(k8sTaskHelperBase, times(1)).deleteSkippedManifestFiles(any(), any());
-    verify(containerDeploymentDelegateHelper, times(1)).getKubernetesConfig(any(K8sClusterConfig.class), eq(false));
+    verify(containerDeploymentDelegateHelper, times(1)).getKubernetesConfig(any(), eq(false));
   }
 
   @Test
@@ -172,7 +164,7 @@ public class K8sCanaryDeployTaskHandlerTest extends WingsBaseTest {
     when(k8sTaskHelper.renderTemplate(any(), any(), any(), any(), any(), any(), any(), any()))
         .thenReturn(Collections.emptyList());
     when(k8sTaskHelperBase.readManifests(any(), any())).thenReturn(Collections.emptyList());
-    when(containerDeploymentDelegateHelper.getKubernetesConfig(any(K8sClusterConfig.class), eq(false)))
+    when(containerDeploymentDelegateHelper.getKubernetesConfig(any(), eq(false)))
         .thenReturn(KubernetesConfig.builder().build());
     when(k8sTaskHelperBase.getReleaseHistoryDataFromConfigMap(any(), any())).thenReturn(null);
     doNothing().when(k8sTaskHelperBase).deleteSkippedManifestFiles(any(), any());
@@ -186,7 +178,7 @@ public class K8sCanaryDeployTaskHandlerTest extends WingsBaseTest {
     verify(k8sTaskHelper, times(1)).renderTemplate(any(), any(), any(), any(), any(), any(), any(), any());
     verify(k8sTaskHelperBase, times(1)).updateDestinationRuleManifestFilesWithSubsets(any(), any(), any(), any());
     verify(k8sTaskHelperBase, times(1)).deleteSkippedManifestFiles(any(), any());
-    verify(containerDeploymentDelegateHelper, times(1)).getKubernetesConfig(any(K8sClusterConfig.class), eq(false));
+    verify(containerDeploymentDelegateHelper, times(1)).getKubernetesConfig(any(), eq(false));
   }
 
   @Test
@@ -272,13 +264,11 @@ public class K8sCanaryDeployTaskHandlerTest extends WingsBaseTest {
   public void testExecute() throws Exception {
     K8sCanaryDeployTaskHandler handler = spy(k8sCanaryDeployTaskHandler);
     K8sCanaryHandlerConfig canaryHandlerConfig = handler.getCanaryHandlerConfig();
-    doReturn(true).when(handler).init(
-        any(K8sCanaryDeployTaskParameters.class), any(K8sDelegateTaskParams.class), any(ExecutionLogCallback.class));
-    doReturn(true).when(handler).prepareForCanary(
-        any(K8sDelegateTaskParams.class), any(K8sCanaryDeployTaskParameters.class), any(ExecutionLogCallback.class));
+    doReturn(true).when(handler).init(any(), any(), any());
+    doReturn(true).when(handler).prepareForCanary(any(), any(), any());
     doReturn(Arrays.asList(K8sPod.builder().build()))
         .when(k8sCanaryBaseHandler)
-        .getAllPods(eq(canaryHandlerConfig), anyString(), anyLong());
+        .getAllPods(eq(canaryHandlerConfig), any(), anyLong());
 
     releaseHistory.setReleases(asList(Release.builder().number(2).build()));
     canaryHandlerConfig.setCanaryWorkload(deployment);
@@ -292,10 +282,8 @@ public class K8sCanaryDeployTaskHandlerTest extends WingsBaseTest {
                                 .k8sDelegateManifestConfig(K8sDelegateManifestConfig.builder().build())
                                 .build(),
             K8sDelegateTaskParams.builder().build());
-    verify(k8sCanaryBaseHandler, times(1))
-        .wrapUp(any(Kubectl.class), any(K8sDelegateTaskParams.class), any(ExecutionLogCallback.class));
-    verify(k8sTaskHelperBase, times(1))
-        .saveReleaseHistoryInConfigMap(any(KubernetesConfig.class), anyString(), anyString());
+    verify(k8sCanaryBaseHandler, times(1)).wrapUp(any(), any(), any());
+    verify(k8sTaskHelperBase, times(1)).saveReleaseHistoryInConfigMap(any(), any(), any());
     final K8sCanaryDeployResponse canaryDeployResponse = (K8sCanaryDeployResponse) response.getK8sTaskResponse();
     assertThat(response.getCommandExecutionStatus()).isEqualTo(SUCCESS);
     assertThat(canaryDeployResponse.getCanaryWorkload()).isEqualTo("Deployment/nginx-deployment");
@@ -304,10 +292,7 @@ public class K8sCanaryDeployTaskHandlerTest extends WingsBaseTest {
     assertThat(canaryDeployResponse.getK8sPodList()).hasSize(1);
 
     // status check fails
-    doReturn(false)
-        .when(k8sTaskHelperBase)
-        .doStatusCheck(any(Kubectl.class), any(KubernetesResourceId.class), any(K8sDelegateTaskParams.class),
-            any(ExecutionLogCallback.class));
+    doReturn(false).when(k8sTaskHelperBase).doStatusCheck(any(), any(), any(), any());
     final K8sTaskExecutionResponse failureResponse =
         handler.executeTask(K8sCanaryDeployTaskParameters.builder()
                                 .k8sDelegateManifestConfig(K8sDelegateManifestConfig.builder().build())
@@ -337,14 +322,12 @@ public class K8sCanaryDeployTaskHandlerTest extends WingsBaseTest {
   @Owner(developers = YOGESH)
   @Category(UnitTests.class)
   public void testInit() throws Exception {
-    doReturn(Arrays.asList(deployment)).when(k8sTaskHelperBase).readManifests(anyList(), any());
+    doReturn(Arrays.asList(deployment)).when(k8sTaskHelperBase).readManifests(any(), any());
     k8sCanaryDeployTaskHandler.init(K8sCanaryDeployTaskParameters.builder().build(),
         K8sDelegateTaskParams.builder().build(), Mockito.mock(ExecutionLogCallback.class));
 
-    verify(k8sTaskHelperBase, times(1)).deleteSkippedManifestFiles(anyString(), any(ExecutionLogCallback.class));
-    verify(k8sTaskHelper, times(1))
-        .renderTemplate(any(K8sDelegateTaskParams.class), any(K8sDelegateManifestConfig.class), anyString(), anyList(),
-            anyString(), anyString(), any(), any(K8sTaskParameters.class));
+    verify(k8sTaskHelperBase, times(1)).deleteSkippedManifestFiles(any(), any());
+    verify(k8sTaskHelper, times(1)).renderTemplate(any(), any(), any(), any(), any(), any(), any(), any());
     verify(k8sTaskHelperBase, times(1)).setNamespaceToKubernetesResourcesIfRequired(asList(deployment), "default");
   }
 
@@ -451,10 +434,8 @@ public class K8sCanaryDeployTaskHandlerTest extends WingsBaseTest {
   @Category(UnitTests.class)
   public void shouldSaveReleaseHistoryUsingK8sClient() throws Exception {
     K8sCanaryDeployTaskHandler handler = spy(k8sCanaryDeployTaskHandler);
-    doReturn(true).when(handler).init(
-        any(K8sCanaryDeployTaskParameters.class), any(K8sDelegateTaskParams.class), any(ExecutionLogCallback.class));
-    doReturn(true).when(handler).prepareForCanary(
-        any(K8sDelegateTaskParams.class), any(K8sCanaryDeployTaskParameters.class), any(ExecutionLogCallback.class));
+    doReturn(true).when(handler).init(any(), any(), any());
+    doReturn(true).when(handler).prepareForCanary(any(), any(), any());
 
     handler.getCanaryHandlerConfig().setCanaryWorkload(deployment);
     handler.getCanaryHandlerConfig().setResources(Collections.emptyList());
@@ -468,14 +449,10 @@ public class K8sCanaryDeployTaskHandlerTest extends WingsBaseTest {
                             .k8sDelegateManifestConfig(K8sDelegateManifestConfig.builder().build())
                             .build(),
         K8sDelegateTaskParams.builder().build());
-    verify(k8sTaskHelperBase, times(1))
-        .saveReleaseHistoryInConfigMap(any(KubernetesConfig.class), anyString(), anyString());
+    verify(k8sTaskHelperBase, times(1)).saveReleaseHistoryInConfigMap(any(), any(), any());
 
     // status check fails
-    doReturn(false)
-        .when(k8sTaskHelperBase)
-        .doStatusCheck(any(Kubectl.class), any(KubernetesResourceId.class), any(K8sDelegateTaskParams.class),
-            any(ExecutionLogCallback.class));
+    doReturn(false).when(k8sTaskHelperBase).doStatusCheck(any(), any(), any(), any());
     handler.executeTask(K8sCanaryDeployTaskParameters.builder()
                             .k8sDelegateManifestConfig(K8sDelegateManifestConfig.builder().build())
                             .releaseName("release-name-1")
@@ -484,10 +461,7 @@ public class K8sCanaryDeployTaskHandlerTest extends WingsBaseTest {
     verify(k8sCanaryBaseHandler, times(1))
         .failAndSaveKubernetesRelease(handler.getCanaryHandlerConfig(), "release-name-1");
 
-    doReturn(false)
-        .when(k8sTaskHelperBase)
-        .applyManifests(any(Kubectl.class), anyList(), any(K8sDelegateTaskParams.class),
-            any(ExecutionLogCallback.class), anyBoolean());
+    doReturn(false).when(k8sTaskHelperBase).applyManifests(any(), anyList(), any(), any(), anyBoolean());
     handler.executeTask(K8sCanaryDeployTaskParameters.builder()
                             .k8sDelegateManifestConfig(K8sDelegateManifestConfig.builder().build())
                             .releaseName("release-name-2")
