@@ -113,6 +113,7 @@ java_library(
         "//990-commons-test:module",
         "//999-annotations:module",
         "@maven//:com_auth0_java_jwt",
+        "@maven//:com_esotericsoftware_kryo",
         "@maven//:com_fasterxml_jackson_core_jackson_annotations",
         "@maven//:com_fasterxml_jackson_core_jackson_core",
         "@maven//:com_fasterxml_jackson_core_jackson_databind",

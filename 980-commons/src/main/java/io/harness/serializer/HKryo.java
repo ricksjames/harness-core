@@ -100,7 +100,7 @@ public class HKryo extends Kryo {
     super(classResolver, new MapReferenceResolver(), new DefaultStreamFactory());
     setInstantiatorStrategy(new Kryo.DefaultInstantiatorStrategy(new StdInstantiatorStrategy()));
     setDefaultSerializer(CompatibleFieldSerializer.class);
-    getFieldSerializerConfig().setCachedFieldNameStrategy(FieldSerializer.CachedFieldNameStrategy.EXTENDED);
+    getFieldSerializerConfig().setCachedFieldNameStrategy(FieldSerializer.CachedFieldNameStrategy.DEFAULT);
     getFieldSerializerConfig().setCopyTransient(false);
     setRegistrationRequired(true);
 
