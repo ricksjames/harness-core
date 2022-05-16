@@ -603,7 +603,8 @@ public enum ErrorCode {
   AZURE_CONFIG_ERROR,
   DATA_PROCESSING_ERROR,
   INVALID_AZURE_AKS_REQUEST,
-  SERVERLESS_EXECUTION_ERROR;
+  AWS_IAM_ERROR,
+  AWS_CF_ERROR;
 
   private Status status = BAD_REQUEST;
   private String description;
