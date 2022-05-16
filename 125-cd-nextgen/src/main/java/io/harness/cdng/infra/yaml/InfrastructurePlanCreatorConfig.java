@@ -24,7 +24,7 @@ import org.springframework.data.annotation.TypeAlias;
 @OwnedBy(CDC)
 @Data
 @Builder
-@TypeAlias("infrastructureConfig")
+@TypeAlias("infrastructurePlanCreatorConfig")
 public class InfrastructurePlanCreatorConfig implements YamlDTO {
   @NotNull @ApiModelProperty(dataType = SwaggerConstants.STRING_CLASSPATH) private ParameterField<String> ref;
   @JsonProperty("infrastructureDefinition") InfrastructureDefinitionConfig infrastructureDefinitionConfig;
