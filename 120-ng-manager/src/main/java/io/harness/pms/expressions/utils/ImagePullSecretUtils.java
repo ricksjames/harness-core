@@ -7,6 +7,7 @@
 
 package io.harness.pms.expressions.utils;
 
+import static io.harness.AuthorizationServiceHeader.NG_MANAGER;
 import static io.harness.annotations.dev.HarnessTeam.CDP;
 import static io.harness.data.structure.EmptyPredicate.isNotEmpty;
 import static io.harness.k8s.model.ImageDetails.ImageDetailsBuilder;
@@ -64,6 +65,8 @@ import io.harness.ng.core.BaseNGAccess;
 import io.harness.ng.core.NGAccess;
 import io.harness.pms.contracts.ambiance.Ambiance;
 import io.harness.pms.execution.utils.AmbianceUtils;
+import io.harness.security.SecurityContextBuilder;
+import io.harness.security.dto.ServicePrincipal;
 import io.harness.security.encryption.EncryptedDataDetail;
 import io.harness.utils.IdentifierRefHelper;
 
@@ -269,8 +272,15 @@ public class ImagePullSecretUtils {
         BaseNGAccess baseNGAccess = azureHelperService.getBaseNGAccess(AmbianceUtils.getAccountId(ambiance),
             AmbianceUtils.getOrgIdentifier(ambiance), AmbianceUtils.getProjectIdentifier(ambiance));
 
+        if (SecurityContextBuilder.getPrincipal() == null) {
+          SecurityContextBuilder.setContext(new ServicePrincipal(NG_MANAGER.getServiceId()));
+          log.info("SecurityContext set to NG_MANAGER service");
+        }
+
+        log.info("Before getting encryption details");
         List<EncryptedDataDetail> encryptionDetails =
             azureHelperService.getEncryptionDetails(connectorConfig, baseNGAccess);
+        log.info("After getting encryption details");
 
         Map<AzureAdditionalParams, String> additionalParams = new HashMap<>();
         additionalParams.put(AzureAdditionalParams.CONTAINER_REGISTRY, acrArtifactOutcome.getRegistry());
