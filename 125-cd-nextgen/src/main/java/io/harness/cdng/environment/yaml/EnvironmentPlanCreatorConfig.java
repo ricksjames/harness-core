@@ -13,7 +13,7 @@ import io.harness.annotation.RecasterAlias;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.beans.SwaggerConstants;
 import io.harness.cdng.environment.helper.EnvironmentPlanCreatorConfigVisitorHelper;
-import io.harness.cdng.infra.yaml.InfrastructureDefinitionConfig;
+import io.harness.cdng.infra.yaml.InfrastructurePlanCreatorConfig;
 import io.harness.data.validator.EntityIdentifier;
 import io.harness.data.validator.EntityName;
 import io.harness.ng.core.environment.beans.EnvironmentType;
@@ -64,5 +64,5 @@ public class EnvironmentPlanCreatorConfig implements Visitable {
   List<NGServiceOverrides> serviceOverrides;
 
   // linked Infra Info
-  List<InfrastructureDefinitionConfig> infrastructureDefinitions;
+  List<InfrastructurePlanCreatorConfig> infrastructureDefinitions;
 }
