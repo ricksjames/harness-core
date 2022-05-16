@@ -45,6 +45,7 @@ import io.harness.pms.inputset.OverlayInputSetErrorWrapperDTOPMS;
 import io.harness.pms.merger.helpers.InputSetYamlHelper;
 import io.harness.pms.ngpipeline.inputset.beans.entity.InputSetEntity;
 import io.harness.pms.ngpipeline.inputset.beans.entity.InputSetEntity.InputSetEntityKeys;
+import io.harness.pms.ngpipeline.inputset.beans.resource.InputSetByIDResponseDTO;
 import io.harness.pms.ngpipeline.inputset.beans.resource.InputSetListTypePMS;
 import io.harness.pms.ngpipeline.inputset.beans.resource.InputSetResponseDTOPMS;
 import io.harness.pms.ngpipeline.inputset.beans.resource.InputSetSanitiseResponseDTO;
@@ -134,6 +135,46 @@ import org.springframework.data.mongodb.core.query.Criteria;
 public class InputSetResourcePMS {
   private final PMSInputSetService pmsInputSetService;
   private final ValidateAndMergeHelper validateAndMergeHelper;
+
+  @GET
+  @Path("getById/{inputSetIdentifier}")
+  @ApiOperation(value = "Gets an InputSet by identifier", nickname = "getInputSetForPipeline")
+  @NGAccessControlCheck(resourceType = "PIPELINE", permission = PipelineRbacPermissions.PIPELINE_VIEW)
+  @Operation(operationId = "getInputSet",
+      summary = "Gets Input Set for a given identifier. Throws error if no Input Set exists for the given identifier.",
+      responses =
+      {
+        @io.swagger.v3.oas.annotations.responses.
+        ApiResponse(responseCode = "default", description = "Returns Input Set if exists for the given Identifier.")
+      })
+  public ResponseDTO<InputSetByIDResponseDTO>
+  getInputSetById(@PathParam(NGCommonEntityConstants.INPUT_SET_IDENTIFIER_KEY) @Parameter(
+                      description = PipelineResourceConstants.INPUT_SET_ID_PARAM_MESSAGE) String inputSetIdentifier,
+      @NotNull @QueryParam(NGCommonEntityConstants.ACCOUNT_KEY) @AccountIdentifier @Parameter(
+          description = PipelineResourceConstants.ACCOUNT_PARAM_MESSAGE) String accountId,
+      @NotNull @QueryParam(NGCommonEntityConstants.ORG_KEY) @OrgIdentifier @Parameter(
+          description = PipelineResourceConstants.ORG_PARAM_MESSAGE) String orgIdentifier,
+      @NotNull @QueryParam(NGCommonEntityConstants.PROJECT_KEY) @ProjectIdentifier @Parameter(
+          description = PipelineResourceConstants.PROJECT_PARAM_MESSAGE) String projectIdentifier,
+      @Parameter(description = InputSetSchemaConstants.PIPELINE_ID_FOR_INPUT_SET_PARAM_MESSAGE) @NotNull @QueryParam(
+          NGCommonEntityConstants.PIPELINE_KEY) @ResourceIdentifier String pipelineIdentifier,
+      @BeanParam GitEntityFindInfoDTO gitEntityBasicInfo) {
+    log.info(String.format("Retrieving input set with identifier %s for pipeline %s in project %s, org %s, account %s",
+        inputSetIdentifier, pipelineIdentifier, projectIdentifier, orgIdentifier, accountId));
+    Optional<InputSetEntity> inputSetEntity = pmsInputSetService.get(
+        accountId, orgIdentifier, projectIdentifier, pipelineIdentifier, inputSetIdentifier, false);
+    String version = "0";
+    if (inputSetEntity.isPresent()) {
+      version = inputSetEntity.get().getVersion().toString();
+    }
+
+    InputSetByIDResponseDTO inputSet = PMSInputSetElementMapper.toInputSetByIDResponseDTO(inputSetEntity.orElseThrow(
+        ()
+            -> new InvalidRequestException(String.format(
+                "InputSet with the given ID: %s does not exist or has been deleted", inputSetIdentifier))));
+
+    return ResponseDTO.newResponse(version, inputSet);
+  }
 
   @GET
   @Path("{inputSetIdentifier}")

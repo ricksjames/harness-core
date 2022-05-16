@@ -21,6 +21,7 @@ import io.harness.pms.inputset.InputSetErrorWrapperDTOPMS;
 import io.harness.pms.merger.helpers.InputSetYamlHelper;
 import io.harness.pms.ngpipeline.inputset.beans.entity.InputSetEntity;
 import io.harness.pms.ngpipeline.inputset.beans.entity.InputSetEntityType;
+import io.harness.pms.ngpipeline.inputset.beans.resource.InputSetByIDResponseDTO;
 import io.harness.pms.ngpipeline.inputset.beans.resource.InputSetResponseDTOPMS;
 import io.harness.pms.ngpipeline.inputset.beans.resource.InputSetSummaryResponseDTOPMS;
 import io.harness.pms.ngpipeline.overlayinputset.beans.resource.OverlayInputSetResponseDTOPMS;
@@ -92,6 +93,14 @@ public class PMSInputSetElementMapper {
         .isErrorResponse(true)
         .inputSetErrorWrapper(errorWrapperDTO)
         .build();
+  }
+
+  public InputSetByIDResponseDTO toInputSetByIDResponseDTO(InputSetEntity entity) {
+    if (entity.getInputSetEntityType().equals(InputSetEntityType.INPUT_SET)) {
+      return InputSetByIDResponseDTO.builder().inputSetResponse(toInputSetResponseDTOPMS(entity)).build();
+    } else {
+      return InputSetByIDResponseDTO.builder().overlayInputSetResponse(toOverlayInputSetResponseDTOPMS(entity)).build();
+    }
   }
 
   public InputSetResponseDTOPMS toInputSetResponseDTOPMS(InputSetEntity entity) {
