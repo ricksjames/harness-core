@@ -9,7 +9,7 @@ package io.harness.notification.remote.resources;
 
 import static io.harness.annotations.dev.HarnessTeam.PL;
 
-import io.harness.Team;
+import io.harness.notification.Team;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.ng.beans.PageRequest;
 import io.harness.ng.beans.PageResponse;
