@@ -16,6 +16,8 @@ import io.harness.cdng.creator.plan.artifact.ArtifactsPlanCreator;
 import io.harness.cdng.creator.plan.artifact.PrimaryArtifactPlanCreator;
 import io.harness.cdng.creator.plan.artifact.SideCarArtifactPlanCreator;
 import io.harness.cdng.creator.plan.artifact.SideCarListPlanCreator;
+import io.harness.cdng.creator.plan.configfile.ConfigFilesPlanCreator;
+import io.harness.cdng.creator.plan.configfile.IndividualConfigFilePlanCreator;
 import io.harness.cdng.creator.plan.environment.EnvironmentPlanCreator;
 import io.harness.cdng.creator.plan.execution.CDExecutionPMSPlanCreator;
 import io.harness.cdng.creator.plan.manifest.IndividualManifestPlanCreator;
@@ -124,6 +126,8 @@ public class CDNGPlanCreatorProvider implements PipelineServiceInfoProvider {
     planCreators.add(new ParallelPlanCreator());
     planCreators.add(new ServerlessAwsLambdaDeployStepPlanCreator());
     planCreators.add(new ServerlessAwsLambdaRollbackStepPlanCreator());
+    planCreators.add(new IndividualConfigFilePlanCreator());
+    planCreators.add(new ConfigFilesPlanCreator());
     injectorUtils.injectMembers(planCreators);
     return planCreators;
   }

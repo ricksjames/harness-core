@@ -11,6 +11,7 @@ import io.harness.annotation.RecasterAlias;
 import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.cdng.artifact.bean.yaml.ArtifactListConfig;
+import io.harness.cdng.configfile.ConfigFileWrapper;
 import io.harness.cdng.manifest.yaml.ManifestConfigWrapper;
 import io.harness.cdng.service.ServiceSpec;
 import io.harness.cdng.visitor.helpers.serviceconfig.KubernetesServiceSpecVisitorHelper;
@@ -47,6 +48,7 @@ public class KubernetesServiceSpec implements ServiceSpec, Visitable {
   List<NGVariable> variables;
   ArtifactListConfig artifacts;
   List<ManifestConfigWrapper> manifests;
+  List<ConfigFileWrapper> configFiles;
 
   // For Visitor Framework Impl
   @Getter(onMethod_ = { @ApiModelProperty(hidden = true) }) @ApiModelProperty(hidden = true) String metadata;
@@ -66,6 +68,10 @@ public class KubernetesServiceSpec implements ServiceSpec, Visitable {
     children.add("artifacts", artifacts);
     if (EmptyPredicate.isNotEmpty(manifests)) {
       manifests.forEach(manifest -> children.add("manifests", manifest));
+    }
+
+    if (EmptyPredicate.isNotEmpty(configFiles)) {
+      configFiles.forEach(configFile -> children.add("configFiles", configFile));
     }
     return children;
   }
