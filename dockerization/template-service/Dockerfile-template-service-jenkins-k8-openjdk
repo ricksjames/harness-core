@@ -6,5 +6,4 @@ COPY --chown=65534:65534 template-service-capsule.jar /opt/harness/
 COPY --chown=65534:65534 scripts /opt/harness/
 
 RUN chmod 500 /opt/harness/*.sh
-
 CMD [ "./run.sh" ]
