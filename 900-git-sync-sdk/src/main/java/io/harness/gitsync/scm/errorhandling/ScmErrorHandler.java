@@ -24,15 +24,15 @@ import io.harness.exception.ScmUnprocessableEntityException;
 import io.harness.exception.WingsException;
 import io.harness.gitsync.scm.beans.ScmErrorDetails;
 
-import lombok.SneakyThrows;
+import groovy.lang.Singleton;
 
+@Singleton
 @OwnedBy(HarnessTeam.PL)
 public class ScmErrorHandler {
   public final void processAndThrowException(int statusCode, ScmErrorDetails errorDetails) {
     handleError(statusCode, errorDetails);
   }
 
-  @SneakyThrows
   void handleError(int statusCode, ScmErrorDetails errorDetails) {
     switch (statusCode) {
       case 400:
