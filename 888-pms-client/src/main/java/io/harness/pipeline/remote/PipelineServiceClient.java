@@ -77,15 +77,12 @@ public interface PipelineServiceClient {
       @Query(GitSyncApiConstants.REPO_IDENTIFIER_KEY) String yamlGitConfigId,
       @Query(GitSyncApiConstants.DEFAULT_FROM_OTHER_REPO) Boolean defaultFromOtherRepo);
 
-  @GET(PIPELINE_ENDPOINT + "resolved-templates-pipeline-yaml/{pipelineIdentifier}")
+  @GET(PIPELINE_INPUT_SET_ENDPOINT + "getById/{inputSetIdentifier}")
   Call<ResponseDTO<TemplatesResolvedPipelineResponseDTO>> getInputSetById(
-          @Path(value = NGCommonEntityConstants.PIPELINE_KEY) String pipelineIdentifier,
-          @Query(value = NGCommonEntityConstants.ACCOUNT_KEY) String accountIdentifier,
-          @Query(value = NGCommonEntityConstants.ORG_KEY) String orgIdentifier,
-          @Query(value = NGCommonEntityConstants.PROJECT_KEY) String projectIdentifier,
-          @Query(GitSyncApiConstants.BRANCH_KEY) String branch,
-          @Query(GitSyncApiConstants.REPO_IDENTIFIER_KEY) String yamlGitConfigId,
-          @Query(GitSyncApiConstants.DEFAULT_FROM_OTHER_REPO) Boolean defaultFromOtherRepo);
-
-
+      @Path(value = NGCommonEntityConstants.INPUT_SET_IDENTIFIER_KEY) String inputSetIdentifier,
+      @Query(value = NGCommonEntityConstants.ACCOUNT_KEY) String accountIdentifier,
+      @Query(value = NGCommonEntityConstants.ORG_KEY) String orgIdentifier,
+      @Query(value = NGCommonEntityConstants.PROJECT_KEY) String projectIdentifier,
+      @Query(value = NGCommonEntityConstants.PIPELINE_KEY) String pipelineIdentifier,
+      @Query(GitSyncApiConstants.BRANCH_KEY) String branch);
 }
