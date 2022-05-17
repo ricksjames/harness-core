@@ -11,6 +11,7 @@ import static io.harness.logging.LoggingInitializer.initializeLogging;
 
 import static com.google.common.collect.ImmutableMap.of;
 
+import io.harness.Team;
 import io.harness.maintenance.MaintenanceController;
 import io.harness.metrics.MetricRegistryModule;
 import io.harness.ng.core.CorrelationFilter;

@@ -5,6 +5,5 @@ harness_grpc_library(
     visibility = ["//visibility:public"],
     deps = [
         "//930-delegate-tasks/src/main/proto/io/harness/perpetualtask:930_delegate_tasks_proto",
-        "//930-delegate-tasks/src/main/proto/io/harness/notification:930_delegate_tasks_proto",
     ],
 )

@@ -5,6 +5,7 @@ load("@io_bazel_rules_go//proto:def.bzl", "go_proto_library")
 proto_library(
     name = "930_delegate_tasks_proto",
     srcs = [
+        "NotificationRequest.proto",
         "perpetual_task_execution.proto",
         "perpetual_task_service.proto",
     ],

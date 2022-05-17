@@ -7,7 +7,7 @@
 
 package io.harness.notification.remote.dto;
 
-import io.harness.notification.Team;
+import io.harness.Team;
 
 import lombok.Builder;
 import lombok.Data;
