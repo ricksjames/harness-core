@@ -991,6 +991,30 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#"
     },
+    "HarnessStore": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/StoreConfig"
+        },
+        {
+          "type": "object",
+          "required": [
+            "filePath",
+            "fileType"
+          ],
+          "properties": {
+            "filePath": {
+              "type": "string"
+            },
+            "fileType": {
+              "description": "io.harness.cdng.manifest.yaml.configfile.HarnessFileType",
+              "$ref": "#/definitions/ParameterFieldHarnessFileType"
+            }
+          }
+        }
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
     "HelmChartManifest": {
       "allOf": [
         {
@@ -2271,6 +2295,37 @@
       },
       "$schema": "http://json-schema.org/draft-07/schema#"
     },
+    "ParameterFieldHarnessFileType": {
+      "type": "object",
+      "properties": {
+        "expression": {
+          "type": "boolean"
+        },
+        "expressionValue": {
+          "type": "string"
+        },
+        "inputSetValidator": {
+          "$ref": "#/definitions/InputSetValidator"
+        },
+        "jsonResponseField": {
+          "type": "boolean"
+        },
+        "responseField": {
+          "type": "string"
+        },
+        "typeString": {
+          "type": "boolean"
+        },
+        "value": {
+          "type": "string",
+          "enum": [
+            "FileStore",
+            "Encrypted"
+          ]
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
     "ParameterFieldString": {
       "type": "object",
       "properties": {
@@ -2611,7 +2666,8 @@
             "Inline",
             "Artifactory",
             "S3Url",
-            "InheritFromManifest"
+            "InheritFromManifest",
+            "Harness"
           ]
         }
       },
@@ -2709,6 +2765,22 @@
             "properties": {
               "spec": {
                 "$ref": "#/definitions/GithubStore"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "Harness"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "spec": {
+                "$ref": "#/definitions/HarnessStore"
               }
             }
           }

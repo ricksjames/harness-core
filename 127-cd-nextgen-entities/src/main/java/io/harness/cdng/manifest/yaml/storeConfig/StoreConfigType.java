@@ -7,7 +7,7 @@
 
 package io.harness.cdng.manifest.yaml.storeConfig;
 
-import static io.harness.cdng.manifest.yaml.harness.HarnessStoreConstants.HARNESS_STORE_KIND;
+import static io.harness.cdng.manifest.yaml.harness.HarnessStoreConstants.HARNESS_STORE_TYPE;
 
 import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
@@ -32,6 +32,7 @@ public enum StoreConfigType {
   @JsonProperty(ManifestStoreType.S3URL) S3URL(ManifestStoreType.S3URL),
   @JsonProperty(ManifestStoreType.InheritFromManifest) InheritFromManifest(ManifestStoreType.InheritFromManifest);
   @JsonProperty("Harness") HARNESS(HARNESS_STORE_KIND);
+  @JsonProperty(HARNESS_STORE_TYPE) HARNESS(HARNESS_STORE_TYPE);
   private final String displayName;
 
   StoreConfigType(String displayName) {
