@@ -23,7 +23,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.harness.CategoryTest;
 import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.category.element.UnitTests;
@@ -58,7 +57,7 @@ import org.mockito.runners.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 @OwnedBy(HarnessTeam.DEL)
-public class WatcherServiceImplTest extends CategoryTest {
+public class WatcherServiceImplTest {
   @Mock private TimeLimiter timeLimiter;
   @Mock private WatcherConfiguration watcherConfiguration;
   @InjectMocks @Spy private WatcherServiceImpl watcherService;
@@ -312,17 +311,6 @@ public class WatcherServiceImplTest extends CategoryTest {
   @Test
   @Owner(developers = MARKO)
   @Category(UnitTests.class)
-  public void testRestartWatcherToUpgradeJre() {
-    try {
-      watcherService.restartWatcherToUpgradeJre("openjdk");
-    } catch (Exception ex) {
-      fail(ex.getMessage());
-    }
-  }
-
-  @Test
-  @Owner(developers = MARKO)
-  @Category(UnitTests.class)
   public void testRestartDelegateToUpgradeJre() {
     try {
       FieldUtils.writeField(watcherService, "clock", Clock.systemDefaultZone(), true);
@@ -378,6 +366,7 @@ public class WatcherServiceImplTest extends CategoryTest {
     when(watcherConfiguration.getDelegateCheckLocation()).thenReturn(DELEGATE_CHECK_LOCATION);
     doReturn(VALID_FIVE_DIGITS_VERSION).when(watcherService).getResponseStringFromUrl();
     when(watcherService.getVersion()).thenReturn(CURRENT_VERSION);
+    doReturn(true).when(watcherService).downloadRunScriptsBeforeRestartingDelegateAndWatcher();
 
     watcherService.checkForWatcherUpgrade();
 
@@ -393,6 +382,7 @@ public class WatcherServiceImplTest extends CategoryTest {
     when(watcherConfiguration.getDelegateCheckLocation()).thenReturn(DELEGATE_CHECK_LOCATION);
     doReturn(VALID_FIVE_DIGITS_WITH_HYPHEN).when(watcherService).getResponseStringFromUrl();
     when(watcherService.getVersion()).thenReturn(CURRENT_VERSION);
+    doReturn(true).when(watcherService).downloadRunScriptsBeforeRestartingDelegateAndWatcher();
 
     watcherService.checkForWatcherUpgrade();
 
@@ -408,6 +398,7 @@ public class WatcherServiceImplTest extends CategoryTest {
     when(watcherConfiguration.getDelegateCheckLocation()).thenReturn(DELEGATE_CHECK_LOCATION);
     doReturn(VALID_SIX_DIGITS_VERSION).when(watcherService).getResponseStringFromUrl();
     when(watcherService.getVersion()).thenReturn(CURRENT_VERSION);
+    doReturn(true).when(watcherService).downloadRunScriptsBeforeRestartingDelegateAndWatcher();
 
     watcherService.checkForWatcherUpgrade();
 
@@ -423,6 +414,7 @@ public class WatcherServiceImplTest extends CategoryTest {
     when(watcherConfiguration.getDelegateCheckLocation()).thenReturn(DELEGATE_CHECK_LOCATION);
     doReturn(VALID_SIX_DIGITS_VERSION_WITH_HYPHEN).when(watcherService).getResponseStringFromUrl();
     when(watcherService.getVersion()).thenReturn(CURRENT_VERSION);
+    doReturn(true).when(watcherService).downloadRunScriptsBeforeRestartingDelegateAndWatcher();
 
     watcherService.checkForWatcherUpgrade();
 
