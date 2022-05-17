@@ -1062,32 +1062,6 @@ public class ServiceLevelObjectiveServiceImplTest extends CvNextGenTestBase {
   @Test
   @Owner(developers = KAPIL)
   @Category(UnitTests.class)
-  public void testGetNotificationRules() {
-    NotificationRuleDTO notificationRuleDTO =
-        builderFactory.getNotificationRuleDTOBuilder(NotificationRuleType.SLO).build();
-    NotificationRuleResponse notificationRuleResponseOne =
-        notificationRuleService.create(builderFactory.getContext().getProjectParams(), notificationRuleDTO);
-    ServiceLevelObjectiveDTO sloDTO = createSLOBuilder();
-    sloDTO.setNotificationRuleRefs(
-        Arrays.asList(NotificationRuleRefDTO.builder()
-                          .notificationRuleRef(notificationRuleResponseOne.getNotificationRule().getIdentifier())
-                          .enabled(true)
-                          .build()));
-    createMonitoredService();
-    serviceLevelObjectiveService.create(projectParams, sloDTO);
-    PageResponse<NotificationRuleResponse> notificationRuleResponsePageResponse =
-        serviceLevelObjectiveService.getNotificationRules(
-            projectParams, sloDTO.getIdentifier(), PageParams.builder().page(0).size(10).build());
-    assertThat(notificationRuleResponsePageResponse.getTotalPages()).isEqualTo(1);
-    assertThat(notificationRuleResponsePageResponse.getTotalItems()).isEqualTo(1);
-    assertThat(notificationRuleResponsePageResponse.getContent().get(0).isEnabled()).isTrue();
-    assertThat(notificationRuleResponsePageResponse.getContent().get(0).getNotificationRule().getIdentifier())
-        .isEqualTo(notificationRuleDTO.getIdentifier());
-  }
-
-  @Test
-  @Owner(developers = KAPIL)
-  @Category(UnitTests.class)
   public void testDeleteNotificationRuleRef() {
     ServiceLevelObjectiveDTO sloDTO = createSLOBuilder();
     sloDTO.setNotificationRuleRefs(

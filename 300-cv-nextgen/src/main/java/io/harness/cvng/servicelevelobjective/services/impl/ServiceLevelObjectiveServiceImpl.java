@@ -23,8 +23,6 @@ import io.harness.cvng.core.utils.DateTimeUtils;
 import io.harness.cvng.notification.beans.NotificationRuleConditionType;
 import io.harness.cvng.notification.beans.NotificationRuleRef;
 import io.harness.cvng.notification.beans.NotificationRuleRefDTO;
-import io.harness.cvng.notification.beans.NotificationRuleResponse;
-import io.harness.cvng.notification.channelDetails.CVNGNotificationChannel;
 import io.harness.cvng.notification.entities.NotificationRule;
 import io.harness.cvng.notification.entities.NotificationRule.CVNGNotificationChannel;
 import io.harness.cvng.notification.entities.SLONotificationRule;
@@ -249,6 +247,20 @@ public class ServiceLevelObjectiveServiceImpl implements ServiceLevelObjectiveSe
       sloQuery.filter(ServiceLevelObjectiveKeys.monitoredServiceIdentifier, filter.monitoredServiceIdentifier);
     }
     List<ServiceLevelObjective> serviceLevelObjectiveList = sloQuery.asList();
+
+    if (filter.getNotificationRuleRef() != null) {
+      serviceLevelObjectiveList =
+          serviceLevelObjectiveList.stream()
+              .filter(slo
+                  -> slo.getNotificationRuleRefs()
+                          .stream()
+                          .filter(notificationRuleRef
+                              -> notificationRuleRef.getNotificationRuleRef().equals(filter.getNotificationRuleRef()))
+                          .collect(Collectors.toList())
+                          .size()
+                      > 0)
+              .collect(Collectors.toList());
+    }
     if (isNotEmpty(filter.getErrorBudgetRisks())) {
       List<SLOHealthIndicator> sloHealthIndicators = sloHealthIndicatorService.getBySLOIdentifiers(projectParams,
           serviceLevelObjectiveList.stream()
@@ -404,7 +416,7 @@ public class ServiceLevelObjectiveServiceImpl implements ServiceLevelObjectiveSe
           CVNGNotificationChannel notificationChannel = notificationRule.getNotificationMethod();
           String templateId = getNotificationTemplateId(notificationRule.getType(), notificationChannel.getType());
           NotificationResult notificationResult =
-              notificationClient.sendNotificationAsync(notificationChannel.getSpec().toNotificationChannel(
+              notificationClient.sendNotificationAsync(notificationChannel.toNotificationChannel(
                   serviceLevelObjective.getAccountId(), serviceLevelObjective.getOrgIdentifier(),
                   serviceLevelObjective.getProjectIdentifier(), templateId, templateData));
           log.info("Notification with Notification ID {} sent", notificationResult.getNotificationId());
@@ -413,26 +425,6 @@ public class ServiceLevelObjectiveServiceImpl implements ServiceLevelObjectiveSe
       }
     }
     updateNotificationRuleRefInSLO(serviceLevelObjective, new ArrayList<>(notificationRuleRefsWithChange));
-  }
-
-  @Override
-  public PageResponse<NotificationRuleResponse> getNotificationRules(
-      ProjectParams projectParams, String sloIdentifier, PageParams pageParams) {
-    ServiceLevelObjective serviceLevelObjective = getEntity(projectParams, sloIdentifier);
-    List<NotificationRuleRef> notificationRuleRefList = serviceLevelObjective.getNotificationRuleRefs();
-    List<NotificationRuleResponse> notificationRuleResponseList =
-        notificationRuleService.getNotificationRuleResponse(projectParams, notificationRuleRefList);
-    PageResponse<NotificationRuleResponse> notificationRulePageResponse =
-        PageUtils.offsetAndLimit(notificationRuleResponseList, pageParams.getPage(), pageParams.getSize());
-
-    return PageResponse.<NotificationRuleResponse>builder()
-        .pageSize(pageParams.getSize())
-        .pageIndex(pageParams.getPage())
-        .totalPages(notificationRulePageResponse.getTotalPages())
-        .totalItems(notificationRulePageResponse.getTotalItems())
-        .pageItemCount(notificationRulePageResponse.getPageItemCount())
-        .content(notificationRulePageResponse.getContent())
-        .build();
   }
 
   @Override
@@ -619,5 +611,6 @@ public class ServiceLevelObjectiveServiceImpl implements ServiceLevelObjectiveSe
     List<SLOTargetType> targetTypes;
     List<ErrorBudgetRisk> errorBudgetRisks;
     String monitoredServiceIdentifier;
+    String notificationRuleRef;
   }
 }

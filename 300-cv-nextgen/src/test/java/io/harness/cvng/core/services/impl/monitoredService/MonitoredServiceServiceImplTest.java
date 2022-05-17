@@ -25,6 +25,7 @@ import static org.apache.commons.lang3.RandomStringUtils.randomAlphanumeric;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -101,6 +102,7 @@ import io.harness.cvng.core.services.api.monitoredService.MonitoredServiceServic
 import io.harness.cvng.core.services.api.monitoredService.ServiceDependencyService;
 import io.harness.cvng.core.services.impl.ChangeSourceUpdateHandler;
 import io.harness.cvng.core.services.impl.PagerdutyChangeSourceUpdateHandler;
+import io.harness.cvng.core.utils.template.TemplateFacade;
 import io.harness.cvng.dashboard.entities.HeatMap;
 import io.harness.cvng.dashboard.entities.HeatMap.HeatMapRisk;
 import io.harness.cvng.dashboard.services.api.HeatMapService;
@@ -173,6 +175,7 @@ public class MonitoredServiceServiceImplTest extends CvNextGenTestBase {
   @Inject CVNGLogService cvngLogService;
   @Inject VerificationTaskService verificationTaskService;
   @Inject NotificationRuleService notificationRuleService;
+  @Inject TemplateFacade templateFacade;
   @Inject private ActivityService activityService;
   @Mock SetupUsageEventService setupUsageEventService;
   @Mock ChangeSourceService changeSourceServiceMock;
@@ -302,9 +305,6 @@ public class MonitoredServiceServiceImplTest extends CvNextGenTestBase {
   @Category(UnitTests.class)
   public void testCreateFromYaml() {
     String yaml = "monitoredService:\n"
-        + "  template:\n"
-        + "   templateRef: templateRef123\n"
-        + "   versionLabel: versionLabel123\n"
         + "  type: Application\n"
         + "  description: description\n"
         + "  identifier: <+monitoredService.serviceRef>\n"
@@ -319,6 +319,7 @@ public class MonitoredServiceServiceImplTest extends CvNextGenTestBase {
         + "    -   name: environmentIdentifier\n"
         + "        type: String\n"
         + "        value: env3";
+    when(templateFacade.resolveYaml(any(), eq(yaml))).thenReturn(yaml);
     MonitoredServiceResponse monitoredServiceResponse =
         monitoredServiceService.createFromYaml(builderFactory.getProjectParams(), yaml);
     MonitoredServiceResponse monitoredServiceResponseFromDb =
@@ -326,10 +327,6 @@ public class MonitoredServiceServiceImplTest extends CvNextGenTestBase {
     assertThat(monitoredServiceResponse.getMonitoredServiceDTO()).isNotNull();
     assertThat(monitoredServiceResponse.getMonitoredServiceDTO().getName()).isEqualTo("service1");
     assertThat(monitoredServiceResponse.getMonitoredServiceDTO().getEnvironmentRef()).isEqualTo("env3");
-    assertThat(monitoredServiceResponse.getMonitoredServiceDTO().getTemplate().getTemplateRef())
-        .isEqualTo("templateRef123");
-    assertThat(monitoredServiceResponse.getMonitoredServiceDTO().getTemplate().getVersionLabel())
-        .isEqualTo("versionLabel123");
   }
 
   @Test
@@ -348,6 +345,7 @@ public class MonitoredServiceServiceImplTest extends CvNextGenTestBase {
         + "  sources:\n"
         + "    healthSources:\n"
         + "    changeSources: \n";
+    when(templateFacade.resolveYaml(any(), eq(yaml))).thenReturn(yaml);
     assertThatThrownBy(() -> monitoredServiceService.createFromYaml(builderFactory.getProjectParams(), yaml))
         .hasMessage("Infinite loop in variable interpretation");
   }
@@ -577,11 +575,10 @@ public class MonitoredServiceServiceImplTest extends CvNextGenTestBase {
                                                                        .category(CVMonitoringCategory.ERRORS)
                                                                        .metricType(TimeSeriesMetricType.INFRA)
                                                                        .build())
-                                                      .deploymentVerification(
-                                                          DeploymentVerificationDTO.builder()
-                                                              .enabled(true)
-                                                              .serviceInstanceMetricPath("Individual Nodes|*|path")
-                                                              .build())
+                                                      .deploymentVerification(DeploymentVerificationDTO.builder()
+                                                                                  .enabled(true)
+                                                                                  .serviceInstanceMetricPath("path")
+                                                                                  .build())
                                                       .liveMonitoring(LiveMonitoringDTO.builder().enabled(true).build())
                                                       .build())
                                               .build()))
@@ -636,11 +633,10 @@ public class MonitoredServiceServiceImplTest extends CvNextGenTestBase {
                                                                        .category(CVMonitoringCategory.ERRORS)
                                                                        .metricType(TimeSeriesMetricType.INFRA)
                                                                        .build())
-                                                      .deploymentVerification(
-                                                          DeploymentVerificationDTO.builder()
-                                                              .enabled(true)
-                                                              .serviceInstanceMetricPath("|Individual Nodes|*|path")
-                                                              .build())
+                                                      .deploymentVerification(DeploymentVerificationDTO.builder()
+                                                                                  .enabled(true)
+                                                                                  .serviceInstanceMetricPath("path")
+                                                                                  .build())
                                                       .liveMonitoring(LiveMonitoringDTO.builder().enabled(true).build())
                                                       .build())
                                               .build()))
@@ -2317,33 +2313,6 @@ public class MonitoredServiceServiceImplTest extends CvNextGenTestBase {
     assertThat(
         ((MonitoredServiceServiceImpl) monitoredServiceService).shouldSendNotification(monitoredService, condition))
         .isFalse();
-  }
-
-  @Test
-  @Owner(developers = KAPIL)
-  @Category(UnitTests.class)
-  public void testGetNotificationRules() {
-    NotificationRuleDTO notificationRuleDTO =
-        builderFactory.getNotificationRuleDTOBuilder(NotificationRuleType.MONITORED_SERVICE).build();
-    NotificationRuleResponse notificationRuleResponse =
-        notificationRuleService.create(builderFactory.getContext().getProjectParams(), notificationRuleDTO);
-
-    MonitoredServiceDTO monitoredServiceDTO = createMonitoredServiceDTOWithCustomDependencies(
-        "service_1_local", environmentParams.getServiceIdentifier(), Sets.newHashSet());
-    monitoredServiceDTO.setNotificationRuleRefs(
-        Arrays.asList(NotificationRuleRefDTO.builder()
-                          .notificationRuleRef(notificationRuleResponse.getNotificationRule().getIdentifier())
-                          .enabled(true)
-                          .build()));
-    monitoredServiceService.create(builderFactory.getContext().getAccountId(), monitoredServiceDTO);
-    PageResponse<NotificationRuleResponse> notificationRuleResponsePageResponse =
-        monitoredServiceService.getNotificationRules(
-            projectParams, monitoredServiceDTO.getIdentifier(), PageParams.builder().page(0).size(10).build());
-    assertThat(notificationRuleResponsePageResponse.getTotalPages()).isEqualTo(1);
-    assertThat(notificationRuleResponsePageResponse.getTotalItems()).isEqualTo(1);
-    assertThat(notificationRuleResponsePageResponse.getContent().get(0).isEnabled()).isTrue();
-    assertThat(notificationRuleResponsePageResponse.getContent().get(0).getNotificationRule().getIdentifier())
-        .isEqualTo(notificationRuleDTO.getIdentifier());
   }
 
   @Test
