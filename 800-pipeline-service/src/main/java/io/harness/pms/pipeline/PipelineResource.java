@@ -524,11 +524,17 @@ public class PipelineResource implements YamlSchemaResource {
         String.format("Get pipeline summary for pipeline with with identifier %s in project %s, org %s, account %s",
             pipelineId, projectId, orgId, accountId));
 
-    PMSPipelineSummaryResponseDTO pipelineSummary = PMSPipelineDtoMapper.preparePipelineSummary(
-        pmsPipelineService.get(accountId, orgId, projectId, pipelineId, false)
-            .orElseThrow(()
-                             -> new EntityNotFoundException(String.format(
-                                 "Pipeline with the given ID: %s does not exist or has been deleted", pipelineId))));
+    Optional<PipelineEntity> pipelineEntity = Optional.empty();
+    try {
+      pipelineEntity = pmsPipelineService.get(accountId, orgId, projectId, pipelineId, false);
+    } catch (PolicyEvaluationFailureException | InvalidYamlException pe) {
+      // ignore
+    }
+    PMSPipelineSummaryResponseDTO pipelineSummary =
+        PMSPipelineDtoMapper.preparePipelineSummary(pipelineEntity.orElseThrow(
+            ()
+                -> new EntityNotFoundException(
+                    String.format("Pipeline with the given ID: %s does not exist or has been deleted", pipelineId))));
 
     return ResponseDTO.newResponse(pipelineSummary);
   }
