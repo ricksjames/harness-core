@@ -19,6 +19,8 @@ import io.harness.cdng.infra.beans.SshWinRmAwsInfraMapping;
 import io.harness.cdng.infra.beans.SshWinRmAwsInfraMapping.SshWinRmAwsInfraMappingBuilder;
 import io.harness.filters.ConnectorRefExtractorHelper;
 import io.harness.filters.WithConnectorRef;
+import io.harness.ng.core.infrastructure.InfrastructureKind;
+import io.harness.plancreator.steps.TaskSelectorYaml;
 import io.harness.pms.yaml.ParameterField;
 import io.harness.pms.yaml.YAMLFieldNameConstants;
 import io.harness.pms.yaml.YamlNode;
@@ -31,6 +33,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import io.swagger.annotations.ApiModelProperty;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import javax.validation.constraints.NotNull;
 import lombok.Builder;
@@ -46,6 +49,7 @@ import org.springframework.data.annotation.TypeAlias;
 @Builder
 @JsonTypeName(InfrastructureKind.SSH_WINRM_AWS)
 @SimpleVisitorHelper(helperClass = ConnectorRefExtractorHelper.class)
+@OneOfSet(fields = {"autoScalingGroupName", "awsInstanceFilter"})
 @TypeAlias("SshWinRmAwsInfrastructure")
 @RecasterAlias("io.harness.cdng.infra.yaml.SshWinRmAwsInfrastructure")
 public class SshWinRmAwsInfrastructure implements Infrastructure, Visitable, WithConnectorRef {
@@ -59,6 +63,12 @@ public class SshWinRmAwsInfrastructure implements Infrastructure, Visitable, Wit
   @ApiModelProperty(dataType = SwaggerConstants.STRING_CLASSPATH)
   @Wither
   ParameterField<String> connectorRef;
+
+  @NotNull
+  @NotEmpty
+  @ApiModelProperty(dataType = SwaggerConstants.STRING_CLASSPATH)
+  @Wither
+  ParameterField<String> credentialsRef;
 
   @NotNull
   @NotEmpty
@@ -84,6 +94,11 @@ public class SshWinRmAwsInfrastructure implements Infrastructure, Visitable, Wit
   @ApiModelProperty(dataType = SwaggerConstants.STRING_CLASSPATH) @Wither ParameterField<String> autoScalingGroupName;
 
   AwsInstanceFilter awsInstanceFilter;
+
+  @YamlSchemaTypes({runtime})
+  @ApiModelProperty(dataType = SwaggerConstants.STRING_LIST_CLASSPATH)
+  @Wither
+  ParameterField<List<TaskSelectorYaml>> delegateSelectors;
 
   // For Visitor Framework Impl
   @Getter(onMethod_ = { @ApiModelProperty(hidden = true) }) @ApiModelProperty(hidden = true) String metadata;
