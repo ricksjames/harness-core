@@ -49,16 +49,16 @@ public class ScmGitPRTask extends AbstractDelegateRunnableTask {
 
   @Override
   public DelegateResponseData run(TaskParameters parameters) {
-    ScmPRTaskParams scmPRTaskParams = (ScmPRTaskParams) parameters;
+    ScmPRTaskParams scmPushTaskParams = (ScmPRTaskParams) parameters;
     decryptionService.decrypt(
-        GitApiAccessDecryptionHelper.getAPIAccessDecryptableEntity(scmPRTaskParams.getScmConnector()),
-        scmPRTaskParams.getEncryptedDataDetails());
-    GitPRCreateRequest gitPRCreateRequest = scmPRTaskParams.getGitPRCreateRequest();
-    switch (scmPRTaskParams.getGitPRTaskType()) {
+        GitApiAccessDecryptionHelper.getAPIAccessDecryptableEntity(scmPushTaskParams.getScmConnector()),
+        scmPushTaskParams.getEncryptedDataDetails());
+    GitPRCreateRequest gitPRCreateRequest = scmPushTaskParams.getGitPRCreateRequest();
+    switch (scmPushTaskParams.getGitPRTaskType()) {
       case CREATE_PR:
         CreatePRResponse createPRResponse = scmDelegateClient.processScmRequest(c
             -> scmServiceClient.createPullRequest(
-                scmPRTaskParams.getScmConnector(), gitPRCreateRequest, SCMGrpc.newBlockingStub(c)));
+                scmPushTaskParams.getScmConnector(), gitPRCreateRequest, SCMGrpc.newBlockingStub(c)));
         try {
           ScmResponseStatusUtils.checkScmResponseStatusAndThrowException(
               createPRResponse.getStatus(), createPRResponse.getError());
@@ -69,16 +69,7 @@ public class ScmGitPRTask extends AbstractDelegateRunnableTask {
               e);
         }
         return ScmPRTaskResponseData.builder()
-            .prTaskType(scmPRTaskParams.getGitPRTaskType())
-            .createPRResponse(createPRResponse)
-            .build();
-      case CREATE_PR_V2:
-        createPRResponse = scmDelegateClient.processScmRequest(c
-            -> scmServiceClient.createPullRequestV2(scmPRTaskParams.getScmConnector(),
-                scmPRTaskParams.getSourceBranchName(), scmPRTaskParams.getTargetBranchName(),
-                scmPRTaskParams.getPrTitle(), SCMGrpc.newBlockingStub(c)));
-        return ScmPRTaskResponseData.builder()
-            .prTaskType(scmPRTaskParams.getGitPRTaskType())
+            .prTaskType(scmPushTaskParams.getGitPRTaskType())
             .createPRResponse(createPRResponse)
             .build();
       default: {

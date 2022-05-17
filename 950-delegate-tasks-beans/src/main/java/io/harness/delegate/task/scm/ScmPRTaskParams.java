@@ -32,9 +32,6 @@ public class ScmPRTaskParams implements TaskParameters, ExecutionCapabilityDeman
   GitPRCreateRequest gitPRCreateRequest;
   GitPRTaskType gitPRTaskType;
   List<EncryptedDataDetail> encryptedDataDetails;
-  String sourceBranchName;
-  String targetBranchName;
-  String prTitle;
 
   @Override
   public List<ExecutionCapability> fetchRequiredExecutionCapabilities(ExpressionEvaluator maskingEvaluator) {
