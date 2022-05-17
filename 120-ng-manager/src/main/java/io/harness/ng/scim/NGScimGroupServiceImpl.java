@@ -84,7 +84,6 @@ public class NGScimGroupServiceImpl implements ScimGroupService {
         log.error("NGSCIM: Failed to process for account {} group search query: {} ", accountId, filter, ex);
       }
     }
-
     List<ScimGroup> groupList = new ArrayList<>();
 
     try {
@@ -359,7 +358,6 @@ public class NGScimGroupServiceImpl implements ScimGroupService {
     String userGroupIdentifier = isNotEmpty(groupQuery.getDisplayName())
         ? groupQuery.getDisplayName().replaceAll("\\.", "_")
         : groupQuery.getDisplayName();
-
     UserGroupDTOBuilder userGroupDTOBuilder = UserGroupDTO.builder()
                                                   .name(groupQuery.getDisplayName())
                                                   .users(fetchMembersOfUserGroup(groupQuery))
@@ -370,6 +368,7 @@ public class NGScimGroupServiceImpl implements ScimGroupService {
 
     if (StringUtils.isNotEmpty(groupQuery.getHarnessScopes())) {
       String[] scopes = groupQuery.getHarnessScopes().split(",");
+
       for (String scimScope : scopes) {
         String[] identifiers = scimScope.split(":");
         if (identifiers.length == 2) {

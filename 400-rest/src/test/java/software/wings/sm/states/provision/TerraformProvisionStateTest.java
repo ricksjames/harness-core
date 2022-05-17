@@ -1137,7 +1137,6 @@ public class TerraformProvisionStateTest extends WingsBaseTest {
 
     TerraformOutputInfoElement terraformOutputInfoElement =
         (TerraformOutputInfoElement) executionResponse.getContextElements().get(0);
-    assertThat(terraformOutputInfoElement.paramMap(executionContext)).containsKeys("terraform");
   }
 
   @Test
@@ -1765,7 +1764,6 @@ public class TerraformProvisionStateTest extends WingsBaseTest {
     ExecutionResponse executionResponse = state.handleAsyncResponse(executionContext, response);
     TerraformOutputInfoElement terraformOutputInfoElement =
         (TerraformOutputInfoElement) executionResponse.getContextElements().get(0);
-    assertThat(terraformOutputInfoElement.paramMap(executionContext)).containsKeys("terraform");
     assertThat(terraformOutputInfoElement.getOutputVariables().keySet())
         .containsOnly("outputVar", "complex", "outputVariableFromContext");
   }
