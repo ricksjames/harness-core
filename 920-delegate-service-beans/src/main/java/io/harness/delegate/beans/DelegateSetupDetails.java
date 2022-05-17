@@ -7,12 +7,15 @@
 
 package io.harness.delegate.beans;
 
+import static io.harness.data.structure.EmptyPredicate.isEmpty;
+
 import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.data.validator.EntityIdentifier;
 import io.harness.gitsync.beans.YamlDTO;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import java.util.Collections;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.validation.constraints.NotNull;
@@ -45,7 +48,8 @@ public class DelegateSetupDetails implements YamlDTO {
   @NotNull private String delegateType;
   private String tokenName;
 
-  //  public Set<String> getTags() {
-  //    return tags.stream().filter(StringUtils::isNotBlank).map(String::trim).collect(Collectors.toSet());
-  //  }
+  public Set<String> getTags() {
+    return isEmpty(tags) ? Collections.emptySet()
+                         : tags.stream().filter(StringUtils::isNotBlank).map(String::trim).collect(Collectors.toSet());
+  }
 }

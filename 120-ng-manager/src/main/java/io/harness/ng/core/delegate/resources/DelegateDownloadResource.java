@@ -67,8 +67,6 @@ import org.hibernate.validator.constraints.NotEmpty;
 public class DelegateDownloadResource {
   private static final String CONTENT_TRANSFER_ENCODING = "Content-Transfer-Encoding";
   private static final String BINARY = "binary";
-  private static final String CONTENT_DISPOSITION = "Content-Disposition";
-  private static final String ATTACHMENT_FILENAME = "attachment; filename=";
   public static final String YAML = ".yaml";
 
   private final AccessControlClient accessControlClient;
@@ -111,7 +109,6 @@ public class DelegateDownloadResource {
     return Response.ok(delegateDownloadResponse.getDelegateFile())
         .header(CONTENT_TRANSFER_ENCODING, BINARY)
         .type("text/plain; charset=UTF-8")
-        .header(CONTENT_DISPOSITION, ATTACHMENT_FILENAME + KUBERNETES_DELEGATE + YAML)
         .build();
   }
 }
