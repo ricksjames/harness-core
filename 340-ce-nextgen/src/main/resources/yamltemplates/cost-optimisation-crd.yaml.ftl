@@ -403,6 +403,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: harness-autostopping-enforcement
+  namespace: harness-autostopping
 data:
   is_active: false
   dry_run: enabled
