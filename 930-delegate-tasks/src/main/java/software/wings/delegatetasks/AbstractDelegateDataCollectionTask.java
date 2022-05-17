@@ -159,7 +159,6 @@ public abstract class AbstractDelegateDataCollectionTask extends AbstractDelegat
     if (records.isEmpty()) {
       return true;
     }
-    Exception exception;
     int retrySave = 0;
     do {
       try {
@@ -168,11 +167,9 @@ public abstract class AbstractDelegateDataCollectionTask extends AbstractDelegat
         getLogger().error(
             "error saving new apm metrics StateExecutionId: {}, Size: {}, {}", stateExecutionId, records.size(), e);
         sleep(DATA_COLLECTION_RETRY_SLEEP);
-        exception = e;
       }
     } while (++retrySave != RETRIES);
-
-    throw new IllegalStateException(exception);
+    return false;
   }
 
   protected List<NewRelicMetricDataRecord> getAllMetricRecords(

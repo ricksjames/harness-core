@@ -131,7 +131,7 @@ public class RuntimeInputValuesValidator {
     if (inputSetField == null || inputSetField.getValue() == null) {
       objectToValidateFieldValue = objectToValidateValue;
     } else {
-      objectToValidateFieldValue = inputSetField.getValue();
+      objectToValidateFieldValue = inputSetField.getValue().toString();
     }
 
     if (NGExpressionUtils.matchesInputSetPattern(sourceValue)) {

@@ -67,6 +67,7 @@ public class APMDataCollectionTaskTest extends WingsBaseTest {
   APMDataCollectionInfo dataCollectionInfo;
   @Mock private RequestExecutor requestExecutor;
   @Mock private EncryptionService encryptionService;
+  @Mock private DelegateLogService delegateLogService;
   @Mock private MetricDataStoreService metricStoreService;
   @Inject private DataCollectionExecutorService dataCollectionService;
   private APMDataCollectionTask dataCollectionTask;
@@ -104,6 +105,7 @@ public class APMDataCollectionTaskTest extends WingsBaseTest {
 
     dataCollectionTask = new APMDataCollectionTask(
         DelegateTaskPackage.builder().delegateId(delegateId).data(taskData).build(), null, null, null);
+    FieldUtils.writeField(dataCollectionTask, "delegateLogService", delegateLogService, true);
     FieldUtils.writeField(dataCollectionTask, "metricStoreService", metricStoreService, true);
     FieldUtils.writeField(dataCollectionTask, "encryptionService", encryptionService, true);
     FieldUtils.writeField(dataCollectionTask, "requestExecutor", requestExecutor, true);

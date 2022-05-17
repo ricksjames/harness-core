@@ -109,7 +109,7 @@ public class UpdateCorruptedInstanceStatsMigration implements Migration {
     try (HIterator<InfrastructureMapping> infraMappingIter =
              new HIterator<>(mongoPersistence.createQuery(InfrastructureMapping.class, excludeAuthority)
                                  .field(InfrastructureMappingKeys.accountId)
-                                 .notIn(firstReleaseConsideredAccount)
+                                 .in(firstReleaseConsideredAccount)
                                  .filter(InfrastructureMappingKeys.deploymentType, "HELM")
                                  .project("_id", true)
                                  .project(InfrastructureMappingKeys.accountId, true)

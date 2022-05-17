@@ -55,7 +55,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 @OwnedBy(PL)
 public class ResourceGroupServiceImplTest extends ResourceGroupTestBase {
   @Inject private ResourceGroupV2Repository resourceGroupV2Repository;
-  @Inject private ResourceGroupValidatorImpl resourceGroupValidatorImpl;
   private ResourceGroupV2Repository resourceGroupV2RepositoryMock;
   private io.harness.resourcegroup.framework.v1.service.ResourceGroupService resourceGroupV1ServiceMock;
   private OutboxService outboxService;
@@ -71,9 +70,9 @@ public class ResourceGroupServiceImplTest extends ResourceGroupTestBase {
     outboxService = mock(OutboxService.class);
     transactionTemplate = mock(TransactionTemplate.class);
     resourceGroupService = spy(new ResourceGroupServiceImpl(
-        resourceGroupV2Repository, resourceGroupValidatorImpl, outboxService, transactionTemplate));
+        resourceGroupV1ServiceMock, resourceGroupV2Repository, outboxService, transactionTemplate));
     resourceGroupServiceMockRepo = spy(new ResourceGroupServiceImpl(
-        resourceGroupV2RepositoryMock, resourceGroupValidatorImpl, outboxService, transactionTemplate));
+        resourceGroupV1ServiceMock, resourceGroupV2RepositoryMock, outboxService, transactionTemplate));
 
     pageRequest = PageRequest.builder().pageIndex(0).pageSize(50).build();
   }

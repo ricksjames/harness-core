@@ -10,7 +10,6 @@ package io.harness.delegate.task.winrm;
 import static io.harness.annotations.dev.HarnessModule._930_DELEGATE_TASKS;
 import static io.harness.annotations.dev.HarnessTeam.CDP;
 import static io.harness.rule.OwnerRule.INDER;
-import static io.harness.rule.OwnerRule.JELENA;
 import static io.harness.rule.OwnerRule.ROHITKARELIA;
 import static io.harness.rule.OwnerRule.SAHIL;
 
@@ -28,9 +27,6 @@ import io.harness.category.element.UnitTests;
 import io.harness.logging.LogCallback;
 import io.harness.rule.Owner;
 
-import software.wings.beans.WinRmCommandParameter;
-
-import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
 import org.junit.Before;
@@ -46,7 +42,7 @@ public class DefaultWinRmExecutorTest extends CategoryTest {
   @Mock WinRmSessionConfig config;
   @Mock WinRmSession winRmSession;
   private DefaultWinRmExecutor spyDefaultWinRmExecutor;
-  String simpleCommand, reallyLongCommand, echoCommand;
+  String simpleCommand, reallyLongCommand;
 
   @Before
   public void setUp() throws Exception {
@@ -63,8 +59,6 @@ public class DefaultWinRmExecutorTest extends CategoryTest {
     reallyLongCommand = simpleCommand + simpleCommand + simpleCommand + simpleCommand
         + "$myfile = Get-Content -Path \"C:\\Users\\rohit_karelia\\logontest.ps1\" | Get-Unique | Measure-Object \n"
         + "echo $myfile";
-
-    echoCommand = "echo test";
   }
 
   @Test
@@ -72,14 +66,13 @@ public class DefaultWinRmExecutorTest extends CategoryTest {
   @Category(UnitTests.class)
   public void testConstructPSScriptWithCommands() {
     List<List<String>> result1 = WinRmExecutorHelper.constructPSScriptWithCommands(
-        simpleCommand, "tempPSScript.ps1", DefaultWinRmExecutor.POWERSHELL, null);
+        simpleCommand, "tempPSScript.ps1", DefaultWinRmExecutor.POWERSHELL);
     assertThat(result1.size()).isEqualTo(1);
 
     List<List<String>> result2 = WinRmExecutorHelper.constructPSScriptWithCommands(
-        reallyLongCommand, "tempPSScript.ps1", DefaultWinRmExecutor.POWERSHELL, null);
+        reallyLongCommand, "tempPSScript.ps1", DefaultWinRmExecutor.POWERSHELL);
     assertThat(result2.size()).isEqualTo(2);
     verify(config, times(1)).isUseNoProfile();
-    assertThat(config.getCommandParameters()).isEmpty();
   }
 
   @Test
@@ -88,11 +81,11 @@ public class DefaultWinRmExecutorTest extends CategoryTest {
   public void testConstructPSScriptWithCommandsWithoutProfile() {
     when(config.isUseNoProfile()).thenReturn(true);
     List<List<String>> result1 = WinRmExecutorHelper.constructPSScriptWithCommands(
-        simpleCommand, "tempPSScript.ps1", DefaultWinRmExecutor.POWERSHELL, null);
+        simpleCommand, "tempPSScript.ps1", DefaultWinRmExecutor.POWERSHELL);
     assertThat(result1.size()).isEqualTo(1);
 
     List<List<String>> result2 = WinRmExecutorHelper.constructPSScriptWithCommands(
-        reallyLongCommand, "tempPSScript.ps1", DefaultWinRmExecutor.POWERSHELL, null);
+        reallyLongCommand, "tempPSScript.ps1", DefaultWinRmExecutor.POWERSHELL);
     assertThat(result2.size()).isEqualTo(2);
 
     verify(config, times(1)).isUseNoProfile();
@@ -103,7 +96,7 @@ public class DefaultWinRmExecutorTest extends CategoryTest {
   @Category(UnitTests.class)
   public void testCleanUpFilesDisableEncodingFFOn() {
     DefaultWinRmExecutor defaultWinRmExecutorFFOn = new DefaultWinRmExecutor(logCallback, true, config, true);
-    WinRmExecutorHelper.cleanupFiles(winRmSession, "PSFileName.ps1", DefaultWinRmExecutor.POWERSHELL, true, null);
+    WinRmExecutorHelper.cleanupFiles(winRmSession, "PSFileName.ps1", DefaultWinRmExecutor.POWERSHELL, true);
     verify(winRmSession, times(1)).executeCommandString(any(), any(), any(), eq(false));
   }
 
@@ -113,8 +106,8 @@ public class DefaultWinRmExecutorTest extends CategoryTest {
   public void testpsWrappedCommandWithEncodingWithProfile() {
     when(config.isUseNoProfile()).thenReturn(true);
     spyDefaultWinRmExecutor = new DefaultWinRmExecutor(logCallback, true, config, true);
-    String poweshellCommand = WinRmExecutorHelper.psWrappedCommandWithEncoding(
-        simpleCommand, DefaultWinRmExecutor.POWERSHELL_NO_PROFILE, null);
+    String poweshellCommand =
+        WinRmExecutorHelper.psWrappedCommandWithEncoding(simpleCommand, DefaultWinRmExecutor.POWERSHELL_NO_PROFILE);
     assertThat(poweshellCommand.contains("NoProfile")).isTrue();
   }
 
@@ -124,7 +117,7 @@ public class DefaultWinRmExecutorTest extends CategoryTest {
   public void testpsWrappedCommandWithEncodingWithoutProfile() {
     when(config.isUseNoProfile()).thenReturn(false);
     String poweshellCommand =
-        WinRmExecutorHelper.psWrappedCommandWithEncoding(simpleCommand, DefaultWinRmExecutor.POWERSHELL, null);
+        WinRmExecutorHelper.psWrappedCommandWithEncoding(simpleCommand, DefaultWinRmExecutor.POWERSHELL);
     assertThat(poweshellCommand.contains("NoProfile")).isFalse();
   }
 
@@ -133,43 +126,11 @@ public class DefaultWinRmExecutorTest extends CategoryTest {
   @Category(UnitTests.class)
   public void testConstructPSScriptWithCommandsWithAmpersand() {
     String command = "echo \"1&2\"";
-    List<List<String>> result = WinRmExecutorHelper.constructPSScriptWithCommands(
-        command, "tempPSScript.ps1", DefaultWinRmExecutor.POWERSHELL, null);
+    List<List<String>> result =
+        WinRmExecutorHelper.constructPSScriptWithCommands(command, "tempPSScript.ps1", DefaultWinRmExecutor.POWERSHELL);
     assertThat(result.size()).isEqualTo(1);
     assertThat(result.get(0)).hasSize(2);
     Pattern patternForAmpersandWithinString = Pattern.compile("[a-zA-Z0-9]+\\^&");
     assertThat(patternForAmpersandWithinString.matcher(result.get(0).get(1)).find()).isTrue();
-  }
-
-  @Test
-  @Owner(developers = JELENA)
-  @Category(UnitTests.class)
-  public void testConstructPSScriptWithCommandsAndCommandParameters() {
-    List<WinRmCommandParameter> commandParameters = new ArrayList<>();
-    commandParameters.add(new WinRmCommandParameter("ComputerName", "TestComputerName"));
-    commandParameters.add(new WinRmCommandParameter("ConfigurationName", "TestConfigurationName"));
-
-    String expectedString = "Invoke-Command -ComputerName TestComputerName -ConfigurationName TestConfigurationName";
-    List<List<String>> result1 = WinRmExecutorHelper.constructPSScriptWithCommands(
-        echoCommand, "tempPSScript.ps1", DefaultWinRmExecutor.POWERSHELL, commandParameters);
-    assertThat(result1.size()).isEqualTo(1);
-    assertThat((result1.get(0).get(0)).contains(expectedString)).isTrue();
-  }
-
-  @Test
-  @Owner(developers = JELENA)
-  @Category(UnitTests.class)
-  public void testWrappedCommandWithEncodingWithAdditionalParameters() {
-    List<WinRmCommandParameter> commandParameters = new ArrayList<>();
-    commandParameters.add(new WinRmCommandParameter("ComputerName", "TestComputerName"));
-    commandParameters.add(new WinRmCommandParameter("ConfigurationName", "TestConfigurationName"));
-
-    String expectedString = "Invoke-Command -ComputerName TestComputerName -ConfigurationName TestConfigurationName";
-
-    when(config.isUseNoProfile()).thenReturn(true);
-    spyDefaultWinRmExecutor = new DefaultWinRmExecutor(logCallback, true, config, true);
-    String poweshellCommand = WinRmExecutorHelper.psWrappedCommandWithEncoding(
-        simpleCommand, DefaultWinRmExecutor.POWERSHELL_NO_PROFILE, commandParameters);
-    assertThat(poweshellCommand.contains(expectedString)).isTrue();
   }
 }

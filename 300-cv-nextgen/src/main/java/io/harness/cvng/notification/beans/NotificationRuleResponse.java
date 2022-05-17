@@ -20,7 +20,6 @@ import lombok.Value;
 @Builder
 public class NotificationRuleResponse {
   @NotNull private NotificationRuleDTO notificationRule;
-  private boolean enabled;
   private Long createdAt;
   private Long lastModifiedAt;
 }

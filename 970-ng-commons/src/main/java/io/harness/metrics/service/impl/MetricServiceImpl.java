@@ -99,8 +99,7 @@ public class MetricServiceImpl implements MetricService {
   }
 
   private boolean isPrometheusConnectorEnabled() {
-    return isNotEmpty(System.getenv(ENABLE_PROMETHEUS_COLLECTOR))
-        && Boolean.parseBoolean(System.getenv(ENABLE_PROMETHEUS_COLLECTOR));
+    return isNotEmpty(System.getenv(ENABLE_PROMETHEUS_COLLECTOR));
   }
 
   private boolean isMetricPublicationEnabled() {

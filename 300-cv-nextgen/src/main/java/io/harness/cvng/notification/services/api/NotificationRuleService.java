@@ -28,6 +28,4 @@ public interface NotificationRuleService {
   PageResponse<NotificationRuleResponse> get(ProjectParams projectParams, Integer pageNumber, Integer pageSize);
   List<NotificationRuleRef> getNotificationRuleRefs(List<NotificationRuleRefDTO> notificationRuleRefDTOS);
   List<NotificationRuleRefDTO> getNotificationRuleRefDTOs(List<NotificationRuleRef> notificationRuleRefs);
-  List<NotificationRuleResponse> getNotificationRuleResponse(
-      ProjectParams projectParams, List<NotificationRuleRef> notificationRuleRefList);
 }

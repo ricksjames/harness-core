@@ -12,7 +12,6 @@ import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.annotations.dev.TargetModule;
 
-import java.util.List;
 import lombok.Builder;
 import lombok.Value;
 import lombok.experimental.FieldNameConstants;
@@ -32,5 +31,4 @@ public class QLWinRMCredentialInput {
   private Boolean skipCertCheck;
   private Integer port;
   private QLUsageScope usageScope;
-  private List<QLWinRmCommandParameter> parameters;
 }

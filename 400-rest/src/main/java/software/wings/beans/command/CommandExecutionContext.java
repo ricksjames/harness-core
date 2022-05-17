@@ -286,7 +286,6 @@ public class CommandExecutionContext implements ExecutionCapabilityDemander {
         .keyTabFilePath(winrmConnectionAttributes.getKeyTabFilePath())
         .useNoProfile(winrmConnectionAttributes.isUseNoProfile())
         .useKerberosUniqueCacheFile(useWinRMKerberosUniqueCacheFile)
-        .commandParameters(winrmConnectionAttributes.getParameters())
         .build();
   }
 

@@ -45,10 +45,11 @@ import io.harness.resourcegroup.framework.v1.events.ResourceGroupCreateEvent;
 import io.harness.resourcegroup.framework.v1.events.ResourceGroupDeleteEvent;
 import io.harness.resourcegroup.framework.v1.events.ResourceGroupUpdateEvent;
 import io.harness.resourcegroup.framework.v1.service.impl.ResourceGroupEventHandler;
-import io.harness.resourcegroup.v2.model.ResourceFilter;
-import io.harness.resourcegroup.v2.model.ResourceSelector;
-import io.harness.resourcegroup.v2.remote.dto.ResourceGroupDTO;
-import io.harness.resourcegroup.v2.remote.dto.ResourceGroupRequest;
+import io.harness.resourcegroup.model.DynamicResourceSelector;
+import io.harness.resourcegroup.model.ResourceSelector;
+import io.harness.resourcegroup.model.StaticResourceSelector;
+import io.harness.resourcegroup.v1.remote.dto.ResourceGroupDTO;
+import io.harness.resourcegroup.v1.remote.dto.ResourceGroupRequest;
 import io.harness.rule.Owner;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -81,13 +82,12 @@ public class ResourceGroupEventHandlerTest extends CategoryTest {
     List<String> identifiers = new ArrayList<>();
     identifiers.add(randomAlphabetic(10));
     identifiers.add(randomAlphabetic(10));
+
     List<ResourceSelector> resourceSelectorDTOs = new ArrayList<>();
     resourceSelectorDTOs.add(
-        ResourceSelector.builder().identifiers(identifiers).resourceType(randomAlphabetic(10)).build());
-    resourceSelectorDTOs.add(ResourceSelector.builder().resourceType(randomAlphabetic(10)).build());
-    resourceSelectorDTOs.add(ResourceSelector.builder().resourceType(randomAlphabetic(10)).build());
-    ResourceFilter resourceFilter =
-        ResourceFilter.builder().includeAllResources(false).resources(resourceSelectorDTOs).build();
+        StaticResourceSelector.builder().identifiers(identifiers).resourceType(randomAlphabetic(10)).build());
+    resourceSelectorDTOs.add(StaticResourceSelector.builder().resourceType(randomAlphabetic(10)).build());
+    resourceSelectorDTOs.add(DynamicResourceSelector.builder().resourceType(randomAlphabetic(10)).build());
 
     return ResourceGroupDTO.builder()
         .accountIdentifier(accountIdentifier)
@@ -95,7 +95,7 @@ public class ResourceGroupEventHandlerTest extends CategoryTest {
         .projectIdentifier(projectIdentifier)
         .identifier(identifier)
         .name(randomAlphabetic(10))
-        .resourceFilter(resourceFilter)
+        .resourceSelectors(resourceSelectorDTOs)
         .build();
   }
 
@@ -108,7 +108,7 @@ public class ResourceGroupEventHandlerTest extends CategoryTest {
     String identifier = randomAlphabetic(10);
     ResourceGroupDTO resourceGroupDTO = getResourceGroupDTO(accountIdentifier, orgIdentifier, null, identifier);
     ResourceGroupCreateEvent resourceGroupCreateEvent =
-        new ResourceGroupCreateEvent(accountIdentifier, null, resourceGroupDTO);
+        new ResourceGroupCreateEvent(accountIdentifier, resourceGroupDTO, null);
     String eventData = objectMapper.writeValueAsString(resourceGroupCreateEvent);
     OutboxEvent outboxEvent = OutboxEvent.builder()
                                   .id(randomAlphabetic(10))
@@ -165,7 +165,7 @@ public class ResourceGroupEventHandlerTest extends CategoryTest {
     ResourceGroupDTO oldResourceGroupDTO = getResourceGroupDTO(accountIdentifier, orgIdentifier, null, identifier);
     ResourceGroupDTO newResourceGroupDTO = getResourceGroupDTO(accountIdentifier, orgIdentifier, null, identifier);
     ResourceGroupUpdateEvent resourceGroupUpdateEvent =
-        new ResourceGroupUpdateEvent(accountIdentifier, null, null, newResourceGroupDTO, oldResourceGroupDTO);
+        new ResourceGroupUpdateEvent(accountIdentifier, newResourceGroupDTO, oldResourceGroupDTO, null, null);
     String eventData = objectMapper.writeValueAsString(resourceGroupUpdateEvent);
     OutboxEvent outboxEvent = OutboxEvent.builder()
                                   .id(randomAlphabetic(10))
@@ -222,7 +222,7 @@ public class ResourceGroupEventHandlerTest extends CategoryTest {
     String identifier = randomAlphabetic(10);
     ResourceGroupDTO resourceGroupDTO = getResourceGroupDTO(accountIdentifier, orgIdentifier, null, identifier);
     ResourceGroupDeleteEvent resourceGroupDeleteEvent =
-        new ResourceGroupDeleteEvent(accountIdentifier, null, resourceGroupDTO);
+        new ResourceGroupDeleteEvent(accountIdentifier, resourceGroupDTO, null);
     String eventData = objectMapper.writeValueAsString(resourceGroupDeleteEvent);
     OutboxEvent outboxEvent = OutboxEvent.builder()
                                   .id(randomAlphabetic(10))

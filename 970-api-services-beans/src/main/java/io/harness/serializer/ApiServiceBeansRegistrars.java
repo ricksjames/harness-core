@@ -14,14 +14,12 @@ import io.harness.serializer.kryo.RbacCoreKryoRegistrar;
 import io.harness.serializer.morphia.ApiServiceBeansMorphiaRegistrar;
 
 import com.google.common.collect.ImmutableSet;
-import io.serializer.registrars.NGCommonsRegistrars;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public class ApiServiceBeansRegistrars {
   public static final ImmutableSet<Class<? extends KryoRegistrar>> kryoRegistrars =
       ImmutableSet.<Class<? extends KryoRegistrar>>builder()
-          .addAll(NGCommonsRegistrars.kryoRegistrars)
           .addAll(CommonsRegistrars.kryoRegistrars)
           .add(ApiServiceBeansKryoRegister.class)
           .add(ApiServiceBeansProtoKryoRegistrar.class)
@@ -30,7 +28,6 @@ public class ApiServiceBeansRegistrars {
 
   public static final ImmutableSet<Class<? extends MorphiaRegistrar>> morphiaRegistrars =
       ImmutableSet.<Class<? extends MorphiaRegistrar>>builder()
-          .addAll(NGCommonsRegistrars.morphiaRegistrars)
           .addAll(CommonsRegistrars.morphiaRegistrars)
           .add(ApiServiceBeansMorphiaRegistrar.class)
           .build();

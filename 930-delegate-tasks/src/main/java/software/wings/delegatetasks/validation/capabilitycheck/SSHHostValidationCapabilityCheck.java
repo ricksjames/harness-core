@@ -61,10 +61,9 @@ public class SSHHostValidationCapabilityCheck implements CapabilityCheck {
         capability.getSshVaultConfig());
     try {
       SshSessionConfig hostConnectionTest = createSshSessionConfig(capability);
-      int timeout = (int) ofSeconds(60L).toMillis();
-      int sshConnectionTimeout = (int) ofSeconds(120L).toMillis();
+      int timeout = (int) ofSeconds(15L).toMillis();
       hostConnectionTest.setSocketConnectTimeout(timeout);
-      hostConnectionTest.setSshConnectionTimeout(sshConnectionTimeout);
+      hostConnectionTest.setSshConnectionTimeout(timeout);
       hostConnectionTest.setSshSessionTimeout(timeout);
       performTest(hostConnectionTest);
       capabilityResponseBuilder.validated(true);

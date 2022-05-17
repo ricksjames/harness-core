@@ -10,7 +10,6 @@ package io.harness.delegate.k8s;
 import static io.harness.annotations.dev.HarnessTeam.CDP;
 import static io.harness.data.structure.EmptyPredicate.isEmpty;
 import static io.harness.data.structure.EmptyPredicate.isNotEmpty;
-import static io.harness.delegate.k8s.K8sRollingBaseHandler.HARNESS_TRACK_STABLE_SELECTOR;
 import static io.harness.delegate.task.k8s.K8sTaskHelperBase.getTimeoutMillisFromMinutes;
 import static io.harness.k8s.K8sCommandUnitConstants.Apply;
 import static io.harness.k8s.K8sCommandUnitConstants.FetchFiles;
@@ -30,8 +29,6 @@ import static software.wings.beans.LogColor.White;
 import static software.wings.beans.LogColor.Yellow;
 import static software.wings.beans.LogHelper.color;
 import static software.wings.beans.LogWeight.Bold;
-
-import static java.util.Collections.emptyList;
 
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.beans.FileData;
@@ -278,15 +275,9 @@ public class K8sRollingRequestHandler extends K8sRequestHandler {
         k8sTaskHelperBase.addRevisionNumber(resources, release.getNumber());
       }
 
-      final List<KubernetesResource> deploymentContainingTrackStableSelector = skipAddingTrackSelectorToDeployment
-          ? k8sTaskHelperBase.getDeploymentContainingTrackStableSelector(
-              kubernetesConfig, managedWorkloads, HARNESS_TRACK_STABLE_SELECTOR)
-          : emptyList();
-
-      k8sRollingBaseHandler.addLabelsInManagedWorkloadPodSpec(inCanaryWorkflow, skipAddingTrackSelectorToDeployment,
-          managedWorkloads, deploymentContainingTrackStableSelector, releaseName);
-      k8sRollingBaseHandler.addLabelsInDeploymentSelectorForCanary(inCanaryWorkflow,
-          skipAddingTrackSelectorToDeployment, managedWorkloads, deploymentContainingTrackStableSelector);
+      k8sRollingBaseHandler.addLabelsInManagedWorkloadPodSpec(inCanaryWorkflow, managedWorkloads, releaseName);
+      k8sRollingBaseHandler.addLabelsInDeploymentSelectorForCanary(
+          inCanaryWorkflow, skipAddingTrackSelectorToDeployment, managedWorkloads, kubernetesConfig);
     }
   }
 }

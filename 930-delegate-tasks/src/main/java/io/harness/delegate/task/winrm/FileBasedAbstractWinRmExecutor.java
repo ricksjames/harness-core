@@ -136,20 +136,17 @@ public abstract class FileBasedAbstractWinRmExecutor {
           ? WINDOWS_TEMPFILE_LOCATION
           : config.getWorkingDirectory() + "harness-" + this.config.getExecutionId() + ".ps1";
       command = getCopyConfigCommandBehindFF(configFileMetaData, fileBytes);
-      exitCode = session.executeCommandsList(
-          constructPSScriptWithCommands(command, psScriptFile, getPowershell(), config.getCommandParameters()),
+      exitCode = session.executeCommandsList(constructPSScriptWithCommands(command, psScriptFile, getPowershell()),
           outputWriter, errorWriter, false, getScriptExecutingCommand(psScriptFile, getPowershell()));
     } else {
       String encodedFile = EncodingUtils.encodeBase64(fileBytes);
       command = getCopyConfigCommand(configFileMetaData, encodedFile);
 
       exitCode = session.executeCommandString(
-          WinRmExecutorHelper.psWrappedCommandWithEncoding(command, getPowershell(), config.getCommandParameters()),
-          outputWriter, errorWriter, false);
+          WinRmExecutorHelper.psWrappedCommandWithEncoding(command, getPowershell()), outputWriter, errorWriter, false);
     }
     log.info("Execute Command String returned exit code.", exitCode);
-    WinRmExecutorHelper.cleanupFiles(
-        session, psScriptFile, getPowershell(), disableCommandEncoding, config.getCommandParameters());
+    WinRmExecutorHelper.cleanupFiles(session, psScriptFile, getPowershell(), disableCommandEncoding);
     return exitCode == 0 ? SUCCESS : FAILURE;
   }
 
@@ -237,12 +234,11 @@ public abstract class FileBasedAbstractWinRmExecutor {
           executeCommandsWithoutEncoding(session, outputWriter, errorWriter, command, bulkMode, psScriptFile, exitCode);
     } else {
       exitCode = session.executeCommandString(
-          psWrappedCommandWithEncoding(command, getPowershell(), config.getCommandParameters()), outputWriter,
-          errorWriter, false);
+          psWrappedCommandWithEncoding(command, getPowershell()), outputWriter, errorWriter, false);
     }
     log.info("Execute Command String returned exit code.", exitCode);
     io.harness.delegate.task.winrm.WinRmExecutorHelper.cleanupFiles(
-        session, psScriptFile, getPowershell(), disableCommandEncoding, config.getCommandParameters());
+        session, psScriptFile, getPowershell(), disableCommandEncoding);
     return exitCode == 0 ? SUCCESS : FAILURE;
   }
 
@@ -252,8 +248,7 @@ public abstract class FileBasedAbstractWinRmExecutor {
     // Commands are not split up per line in bulk mode. Hence, we want to run them individually to avoid issues with
     // quoting
     if (bulkMode) {
-      final List<String> commands =
-          constructPSScriptWithCommandsBulk(command, psScriptFile, getPowershell(), config.getCommandParameters());
+      final List<String> commands = constructPSScriptWithCommandsBulk(command, psScriptFile, getPowershell());
       for (String commandStr : commands) {
         exitCode = session.executeCommandString(commandStr, outputWriter, errorWriter, false);
         if (exitCode != 0) {
@@ -261,8 +256,7 @@ public abstract class FileBasedAbstractWinRmExecutor {
         }
       }
     } else {
-      exitCode = session.executeCommandsList(
-          constructPSScriptWithCommands(command, psScriptFile, getPowershell(), config.getCommandParameters()),
+      exitCode = session.executeCommandsList(constructPSScriptWithCommands(command, psScriptFile, getPowershell()),
           outputWriter, errorWriter, false, getScriptExecutingCommand(psScriptFile, getPowershell()));
     }
     return exitCode;

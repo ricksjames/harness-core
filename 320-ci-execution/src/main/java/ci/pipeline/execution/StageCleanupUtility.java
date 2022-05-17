@@ -9,7 +9,6 @@ package ci.pipeline.execution;
 
 import static io.harness.beans.sweepingoutputs.PodCleanupDetails.CLEANUP_DETAILS;
 import static io.harness.beans.sweepingoutputs.StageInfraDetails.STAGE_INFRA_DETAILS;
-import static io.harness.k8s.KubernetesConvention.getAccountIdentifier;
 
 import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
@@ -82,28 +81,19 @@ public class StageCleanupUtility {
 
   public CIK8CleanupTaskParams buildK8CleanupParameters(K8StageInfraDetails k8StageInfraDetails, Ambiance ambiance) {
     Infrastructure infrastructure = k8StageInfraDetails.getInfrastructure();
-
-    if (infrastructure == null) {
+    if (infrastructure == null || ((K8sDirectInfraYaml) infrastructure).getSpec() == null) {
       throw new CIStageExecutionException("Input infrastructure can not be empty");
     }
 
-    String clusterConnectorRef;
-    String namespace;
-    NGAccess ngAccess = AmbianceUtils.getNgAccess(ambiance);
+    // It should always resolved to K8sDirectInfraYaml
+    K8sDirectInfraYaml k8sDirectInfraYaml = (K8sDirectInfraYaml) infrastructure;
 
-    if (infrastructure.getType() == Infrastructure.Type.KUBERNETES_DIRECT) {
-      K8sDirectInfraYaml k8sDirectInfraYaml = (K8sDirectInfraYaml) infrastructure;
-      clusterConnectorRef = k8sDirectInfraYaml.getSpec().getConnectorRef().getValue();
-      namespace = (String) k8sDirectInfraYaml.getSpec().getNamespace().fetchFinalValue();
-    } else if (infrastructure.getType() == Infrastructure.Type.KUBERNETES_HOSTED) {
-      namespace = "account-" + getAccountIdentifier(ngAccess.getAccountIdentifier());
-      clusterConnectorRef = "account.Harness_Kubernetes_Cluster";
-    } else {
-      throw new CIStageExecutionException("Infra type:" + infrastructure.getType().name() + "is not of k8s type");
-    }
-
+    final String clusterConnectorRef = k8sDirectInfraYaml.getSpec().getConnectorRef().getValue();
+    final String namespace = (String) k8sDirectInfraYaml.getSpec().getNamespace().fetchFinalValue();
     final List<String> podNames = new ArrayList<>();
     podNames.add(k8StageInfraDetails.getPodName());
+
+    NGAccess ngAccess = AmbianceUtils.getNgAccess(ambiance);
 
     ConnectorDetails connectorDetails = connectorUtils.getConnectorDetails(ngAccess, clusterConnectorRef);
 

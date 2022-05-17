@@ -8,7 +8,6 @@
 package software.wings.graphql.datafetcher.secrets;
 
 import static io.harness.annotations.dev.HarnessTeam.CDP;
-import static io.harness.data.structure.EmptyPredicate.isEmpty;
 import static io.harness.delegate.task.winrm.AuthenticationScheme.KERBEROS;
 import static io.harness.delegate.task.winrm.AuthenticationScheme.NTLM;
 
@@ -24,7 +23,6 @@ import io.harness.delegate.task.winrm.AuthenticationScheme;
 import io.harness.exception.InvalidRequestException;
 
 import software.wings.beans.SettingAttribute;
-import software.wings.beans.WinRmCommandParameter;
 import software.wings.beans.WinRmConnectionAttributes;
 import software.wings.graphql.schema.type.secrets.QLAuthScheme;
 import software.wings.graphql.schema.type.secrets.QLSecretType;
@@ -32,14 +30,11 @@ import software.wings.graphql.schema.type.secrets.QLUsageScope;
 import software.wings.graphql.schema.type.secrets.QLWinRMCredential;
 import software.wings.graphql.schema.type.secrets.QLWinRMCredentialInput;
 import software.wings.graphql.schema.type.secrets.QLWinRMCredentialUpdate;
-import software.wings.graphql.schema.type.secrets.QLWinRmCommandParameter;
 import software.wings.service.intfc.SettingsService;
 import software.wings.service.intfc.security.SecretManager;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import java.util.ArrayList;
-import java.util.List;
 import javax.validation.constraints.NotNull;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -70,36 +65,7 @@ public class WinRMCredentialController {
         .skipCertCheck(winRmConnectionAttributes.isSkipCertChecks())
         .port(winRmConnectionAttributes.getPort())
         .usageScope(usageScopeController.populateUsageScope(settingAttribute.getUsageRestrictions()))
-        .parameters(populateQLCommandParameters(winRmConnectionAttributes.getParameters()))
         .build();
-  }
-
-  private List<QLWinRmCommandParameter> populateQLCommandParameters(List<WinRmCommandParameter> commandParameters) {
-    if (commandParameters == null || isEmpty(commandParameters)) {
-      return null;
-    }
-
-    List<QLWinRmCommandParameter> parameters = new ArrayList<>();
-    for (WinRmCommandParameter parameter : commandParameters) {
-      QLWinRmCommandParameter commandParameter =
-          new QLWinRmCommandParameter(parameter.getParameter(), parameter.getValue());
-      parameters.add(commandParameter);
-    }
-    return parameters;
-  }
-
-  private List<WinRmCommandParameter> populateCommandParameters(List<QLWinRmCommandParameter> commandParameters) {
-    if (commandParameters == null || isEmpty(commandParameters)) {
-      return null;
-    }
-
-    List<WinRmCommandParameter> parameters = new ArrayList<>();
-    for (QLWinRmCommandParameter parameter : commandParameters) {
-      WinRmCommandParameter commandParameter =
-          new WinRmCommandParameter(parameter.getParameter(), parameter.getValue());
-      parameters.add(commandParameter);
-    }
-    return parameters;
   }
 
   private void validateSettingAttribute(QLWinRMCredentialInput winRMCredentialInput, String accountId) {
@@ -137,7 +103,6 @@ public class WinRMCredentialController {
     if (winRMCredentialInput.getPort() != null) {
       port = winRMCredentialInput.getPort();
     }
-    List<WinRmCommandParameter> commandParameters = populateCommandParameters(winRMCredentialInput.getParameters());
     WinRmConnectionAttributes settingValue = WinRmConnectionAttributes.builder()
                                                  .username(winRMCredentialInput.getUserName())
                                                  .password(winRMCredentialInput.getPasswordSecretId().toCharArray())
@@ -147,7 +112,6 @@ public class WinRMCredentialController {
                                                  .accountId(accountId)
                                                  .useSSL(useSSL)
                                                  .domain(domain)
-                                                 .parameters(commandParameters)
                                                  .build();
     settingValue.setSettingType(WINRM_CONNECTION_ATTRIBUTES);
     return SettingAttribute.Builder.aSettingAttribute()
@@ -216,12 +180,6 @@ public class WinRMCredentialController {
       QLUsageScope usageScope = updateInput.getUsageScope().getValue().orElse(null);
       existingWinRMCredential.setUsageRestrictions(
           usageScopeController.populateUsageRestrictions(usageScope, accountId));
-    }
-
-    if (updateInput.getParameters().isPresent()) {
-      List<WinRmCommandParameter> commandParameters =
-          populateCommandParameters(updateInput.getParameters().getValue().orElse(null));
-      settingValue.setParameters(commandParameters);
     }
 
     existingWinRMCredential.setValue(settingValue);
