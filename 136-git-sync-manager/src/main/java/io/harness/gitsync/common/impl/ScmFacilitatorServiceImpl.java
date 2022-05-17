@@ -27,6 +27,7 @@ import io.harness.gitsync.common.dtos.ScmCreateBranchRequestDTO;
 import io.harness.gitsync.common.dtos.ScmCreateFileRequestDTO;
 import io.harness.gitsync.common.dtos.ScmCreatePRRequestDTO;
 import io.harness.gitsync.common.dtos.ScmCreatePRResponseDTO;
+import io.harness.gitsync.common.dtos.ScmGetFileByCommitIdRequestDTO;
 import io.harness.gitsync.common.dtos.ScmGetFileRequestDTO;
 import io.harness.gitsync.common.dtos.ScmGetFileResponseDTO;
 import io.harness.gitsync.common.dtos.ScmUpdateFileRequestDTO;
@@ -260,6 +261,33 @@ public class ScmFacilitatorServiceImpl implements ScmFacilitatorService {
     }
 
     return;
+  }
+
+  @Override
+  public ScmGetFileResponseDTO getFileByCommitId(ScmGetFileByCommitIdRequestDTO scmGetFileByCommitIdRequestDTO) {
+    Scope scope = scmGetFileByCommitIdRequestDTO.getScope();
+
+    ScmConnector scmConnector = gitSyncConnectorHelper.getScmConnectorForGivenRepo(scope.getAccountIdentifier(),
+        scope.getOrgIdentifier(), scope.getProjectIdentifier(), scmGetFileByCommitIdRequestDTO.getConnectorRef(),
+        scmGetFileByCommitIdRequestDTO.getRepoName());
+
+    FileContent fileContent = scmOrchestratorService.processScmRequestUsingConnectorSettings(scmClientFacilitatorService
+        -> scmClientFacilitatorService.getFile(scope.getAccountIdentifier(), scope.getOrgIdentifier(),
+            scope.getProjectIdentifier(), scmGetFileByCommitIdRequestDTO.getConnectorRef(),
+            scmGetFileByCommitIdRequestDTO.getRepoName(), null, scmGetFileByCommitIdRequestDTO.getFilePath(),
+            scmGetFileByCommitIdRequestDTO.getCommitId()),
+        scmConnector);
+
+    if (isFailureResponse(fileContent.getStatus())) {
+      ScmApiErrorHandlingHelper.processAndThrowError(
+          ScmApis.GET_FILE, scmConnector.getConnectorType(), fileContent.getStatus(), fileContent.getError());
+    }
+
+    return ScmGetFileResponseDTO.builder()
+        .fileContent(fileContent.getContent())
+        .blobId(fileContent.getBlobId())
+        .commitId(fileContent.getCommitId())
+        .build();
   }
 
   @Override
