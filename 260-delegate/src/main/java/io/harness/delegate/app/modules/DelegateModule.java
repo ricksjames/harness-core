@@ -829,14 +829,7 @@ public class DelegateModule extends AbstractModule {
         new ThreadFactoryBuilder().setNameFormat("jenkins-%d").setPriority(Thread.NORM_PRIORITY).build());
   }
 
-  @Provides
-  @Singleton
-  @Named("perpetualTaskExecutor")
-  public ExecutorService perpetualTaskExecutor() {
-    return ThreadPool.create(10, 40, 1, TimeUnit.SECONDS,
-        new ThreadFactoryBuilder().setNameFormat("perpetual-task-%d").setPriority(Thread.NORM_PRIORITY).build());
-  }
-
+  // TODO: I dont think we need to club this pool also (remove comment before merging)
   @Provides
   @Singleton
   @Named("perpetualTaskTimeoutExecutor")
