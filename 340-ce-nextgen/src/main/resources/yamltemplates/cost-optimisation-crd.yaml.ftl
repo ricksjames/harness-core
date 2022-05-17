@@ -405,8 +405,8 @@ metadata:
   name: harness-autostopping-enforcement
   namespace: harness-autostopping
 data:
-  is_active: false
+  is_active: 'false'
   dry_run: enabled
   excluded_namespaces: '[]'
-  notifications_enabled: false
+  notifications_enabled: 'false'
   notifications_usergroups: '[]'
