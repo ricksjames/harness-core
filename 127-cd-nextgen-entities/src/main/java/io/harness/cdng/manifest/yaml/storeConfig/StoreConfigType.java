@@ -27,8 +27,10 @@ public enum StoreConfigType {
   @JsonProperty(ManifestStoreType.HTTP) HTTP(ManifestStoreType.HTTP),
   @JsonProperty(ManifestStoreType.S3) S3(ManifestStoreType.S3),
   @JsonProperty(ManifestStoreType.GCS) GCS(ManifestStoreType.GCS),
+  @JsonProperty(ManifestStoreType.INLINE) INLINE(ManifestStoreType.INLINE),
   @JsonProperty(ManifestStoreType.ARTIFACTORY) ARTIFACTORY(ManifestStoreType.ARTIFACTORY),
-  @JsonProperty("Harness") HARNESS(HARNESS_STORE_KIND);
+  @JsonProperty(ManifestStoreType.S3URL) S3URL(ManifestStoreType.S3URL),
+  @JsonProperty(HARNESS_STORE_KIND) HARNESS(HARNESS_STORE_KIND);
   private final String displayName;
 
   StoreConfigType(String displayName) {
