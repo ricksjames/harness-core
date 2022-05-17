@@ -9,6 +9,7 @@ package software.wings.scim;
 
 import static io.harness.annotations.dev.HarnessModule._360_CG_MANAGER;
 import static io.harness.annotations.dev.HarnessTeam.PL;
+import static io.harness.beans.FeatureName.SCIM_OKTA_DEBUG;
 import static io.harness.data.structure.EmptyPredicate.isEmpty;
 import static io.harness.data.structure.EmptyPredicate.isNotEmpty;
 import static io.harness.exception.WingsException.GROUP;
@@ -18,6 +19,7 @@ import io.harness.annotations.dev.TargetModule;
 import io.harness.exception.InvalidRequestException;
 import io.harness.exception.UnauthorizedException;
 import io.harness.exception.WingsException;
+import io.harness.ff.FeatureFlagService;
 import io.harness.scim.Member;
 import io.harness.scim.PatchOperation;
 import io.harness.scim.PatchRequest;
@@ -190,6 +192,9 @@ public class ScimGroupServiceImpl implements ScimGroupService {
 
   @Override
   public Response updateGroup(String groupId, String accountId, PatchRequest patchRequest) {
+    log.info("Patch Request Logging\n Operations {}\n, Schemas {}\n,External Id {}\n, Meta {}",
+        patchRequest.getOperations().toString(), patchRequest.getSchemas().toString(), patchRequest.getExternalId(),
+        patchRequest.getMeta());
     UserGroup existingGroup = userGroupService.get(accountId, groupId);
 
     if (existingGroup == null) {
