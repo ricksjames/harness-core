@@ -109,7 +109,7 @@ public class ScmDelegateFacilitatorServiceImpl extends AbstractScmClientFacilita
   private SecretManagerClientService secretManagerClientService;
   private DelegateGrpcClientWrapper delegateGrpcClientWrapper;
   private GitSyncConnectorHelper gitSyncConnectorHelper;
-  private String errorMessage =
+  private String errorFormat =
       "Unexpected error occurred while doing scm operation for %s for accountId [%s], orgId [%s], projectId [%s]";
 
   @Inject
@@ -205,16 +205,10 @@ public class ScmDelegateFacilitatorServiceImpl extends AbstractScmClientFacilita
         scope.getAccountIdentifier(), scope.getOrgIdentifier(), scope.getProjectIdentifier(), decryptedConnector);
     ScmPRTaskParams scmPRTaskParams = ScmPRTaskParams.builder()
                                           .scmConnector(decryptedConnector)
-                                          .gitPRCreateRequest(GitPRCreateRequest.builder()
-                                                                  .accountIdentifier(scope.getAccountIdentifier())
-                                                                  .orgIdentifier(scope.getOrgIdentifier())
-                                                                  .projectIdentifier(scope.getProjectIdentifier())
-                                                                  .sourceBranch(sourceBranch)
-                                                                  .targetBranch(targetBranch)
-                                                                  .title(title)
-                                                                  .isGitXSimplificationFlow(true)
-                                                                  .build())
-                                          .gitPRTaskType(GitPRTaskType.CREATE_PR)
+            .sourceBranchName(sourceBranch)
+            .targetBranchName(targetBranch)
+            .prTitle(title)
+                                          .gitPRTaskType(GitPRTaskType.CREATE_PR_V2)
                                           .encryptedDataDetails(encryptionDetails)
                                           .build();
     final Map<String, String> ngTaskSetupAbstractionsWithOwner = getNGTaskSetupAbstractionsWithOwner(
@@ -619,7 +613,7 @@ public class ScmDelegateFacilitatorServiceImpl extends AbstractScmClientFacilita
     final List<EncryptedDataDetail> encryptionDetails = getEncryptedDataDetails(infoForGitPush.getAccountId(),
         infoForGitPush.getOrgIdentifier(), infoForGitPush.getProjectIdentifier(), scmConnector);
     final ScmGitRefTaskParams scmGitRefTaskParams = ScmGitRefTaskParams.builder()
-                                                        .gitRefType(GitRefType.CREATE_NEW_BRANCH)
+                                                        .gitRefType(GitRefType.CREATE_BRANCH)
                                                         .scmConnector(scmConnector)
                                                         .encryptedDataDetails(encryptionDetails)
                                                         .branch(infoForGitPush.getBranch())
@@ -633,7 +627,7 @@ public class ScmDelegateFacilitatorServiceImpl extends AbstractScmClientFacilita
     try {
       return CreateBranchResponse.parseFrom(scmGitRefTaskResponseData.getCreateBranchResponse());
     } catch (InvalidProtocolBufferException e) {
-      String errorMsg = String.format(errorMessage, "create branch", infoForGitPush.getAccountId(),
+      String errorMsg = String.format(errorFormat, "create branch", infoForGitPush.getAccountId(),
           infoForGitPush.getOrgIdentifier(), infoForGitPush.getProjectIdentifier());
       log.error(errorMsg, e);
       throw new UnexpectedException(errorMsg);
@@ -659,7 +653,7 @@ public class ScmDelegateFacilitatorServiceImpl extends AbstractScmClientFacilita
       return GetUserReposResponse.parseFrom(scmGitRefTaskResponseData.getGetUserReposResponse());
     } catch (InvalidProtocolBufferException e) {
       String errorMsg =
-          String.format(errorMessage, "listing repos", accountIdentifier, orgIdentifier, projectIdentifier);
+          String.format(errorFormat, "listing repos", accountIdentifier, orgIdentifier, projectIdentifier);
       log.error(errorMsg, e);
       throw new UnexpectedException(errorMsg);
     }
@@ -685,7 +679,7 @@ public class ScmDelegateFacilitatorServiceImpl extends AbstractScmClientFacilita
           scmGitRefTaskResponseData.getGetListBranchesWithDefaultResponse());
     } catch (InvalidProtocolBufferException e) {
       String errorMsg =
-          String.format(errorMessage, "listing branches", accountIdentifier, orgIdentifier, projectIdentifier);
+          String.format(errorFormat, "listing branches", accountIdentifier, orgIdentifier, projectIdentifier);
       log.error(errorMsg, e);
       throw new UnexpectedException(errorMsg);
     }
@@ -714,7 +708,33 @@ public class ScmDelegateFacilitatorServiceImpl extends AbstractScmClientFacilita
       return GetUserRepoResponse.parseFrom(scmGitRefTaskResponseData.getGetUserRepoResponse());
     } catch (InvalidProtocolBufferException e) {
       String errorMsg =
-              String.format(errorMessage, "getting repo details", accountIdentifier, orgIdentifier, projectIdentifier);
+          String.format(errorFormat, "getting repo details", accountIdentifier, orgIdentifier, projectIdentifier);
+      log.error(errorMsg, e);
+      throw new UnexpectedException(errorMsg);
+    }
+  }
+
+  @Override
+  public CreateBranchResponse createNewBranch(
+      Scope scope, ScmConnector scmConnector, String newBranchName, String baseBranchName) {
+    final List<EncryptedDataDetail> encryptionDetails = getEncryptedDataDetails(
+        scope.getAccountIdentifier(), scope.getOrgIdentifier(), scope.getProjectIdentifier(), scmConnector);
+    final ScmGitRefTaskParams scmGitRefTaskParams = ScmGitRefTaskParams.builder()
+                                                        .gitRefType(GitRefType.CREATE_BRANCH_V2)
+                                                        .scmConnector(scmConnector)
+                                                        .encryptedDataDetails(encryptionDetails)
+                                                        .branch(newBranchName)
+                                                        .baseBranch(baseBranchName)
+                                                        .build();
+    DelegateTaskRequest delegateTaskRequest = getDelegateTaskRequest(scope.getAccountIdentifier(),
+        scope.getOrgIdentifier(), scope.getProjectIdentifier(), scmGitRefTaskParams, TaskType.SCM_GIT_REF_TASK);
+    final DelegateResponseData delegateResponseData = executeDelegateSyncTask(delegateTaskRequest);
+    ScmGitRefTaskResponseData scmGitRefTaskResponseData = (ScmGitRefTaskResponseData) delegateResponseData;
+    try {
+      return CreateBranchResponse.parseFrom(scmGitRefTaskResponseData.getCreateBranchResponse());
+    } catch (InvalidProtocolBufferException e) {
+      String errorMsg = String.format(errorFormat, "create branch", scope.getAccountIdentifier(),
+          scope.getOrgIdentifier(), scope.getProjectIdentifier());
       log.error(errorMsg, e);
       throw new UnexpectedException(errorMsg);
     }
