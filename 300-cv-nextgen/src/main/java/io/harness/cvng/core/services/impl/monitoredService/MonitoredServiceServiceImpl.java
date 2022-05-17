@@ -55,6 +55,7 @@ import io.harness.cvng.core.beans.params.TimeRangeParams;
 import io.harness.cvng.core.beans.params.filterParams.LiveMonitoringLogAnalysisFilter;
 import io.harness.cvng.core.beans.params.filterParams.TimeSeriesAnalysisFilter;
 import io.harness.cvng.core.beans.params.logsFilterParams.LiveMonitoringLogsFilter;
+import io.harness.cvng.core.beans.template.TemplateDTO;
 import io.harness.cvng.core.entities.CVConfig;
 import io.harness.cvng.core.entities.MonitoredService;
 import io.harness.cvng.core.entities.MonitoredService.MonitoredServiceKeys;
@@ -74,6 +75,8 @@ import io.harness.cvng.dashboard.services.api.LogDashboardService;
 import io.harness.cvng.dashboard.services.api.TimeSeriesDashboardService;
 import io.harness.cvng.notification.beans.NotificationRuleRef;
 import io.harness.cvng.notification.beans.NotificationRuleRefDTO;
+import io.harness.cvng.notification.beans.NotificationRuleResponse;
+import io.harness.cvng.notification.channelDetails.CVNGNotificationChannel;
 import io.harness.cvng.notification.entities.MonitoredServiceNotificationRule;
 import io.harness.cvng.notification.entities.MonitoredServiceNotificationRule.MonitoredServiceChangeImpactCondition;
 import io.harness.cvng.notification.entities.MonitoredServiceNotificationRule.MonitoredServiceChangeObservedCondition;
@@ -221,19 +224,19 @@ public class MonitoredServiceServiceImpl implements MonitoredServiceService {
 
   @Override
   public MonitoredServiceResponse createFromYaml(ProjectParams projectParams, String yaml) {
-    MonitoredServiceDTO monitoredServiceDTO = getExpandedMonitoredServiceYaml(projectParams, yaml);
+    MonitoredServiceDTO monitoredServiceDTO = getExpandedMonitoredServiceFromYaml(projectParams, yaml);
     return create(projectParams.getAccountIdentifier(), monitoredServiceDTO);
   }
 
   @Override
   public MonitoredServiceResponse updateFromYaml(ProjectParams projectParams, String identifier, String yaml) {
-    MonitoredServiceDTO monitoredServiceDTO = getExpandedMonitoredServiceYaml(projectParams, yaml);
+    MonitoredServiceDTO monitoredServiceDTO = getExpandedMonitoredServiceFromYaml(projectParams, yaml);
     monitoredServiceDTO.setIdentifier(identifier);
     return update(projectParams.getAccountIdentifier(), monitoredServiceDTO);
   }
 
   @SneakyThrows
-  private MonitoredServiceDTO getExpandedMonitoredServiceYaml(ProjectParams projectParams, String yaml) {
+  private MonitoredServiceDTO getExpandedMonitoredServiceFromYaml(ProjectParams projectParams, String yaml) {
     String templateResolvedYaml = templateFacade.resolveYaml(projectParams, yaml);
     MonitoredServiceYamlExpressionEvaluator yamlExpressionEvaluator =
         new MonitoredServiceYamlExpressionEvaluator(templateResolvedYaml);
@@ -346,6 +349,11 @@ public class MonitoredServiceServiceImpl implements MonitoredServiceService {
                                                         .map(changeSource -> changeSource.getIdentifier())
                                                         .collect(Collectors.toList());
       updateOperations.set(MonitoredServiceKeys.changeSourceIdentifiers, updatedChangeSourceIdentifiers);
+    }
+    if (monitoredServiceDTO.getTemplate() != null) {
+      updateOperations.set(MonitoredServiceKeys.templateIdentifier, monitoredServiceDTO.getTemplate().getTemplateRef());
+      updateOperations.set(
+          MonitoredServiceKeys.templateVersionLabel, monitoredServiceDTO.getTemplate().getVersionLabel());
     }
     ProjectParams projectParams = ProjectParams.builder()
                                       .accountIdentifier(monitoredService.getAccountId())
@@ -481,6 +489,12 @@ public class MonitoredServiceServiceImpl implements MonitoredServiceService {
             .type(monitoredServiceEntity.getType())
             .description(monitoredServiceEntity.getDesc())
             .tags(TagMapper.convertToMap(monitoredServiceEntity.getTags()))
+            .template(StringUtils.isNotEmpty(monitoredServiceEntity.getTemplateIdentifier())
+                    ? TemplateDTO.builder()
+                          .templateRef(monitoredServiceEntity.getTemplateIdentifier())
+                          .versionLabel(monitoredServiceEntity.getTemplateVersionLabel())
+                          .build()
+                    : null)
             .sources(
                 Sources.builder()
                     .healthSources(healthSourceService.get(monitoredServiceEntity.getAccountId(),
@@ -786,6 +800,10 @@ public class MonitoredServiceServiceImpl implements MonitoredServiceService {
             .notificationRuleRefs(
                 notificationRuleService.getNotificationRuleRefs(monitoredServiceDTO.getNotificationRuleRefs()))
             .build();
+    if (monitoredServiceDTO.getTemplate() != null) {
+      monitoredServiceEntity.setTemplateIdentifier(monitoredServiceDTO.getTemplate().getTemplateRef());
+      monitoredServiceEntity.setTemplateVersionLabel(monitoredServiceDTO.getTemplate().getVersionLabel());
+    }
     if (monitoredServiceDTO.getSources() != null) {
       monitoredServiceEntity.setHealthSourceIdentifiers(monitoredServiceDTO.getSources()
                                                             .getHealthSources()
@@ -1442,7 +1460,7 @@ public class MonitoredServiceServiceImpl implements MonitoredServiceService {
           CVNGNotificationChannel notificationChannel = notificationRule.getNotificationMethod();
           String templateId = getNotificationTemplateId(notificationRule.getType(), notificationChannel.getType());
           NotificationResult notificationResult =
-              notificationClient.sendNotificationAsync(notificationChannel.toNotificationChannel(
+              notificationClient.sendNotificationAsync(notificationChannel.getSpec().toNotificationChannel(
                   monitoredService.getAccountId(), monitoredService.getOrgIdentifier(),
                   monitoredService.getProjectIdentifier(), templateId, templateData));
           log.info("Notification with Notification ID {} sent", notificationResult.getNotificationId());
@@ -1451,6 +1469,29 @@ public class MonitoredServiceServiceImpl implements MonitoredServiceService {
       }
     }
     updateNotificationRuleRefInMonitoredService(monitoredService, new ArrayList<>(notificationRuleRefsWithChange));
+  }
+
+  @Override
+  public PageResponse<NotificationRuleResponse> getNotificationRules(
+      ProjectParams projectParams, String monitoredServiceIdentifier, PageParams pageParams) {
+    MonitoredService monitoredService =
+        getMonitoredService(MonitoredServiceParams.builderWithProjectParams(projectParams)
+                                .monitoredServiceIdentifier(monitoredServiceIdentifier)
+                                .build());
+    List<NotificationRuleRef> notificationRuleRefList = monitoredService.getNotificationRuleRefs();
+    List<NotificationRuleResponse> notificationRuleResponseList =
+        notificationRuleService.getNotificationRuleResponse(projectParams, notificationRuleRefList);
+    PageResponse<NotificationRuleResponse> notificationRulePageResponse =
+        PageUtils.offsetAndLimit(notificationRuleResponseList, pageParams.getPage(), pageParams.getSize());
+
+    return PageResponse.<NotificationRuleResponse>builder()
+        .pageSize(pageParams.getSize())
+        .pageIndex(pageParams.getPage())
+        .totalPages(notificationRulePageResponse.getTotalPages())
+        .totalItems(notificationRulePageResponse.getTotalItems())
+        .pageItemCount(notificationRulePageResponse.getPageItemCount())
+        .content(notificationRulePageResponse.getContent())
+        .build();
   }
 
   @Override
