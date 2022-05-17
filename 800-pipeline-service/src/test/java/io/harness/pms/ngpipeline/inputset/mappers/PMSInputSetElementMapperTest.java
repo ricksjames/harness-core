@@ -19,6 +19,7 @@ import io.harness.ng.core.common.beans.NGTag;
 import io.harness.ng.core.mapper.TagMapper;
 import io.harness.pms.inputset.InputSetErrorWrapperDTOPMS;
 import io.harness.pms.ngpipeline.inputset.beans.entity.InputSetEntity;
+import io.harness.pms.ngpipeline.inputset.beans.resource.InputSetByIDResponseDTO;
 import io.harness.pms.ngpipeline.inputset.beans.resource.InputSetResponseDTOPMS;
 import io.harness.pms.ngpipeline.inputset.beans.resource.InputSetSummaryResponseDTOPMS;
 import io.harness.pms.ngpipeline.overlayinputset.beans.resource.OverlayInputSetResponseDTOPMS;
@@ -94,6 +95,59 @@ public class PMSInputSetElementMapperTest extends CategoryTest {
     assertThat(entity.getDescription()).isEqualTo("this is an overlay input set");
     assertThat(entity.getTags()).isEqualTo(tagsList);
     assertThat(entity.getInputSetReferences()).isEqualTo(references);
+  }
+
+  @Test
+  @Owner(developers = NAMAN)
+  @Category(UnitTests.class)
+  public void testToInputSetByIDResponseDTOForInputSet() {
+    InputSetEntity entity = PMSInputSetElementMapper.toInputSetEntity(
+        ACCOUNT_ID, ORG_IDENTIFIER, PROJ_IDENTIFIER, PIPELINE_IDENTIFIER, inputSetYaml);
+    InputSetByIDResponseDTO inputSetByIDResponseDTO = PMSInputSetElementMapper.toInputSetByIDResponseDTO(entity);
+    InputSetResponseDTOPMS inputSetResponseDTOPMS = inputSetByIDResponseDTO.getInputSetResponse();
+    assertThat(inputSetResponseDTOPMS.isErrorResponse()).isFalse();
+    assertThat(inputSetResponseDTOPMS.getInputSetErrorWrapper()).isNull();
+
+    assertThat(inputSetResponseDTOPMS.getAccountId()).isEqualTo(ACCOUNT_ID);
+    assertThat(inputSetResponseDTOPMS.getOrgIdentifier()).isEqualTo(ORG_IDENTIFIER);
+    assertThat(inputSetResponseDTOPMS.getProjectIdentifier()).isEqualTo(PROJ_IDENTIFIER);
+    assertThat(inputSetResponseDTOPMS.getPipelineIdentifier()).isEqualTo(PIPELINE_IDENTIFIER);
+
+    Map<String, String> tags = new LinkedHashMap<>();
+    tags.put("company", "harness");
+    tags.put("kind", "normal");
+    assertThat(inputSetResponseDTOPMS.getIdentifier()).isEqualTo("input1");
+    assertThat(inputSetResponseDTOPMS.getName()).isEqualTo("this name");
+    assertThat(inputSetResponseDTOPMS.getDescription()).isEqualTo("this has a description too");
+    assertThat(inputSetResponseDTOPMS.getTags()).isEqualTo(tags);
+  }
+
+  @Test
+  @Owner(developers = NAMAN)
+  @Category(UnitTests.class)
+  public void testToInputSetByIDResponseDTOForOverlayInputSet() {
+    InputSetEntity entity = PMSInputSetElementMapper.toInputSetEntityForOverlay(
+        ACCOUNT_ID, ORG_IDENTIFIER, PROJ_IDENTIFIER, PIPELINE_IDENTIFIER, overlayInputSetYaml);
+    InputSetByIDResponseDTO inputSetByIDResponseDTO = PMSInputSetElementMapper.toInputSetByIDResponseDTO(entity);
+    OverlayInputSetResponseDTOPMS inputSetResponseDTOPMS = inputSetByIDResponseDTO.getOverlayInputSetResponse();
+    assertThat(inputSetResponseDTOPMS.isErrorResponse()).isFalse();
+    assertThat(inputSetResponseDTOPMS.getInvalidInputSetReferences()).isNull();
+
+    assertThat(inputSetResponseDTOPMS.getAccountId()).isEqualTo(ACCOUNT_ID);
+    assertThat(inputSetResponseDTOPMS.getOrgIdentifier()).isEqualTo(ORG_IDENTIFIER);
+    assertThat(inputSetResponseDTOPMS.getProjectIdentifier()).isEqualTo(PROJ_IDENTIFIER);
+    assertThat(inputSetResponseDTOPMS.getPipelineIdentifier()).isEqualTo(PIPELINE_IDENTIFIER);
+
+    Map<String, String> tags = new LinkedHashMap<>();
+    tags.put("isOverlaySet", "yes it is");
+    List<String> references = new ArrayList<>();
+    references.add("inputSet2");
+    references.add("inputSet22");
+    assertThat(inputSetResponseDTOPMS.getIdentifier()).isEqualTo("overlay1");
+    assertThat(inputSetResponseDTOPMS.getName()).isEqualTo("thisName");
+    assertThat(inputSetResponseDTOPMS.getDescription()).isEqualTo("this is an overlay input set");
+    assertThat(inputSetResponseDTOPMS.getTags()).isEqualTo(tags);
+    assertThat(inputSetResponseDTOPMS.getInputSetReferences()).isEqualTo(references);
   }
 
   @Test

@@ -138,10 +138,12 @@ public class InputSetResourcePMS {
 
   @GET
   @Path("getById/{inputSetIdentifier}")
-  @ApiOperation(value = "Gets an InputSet by identifier", nickname = "getInputSetForPipeline")
+  @Hidden
+  @ApiOperation(value = "Gets an InputSet by identifier regardless of type", nickname = "getInputSetByIdentifier")
   @NGAccessControlCheck(resourceType = "PIPELINE", permission = PipelineRbacPermissions.PIPELINE_VIEW)
-  @Operation(operationId = "getInputSet",
-      summary = "Gets Input Set for a given identifier. Throws error if no Input Set exists for the given identifier.",
+  @Operation(operationId = "getInputSetByIdentifier",
+      summary =
+          "Gets Input Set/Overlay Input Set for a given identifier. Throws error if no Input Set exists for the given identifier.",
       responses =
       {
         @io.swagger.v3.oas.annotations.responses.
