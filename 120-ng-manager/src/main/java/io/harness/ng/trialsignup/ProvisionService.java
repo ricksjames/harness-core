@@ -17,6 +17,7 @@ import static java.lang.String.format;
 
 import io.harness.account.ProvisionStep;
 import io.harness.account.ProvisionStep.ProvisionStepKeys;
+import io.harness.beans.PageRequestDTO;
 import io.harness.connector.ConnectivityStatus;
 import io.harness.connector.ConnectorDTO;
 import io.harness.connector.ConnectorInfoDTO;
@@ -37,6 +38,7 @@ import io.harness.delegate.beans.connector.scm.ScmConnector;
 import io.harness.exception.InvalidArgumentsException;
 import io.harness.exception.UnexpectedException;
 import io.harness.gitsync.common.helper.GitSyncConnectorHelper;
+import io.harness.gitsync.common.service.ScmOrchestratorService;
 import io.harness.network.Http;
 import io.harness.ng.NextGenConfiguration;
 import io.harness.ng.core.api.SecretCrudService;
@@ -78,6 +80,7 @@ public class ProvisionService {
   @Inject @Named(CONNECTOR_DECORATOR_SERVICE) private ConnectorService connectorService;
   @Inject private ScmClient scmClient;
   @Inject private GitSyncConnectorHelper gitSyncConnectorHelper;
+  @Inject private ScmOrchestratorService scmOrchestratorService;
 
   private static final String K8S_CONNECTOR_NAME = "Harness Kubernetes Cluster";
   private static final String K8S_CONNECTOR_DESC =
@@ -341,7 +344,12 @@ public class ProvisionService {
         () -> new InvalidArgumentsException(format("connector %s was not found in account %s", repoRef, accountId)));
     ScmConnector decryptedConnector = gitSyncConnectorHelper.getDecryptedConnector(
         accountId, null, null, (ScmConnector) connector.get().getConnector().getConnectorConfig());
-    return convertToUserRepo(scmClient.getAllUserRepos(decryptedConnector));
+    GetUserReposResponse getUserRepoResponse =
+        scmOrchestratorService.processScmRequestUsingConnectorSettings(scmClientFacilitatorService
+            -> scmClientFacilitatorService.listUserRepos(accountId, orgIdentifier, projectIdentifier,
+                decryptedConnector, PageRequestDTO.builder().fetchAll(true).build()),
+            decryptedConnector);
+    return convertToUserRepo(getUserRepoResponse);
   }
 
   private List<UserRepoResponse> convertToUserRepo(GetUserReposResponse allUserRepos) {

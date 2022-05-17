@@ -129,8 +129,6 @@ public interface ScmServiceClient {
   GetUserReposResponse getUserRepos(
       ScmConnector scmConnector, PageRequestDTO pageRequest, SCMGrpc.SCMBlockingStub scmBlockingStub);
 
-  GetUserReposResponse getAllUserRepos(ScmConnector scmConnector, SCMGrpc.SCMBlockingStub scmBlockingStub);
-
   FindPRResponse findPR(ScmConnector scmConnector, long number, SCMGrpc.SCMBlockingStub scmBlockingStub);
 
   FindCommitResponse findCommit(ScmConnector scmConnector, String commitId, SCMGrpc.SCMBlockingStub scmBlockingStub);

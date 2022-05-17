@@ -99,6 +99,4 @@ public interface ScmClient {
   GetUserReposResponse getUserRepos(ScmConnector scmConnector, PageRequestDTO pageRequest);
 
   GetUserRepoResponse getRepoDetails(ScmConnector scmConnector);
-
-  GetUserReposResponse getAllUserRepos(ScmConnector scmConnector);
 }
