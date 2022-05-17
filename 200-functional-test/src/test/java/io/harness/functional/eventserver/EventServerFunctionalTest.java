@@ -16,12 +16,14 @@ import io.harness.category.element.FunctionalTests;
 import io.harness.rule.Owner;
 import io.harness.testframework.framework.EventServerExecutor;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
 public class EventServerFunctionalTest extends CategoryTest {
   private static EventServerExecutor eventServerExecutor = new EventServerExecutor();
 
+  @Ignore("TODO: Enable once bazel path issue is sorted out")
   @Test
   @Owner(developers = AVMOHAN)
   @Category(FunctionalTests.class)
