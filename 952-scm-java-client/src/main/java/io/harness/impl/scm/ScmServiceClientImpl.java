@@ -574,7 +574,6 @@ public class ScmServiceClientImpl implements ScmServiceClient {
                                           .build();
     final CreatePRResponse prResponse =
         ScmGrpcClientUtils.retryAndProcessException(scmBlockingStub::createPR, createPRRequest);
-    if (!gitPRCreateRequest.isGitXSimplificationFlow()) {
       try {
         ScmResponseStatusUtils.checkScmResponseStatusAndThrowException(prResponse.getStatus(), prResponse.getError());
       } catch (WingsException e) {
@@ -585,7 +584,6 @@ public class ScmServiceClientImpl implements ScmServiceClient {
           throw new ExplanationException("Failed to create PR", e);
         }
       }
-    }
     return prResponse;
   }
 

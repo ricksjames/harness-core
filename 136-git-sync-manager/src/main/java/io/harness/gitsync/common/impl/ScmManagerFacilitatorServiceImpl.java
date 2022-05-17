@@ -122,16 +122,7 @@ public class ScmManagerFacilitatorServiceImpl extends AbstractScmClientFacilitat
       Scope scope, String connectorRef, String repoName, String sourceBranch, String targetBranch, String title) {
     ScmConnector decryptedConnector = gitSyncConnectorHelper.getDecryptedConnectorForGivenRepo(
         scope.getAccountIdentifier(), scope.getOrgIdentifier(), scope.getProjectIdentifier(), connectorRef, repoName);
-    return scmClient.createPullRequest(decryptedConnector,
-        GitPRCreateRequest.builder()
-            .accountIdentifier(scope.getAccountIdentifier())
-            .orgIdentifier(scope.getOrgIdentifier())
-            .projectIdentifier(scope.getProjectIdentifier())
-            .sourceBranch(sourceBranch)
-            .targetBranch(targetBranch)
-            .title(title)
-            .isGitXSimplificationFlow(true)
-            .build());
+    return scmClient.createPullRequestV2(decryptedConnector, sourceBranch, targetBranch, title);
   }
 
   @Override

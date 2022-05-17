@@ -205,16 +205,10 @@ public class ScmDelegateFacilitatorServiceImpl extends AbstractScmClientFacilita
         scope.getAccountIdentifier(), scope.getOrgIdentifier(), scope.getProjectIdentifier(), decryptedConnector);
     ScmPRTaskParams scmPRTaskParams = ScmPRTaskParams.builder()
                                           .scmConnector(decryptedConnector)
-                                          .gitPRCreateRequest(GitPRCreateRequest.builder()
-                                                                  .accountIdentifier(scope.getAccountIdentifier())
-                                                                  .orgIdentifier(scope.getOrgIdentifier())
-                                                                  .projectIdentifier(scope.getProjectIdentifier())
-                                                                  .sourceBranch(sourceBranch)
-                                                                  .targetBranch(targetBranch)
-                                                                  .title(title)
-                                                                  .isGitXSimplificationFlow(true)
-                                                                  .build())
-                                          .gitPRTaskType(GitPRTaskType.CREATE_PR)
+                                          .sourceBranchName(sourceBranch)
+                                          .targetBranchName(targetBranch)
+                                          .prTitle(title)
+                                          .gitPRTaskType(GitPRTaskType.CREATE_PR_V2)
                                           .encryptedDataDetails(encryptionDetails)
                                           .build();
     final Map<String, String> ngTaskSetupAbstractionsWithOwner = getNGTaskSetupAbstractionsWithOwner(
