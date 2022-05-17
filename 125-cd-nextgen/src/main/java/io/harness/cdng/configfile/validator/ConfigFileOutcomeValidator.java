@@ -8,7 +8,7 @@
 package io.harness.cdng.configfile.validator;
 
 import static io.harness.annotations.dev.HarnessTeam.CDP;
-import static io.harness.cdng.manifest.yaml.harness.HarnessStoreConstants.HARNESS_STORE_KIND;
+import static io.harness.cdng.manifest.yaml.harness.HarnessStoreConstants.HARNESS_STORE_TYPE;
 import static io.harness.common.ParameterFieldHelper.getParameterFieldValue;
 import static io.harness.data.structure.EmptyPredicate.isNotEmpty;
 
@@ -34,7 +34,7 @@ public class ConfigFileOutcomeValidator {
       validateGitStoreConfig(configFileIdentifier, (GitStoreConfig) store, allowExpression);
     }
 
-    if (HARNESS_STORE_KIND.equals(store.getKind())) {
+    if (HARNESS_STORE_TYPE.equals(store.getKind())) {
       validateHarnessStoreConfig(configFileIdentifier, (HarnessStoreConfig) store, allowExpression);
     }
   }

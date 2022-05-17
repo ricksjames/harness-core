@@ -16,5 +16,5 @@ import lombok.experimental.UtilityClass;
 @OwnedBy(CDP)
 @UtilityClass
 public class HarnessStoreConstants {
-  public static final String HARNESS_STORE_KIND = "Harness";
+  public static final String HARNESS_STORE_TYPE = "Harness";
 }

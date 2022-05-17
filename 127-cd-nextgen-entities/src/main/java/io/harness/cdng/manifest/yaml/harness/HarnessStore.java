@@ -8,7 +8,7 @@
 package io.harness.cdng.manifest.yaml.harness;
 
 import static io.harness.annotations.dev.HarnessTeam.CDP;
-import static io.harness.cdng.manifest.yaml.harness.HarnessStoreConstants.HARNESS_STORE_KIND;
+import static io.harness.cdng.manifest.yaml.harness.HarnessStoreConstants.HARNESS_STORE_TYPE;
 
 import io.harness.annotation.RecasterAlias;
 import io.harness.annotations.dev.OwnedBy;
@@ -40,7 +40,7 @@ import org.springframework.data.annotation.TypeAlias;
 @Data
 @Builder
 @EqualsAndHashCode(callSuper = false)
-@JsonTypeName(HARNESS_STORE_KIND)
+@JsonTypeName(HARNESS_STORE_TYPE)
 @SimpleVisitorHelper(helperClass = ConnectorRefExtractorHelper.class)
 @TypeAlias("harnessStore")
 @RecasterAlias("io.harness.cdng.manifest.yaml.harness.HarnessStore")
@@ -67,7 +67,7 @@ public class HarnessStore implements HarnessStoreConfig, Visitable {
 
   @Override
   public String getKind() {
-    return HARNESS_STORE_KIND;
+    return HARNESS_STORE_TYPE;
   }
 
   @Override

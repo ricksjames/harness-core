@@ -1094,6 +1094,95 @@
       },
       "$schema": "http://json-schema.org/draft-07/schema#"
     },
+    "ConfigFile": {
+      "type": "object",
+      "required": [
+        "identifier",
+        "spec"
+      ],
+      "properties": {
+        "identifier": {
+          "type": "string"
+        },
+        "spec": {
+          "$ref": "#/definitions/ConfigFileAttributes"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "ConfigFileAttributeStepParameters": {
+      "type": "object",
+      "properties": {
+        "hostDestination": {
+          "type": "string"
+        },
+        "store": {
+          "$ref": "#/definitions/StoreConfigWrapperParameters"
+        },
+        "type": {
+          "$ref": "#/definitions/ConfigFileType"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "ConfigFileAttributes": {
+      "type": "object",
+      "properties": {
+        "configFileAttributeStepParameters": {
+          "$ref": "#/definitions/ConfigFileAttributeStepParameters"
+        },
+        "fileType": {
+          "$ref": "#/definitions/ConfigFileType"
+        },
+        "hostDestination": {
+          "type": "string"
+        },
+        "metadata": {
+          "type": "string"
+        },
+        "store": {
+          "$ref": "#/definitions/StoreConfigWrapper"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "ConfigFileOverrideSetWrapper": {
+      "type": "object",
+      "properties": {
+        "overrideSet": {
+          "$ref": "#/definitions/ConfigFileOverrideSets"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "ConfigFileOverrideSets": {
+      "type": "object",
+      "properties": {
+        "configFiles": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ConfigFileWrapper"
+          }
+        },
+        "identifier": {
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "ConfigFileType": {
+      "type": "object",
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "ConfigFileWrapper": {
+      "type": "object",
+      "properties": {
+        "configFile": {
+          "$ref": "#/definitions/ConfigFile"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
     "CountInstanceSelection": {
       "allOf": [
         {
@@ -2135,6 +2224,30 @@
                   "type": "string"
                 }
               ]
+            }
+          }
+        }
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "HarnessStore": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/StoreConfig"
+        },
+        {
+          "type": "object",
+          "required": [
+            "filePath",
+            "fileType"
+          ],
+          "properties": {
+            "filePath": {
+              "type": "string"
+            },
+            "fileType": {
+              "description": "io.harness.cdng.manifest.yaml.configfile.HarnessFileType",
+              "$ref": "#/definitions/ParameterFieldHarnessFileType"
             }
           }
         }
@@ -4266,6 +4379,37 @@
       },
       "$schema": "http://json-schema.org/draft-07/schema#"
     },
+    "ParameterFieldHarnessFileType": {
+      "type": "object",
+      "properties": {
+        "expression": {
+          "type": "boolean"
+        },
+        "expressionValue": {
+          "type": "string"
+        },
+        "inputSetValidator": {
+          "$ref": "#/definitions/InputSetValidator"
+        },
+        "jsonResponseField": {
+          "type": "boolean"
+        },
+        "responseField": {
+          "type": "string"
+        },
+        "typeString": {
+          "type": "boolean"
+        },
+        "value": {
+          "type": "string",
+          "enum": [
+            "FileStore",
+            "Encrypted"
+          ]
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
     "ParameterFieldString": {
       "type": "object",
       "properties": {
@@ -5639,6 +5783,12 @@
         "artifacts": {
           "$ref": "#/definitions/ArtifactListConfig"
         },
+        "configFiles": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ConfigFileWrapper"
+          }
+        },
         "manifests": {
           "type": "array",
           "items": {
@@ -6183,6 +6333,12 @@
       "properties": {
         "artifacts": {
           "$ref": "#/definitions/ArtifactListConfig"
+        },
+        "configFiles": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ConfigFileWrapper"
+          }
         },
         "manifests": {
           "type": "array",
@@ -6927,7 +7083,8 @@
             "Gcs",
             "Inline",
             "Artifactory",
-            "S3Url"
+            "S3Url",
+            "Harness"
           ]
         }
       },
@@ -7033,6 +7190,22 @@
           "if": {
             "properties": {
               "type": {
+                "const": "Harness"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "spec": {
+                "$ref": "#/definitions/HarnessStore"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
                 "const": "Http"
               }
             }
@@ -7094,6 +7267,18 @@
           }
         }
       ]
+    },
+    "StoreConfigWrapperParameters": {
+      "type": "object",
+      "properties": {
+        "spec": {
+          "$ref": "#/definitions/StoreConfig"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
     },
     "StringNGVariable": {
       "allOf": [
@@ -7674,6 +7859,12 @@
               "type": "array",
               "items": {
                 "$ref": "#/definitions/ArtifactOverrideSetWrapper"
+              }
+            },
+            "configFileOverrideSets": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ConfigFileOverrideSetWrapper"
               }
             },
             "manifestOverrideSets": {

@@ -8,7 +8,7 @@
 package io.harness.cdng.configfile.steps;
 
 import static io.harness.annotations.dev.HarnessTeam.CDC;
-import static io.harness.cdng.manifest.yaml.harness.HarnessStoreConstants.HARNESS_STORE_KIND;
+import static io.harness.cdng.manifest.yaml.harness.HarnessStoreConstants.HARNESS_STORE_TYPE;
 import static io.harness.connector.ConnectorModule.DEFAULT_CONNECTOR_SERVICE;
 
 import static java.lang.String.format;
@@ -117,7 +117,7 @@ public class ConfigFileStep implements SyncExecutable<ConfigFileStepParameters> 
     }
 
     String storeKind = storeConfig.getKind();
-    if (HARNESS_STORE_KIND.equals(storeKind)) {
+    if (HARNESS_STORE_TYPE.equals(storeKind)) {
       getFileRef(configFileIdentifier, (HarnessStoreConfig) storeConfig, ambiance);
     } else {
       getConnectorRef(configFileIdentifier, storeConfig, ambiance);
