@@ -39,6 +39,8 @@ import lombok.extern.slf4j.Slf4j;
 @UtilityClass
 @Slf4j
 public class SshSessionFactory {
+  private static final String SSH_NETWORK_PROXY = "SSH_NETWORK_PROXY";
+
   /**
    * Gets the SSH session with jumpbox.
    *
@@ -174,9 +176,13 @@ public class SshSessionFactory {
 
     session.connect(config.getSshConnectionTimeout());
 
-    if (Http.getProxyHostName() != null && !Http.shouldUseNonProxy(config.getHost())) {
-      ProxyHTTP proxyHTTP = getProxy(config, logCallback);
-      session.setProxy(proxyHTTP);
+    final String ssh_network_proxy = System.getenv(SSH_NETWORK_PROXY);
+    boolean enableProxy = "true".equals(ssh_network_proxy);
+    if (enableProxy) {
+      if (Http.getProxyHostName() != null && !Http.shouldUseNonProxy(config.getHost())) {
+        ProxyHTTP proxyHTTP = getProxy(config, logCallback);
+        session.setProxy(proxyHTTP);
+      }
     }
 
     return session;
