@@ -44,9 +44,11 @@ import io.harness.ccm.service.intf.AWSOrganizationHelperService;
 import io.harness.ccm.views.businessMapping.service.impl.BusinessMappingServiceImpl;
 import io.harness.ccm.views.businessMapping.service.intf.BusinessMappingService;
 import io.harness.ccm.views.service.CEViewService;
+import io.harness.ccm.views.service.CEViewFolderService;
 import io.harness.ccm.views.service.ViewCustomFieldService;
 import io.harness.ccm.views.service.ViewsBillingService;
 import io.harness.ccm.views.service.impl.CEViewServiceImpl;
+import io.harness.ccm.views.service.impl.CEViewFolderServiceImpl;
 import io.harness.ccm.views.service.impl.ViewCustomFieldServiceImpl;
 import io.harness.ccm.views.service.impl.ViewsBillingServiceImpl;
 import io.harness.connector.ConnectorResourceClientModule;
@@ -151,6 +153,7 @@ public class BatchProcessingModule extends AbstractModule {
     bind(BudgetCostService.class).to(BudgetCostServiceImpl.class);
     bind(EntityMetadataService.class).to(EntityMetadataServiceImpl.class);
     bind(BudgetService.class).to(BudgetServiceImpl.class);
+    bind(CEViewFolderService.class).to(CEViewFolderServiceImpl.class);
 
     install(new MetricsModule());
     bind(MetricsPublisher.class).to(BatchProcessingMetricsPublisher.class).in(Scopes.SINGLETON);
@@ -167,10 +170,10 @@ public class BatchProcessingModule extends AbstractModule {
     final BanzaiConfig banzaiConfig = batchMainConfig.getBanzaiConfig();
     final String pricingServiceUrl = String.format("%s:%s/", banzaiConfig.getHost(), banzaiConfig.getPort());
     final ServiceHttpClientConfig httpClientConfig = ServiceHttpClientConfig.builder()
-                                                         .baseUrl(pricingServiceUrl)
-                                                         .connectTimeOutSeconds(120)
-                                                         .readTimeOutSeconds(120)
-                                                         .build();
+        .baseUrl(pricingServiceUrl)
+        .connectTimeOutSeconds(120)
+        .readTimeOutSeconds(120)
+        .build();
 
     install(new CloudInfoPricingClientModule(httpClientConfig));
   }
