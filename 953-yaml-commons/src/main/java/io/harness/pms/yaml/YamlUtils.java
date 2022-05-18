@@ -441,6 +441,9 @@ public class YamlUtils {
 
   private YamlField getMatchingFieldNameFromParentUsingUUID(YamlNode parent, String uuid) {
     for (YamlField field : parent.fields()) {
+      if (parent.getField(field.getName()) == null) {
+        continue;
+      }
       if (uuid.equals(parent.getField(field.getName()).getNode().getUuid())) {
         return field;
       }
@@ -458,8 +461,7 @@ public class YamlUtils {
   }
 
   public String writeYamlString(YamlField yamlField) throws IOException {
-    String json = yamlField.getNode().toString();
-    JsonNode jsonNode = mapper.readTree(json);
+    JsonNode jsonNode = yamlField.getNode().getCurrJsonNode();
     return mapper.writeValueAsString(jsonNode);
   }
 
