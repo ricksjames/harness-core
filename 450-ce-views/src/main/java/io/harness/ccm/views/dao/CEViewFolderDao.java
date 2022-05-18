@@ -13,6 +13,7 @@ import io.harness.ccm.views.entities.CEViewFolder;
 import io.harness.ccm.views.entities.CEViewFolder.CEViewFolderKeys;
 import io.harness.persistence.HPersistence;
 import lombok.extern.slf4j.Slf4j;
+import org.bson.types.ObjectId;
 import org.mongodb.morphia.query.Query;
 import org.mongodb.morphia.query.UpdateOperations;
 
@@ -39,7 +40,7 @@ public class CEViewFolderDao {
         .field(CEViewFolderKeys.accountId)
         .equal(accountId)
         .field(CEViewFolderKeys.uuid)
-        .equal(uuid);
+        .equal(new ObjectId(uuid));
 
     UpdateOperations<CEViewFolder> updateOperations =
         hPersistence.createUpdateOperations(CEViewFolder.class).set(CEViewFolderKeys.name, newName);
@@ -52,7 +53,7 @@ public class CEViewFolderDao {
         .field(CEViewFolderKeys.accountId)
         .equal(accountId)
         .field(CEViewFolderKeys.uuid)
-        .equal(uuid);
+        .equal(new ObjectId(uuid));
 
     UpdateOperations<CEViewFolder> updateOperations =
         hPersistence.createUpdateOperations(CEViewFolder.class).set(CEViewFolderKeys.pinned, pinStatus);
@@ -65,7 +66,7 @@ public class CEViewFolderDao {
         .field(CEViewFolderKeys.accountId)
         .equal(accountId)
         .field(CEViewFolderKeys.uuid)
-        .equal(uuid);
+        .equal(new ObjectId(uuid));
     return hPersistence.delete(query);
   }
 }
