@@ -87,11 +87,11 @@ public class SshWinRmAwsInfrastructure implements Infrastructure, Visitable, Wit
   @Wither
   ParameterField<String> hostNameConvention;
 
-  @ApiModelProperty(dataType = SwaggerConstants.BOOLEAN_CLASSPATH) ParameterField<Boolean> useAutoScalingGroup;
+  @ApiModelProperty(dataType = SwaggerConstants.BOOLEAN_CLASSPATH) @Wither ParameterField<Boolean> useAutoScalingGroup;
 
   @ApiModelProperty(dataType = SwaggerConstants.STRING_CLASSPATH) @Wither ParameterField<String> autoScalingGroupName;
 
-  AwsInstanceFilter awsInstanceFilter;
+  @Wither AwsInstanceFilter awsInstanceFilter;
 
   @YamlSchemaTypes({runtime})
   @ApiModelProperty(dataType = SwaggerConstants.STRING_LIST_CLASSPATH)
@@ -140,12 +140,31 @@ public class SshWinRmAwsInfrastructure implements Infrastructure, Visitable, Wit
     if (!ParameterField.isNull(config.getConnectorRef())) {
       resultantInfra = resultantInfra.withConnectorRef(config.getConnectorRef());
     }
+    if (!ParameterField.isNull(config.getCredentialsRef())) {
+      resultantInfra = resultantInfra.withCredentialsRef(config.getCredentialsRef());
+    }
     if (!ParameterField.isNull(config.getRegion())) {
       resultantInfra = resultantInfra.withRegion(config.getRegion());
     }
     if (!ParameterField.isNull(config.getLoadBalancer())) {
       resultantInfra = resultantInfra.withLoadBalancer(config.getLoadBalancer());
     }
+    if (!ParameterField.isNull(config.getHostNameConvention())) {
+      resultantInfra = resultantInfra.withHostNameConvention(config.getHostNameConvention());
+    }
+    if (!ParameterField.isNull(config.getUseAutoScalingGroup())) {
+      resultantInfra = resultantInfra.withUseAutoScalingGroup(config.getUseAutoScalingGroup());
+    }
+    if (!ParameterField.isNull(config.getAutoScalingGroupName())) {
+      resultantInfra = resultantInfra.withAutoScalingGroupName(config.getAutoScalingGroupName());
+    }
+    if (config.getAwsInstanceFilter() != null) {
+      resultantInfra = resultantInfra.withAwsInstanceFilter(config.getAwsInstanceFilter());
+    }
+    if (!ParameterField.isNull(config.getDelegateSelectors())) {
+      resultantInfra = resultantInfra.withDelegateSelectors(config.getDelegateSelectors());
+    }
+
     return resultantInfra;
   }
 

@@ -506,6 +506,21 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#"
     },
+    "AwsInstanceFilter": {
+      "type": "object",
+      "properties": {
+        "tags": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "vpc": {
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
     "BarrierStepInfo": {
       "allOf": [
         {
@@ -2472,8 +2487,9 @@
             "KubernetesGcp",
             "KubernetesAzure",
             "Pdc",
-            "SshWinRmAzure",
-            "ServerlessAwsLambda"
+            "ServerlessAwsLambda",
+            "SshWinRmAws",
+            "SshWinRmAzure"
           ]
         }
       },
@@ -2555,6 +2571,22 @@
             "properties": {
               "spec": {
                 "$ref": "#/definitions/ServerlessAwsLambdaInfrastructure"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "SshWinRmAws"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "spec": {
+                "$ref": "#/definitions/SshWinRmAwsInfrastructure"
               }
             }
           }
@@ -6359,6 +6391,143 @@
         }
       ],
       "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "SshWinRmAwsInfrastructure": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/Infrastructure"
+        },
+        { }
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "connectorRef",
+            "credentialsRef",
+            "hostNameConvention",
+            "loadBalancer",
+            "region"
+          ],
+          "properties": {
+            "autoScalingGroupName": {
+              "type": "string"
+            },
+            "connectorRef": {
+              "type": "string",
+              "minLength": 1
+            },
+            "credentialsRef": {
+              "type": "string",
+              "minLength": 1
+            },
+            "delegateSelectors": {
+              "oneOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "string",
+                  "pattern": "^<\\+input>(\\.(allowedValues|regex)\\(.+?\\))*$",
+                  "minLength": 1
+                }
+              ]
+            },
+            "hostNameConvention": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "string",
+                  "pattern": "^<\\+input>(\\.(allowedValues|regex)\\(.+?\\))*$",
+                  "minLength": 1
+                }
+              ],
+              "minLength": 1
+            },
+            "loadBalancer": {
+              "type": "string",
+              "minLength": 1
+            },
+            "region": {
+              "type": "string",
+              "minLength": 1
+            },
+            "useAutoScalingGroup": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "connectorRef",
+            "credentialsRef",
+            "hostNameConvention",
+            "loadBalancer",
+            "region"
+          ],
+          "properties": {
+            "awsInstanceFilter": {
+              "$ref": "#/definitions/AwsInstanceFilter"
+            },
+            "connectorRef": {
+              "type": "string",
+              "minLength": 1
+            },
+            "credentialsRef": {
+              "type": "string",
+              "minLength": 1
+            },
+            "delegateSelectors": {
+              "oneOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "string",
+                  "pattern": "^<\\+input>(\\.(allowedValues|regex)\\(.+?\\))*$",
+                  "minLength": 1
+                }
+              ]
+            },
+            "hostNameConvention": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "string",
+                  "pattern": "^<\\+input>(\\.(allowedValues|regex)\\(.+?\\))*$",
+                  "minLength": 1
+                }
+              ],
+              "minLength": 1
+            },
+            "loadBalancer": {
+              "type": "string",
+              "minLength": 1
+            },
+            "region": {
+              "type": "string",
+              "minLength": 1
+            },
+            "useAutoScalingGroup": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
     },
     "StageOverridesConfig": {
       "type": "object",
