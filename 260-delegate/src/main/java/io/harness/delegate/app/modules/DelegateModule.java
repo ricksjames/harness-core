@@ -7,8 +7,18 @@
 
 package io.harness.delegate.app.modules;
 
-import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
-
+import com.google.api.client.auth.oauth2.StoredCredential;
+import com.google.api.client.util.store.DataStore;
+import com.google.api.client.util.store.MemoryDataStoreFactory;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.google.inject.AbstractModule;
+import com.google.inject.Provides;
+import com.google.inject.Singleton;
+import com.google.inject.TypeLiteral;
+import com.google.inject.assistedinject.FactoryModuleBuilder;
+import com.google.inject.multibindings.MapBinder;
+import com.google.inject.name.Named;
+import com.google.inject.name.Names;
 import io.harness.annotations.dev.BreakDependencyOn;
 import io.harness.annotations.dev.HarnessModule;
 import io.harness.annotations.dev.HarnessTeam;
@@ -319,7 +329,11 @@ import io.harness.terragrunt.TerragruntClientImpl;
 import io.harness.threading.ThreadPool;
 import io.harness.time.TimeModule;
 import io.harness.version.VersionModule;
-
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.asynchttpclient.AsyncHttpClient;
+import org.asynchttpclient.DefaultAsyncHttpClient;
+import org.asynchttpclient.DefaultAsyncHttpClientConfig;
 import software.wings.api.DeploymentType;
 import software.wings.beans.AwsConfig;
 import software.wings.beans.AzureConfig;
@@ -471,7 +485,6 @@ import software.wings.helpers.ext.artifactory.ArtifactoryService;
 import software.wings.helpers.ext.artifactory.ArtifactoryServiceImpl;
 import software.wings.helpers.ext.azure.AcrService;
 import software.wings.helpers.ext.azure.AcrServiceImpl;
-import software.wings.helpers.ext.azure.AzureHelperService;
 import software.wings.helpers.ext.azure.devops.AzureArtifactsService;
 import software.wings.helpers.ext.azure.devops.AzureArtifactsServiceImpl;
 import software.wings.helpers.ext.bamboo.BambooService;
@@ -621,18 +634,6 @@ import software.wings.settings.SettingValue;
 import software.wings.utils.HostValidationService;
 import software.wings.utils.HostValidationServiceImpl;
 
-import com.google.api.client.auth.oauth2.StoredCredential;
-import com.google.api.client.util.store.DataStore;
-import com.google.api.client.util.store.MemoryDataStoreFactory;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import com.google.inject.AbstractModule;
-import com.google.inject.Provides;
-import com.google.inject.Singleton;
-import com.google.inject.TypeLiteral;
-import com.google.inject.assistedinject.FactoryModuleBuilder;
-import com.google.inject.multibindings.MapBinder;
-import com.google.inject.name.Named;
-import com.google.inject.name.Names;
 import java.io.IOException;
 import java.time.Clock;
 import java.util.concurrent.ExecutorService;
@@ -641,11 +642,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.asynchttpclient.AsyncHttpClient;
-import org.asynchttpclient.DefaultAsyncHttpClient;
-import org.asynchttpclient.DefaultAsyncHttpClientConfig;
+
+import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 
 @Slf4j
 @TargetModule(HarnessModule._420_DELEGATE_AGENT)
@@ -936,7 +934,6 @@ public class DelegateModule extends AbstractModule {
     bind(AcrService.class).to(AcrServiceImpl.class);
     bind(AcrBuildService.class).to(AcrBuildServiceImpl.class);
     bind(AmiBuildService.class).to(AmiBuildServiceImpl.class);
-    bind(AzureHelperService.class);
     bind(AzureMachineImageBuildService.class).to(AzureMachineImageBuildServiceImpl.class);
     bind(CustomBuildService.class).to(CustomBuildServiceImpl.class);
     bind(CustomRepositoryService.class).to(CustomRepositoryServiceImpl.class);
