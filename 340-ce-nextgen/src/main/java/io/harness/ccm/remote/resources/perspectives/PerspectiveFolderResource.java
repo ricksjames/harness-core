@@ -217,10 +217,10 @@ public class PerspectiveFolderResource {
   @Hidden
   @Timed
   @ExceptionMetered
-  @ApiOperation(value = "Move perspective", nickname = "movePerspective")
+  @ApiOperation(value = "Move perspectives", nickname = "movePerspectives")
   @FeatureRestrictionCheck(FeatureRestrictionName.PERSPECTIVES)
   @LogAccountIdentifier
-  @Operation(operationId = "movePerspective", description = "Move a perspective from a folder to another.",
+  @Operation(operationId = "movePerspectives", description = "Move a perspective from a folder to another.",
       summary = "Move a Perspective",
       responses =
           {
