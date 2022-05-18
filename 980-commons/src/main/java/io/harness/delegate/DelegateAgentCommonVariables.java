@@ -11,6 +11,7 @@ import static io.harness.data.structure.EmptyPredicate.isEmpty;
 
 public class DelegateAgentCommonVariables {
   private static volatile String delegateId;
+  private static volatile String delegateTokenName;
 
   public static void setDelegateId(String registeredDelegateId) {
     delegateId = registeredDelegateId;
@@ -18,5 +19,13 @@ public class DelegateAgentCommonVariables {
 
   public static String getDelegateId() {
     return isEmpty(delegateId) ? "Unregistered" : delegateId;
+  }
+
+  public static void setDelegateTokenName(String tokenName) {
+    delegateTokenName = tokenName;
+  }
+
+  public static String getDelegateTokenName() {
+    return delegateTokenName;
   }
 }

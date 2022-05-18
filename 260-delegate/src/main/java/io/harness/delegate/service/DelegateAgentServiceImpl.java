@@ -721,6 +721,7 @@ public class DelegateAgentServiceImpl implements DelegateAgentService {
               .addParameter("token", tokenGenerator.getToken("https", "localhost", 9090, HOST_NAME))
               .addParameter("sequenceNum", getSequenceNumForEcsDelegate())
               .addParameter("delegateToken", getRandomTokenForEcsDelegate())
+              .addParameter("delegateTokenName", DelegateAgentCommonVariables.getDelegateTokenName())
               .addParameter("version", getVersion());
 
       URI uri = uriBuilder.build();
@@ -1055,7 +1056,11 @@ public class DelegateAgentServiceImpl implements DelegateAgentService {
         continue;
       }
       builder.delegateId(responseDelegateId);
-      log.info("Delegate registered with id {}", responseDelegateId);
+      if (isEmpty(DelegateAgentCommonVariables.getDelegateTokenName())) {
+        DelegateAgentCommonVariables.setDelegateTokenName(delegateResponse.getDelegateTokenName());
+      }
+      log.info("Delegate registered with id {} and delegate token name {}", responseDelegateId,
+          delegateResponse.getDelegateTokenName());
       return responseDelegateId;
     }
 

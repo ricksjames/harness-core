@@ -85,8 +85,8 @@ public class DelegateTokenAuthenticatorImpl implements DelegateTokenAuthenticato
   // we should set global context data only for rest calls, because we unset the global context thread only for rest
   // calls.
   @Override
-  public void validateDelegateToken(
-      String accountId, String tokenString, String delegateId, boolean shouldSetTokenNameInGlobalContext) {
+  public void validateDelegateToken(String accountId, String tokenString, String delegateId, String delegateTokenName,
+      boolean shouldSetTokenNameInGlobalContext) {
     EncryptedJWT encryptedJWT;
     try {
       encryptedJWT = EncryptedJWT.parse(tokenString);
@@ -235,6 +235,12 @@ public class DelegateTokenAuthenticatorImpl implements DelegateTokenAuthenticato
     log.debug("Delegate Token verification for accountId {} and status {} has taken {} milliseconds.", accountId,
         status.name(), time_end);
     return result;
+  }
+
+  // TODO: Implement this function
+  private boolean decryptWithParticularTokenNameFromDB(EncryptedJWT encryptedJWT, String accountId, String delegateId,
+      String delegateTokenName, boolean shouldSetTokenNameInGlobalContext) {
+    return true;
   }
 
   private boolean decryptDelegateTokenByQuery(Query query, String accountId, DelegateTokenStatus status,
