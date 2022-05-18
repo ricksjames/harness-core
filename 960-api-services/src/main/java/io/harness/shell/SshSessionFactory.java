@@ -16,6 +16,7 @@ import static java.util.Collections.emptyMap;
 
 import io.harness.logging.LogCallback;
 import io.harness.logging.NoopExecutionCallback;
+import io.harness.network.Http;
 import io.harness.security.EncryptionUtils;
 import io.harness.ssh.SshHelperUtils;
 
@@ -23,6 +24,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Charsets;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
+import com.jcraft.jsch.ProxyHTTP;
 import com.jcraft.jsch.Session;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -172,7 +174,22 @@ public class SshSessionFactory {
 
     session.connect(config.getSshConnectionTimeout());
 
+    if (Http.getProxyHostName() != null && !Http.shouldUseNonProxy(config.getHost())) {
+      ProxyHTTP proxyHTTP = getProxy(config, logCallback);
+      session.setProxy(proxyHTTP);
+    }
+
     return session;
+  }
+
+  private static ProxyHTTP getProxy(SshSessionConfig config, LogCallback logCallback) {
+    String host = Http.getProxyHostName();
+    String port = Http.getProxyPort();
+
+    ProxyHTTP proxyHTTP = new ProxyHTTP(host, Integer.parseInt(port));
+    proxyHTTP.setUserPasswd(Http.getProxyUserName(), Http.getProxyPassword());
+
+    return proxyHTTP;
   }
 
   @VisibleForTesting
