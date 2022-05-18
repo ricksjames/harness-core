@@ -10,16 +10,34 @@ package io.harness.cdng.configfile;
 import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
 
-import java.util.Arrays;
-import java.util.HashSet;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
 
 @OwnedBy(HarnessTeam.CDP)
-public interface ConfigFileType {
-  String Encrypted = "Encrypted";
-  String LocalFile = "LocalFile";
-  String Remote = "Remote";
+public enum ConfigFileType {
+  LOCAL_FILE("LocalFile"),
+  ENCRYPTED("Encrypted"),
+  REMOTE("Remote");
 
-  static HashSet<String> getAllConfigFileTypes() {
-    return new HashSet<>(Arrays.asList(ConfigFileType.LocalFile, ConfigFileType.LocalFile, ConfigFileType.Remote));
+  ConfigFileType(String value) {
+    this.value = value;
+  }
+
+  private final String value;
+
+  @JsonCreator(mode = JsonCreator.Mode.DELEGATING)
+  public static ConfigFileType fromString(final String value) {
+    for (ConfigFileType type : ConfigFileType.values()) {
+      if (type.toString().equalsIgnoreCase(value)) {
+        return type;
+      }
+    }
+    throw new IllegalArgumentException(String.format("Unrecognized Config File type scope type, value: %s,", value));
+  }
+
+  @JsonValue
+  @Override
+  public String toString() {
+    return this.value;
   }
 }
