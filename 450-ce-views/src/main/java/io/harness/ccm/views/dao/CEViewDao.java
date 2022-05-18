@@ -107,4 +107,32 @@ public class CEViewDao {
         .filter(CEViewKeys.viewType, viewType)
         .count();
   }
+
+  public List<CEView> findByAccountIdAndFolderId(String accountId, String folderId) {
+    return hPersistence.createQuery(CEView.class)
+        .filter(CEViewKeys.accountId, accountId)
+        .filter(CEViewKeys.folderId, folderId)
+        .asList();
+  }
+
+  public CEView movePerspectiveFolder(String accountId, String uuid, String toFolderId) {
+    Query<CEView> query = hPersistence.createQuery(CEView.class)
+        .filter(CEViewKeys.accountId, accountId)
+        .filter(CEViewKeys.uuid, uuid);
+    UpdateOperations<CEView> updateOperations =
+        hPersistence.createUpdateOperations(CEView.class).set(CEViewKeys.folderId, toFolderId);
+    hPersistence.update(query, updateOperations);
+    return query.asList().get(0);
+  }
+  public List<CEView> moveMultiplePerspectiveFolder(String accountId, List<String> uuids, String toFolderId) {
+    Query<CEView> query = hPersistence.createQuery(CEView.class)
+        .field(CEViewKeys.accountId)
+        .equal(accountId)
+        .field(CEViewKeys.uuid)
+        .in(uuids);
+    UpdateOperations<CEView> updateOperations =
+        hPersistence.createUpdateOperations(CEView.class).set(CEViewKeys.folderId, toFolderId);
+    hPersistence.update(query, updateOperations);
+    return query.asList();
+  }
 }
