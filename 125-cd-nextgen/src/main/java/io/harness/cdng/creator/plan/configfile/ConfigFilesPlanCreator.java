@@ -40,6 +40,7 @@ import io.harness.pms.yaml.YamlField;
 import io.harness.serializer.KryoSerializer;
 import io.harness.steps.fork.ForkStepParameters;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Inject;
 import com.google.protobuf.ByteString;
 import java.util.Collections;
@@ -85,8 +86,8 @@ public class ConfigFilesPlanCreator extends ChildrenPlanCreator<ConfigFiles> {
 
     return planCreationResponseMap;
   }
-
-  private void addDependenciesForIndividualConfigFile(final String configFileIdentifier,
+  @VisibleForTesting
+  void addDependenciesForIndividualConfigFile(final String configFileIdentifier,
       ConfigFileStepParameters stepParameters, YamlField configFilesYamlField,
       LinkedHashMap<String, PlanCreationResponse> planCreationResponseMap) {
     YamlField individualConfigFileYamlField =
