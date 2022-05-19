@@ -115,7 +115,10 @@ public class ServerlessAwsLambdaRollbackCommandTaskHandler extends ServerlessCom
     LogCallback pluginLogCallback = serverlessTaskHelperBase.getLogCallback(
         iLogStreamingTaskClient, ServerlessCommandUnitConstants.plugin.toString(), true, commandUnitsProgress);
     try {
-      installPlugin(serverlessRollbackRequest, pluginLogCallback, serverlessDelegateTaskParams);
+      serverlessAwsCommandTaskHelper.installPlugins(serverlessManifestSchema, serverlessDelegateTaskParams,
+          pluginLogCallback, serverlessClient, timeoutInMillis, serverlessManifestConfig);
+      pluginLogCallback.saveExecutionLog(format("Done..%n"), LogLevel.INFO, CommandExecutionStatus.SUCCESS);
+
     } catch (Exception ex) {
       pluginLogCallback.saveExecutionLog(color(format("%n installing plugin failed."), LogColor.Red, LogWeight.Bold),
           LogLevel.ERROR, CommandExecutionStatus.FAILURE);
@@ -140,6 +143,10 @@ public class ServerlessAwsLambdaRollbackCommandTaskHandler extends ServerlessCom
         (ServerlessAwsLambdaManifestConfig) serverlessRollbackRequest.getServerlessManifestConfig();
     serverlessTaskHelperBase.fetchManifestFilesAndWriteToDirectory(serverlessManifestConfig,
         serverlessRollbackRequest.getAccountId(), executionLogCallback, serverlessDelegateTaskParams);
+    serverlessManifestSchema = serverlessAwsCommandTaskHelper.parseServerlessManifest(
+        executionLogCallback, serverlessRollbackRequest.getManifestContent());
+    serverlessTaskHelperBase.replaceManifestWithRenderedContent(serverlessDelegateTaskParams, serverlessManifestConfig,
+        serverlessRollbackRequest.getManifestContent(), serverlessManifestSchema);
     executionLogCallback.saveExecutionLog(format("Done..%n"), LogLevel.INFO, CommandExecutionStatus.SUCCESS);
   }
 
@@ -162,17 +169,6 @@ public class ServerlessAwsLambdaRollbackCommandTaskHandler extends ServerlessCom
           CommandExecutionStatus.FAILURE);
       serverlessAwsCommandTaskHelper.handleCommandExecutionFailure(response, serverlessClient.configCredential());
     }
-  }
-
-  private void installPlugin(ServerlessRollbackRequest serverlessRollbackRequest, LogCallback executionLogCallback,
-      ServerlessDelegateTaskParams serverlessDelegateTaskParams) throws Exception {
-    serverlessManifestSchema = serverlessAwsCommandTaskHelper.parseServerlessManifest(
-        executionLogCallback, serverlessRollbackRequest.getManifestContent());
-    serverlessTaskHelperBase.replaceManifestWithRenderedContent(serverlessDelegateTaskParams, serverlessManifestConfig,
-        serverlessRollbackRequest.getManifestContent(), serverlessManifestSchema);
-    serverlessAwsCommandTaskHelper.installPlugins(serverlessManifestSchema, serverlessDelegateTaskParams,
-        executionLogCallback, serverlessClient, timeoutInMillis, serverlessManifestConfig);
-    executionLogCallback.saveExecutionLog(format("Done..%n"), LogLevel.INFO, CommandExecutionStatus.SUCCESS);
   }
 
   private ServerlessRollbackResponse rollback(ServerlessRollbackRequest serverlessRollbackRequest,
