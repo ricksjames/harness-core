@@ -87,8 +87,8 @@ public class FileReferenceServiceImpl implements FileReferenceService {
       count += countEntitiesReferencingFolder(fileOrFolder);
       if (count > 0L) {
         throw new ReferencedEntityException(format(
-            "Folder [%s], or its subfolders, contain file(s) referenced by %s other entities and can not be deleted.",
-            fileOrFolder.getIdentifier(), count));
+            "Folder [%s], or its subfolders, contain file(s) referenced by other entities and can not be deleted.",
+            fileOrFolder.getIdentifier()));
       }
     } else {
       if (count > 0L) {

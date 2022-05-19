@@ -448,16 +448,15 @@ public class FileStoreServiceImplTest extends CategoryTest {
              ACCOUNT_IDENTIFIER, ORG_IDENTIFIER, PROJECT_IDENTIFIER, folder1))
         .thenReturn(Arrays.asList(file));
     when(fileFailsafeService.deleteAndPublish(any())).thenReturn(true);
-    doThrow(
-        new ReferencedEntityException(format(
-            "Folder [%s], or its subfolders, contain file(s) referenced by %s other entities and can not be deleted.",
-            parentFolder.getIdentifier(), 1L)))
+    doThrow(new ReferencedEntityException(format(
+                "Folder [%s], or its subfolders, contain file(s) referenced by other entities and can not be deleted.",
+                parentFolder.getIdentifier())))
         .when(fileReferenceService)
         .validateReferenceByAndThrow(parentFolder);
     assertThatThrownBy(() -> fileStoreService.delete(ACCOUNT_IDENTIFIER, ORG_IDENTIFIER, PROJECT_IDENTIFIER, folder1))
         .isInstanceOf(ReferencedEntityException.class)
         .hasMessage(
-            "Folder [folder1], or its subfolders, contain file(s) referenced by 1 other entities and can not be deleted.");
+            "Folder [folder1], or its subfolders, contain file(s) referenced by other entities and can not be deleted.");
   }
 
   @Test

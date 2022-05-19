@@ -123,8 +123,8 @@ public class FileReferenceServiceTest extends CategoryTest {
 
     assertThatThrownBy(() -> fileReferenceService.validateReferenceByAndThrow(folder1))
         .isInstanceOf(ReferencedEntityException.class)
-        .hasMessage("Folder [testFolder1], or its subfolders, contain file(s) referenced by " + (count1 + count2)
-            + " other entities and can not be deleted.");
+        .hasMessage(
+            "Folder [testFolder1], or its subfolders, contain file(s) referenced by other entities and can not be deleted.");
   }
 
   @Test
