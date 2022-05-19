@@ -106,6 +106,13 @@ public class AnomalyDetectionAzureSubscriptionReader extends AnomalyDetectionClo
 
     // sort Critera
     sortCriteriaList.add(CloudBillingSortCriteria.builder()
+                             .sortType(CloudSortType.gcpProjectId)
+                             .sortOrder(QLSortOrder.ASCENDING)
+                             .build());
+    sortCriteriaList.add(
+        CloudBillingSortCriteria.builder().sortType(CloudSortType.gcpProduct).sortOrder(QLSortOrder.ASCENDING).build());
+
+    sortCriteriaList.add(CloudBillingSortCriteria.builder()
                              .sortType(CloudSortType.azureSubscriptionGuid)
                              .sortOrder(QLSortOrder.ASCENDING)
                              .build());
