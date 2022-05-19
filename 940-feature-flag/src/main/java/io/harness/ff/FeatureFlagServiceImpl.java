@@ -33,6 +33,9 @@ import io.harness.persistence.HPersistence;
 import io.harness.persistence.PersistentEntity;
 import io.harness.serializer.JsonUtils;
 
+import software.wings.beans.Account;
+import software.wings.service.intfc.AccountService;
+
 import com.google.common.base.Splitter;
 import com.google.common.collect.Sets;
 import com.google.inject.Inject;
@@ -63,6 +66,7 @@ public class FeatureFlagServiceImpl implements FeatureFlagService {
   private final HPersistence persistence;
   @Inject(optional = true) @Nullable private long lastEpoch;
   private final Map<FeatureName, FeatureFlag> cache;
+  private final AccountService accountService;
   private final CfMigrationService cfMigrationService;
   private final CfMigrationConfig cfMigrationConfig;
   private final Provider<CfClient> cfClient;
@@ -70,9 +74,11 @@ public class FeatureFlagServiceImpl implements FeatureFlagService {
 
   @Inject
   public FeatureFlagServiceImpl(HPersistence hPersistence, CfMigrationService cfMigrationService,
-      CfMigrationConfig cfMigrationConfig, Provider<CfClient> cfClient, FeatureFlagConfig featureFlagConfig) {
+      AccountService accountService, CfMigrationConfig cfMigrationConfig, Provider<CfClient> cfClient,
+      FeatureFlagConfig featureFlagConfig) {
     this.persistence = hPersistence;
     this.cfMigrationService = cfMigrationService;
+    this.accountService = accountService;
     this.cfMigrationConfig = cfMigrationConfig;
     this.cfClient = cfClient;
     this.featureFlagConfig = featureFlagConfig;
@@ -223,7 +229,8 @@ public class FeatureFlagServiceImpl implements FeatureFlagService {
        */
       accountId = FeatureFlagConstants.STATIC_ACCOUNT_ID;
     }
-    Target target = Target.builder().identifier(accountId).name(accountId).build();
+    Account account = accountService.get(accountId);
+    Target target = Target.builder().identifier(accountId).name(account.getAccountName()).build();
     return cfClient.get().boolVariation(featureName.name(), target, false);
   }
 
