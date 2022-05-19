@@ -22,6 +22,6 @@ for dep in deps:
     if status != 0:
         os.system("buildozer 'add deps " + dep + "' " + target + " > /dev/null 2>&1")
     else:
-        print("\n" + dep + " is removed.")
+        print("Removed: " + dep)
 
 print(target + " optimization is complete!")
