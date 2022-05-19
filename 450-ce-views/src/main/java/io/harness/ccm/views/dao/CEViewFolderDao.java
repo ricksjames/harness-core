@@ -24,15 +24,72 @@ import java.util.List;
 public class CEViewFolderDao {
   @Inject private HPersistence hPersistence;
 
+  private static final int FOLDERS_PER_PAGE = 1;
+
   public boolean save(CEViewFolder ceViewFolder) {
     return hPersistence.save(ceViewFolder) != null;
   }
 
-  public List<CEViewFolder> getFoldersByAccountId(String accountId) {
+  public long getNumberOfFolders(String accountId) {
     return hPersistence.createQuery(CEViewFolder.class)
         .field(CEViewFolderKeys.accountId)
         .equal(accountId)
+        .count();
+  }
+
+  public long getNumberOfFolders(String accountId, List<String> folderIds) {
+    return hPersistence.createQuery(CEViewFolder.class)
+        .field(CEViewFolderKeys.accountId)
+        .equal(accountId)
+        .field(CEViewFolderKeys.uuid)
+        .in(folderIds)
+        .count();
+  }
+
+  public List<CEViewFolder> getFolders(String accountId, long pageNo) {
+    return hPersistence.createQuery(CEViewFolder.class)
+        .field(CEViewFolderKeys.accountId)
+        .equal(accountId)
+        .offset(((int) pageNo - 1) * FOLDERS_PER_PAGE)
+        .limit(FOLDERS_PER_PAGE)
         .asList();
+  }
+
+  public List<CEViewFolder> getFolders(String accountId, List<String> folderIds, long pageNo) {
+    return hPersistence.createQuery(CEViewFolder.class)
+        .field(CEViewFolderKeys.accountId)
+        .equal(accountId)
+        .field(CEViewFolderKeys.uuid)
+        .in(folderIds)
+        .offset(((int) pageNo - 1) * FOLDERS_PER_PAGE)
+        .limit(FOLDERS_PER_PAGE)
+        .asList();
+  }
+
+  public CEViewFolder updateFolder(CEViewFolder ceViewFolder) {
+    Query<CEViewFolder> query = hPersistence.createQuery(CEViewFolder.class)
+        .field(CEViewFolderKeys.accountId)
+        .equal(ceViewFolder.getAccountId())
+        .field(CEViewFolderKeys.uuid)
+        .equal(ceViewFolder.getUuid());
+
+    UpdateOperations<CEViewFolder> updateOperations = hPersistence.createUpdateOperations(CEViewFolder.class);
+    if (ceViewFolder.getName() != null) {
+      updateOperations = updateOperations.set(CEViewFolderKeys.name, ceViewFolder.getName());
+    }
+    if (ceViewFolder.getTags() != null) {
+      updateOperations = updateOperations.set(CEViewFolderKeys.tags, ceViewFolder.getTags());
+    }
+    if (ceViewFolder.getDescription() != null) {
+      updateOperations = updateOperations.set(CEViewFolderKeys.description, ceViewFolder.getDescription());
+    }
+    if (ceViewFolder.getLastUpdatedBy() != null) {
+      updateOperations = updateOperations.set(CEViewFolderKeys.lastUpdatedBy, ceViewFolder.getLastUpdatedBy());
+    }
+    updateOperations = updateOperations.set(CEViewFolderKeys.pinned, ceViewFolder.isPinned());
+
+    hPersistence.update(query, updateOperations);
+    return query.asList().get(0);
   }
 
   public CEViewFolder updateFolderName(String accountId, String uuid, String newName) {

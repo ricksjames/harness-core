@@ -45,13 +45,13 @@ public final class CEViewFolder implements PersistentEntity, CreatedAtAware, Upd
             .build())
         .build();
   }
-  @Id
-  ObjectId uuid;
+  @Id ObjectId uuid;
   String accountId;
   @Size(min = 1, max = 80, message = "for view must be between 1 and 80 characters long") @NotBlank String name;
   boolean pinned;
   List<String> tags;
   String description;
+  ViewType viewType = ViewType.CUSTOMER;
 
   long createdAt;
   long lastUpdatedAt;

@@ -14,8 +14,12 @@ import java.util.List;
 
 public interface CEViewFolderService {
   boolean save(CEViewFolder ceViewFolder);
-  List<CEViewFolder> getFoldersForAccount(String accountId);
+  long numberOfFolders(String accountId);
+  long numberOfFolders(String accountId, List<String> folderIds);
+  List<CEViewFolder> getFolders(String accountId, long pageNo);
+  List<CEViewFolder> getFolders(String accountId, List<String> folderIds, long pageNo);
   List<CEView> getPerspectivesForFolder(String accountId, String folderId);
+  CEViewFolder updateFolder(CEViewFolder ceViewFolder);
   CEViewFolder updateFolderName(String accountId, String uuid, String newName);
   CEViewFolder pinFolder(String accountId, String uuid, boolean pinStatus);
   CEView moveCEView(String accountId, String ceViewId, String toFolderId);
