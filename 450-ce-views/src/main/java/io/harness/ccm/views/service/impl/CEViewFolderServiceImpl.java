@@ -30,7 +30,7 @@ public class CEViewFolderServiceImpl implements CEViewFolderService {
 
   @Override
   public CEViewFolder save(CEViewFolder ceViewFolder) {
-    ceViewFolderDao.save(ceViewFolder));
+    return ceViewFolderDao.save(ceViewFolder);
   }
 
   @Override
