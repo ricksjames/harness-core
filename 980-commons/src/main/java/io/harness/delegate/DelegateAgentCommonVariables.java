@@ -26,6 +26,6 @@ public class DelegateAgentCommonVariables {
   }
 
   public static String getDelegateTokenName() {
-    return delegateTokenName;
+    return isEmpty(delegateTokenName) ? "Unregistered" : delegateTokenName;
   }
 }

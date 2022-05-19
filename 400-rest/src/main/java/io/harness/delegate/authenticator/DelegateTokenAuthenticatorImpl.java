@@ -97,17 +97,25 @@ public class DelegateTokenAuthenticatorImpl implements DelegateTokenAuthenticato
     boolean decryptedWithTokenFromCache =
         decryptWithTokenFromCache(encryptedJWT, delegateTokenFromCache, shouldSetTokenNameInGlobalContext);
 
+    boolean decryptWithParticularTokenNameFromDB = false;
     boolean decryptedWithActiveTokenFromDB = false;
     boolean decryptedWithRevokedTokenFromDB = false;
 
     if (!decryptedWithTokenFromCache) {
       log.debug("Not able to decrypt with token from cache. Fetching it from db.");
       delegateTokenCacheHelper.removeDelegateToken(delegateId);
-      decryptedWithActiveTokenFromDB = decryptJWTDelegateToken(
-          accountId, DelegateTokenStatus.ACTIVE, encryptedJWT, delegateId, shouldSetTokenNameInGlobalContext);
-      if (!decryptedWithActiveTokenFromDB) {
-        decryptedWithRevokedTokenFromDB = decryptJWTDelegateToken(
-            accountId, DelegateTokenStatus.REVOKED, encryptedJWT, delegateId, shouldSetTokenNameInGlobalContext);
+
+      decryptWithParticularTokenNameFromDB = decryptWithParticularTokenNameFromDB(
+          encryptedJWT, accountId, delegateId, delegateTokenName, shouldSetTokenNameInGlobalContext);
+
+      // if not able to decrypt with received token name from db
+      if (!decryptWithParticularTokenNameFromDB) {
+        decryptedWithActiveTokenFromDB = decryptJWTDelegateToken(
+            accountId, DelegateTokenStatus.ACTIVE, encryptedJWT, delegateId, shouldSetTokenNameInGlobalContext);
+        if (!decryptedWithActiveTokenFromDB) {
+          decryptedWithRevokedTokenFromDB = decryptJWTDelegateToken(
+              accountId, DelegateTokenStatus.REVOKED, encryptedJWT, delegateId, shouldSetTokenNameInGlobalContext);
+        }
       }
     }
 
@@ -237,10 +245,35 @@ public class DelegateTokenAuthenticatorImpl implements DelegateTokenAuthenticato
     return result;
   }
 
-  // TODO: Implement this function
   private boolean decryptWithParticularTokenNameFromDB(EncryptedJWT encryptedJWT, String accountId, String delegateId,
       String delegateTokenName, boolean shouldSetTokenNameInGlobalContext) {
-    return true;
+    if (delegateTokenName == null || "Unregistered".equals(delegateTokenName)) {
+      return false;
+    }
+    try {
+      DelegateToken delegateToken = persistence.createQuery(DelegateToken.class)
+                                        .filter(DelegateTokenKeys.accountId, accountId)
+                                        .filter(DelegateTokenKeys.name, delegateTokenName)
+                                        .get();
+
+      if (delegateToken.isNg()) {
+        decryptDelegateToken(encryptedJWT, decodeBase64ToString(delegateToken.getValue()));
+      } else {
+        decryptDelegateToken(encryptedJWT, delegateToken.getValue());
+      }
+      if (DelegateTokenStatus.REVOKED.equals(delegateToken.getStatus())) {
+        log.error("Delegate is using REVOKED delegate token. DelegateId: {}", delegateId);
+        throw new RevokedTokenException("Invalid delegate token. Delegate is using revoked token", USER_ADMIN);
+      }
+      setTokenNameInGlobalContext(shouldSetTokenNameInGlobalContext, delegateToken);
+      delegateTokenCacheHelper.setDelegateToken(delegateId, delegateToken);
+      return true;
+    } catch (Exception e) {
+      log.warn(
+          "Failed to decrypt Delegate JWT for delegateId {} using delegate token {} for account {}. Will have to fetch all active tokens from db for account.",
+          delegateId, delegateTokenName, accountId);
+      return false;
+    }
   }
 
   private boolean decryptDelegateTokenByQuery(Query query, String accountId, DelegateTokenStatus status,

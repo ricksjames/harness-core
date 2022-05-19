@@ -29,6 +29,7 @@ import java.time.Instant;
 import java.time.temporal.TemporalAmount;
 import java.util.Date;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import javax.crypto.spec.SecretKeySpec;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.DecoderException;
@@ -39,6 +40,8 @@ import org.apache.commons.codec.binary.Hex;
 @Singleton
 public class TokenGenerator {
   private static final TemporalAmount EXP_DURATION = Duration.ofMinutes(30);
+  private long expiryTimeOfLastJWT;
+  private String lastEncryptedJWT;
 
   private final String accountId;
   private final JWEEncrypter encrypter;
@@ -54,6 +57,11 @@ public class TokenGenerator {
   }
 
   public String getToken(String audience, String issuer) {
+    // keep sending the last EncryptedJWT for next 25 mins
+    if (lastEncryptedJWT != null && expiryTimeOfLastJWT > System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(5)) {
+      log.info("Arpit: Sending lastJWT {}", lastEncryptedJWT);
+      return lastEncryptedJWT;
+    }
     Instant now = Instant.now();
     JWTClaimsSet jwtClaims = new JWTClaimsSet.Builder()
                                  .issuer(issuer)
@@ -65,6 +73,8 @@ public class TokenGenerator {
                                  .jwtID(UUID.randomUUID().toString())
                                  .build();
 
+    expiryTimeOfLastJWT = jwtClaims.getExpirationTime().getTime();
+
     JWEHeader header = new JWEHeader.Builder(JWEAlgorithm.DIR, EncryptionMethod.A128GCM).build();
     EncryptedJWT jwt = new EncryptedJWT(header, jwtClaims);
 
@@ -73,7 +83,9 @@ public class TokenGenerator {
     } catch (JOSEException e) {
       log.error("", e);
     }
-    return jwt.serialize();
+    lastEncryptedJWT = jwt.serialize();
+    log.info("Arpit: Sending new JWT {}", lastEncryptedJWT);
+    return lastEncryptedJWT;
   }
 
   private JWEEncrypter makeEncrypter(String accountSecret) {
