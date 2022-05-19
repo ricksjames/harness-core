@@ -84,6 +84,7 @@ public class SecretManagementModuleTest extends CategoryTest {
   @Owner(developers = VIKAS)
   @Category(UnitTests.class)
   public void testSecretManagementModule() {
+    System.out.println("Test");
     ServiceHttpClientConfig secretManagerClientConfig =
         ServiceHttpClientConfig.builder().baseUrl("http://localhost:7143").build();
     String serviceSecret = "test_secret";

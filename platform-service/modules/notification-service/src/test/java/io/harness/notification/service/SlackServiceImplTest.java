@@ -22,6 +22,7 @@ import io.harness.CategoryTest;
 import io.harness.NotificationRequest;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.category.element.UnitTests;
+import io.harness.connector.helper.EncryptionHelper;
 import io.harness.delegate.beans.NotificationProcessingResponse;
 import io.harness.delegate.beans.NotificationTaskResponse;
 import io.harness.notification.exception.NotificationException;
@@ -47,6 +48,7 @@ import org.mockito.MockitoAnnotations;
 public class SlackServiceImplTest extends CategoryTest {
   @Mock private NotificationSettingsService notificationSettingsService;
   @Mock private NotificationTemplateService notificationTemplateService;
+  @Mock private EncryptionHelper encryptionHelper;
   @Mock private SlackSenderImpl slackSender;
   @Mock private DelegateGrpcClientWrapper delegateGrpcClientWrapper;
   private SlackServiceImpl slackService;
@@ -59,7 +61,7 @@ public class SlackServiceImplTest extends CategoryTest {
   public void setUp() throws Exception {
     MockitoAnnotations.initMocks(this);
     slackService = new SlackServiceImpl(
-        notificationSettingsService, notificationTemplateService, slackSender, delegateGrpcClientWrapper);
+        notificationSettingsService, notificationTemplateService, slackSender, delegateGrpcClientWrapper,encryptionHelper);
   }
 
   @Test

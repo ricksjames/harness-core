@@ -21,6 +21,7 @@ java_binary(
     ],
     deps = [
         "//:lombok",
+        "//440-connector-nextgen:module",
         "//890-sm-core:module",
         "//910-delegate-service-driver:module",
         "//920-delegate-service-beans:module",

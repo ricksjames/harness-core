@@ -22,8 +22,11 @@ import io.harness.NotificationRequest;
 import io.harness.Team;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.beans.DelegateTaskRequest;
+import io.harness.beans.EncryptedData;
+import io.harness.connector.helper.EncryptionHelper;
 import io.harness.delegate.beans.NotificationProcessingResponse;
 import io.harness.delegate.beans.NotificationTaskResponse;
+import io.harness.delegate.beans.SlackEncryptedWebHookURLDTO;
 import io.harness.delegate.beans.SlackTaskParams;
 import io.harness.notification.NotificationChannelType;
 import io.harness.notification.exception.NotificationException;
@@ -33,6 +36,7 @@ import io.harness.notification.senders.SlackSenderImpl;
 import io.harness.notification.service.api.ChannelService;
 import io.harness.notification.service.api.NotificationSettingsService;
 import io.harness.notification.service.api.NotificationTemplateService;
+import io.harness.security.encryption.EncryptedDataDetail;
 import io.harness.service.DelegateGrpcClientWrapper;
 
 import com.google.inject.Inject;
@@ -59,6 +63,7 @@ public class SlackServiceImpl implements ChannelService {
   private final NotificationTemplateService notificationTemplateService;
   private final SlackSenderImpl slackSender;
   private final DelegateGrpcClientWrapper delegateGrpcClientWrapper;
+  private final EncryptionHelper encryptionHelper;
 
   @Override
   public NotificationProcessingResponse send(NotificationRequest notificationRequest) {
@@ -118,16 +123,23 @@ public class SlackServiceImpl implements ChannelService {
     String message = strSubstitutor.replace(template);
     NotificationProcessingResponse processingResponse = null;
     if (notificationSettingsService.getSendNotificationViaDelegate(accountId)) {
-      DelegateTaskRequest delegateTaskRequest = DelegateTaskRequest.builder()
-                                                    .accountId(accountId)
-                                                    .taskType("NOTIFY_SLACK")
-                                                    .taskParameters(SlackTaskParams.builder()
-                                                                        .notificationId(notificationId)
-                                                                        .message(message)
-                                                                        .slackWebhookUrls(slackWebhookUrls)
-                                                                        .build())
-                                                    .executionTimeout(Duration.ofMinutes(1L))
-                                                    .build();
+      SlackEncryptedWebHookURLDTO slackEncryptedWebHookURLDTOBuilder =
+          SlackEncryptedWebHookURLDTO.builder().slackEncryptedWebHookURL(slackWebhookUrls.get(0)).build();
+      List<EncryptedDataDetail> encryptedDataDetail =
+          encryptionHelper.getEncryptionDetail(slackEncryptedWebHookURLDTOBuilder, accountId, null, null);
+      DelegateTaskRequest delegateTaskRequest =
+          DelegateTaskRequest.builder()
+              .accountId(accountId)
+              .taskType("NOTIFY_SLACK")
+              .taskParameters(SlackTaskParams.builder()
+                                  .notificationId(notificationId)
+                                  .message(message)
+                                  .slackWebhookUrls(slackWebhookUrls)
+                                  .slackEncryptedWebHookURLDTO(slackEncryptedWebHookURLDTOBuilder)
+                                  .encryptedDataDetails(encryptedDataDetail)
+                                  .build())
+              .executionTimeout(Duration.ofMinutes(1L))
+              .build();
       NotificationTaskResponse notificationTaskResponse =
           (NotificationTaskResponse) delegateGrpcClientWrapper.executeSyncTask(delegateTaskRequest);
       processingResponse = notificationTaskResponse.getProcessingResponse();

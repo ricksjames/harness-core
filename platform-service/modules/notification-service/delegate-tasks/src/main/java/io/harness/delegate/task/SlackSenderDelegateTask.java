@@ -9,18 +9,26 @@ package io.harness.delegate.task;
 
 import io.harness.annotations.dev.HarnessModule;
 import io.harness.annotations.dev.TargetModule;
+import io.harness.beans.DecryptableEntity;
 import io.harness.delegate.beans.DelegateResponseData;
 import io.harness.delegate.beans.DelegateTaskPackage;
 import io.harness.delegate.beans.DelegateTaskResponse;
 import io.harness.delegate.beans.NotificationProcessingResponse;
 import io.harness.delegate.beans.NotificationTaskResponse;
 import io.harness.delegate.beans.SlackTaskParams;
+import io.harness.delegate.beans.connector.helm.HttpHelmValidationParams;
 import io.harness.delegate.beans.logstreaming.ILogStreamingTaskClient;
+import io.harness.exception.sanitizer.ExceptionMessageSanitizer;
 import io.harness.notification.senders.SlackSenderImpl;
 
 import com.google.inject.Inject;
+
+import java.util.Collections;
+import java.util.List;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
+
+import io.harness.security.encryption.SecretDecryptionService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.NotImplementedException;
 
@@ -28,6 +36,7 @@ import org.apache.commons.lang3.NotImplementedException;
 @TargetModule(HarnessModule._930_DELEGATE_TASKS)
 public class SlackSenderDelegateTask extends AbstractDelegateRunnableTask {
   @Inject private SlackSenderImpl slackSender;
+  @Inject private SecretDecryptionService decryptionService;
 
   public SlackSenderDelegateTask(DelegateTaskPackage delegateTaskPackage,
       ILogStreamingTaskClient logStreamingTaskClient, Consumer<DelegateTaskResponse> consumer,
@@ -43,9 +52,16 @@ public class SlackSenderDelegateTask extends AbstractDelegateRunnableTask {
   @Override
   public DelegateResponseData run(TaskParameters parameters) {
     SlackTaskParams slackTaskParams = (SlackTaskParams) parameters;
+    NotificationProcessingResponse processingResponse=null;
     try {
-      NotificationProcessingResponse processingResponse = slackSender.send(
-          slackTaskParams.getSlackWebhookUrls(), slackTaskParams.getMessage(), slackTaskParams.getNotificationId());
+      if(((SlackTaskParams) parameters).getSlackEncryptedWebHookURLDTO()!=null){
+        decryptEncryptedDetails(slackTaskParams);
+        processingResponse = slackSender.send(
+                Collections.singletonList( slackTaskParams.getSlackEncryptedWebHookURLDTO().getSlackEncryptedWebHookURL()), slackTaskParams.getMessage(), slackTaskParams.getNotificationId());
+      }else {
+        processingResponse = slackSender.send(
+                slackTaskParams.getSlackWebhookUrls(), slackTaskParams.getMessage(), slackTaskParams.getNotificationId());
+      }
       return NotificationTaskResponse.builder().processingResponse(processingResponse).build();
     } catch (Exception e) {
       return NotificationTaskResponse.builder()
@@ -53,5 +69,13 @@ public class SlackSenderDelegateTask extends AbstractDelegateRunnableTask {
           .errorMessage(e.getMessage())
           .build();
     }
+  }
+
+  private void decryptEncryptedDetails(SlackTaskParams parameters) {
+    final DecryptableEntity decryptableEntity =
+            parameters.getSlackEncryptedWebHookURLDTO();
+      decryptionService.decrypt(decryptableEntity, parameters.getEncryptedDataDetails());
+     //ptionMessageSanitizer.storeAllSecretsForSanitizing(entity, helmValidationParams.getEncryptionDataDetails());
+
   }
 }

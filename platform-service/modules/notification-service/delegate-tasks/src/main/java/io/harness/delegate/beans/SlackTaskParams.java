@@ -17,6 +17,8 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
+
+import io.harness.security.encryption.EncryptedDataDetail;
 import lombok.Builder;
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
@@ -28,11 +30,13 @@ public class SlackTaskParams implements TaskParameters, ExecutionCapabilityDeman
   List<String> slackWebhookUrls;
   String message;
   String notificationId;
+  SlackEncryptedWebHookURLDTO slackEncryptedWebHookURLDTO;
+  List<EncryptedDataDetail> encryptedDataDetails;
 
   @Override
   public List<ExecutionCapability> fetchRequiredExecutionCapabilities(ExpressionEvaluator maskingEvaluator) {
     List<ExecutionCapability> compatibility = new ArrayList<>();
-    if (!slackWebhookUrls.isEmpty()) {
+    if (!slackWebhookUrls.isEmpty() && slackEncryptedWebHookURLDTO!=null) {
       URI uri = null;
       try {
         uri = new URI(slackWebhookUrls.get(0));
