@@ -8,7 +8,6 @@
 package io.harness.repositories.pipeline;
 
 import static io.harness.annotations.dev.HarnessTeam.PIPELINE;
-import static io.harness.beans.FeatureName.GIT_SIMPLIFICATION;
 
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.beans.Scope;
@@ -24,7 +23,6 @@ import io.harness.gitsync.interceptor.GitEntityInfo;
 import io.harness.gitsync.persistance.GitAwarePersistence;
 import io.harness.gitsync.persistance.GitSyncSdkService;
 import io.harness.gitsync.persistance.GitSyncableHarnessRepo;
-import io.harness.gitsync.scm.beans.ScmGitMetaData;
 import io.harness.outbox.OutboxEvent;
 import io.harness.outbox.api.OutboxService;
 import io.harness.pms.PmsFeatureFlagService;
@@ -40,7 +38,6 @@ import io.harness.springdata.TransactionHelper;
 
 import com.google.inject.Inject;
 import java.time.Duration;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -98,6 +95,23 @@ public class PMSPipelineRepositoryCustomImpl implements PMSPipelineRepositoryCus
   }
 
   @Override
+  public PipelineEntity saveForOldGitSync(PipelineEntity pipelineToSave) {
+    String accountIdentifier = pipelineToSave.getAccountIdentifier();
+    String orgIdentifier = pipelineToSave.getOrgIdentifier();
+    String projectIdentifier = pipelineToSave.getProjectIdentifier();
+    Supplier<OutboxEvent> supplierWithGitSyncTrue = ()
+        -> outboxService.save(
+            new PipelineCreateEvent(accountIdentifier, orgIdentifier, projectIdentifier, pipelineToSave, true));
+    return transactionHelper.performTransaction(() -> {
+      PipelineEntity savedEntity = gitAwarePersistence.save(
+          pipelineToSave, pipelineToSave.getYaml(), ChangeType.ADD, PipelineEntity.class, null);
+      supplierWithGitSyncTrue.get();
+      checkForMetadataAndSaveIfAbsent(savedEntity);
+      return savedEntity;
+    });
+  }
+
+  @Override
   public PipelineEntity save(PipelineEntity pipelineToSave) {
     String accountIdentifier = pipelineToSave.getAccountIdentifier();
     String orgIdentifier = pipelineToSave.getOrgIdentifier();
@@ -105,25 +119,14 @@ public class PMSPipelineRepositoryCustomImpl implements PMSPipelineRepositoryCus
     Supplier<OutboxEvent> supplier = ()
         -> outboxService.save(
             new PipelineCreateEvent(accountIdentifier, orgIdentifier, projectIdentifier, pipelineToSave));
-    Supplier<OutboxEvent> supplierWithGitSyncTrue = ()
-        -> outboxService.save(
-            new PipelineCreateEvent(accountIdentifier, orgIdentifier, projectIdentifier, pipelineToSave, true));
     return transactionHelper.performTransaction(() -> {
       PipelineEntity savedEntity = savePipelineEntity(pipelineToSave, supplier);
-      if (savedEntity.getStoreType() == null) {
-        makeSupplierCallIfGitSyncIsEnabled(
-            accountIdentifier, orgIdentifier, projectIdentifier, supplierWithGitSyncTrue);
-      }
       checkForMetadataAndSaveIfAbsent(savedEntity);
       return savedEntity;
     });
   }
 
   private PipelineEntity savePipelineEntity(PipelineEntity pipelineToSave, Supplier<OutboxEvent> supplier) {
-    if (GitAwareContextHelper.isOldFlow()) {
-      return gitAwarePersistence.save(
-          pipelineToSave, pipelineToSave.getYaml(), ChangeType.ADD, PipelineEntity.class, supplier);
-    }
     GitAwareContextHelper.initDefaultScmGitMetaData();
     GitEntityInfo gitEntityInfo = GitContextHelper.getGitEntityInfo();
     if (gitEntityInfo == null || gitEntityInfo.getStoreType().equals(StoreType.INLINE)) {
@@ -147,6 +150,7 @@ public class PMSPipelineRepositoryCustomImpl implements PMSPipelineRepositoryCus
     pipelineToSave.setFilePath(gitEntityInfo.getFilePath());
 
     gitAwareEntityHelper.createEntityOnGit(pipelineToSave, yamlToPush, scope);
+    supplier.get();
     return mongoTemplate.save(pipelineToSave);
   }
 
@@ -169,9 +173,8 @@ public class PMSPipelineRepositoryCustomImpl implements PMSPipelineRepositoryCus
   }
 
   @Override
-  public Optional<PipelineEntity> findByAccountIdAndOrgIdentifierAndProjectIdentifierAndIdentifierAndDeletedNot(
-      String accountId, String orgIdentifier, String projectIdentifier, String pipelineIdentifier, boolean notDeleted,
-      boolean getMetadataOnly) {
+  public Optional<PipelineEntity> findForOldGitSync(String accountId, String orgIdentifier, String projectIdentifier,
+      String pipelineIdentifier, boolean notDeleted, boolean getMetadataOnly) {
     Criteria criteria = Criteria.where(PipelineEntityKeys.deleted)
                             .is(!notDeleted)
                             .and(PipelineEntityKeys.identifier)
@@ -182,40 +185,70 @@ public class PMSPipelineRepositoryCustomImpl implements PMSPipelineRepositoryCus
                             .is(orgIdentifier)
                             .and(PipelineEntityKeys.accountId)
                             .is(accountId);
-    Optional<PipelineEntity> optionalPipelineEntity =
-        gitAwarePersistence.findOne(criteria, projectIdentifier, orgIdentifier, accountId, PipelineEntity.class);
-
-    return findV2(accountId, orgIdentifier, projectIdentifier, criteria, optionalPipelineEntity, getMetadataOnly);
+    return gitAwarePersistence.findOne(criteria, projectIdentifier, orgIdentifier, accountId, PipelineEntity.class);
   }
 
   @Override
-  public PipelineEntity updatePipelineYaml(
+  public Optional<PipelineEntity> find(String accountId, String orgIdentifier, String projectIdentifier,
+      String pipelineIdentifier, boolean notDeleted, boolean getMetadataOnly) {
+    Criteria criteria = Criteria.where(PipelineEntityKeys.deleted)
+                            .is(!notDeleted)
+                            .and(PipelineEntityKeys.identifier)
+                            .is(pipelineIdentifier)
+                            .and(PipelineEntityKeys.projectIdentifier)
+                            .is(projectIdentifier)
+                            .and(PipelineEntityKeys.orgIdentifier)
+                            .is(orgIdentifier)
+                            .and(PipelineEntityKeys.accountId)
+                            .is(accountId);
+    Query query = new Query(criteria);
+    PipelineEntity savedEntity = mongoTemplate.findOne(query, PipelineEntity.class);
+    if (savedEntity == null) {
+      return Optional.empty();
+    }
+    if (getMetadataOnly) {
+      return Optional.of(savedEntity);
+    }
+    if (savedEntity.getStoreType() == StoreType.REMOTE) {
+      // fetch yaml from git
+      GitEntityInfo gitEntityInfo = GitAwareContextHelper.getGitEntityInfo();
+      savedEntity = (PipelineEntity) gitAwareEntityHelper.fetchEntityFromRemote(savedEntity,
+          Scope.builder()
+              .accountIdentifier(accountId)
+              .orgIdentifier(orgIdentifier)
+              .projectIdentifier(projectIdentifier)
+              .build(),
+          GitContextRequestParams.builder()
+              .branchName(gitEntityInfo.getBranch())
+              .connectorRef(savedEntity.getConnectorRef())
+              .filePath(savedEntity.getFilePath())
+              .repoName(savedEntity.getRepo())
+              .build(),
+          Collections.emptyMap());
+    }
+
+    return Optional.of(savedEntity);
+  }
+
+  @Override
+  public PipelineEntity updatePipelineYamlForOldGitSync(
       PipelineEntity pipelineToUpdate, PipelineEntity oldPipelineEntity, ChangeType changeType) {
     String accountIdentifier = pipelineToUpdate.getAccountIdentifier();
     String orgIdentifier = pipelineToUpdate.getOrgIdentifier();
     String projectIdentifier = pipelineToUpdate.getProjectIdentifier();
-    if (GitAwareContextHelper.isOldFlow()) {
-      Supplier<OutboxEvent> supplier = null;
-      if (!gitSyncSdkService.isGitSyncEnabled(accountIdentifier, orgIdentifier, projectIdentifier)) {
-        supplier = ()
-            -> outboxService.save(new PipelineUpdateEvent(
-                accountIdentifier, orgIdentifier, projectIdentifier, pipelineToUpdate, oldPipelineEntity));
-      }
-      PipelineEntity updatedEntity = gitAwarePersistence.save(
-          pipelineToUpdate, pipelineToUpdate.getYaml(), changeType, PipelineEntity.class, supplier);
-      if (updatedEntity != null) {
-        Supplier<OutboxEvent> supplierWithGitSyncTrue = ()
-            -> outboxService.save(new PipelineUpdateEvent(
-                accountIdentifier, orgIdentifier, projectIdentifier, pipelineToUpdate, oldPipelineEntity, true));
-        makeSupplierCallIfGitSyncIsEnabled(
-            accountIdentifier, orgIdentifier, projectIdentifier, supplierWithGitSyncTrue);
-      }
-      return updatedEntity;
+    PipelineEntity updatedEntity =
+        gitAwarePersistence.save(pipelineToUpdate, pipelineToUpdate.getYaml(), changeType, PipelineEntity.class, null);
+    if (updatedEntity != null) {
+      Supplier<OutboxEvent> supplierWithGitSyncTrue = ()
+          -> outboxService.save(new PipelineUpdateEvent(
+              accountIdentifier, orgIdentifier, projectIdentifier, pipelineToUpdate, oldPipelineEntity, true));
+      supplierWithGitSyncTrue.get();
     }
-    return updateForSimplifiedFlow(pipelineToUpdate);
+    return updatedEntity;
   }
 
-  private PipelineEntity updateForSimplifiedFlow(PipelineEntity pipelineToUpdate) {
+  @Override
+  public PipelineEntity updatePipelineYaml(PipelineEntity pipelineToUpdate) {
     Criteria criteria = Criteria.where(PipelineEntityKeys.deleted)
                             .is(false)
                             .and(PipelineEntityKeys.identifier)
@@ -227,26 +260,27 @@ public class PMSPipelineRepositoryCustomImpl implements PMSPipelineRepositoryCus
                             .and(PipelineEntityKeys.accountId)
                             .is(pipelineToUpdate.getAccountId());
     Query query = new Query(criteria);
-    GitEntityInfo gitEntityInfo = GitContextHelper.getGitEntityInfo();
-    if (gitEntityInfo.getStoreType() == StoreType.INLINE) {
-      Update updateOperations = PMSPipelineFilterHelper.getUpdateOperationsForSimplifiedGitExperience(
-          pipelineToUpdate, StoreType.INLINE, null, null, null);
-      return mongoTemplate.findAndModify(
-          query, updateOperations, new FindAndModifyOptions().returnNew(true), PipelineEntity.class);
+    Update updateOperations = PMSPipelineFilterHelper.getUpdateOperations(pipelineToUpdate);
+    PipelineEntity updatedPipelineEntity = mongoTemplate.findAndModify(
+        query, updateOperations, new FindAndModifyOptions().returnNew(true), PipelineEntity.class);
+    if (updatedPipelineEntity.getStoreType() == null) {
+      // onboarding old entities as INLINE
+      Update updateOperationsForOnboardingToInline = PMSPipelineFilterHelper.getUpdateOperationsForOnboardingToInline();
+      updatedPipelineEntity = mongoTemplate.findAndModify(query, updateOperationsForOnboardingToInline,
+          new FindAndModifyOptions().returnNew(false), PipelineEntity.class);
+    }
+    if (updatedPipelineEntity.getStoreType() == StoreType.INLINE) {
+      outboxService.save(
+          new PipelineUpdateEvent(pipelineToUpdate.getAccountIdentifier(), pipelineToUpdate.getOrgIdentifier(),
+              pipelineToUpdate.getProjectIdentifier(), pipelineToUpdate, updatedPipelineEntity));
+      return updatedPipelineEntity;
     }
     Scope scope = Scope.builder()
                       .accountIdentifier(pipelineToUpdate.getAccountIdentifier())
                       .orgIdentifier(pipelineToUpdate.getOrgIdentifier())
                       .projectIdentifier(pipelineToUpdate.getProjectIdentifier())
                       .build();
-    String yamlToPush = pipelineToUpdate.getYaml();
-    pipelineToUpdate.setYaml("");
-    Update updateOperations = PMSPipelineFilterHelper.getUpdateOperationsForSimplifiedGitExperience(pipelineToUpdate,
-        StoreType.REMOTE, gitEntityInfo.getConnectorRef(), gitEntityInfo.getRepoName(), gitEntityInfo.getFilePath());
-
-    PipelineEntity updatedPipelineEntity = mongoTemplate.findAndModify(
-        query, updateOperations, new FindAndModifyOptions().returnNew(true), PipelineEntity.class);
-    gitAwareEntityHelper.updateEntityOnGit(updatedPipelineEntity, yamlToPush, scope);
+    gitAwareEntityHelper.updateEntityOnGit(updatedPipelineEntity, pipelineToUpdate.getYaml(), scope);
     return updatedPipelineEntity;
   }
 
@@ -266,41 +300,46 @@ public class PMSPipelineRepositoryCustomImpl implements PMSPipelineRepositoryCus
   }
 
   @Override
-  public PipelineEntity deletePipeline(PipelineEntity pipelineToUpdate) {
+  public PipelineEntity deleteForOldGitSync(PipelineEntity pipelineToUpdate) {
     String accountId = pipelineToUpdate.getAccountId();
     String orgIdentifier = pipelineToUpdate.getOrgIdentifier();
     String projectIdentifier = pipelineToUpdate.getProjectIdentifier();
     Optional<PipelineEntity> pipelineEntityOptional =
-        findByAccountIdAndOrgIdentifierAndProjectIdentifierAndIdentifierAndDeletedNot(
-            accountId, orgIdentifier, projectIdentifier, pipelineToUpdate.getIdentifier(), true, false);
+        findForOldGitSync(accountId, orgIdentifier, projectIdentifier, pipelineToUpdate.getIdentifier(), true, false);
     if (pipelineEntityOptional.isPresent()) {
-      Supplier<OutboxEvent> supplier = ()
-          -> outboxService.save(new PipelineDeleteEvent(accountId, orgIdentifier, projectIdentifier, pipelineToUpdate));
-      PipelineEntity pipelineEntity;
-      if (pipelineToUpdate.getStoreType() == null) {
-        pipelineEntity = gitAwarePersistence.save(
-            pipelineToUpdate, pipelineToUpdate.getYaml(), ChangeType.DELETE, PipelineEntity.class, supplier);
-      } else {
-        pipelineEntity = mongoTemplate.save(pipelineToUpdate);
-        supplier.get();
-      }
-
+      PipelineEntity pipelineEntity = gitAwarePersistence.save(
+          pipelineToUpdate, pipelineToUpdate.getYaml(), ChangeType.DELETE, PipelineEntity.class, null);
       if (pipelineEntity.getDeleted()) {
         Supplier<OutboxEvent> supplierWithGitSyncTrue = ()
             -> outboxService.save(
                 new PipelineDeleteEvent(accountId, orgIdentifier, projectIdentifier, pipelineToUpdate, true));
-        makeSupplierCallIfGitSyncIsEnabled(accountId, orgIdentifier, projectIdentifier, supplierWithGitSyncTrue);
+        supplierWithGitSyncTrue.get();
       }
       return pipelineEntity;
     }
     throw new InvalidRequestException("No such pipeline exists");
   }
 
-  private void makeSupplierCallIfGitSyncIsEnabled(
-      String accountId, String orgIdentifier, String projectIdentifier, Supplier<OutboxEvent> supplier) {
-    if (gitSyncSdkService.isGitSyncEnabled(accountId, orgIdentifier, projectIdentifier) && supplier != null) {
-      supplier.get();
-    }
+  @Override
+  public PipelineEntity delete(
+      String accountId, String orgIdentifier, String projectIdentifier, String pipelineIdentifier) {
+    Criteria criteria = Criteria.where(PipelineEntityKeys.deleted)
+                            .is(false)
+                            .and(PipelineEntityKeys.identifier)
+                            .is(pipelineIdentifier)
+                            .and(PipelineEntityKeys.projectIdentifier)
+                            .is(projectIdentifier)
+                            .and(PipelineEntityKeys.orgIdentifier)
+                            .is(orgIdentifier)
+                            .and(PipelineEntityKeys.accountId)
+                            .is(accountId);
+    Query query = new Query(criteria);
+    Update updateOperationsForDelete = PMSPipelineFilterHelper.getUpdateOperationsForDelete();
+    PipelineEntity deletedPipelineEntity = mongoTemplate.findAndModify(
+        query, updateOperationsForDelete, new FindAndModifyOptions().returnNew(true), PipelineEntity.class);
+    outboxService.save(
+        new PipelineDeleteEvent(accountId, orgIdentifier, projectIdentifier, deletedPipelineEntity, true));
+    return deletedPipelineEntity;
   }
 
   private RetryPolicy<Object> getRetryPolicyForPipelineUpdate() {
@@ -319,54 +358,20 @@ public class PMSPipelineRepositoryCustomImpl implements PMSPipelineRepositoryCus
                 "[Failed]: Failed updating Pipeline; attempt: {}", event.getAttemptCount(), event.getFailure()));
   }
 
-  private Optional<PipelineEntity> findV2(String accountId, String orgIdentifier, String projectIdentifier,
-      Criteria criteria, Optional<PipelineEntity> entityV1, boolean getMetadataOnly) {
-    if (pmsFeatureFlagService.isEnabled(accountId, GIT_SIMPLIFICATION)) {
-      if (entityV1.isPresent()) {
-        PipelineEntity entity = entityV1.get();
-        if (entity.getStoreType() == null) {
-          GitAwareContextHelper.updateScmGitMetaData(ScmGitMetaData.builder()
-                                                         .repoName(entity.getRepo())
-                                                         .branchName(entity.getBranch())
-                                                         .blobId(entity.getObjectIdOfYaml())
-                                                         .filePath(entity.getFilePath())
-                                                         .build());
-          return entityV1;
-        }
-      }
-      Criteria gitAwareCriteria = Criteria.where(PipelineEntityKeys.storeType).in(Arrays.asList(StoreType.values()));
-      Query query = new Query().addCriteria(new Criteria().andOperator(criteria, gitAwareCriteria));
-      PipelineEntity savedEntity = mongoTemplate.findOne(query, PipelineEntity.class);
-      if (savedEntity == null) {
-        return Optional.empty();
-      }
-
-      if (getMetadataOnly) {
-        return entityV1;
-      }
-
-      if (savedEntity.getStoreType() == StoreType.REMOTE) {
-        // fetch yaml from git
-        GitEntityInfo gitEntityInfo = GitAwareContextHelper.getGitEntityInfo();
-        savedEntity = (PipelineEntity) gitAwareEntityHelper.fetchEntityFromRemote(savedEntity,
-            Scope.builder()
-                .accountIdentifier(accountId)
-                .orgIdentifier(orgIdentifier)
-                .projectIdentifier(projectIdentifier)
-                .build(),
-            GitContextRequestParams.builder()
-                .branchName(gitEntityInfo.getBranch())
-                .commitId(gitEntityInfo.getCommitId())
-                .connectorRef(savedEntity.getConnectorRef())
-                .filePath(savedEntity.getFilePath())
-                .repoName(savedEntity.getRepo())
-                .build(),
-            Collections.emptyMap());
-      }
-
-      return Optional.of(savedEntity);
-    } else {
-      return entityV1;
-    }
+  @Override
+  public String importPipelineFromRemote(String accountId, String orgIdentifier, String projectIdentifier) {
+    GitEntityInfo gitEntityInfo = GitAwareContextHelper.getGitEntityInfo();
+    Scope scope = Scope.builder()
+                      .accountIdentifier(accountId)
+                      .orgIdentifier(orgIdentifier)
+                      .projectIdentifier(projectIdentifier)
+                      .build();
+    GitContextRequestParams gitContextRequestParams = GitContextRequestParams.builder()
+                                                          .branchName(gitEntityInfo.getBranch())
+                                                          .connectorRef(gitEntityInfo.getConnectorRef())
+                                                          .filePath(gitEntityInfo.getFilePath())
+                                                          .repoName(gitEntityInfo.getRepoName())
+                                                          .build();
+    return gitAwareEntityHelper.fetchYAMLFromRemote(scope, gitContextRequestParams, Collections.emptyMap());
   }
 }

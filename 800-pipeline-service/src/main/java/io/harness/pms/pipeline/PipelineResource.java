@@ -33,6 +33,7 @@ import io.harness.gitsync.interceptor.GitEntityCreateInfoDTO;
 import io.harness.gitsync.interceptor.GitEntityDeleteInfoDTO;
 import io.harness.gitsync.interceptor.GitEntityFindInfoDTO;
 import io.harness.gitsync.interceptor.GitEntityUpdateInfoDTO;
+import io.harness.gitsync.interceptor.GitImportInfoDTO;
 import io.harness.ng.core.dto.ErrorDTO;
 import io.harness.ng.core.dto.FailureDTO;
 import io.harness.ng.core.dto.ResponseDTO;
@@ -523,13 +524,52 @@ public class PipelineResource implements YamlSchemaResource {
         String.format("Get pipeline summary for pipeline with with identifier %s in project %s, org %s, account %s",
             pipelineId, projectId, orgId, accountId));
 
-    PMSPipelineSummaryResponseDTO pipelineSummary = PMSPipelineDtoMapper.preparePipelineSummary(
-        pmsPipelineService.get(accountId, orgId, projectId, pipelineId, false)
-            .orElseThrow(()
-                             -> new EntityNotFoundException(String.format(
-                                 "Pipeline with the given ID: %s does not exist or has been deleted", pipelineId))));
+    Optional<PipelineEntity> pipelineEntity = Optional.empty();
+    try {
+      pipelineEntity = pmsPipelineService.get(accountId, orgId, projectId, pipelineId, false);
+    } catch (PolicyEvaluationFailureException | InvalidYamlException pe) {
+      // ignore
+    }
+    PMSPipelineSummaryResponseDTO pipelineSummary =
+        PMSPipelineDtoMapper.preparePipelineSummary(pipelineEntity.orElseThrow(
+            ()
+                -> new EntityNotFoundException(
+                    String.format("Pipeline with the given ID: %s does not exist or has been deleted", pipelineId))));
 
     return ResponseDTO.newResponse(pipelineSummary);
+  }
+
+  @GET
+  @Path("/import/{pipelineIdentifier}")
+  @Hidden
+  @ApiOperation(value = "Get Pipeline YAML from Git Repository", nickname = "importPipeline")
+  @Operation(operationId = "importPipeline", summary = "Get Pipeline YAML from Git Repository",
+      responses =
+      {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "default",
+            description = "Returns Pipeline YAML fetched from Git Repository. No Pipeline is saved")
+      })
+  @NGAccessControlCheck(resourceType = "PIPELINE", permission = PipelineRbacPermissions.PIPELINE_VIEW)
+  public ResponseDTO<PMSPipelineResponseDTO>
+  importPipelineFromGit(@NotNull @Parameter(description = PipelineResourceConstants.ACCOUNT_PARAM_MESSAGE) @QueryParam(
+                            NGCommonEntityConstants.ACCOUNT_KEY) @AccountIdentifier String accountId,
+      @NotNull @Parameter(description = PipelineResourceConstants.ORG_PARAM_MESSAGE) @QueryParam(
+          NGCommonEntityConstants.ORG_KEY) @OrgIdentifier String orgId,
+      @NotNull @Parameter(description = PipelineResourceConstants.PROJECT_PARAM_MESSAGE) @QueryParam(
+          NGCommonEntityConstants.PROJECT_KEY) @ProjectIdentifier String projectId,
+      @PathParam(NGCommonEntityConstants.PIPELINE_KEY) @ResourceIdentifier @Parameter(
+          description = PipelineResourceConstants.PIPELINE_ID_PARAM_MESSAGE) String pipelineId,
+      @BeanParam GitImportInfoDTO gitImportInfoDTO, PipelineImportRequestDTO pipelineImportRequestDTO) {
+    try {
+      String importedPipeline = pmsPipelineService.importPipelineFromRemote(
+          accountId, orgId, projectId, pipelineId, pipelineImportRequestDTO);
+      return ResponseDTO.newResponse(PMSPipelineResponseDTO.builder().yamlPipeline(importedPipeline).build());
+    } catch (InvalidYamlException e) {
+      return ResponseDTO.newResponse(PMSPipelineResponseDTO.builder()
+                                         .yamlPipeline(e.getYaml())
+                                         .yamlSchemaErrorWrapper((YamlSchemaErrorWrapperDTO) e.getMetadata())
+                                         .build());
+    }
   }
 
   @GET

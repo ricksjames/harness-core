@@ -9,6 +9,7 @@ package io.harness.pms.pipeline.service;
 
 import static io.harness.annotations.dev.HarnessTeam.PIPELINE;
 import static io.harness.data.structure.EmptyPredicate.isNotEmpty;
+import static io.harness.telemetry.Destination.AMPLITUDE;
 
 import static org.springframework.data.mongodb.core.query.Criteria.where;
 
@@ -18,6 +19,7 @@ import io.harness.beans.FeatureName;
 import io.harness.data.structure.EmptyPredicate;
 import io.harness.data.structure.HarnessStringUtils;
 import io.harness.engine.GovernanceService;
+import io.harness.engine.governance.PolicyEvaluationFailureException;
 import io.harness.exception.InvalidRequestException;
 import io.harness.exception.ngexception.beans.yamlschema.YamlSchemaErrorDTO;
 import io.harness.exception.ngexception.beans.yamlschema.YamlSchemaErrorWrapperDTO;
@@ -34,6 +36,7 @@ import io.harness.pms.PmsFeatureFlagService;
 import io.harness.pms.contracts.governance.ExpansionRequestMetadata;
 import io.harness.pms.contracts.governance.ExpansionResponseBatch;
 import io.harness.pms.contracts.governance.GovernanceMetadata;
+import io.harness.pms.contracts.governance.PolicySetMetadata;
 import io.harness.pms.filter.creation.FilterCreatorMergeService;
 import io.harness.pms.filter.creation.FilterCreatorMergeServiceResponse;
 import io.harness.pms.filter.utils.ModuleInfoFilterUtils;
@@ -43,10 +46,14 @@ import io.harness.pms.governance.ExpansionRequest;
 import io.harness.pms.governance.ExpansionRequestsExtractor;
 import io.harness.pms.governance.ExpansionsMerger;
 import io.harness.pms.governance.JsonExpander;
+import io.harness.pms.instrumentaion.PipelineInstrumentationConstants;
 import io.harness.pms.pipeline.PipelineEntity;
 import io.harness.pms.pipeline.PipelineEntity.PipelineEntityKeys;
+import io.harness.pms.pipeline.PipelineEntityUtils;
 import io.harness.pms.pipeline.PipelineFilterPropertiesDto;
 import io.harness.serializer.JsonUtils;
+import io.harness.telemetry.TelemetryReporter;
+import io.harness.yaml.validator.InvalidYamlException;
 
 import com.google.common.collect.Lists;
 import com.google.inject.Inject;
@@ -54,8 +61,11 @@ import com.google.inject.Singleton;
 import com.google.protobuf.ByteString;
 import java.io.IOException;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 import javax.validation.constraints.NotNull;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -77,6 +87,13 @@ public class PMSPipelineServiceHelper {
   @Inject private final ExpansionRequestsExtractor expansionRequestsExtractor;
   @Inject private final PmsFeatureFlagService pmsFeatureFlagService;
   @Inject private final PmsGitSyncHelper gitSyncHelper;
+  @Inject private final TelemetryReporter telemetryReporter;
+
+  public static String PIPELINE_SAVE = "pipeline_save";
+  public static String PIPELINE_SAVE_ACTION_TYPE = "action";
+  public static String PIPELINE_NAME = "pipelineName";
+  public static String ORG_ID = "orgId";
+  public static String PROJECT_ID = "projectId";
 
   public static void validatePresenceOfRequiredFields(Object... fields) {
     Lists.newArrayList(fields).forEach(field -> Objects.requireNonNull(field, "One of the required fields is null."));
@@ -140,6 +157,21 @@ public class PMSPipelineServiceHelper {
     if (pipelineFilter.getModuleProperties() != null) {
       ModuleInfoFilterUtils.processNode(
           JsonUtils.readTree(pipelineFilter.getModuleProperties().toJson()), "filters", criteria);
+    }
+  }
+
+  public void validatePipelineFromRemote(PipelineEntity pipelineEntity) {
+    GovernanceMetadata governanceMetadata = validatePipelineYamlAndSetTemplateRefIfAny(pipelineEntity,
+        pmsFeatureFlagService.isEnabled(pipelineEntity.getAccountId(), FeatureName.OPA_PIPELINE_GOVERNANCE));
+    if (governanceMetadata.getDeny()) {
+      List<String> denyingPolicySetIds = governanceMetadata.getDetailsList()
+                                             .stream()
+                                             .filter(PolicySetMetadata::getDeny)
+                                             .map(PolicySetMetadata::getIdentifier)
+                                             .collect(Collectors.toList());
+      throw new PolicyEvaluationFailureException(
+          "Pipeline does not follow the Policies in these Policy Sets: " + denyingPolicySetIds.toString(),
+          governanceMetadata);
     }
   }
 
@@ -276,5 +308,29 @@ public class PMSPipelineServiceHelper {
     criteria.andOperator(moduleCriteria, searchCriteria);
 
     return criteria;
+  }
+
+  // TODO(Brijesh): Make this async.
+  public void sendPipelineSaveTelemetryEvent(PipelineEntity entity, String actionType) {
+    HashMap<String, Object> properties = new HashMap<>();
+    properties.put(PIPELINE_NAME, entity.getName());
+    properties.put(ORG_ID, entity.getOrgIdentifier());
+    properties.put(PROJECT_ID, entity.getProjectIdentifier());
+    properties.put(PIPELINE_SAVE_ACTION_TYPE, actionType);
+    properties.put(PipelineInstrumentationConstants.MODULE_NAME,
+        PipelineEntityUtils.getModuleNameFromPipelineEntity(entity, "cd"));
+    telemetryReporter.sendTrackEvent(PIPELINE_SAVE, null, entity.getAccountId(), properties,
+        Collections.singletonMap(AMPLITUDE, true), io.harness.telemetry.Category.GLOBAL);
+  }
+
+  public static InvalidYamlException buildInvalidYamlException(String errorMessage, String pipelineYaml) {
+    YamlSchemaErrorWrapperDTO errorWrapperDTO =
+        YamlSchemaErrorWrapperDTO.builder()
+            .schemaErrors(
+                Collections.singletonList(YamlSchemaErrorDTO.builder().message(errorMessage).fqn("$.pipeline").build()))
+            .build();
+    InvalidYamlException invalidYamlException = new InvalidYamlException(errorMessage, errorWrapperDTO);
+    invalidYamlException.setYaml(pipelineYaml);
+    return invalidYamlException;
   }
 }

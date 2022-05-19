@@ -10,6 +10,8 @@ package io.harness.gitaware.helper;
 import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.beans.Scope;
+import io.harness.data.structure.EmptyPredicate;
+import io.harness.exception.InvalidRequestException;
 import io.harness.gitaware.dto.GitContextRequestParams;
 import io.harness.gitsync.interceptor.GitEntityInfo;
 import io.harness.gitsync.scm.SCMGitSyncHelper;
@@ -29,60 +31,130 @@ import java.util.Map;
 @Singleton
 public class GitAwareEntityHelper {
   @Inject SCMGitSyncHelper scmGitSyncHelper;
+  private static final String DEFAULT = "__default__";
 
   public GitAware fetchEntityFromRemote(
       GitAware entity, Scope scope, GitContextRequestParams gitContextRequestParams, Map<String, String> contextMap) {
+    String repoName = gitContextRequestParams.getRepoName();
+    String branch =
+        isNullOrDefault(gitContextRequestParams.getBranchName()) ? "" : gitContextRequestParams.getBranchName();
+    String filePath = gitContextRequestParams.getFilePath();
+    String connectorRef = gitContextRequestParams.getConnectorRef();
     ScmGetFileResponse scmGetFileResponse =
         scmGitSyncHelper.getFileByBranch(Scope.builder()
                                              .accountIdentifier(scope.getAccountIdentifier())
                                              .orgIdentifier(scope.getOrgIdentifier())
                                              .projectIdentifier(scope.getProjectIdentifier())
                                              .build(),
-            gitContextRequestParams.getRepoName(), gitContextRequestParams.getBranchName(),
-            gitContextRequestParams.getFilePath(), gitContextRequestParams.getConnectorRef(), contextMap);
+            repoName, branch, filePath, connectorRef, contextMap);
     entity.setData(scmGetFileResponse.getFileContent());
     // Check if this looks good to all
     GitAwareContextHelper.updateScmGitMetaData(scmGetFileResponse.getGitMetaData());
     return entity;
   }
 
+  public String fetchYAMLFromRemote(
+      Scope scope, GitContextRequestParams gitContextRequestParams, Map<String, String> contextMap) {
+    String repoName = gitContextRequestParams.getRepoName();
+    if (isNullOrDefault(repoName)) {
+      throw new InvalidRequestException("No Repo Name provided.");
+    }
+    String branch =
+        isNullOrDefault(gitContextRequestParams.getBranchName()) ? "" : gitContextRequestParams.getBranchName();
+    String filePath = gitContextRequestParams.getFilePath();
+    if (isNullOrDefault(filePath)) {
+      throw new InvalidRequestException("No file path provided.");
+    }
+    String connectorRef = gitContextRequestParams.getConnectorRef();
+    if (isNullOrDefault(connectorRef)) {
+      throw new InvalidRequestException("No Connector reference provided.");
+    }
+    ScmGetFileResponse scmGetFileResponse =
+        scmGitSyncHelper.getFileByBranch(Scope.builder()
+                                             .accountIdentifier(scope.getAccountIdentifier())
+                                             .orgIdentifier(scope.getOrgIdentifier())
+                                             .projectIdentifier(scope.getProjectIdentifier())
+                                             .build(),
+            repoName, branch, filePath, connectorRef, contextMap);
+    // Check if this looks good to all
+    GitAwareContextHelper.updateScmGitMetaData(scmGetFileResponse.getGitMetaData());
+    return scmGetFileResponse.getFileContent();
+  }
+
   public ScmCreateFileGitResponse createEntityOnGit(GitAware gitAwareEntity, String yaml, Scope scope) {
     GitEntityInfo gitEntityInfo = GitAwareContextHelper.getGitEntityInfo();
+    String repoName = gitAwareEntity.getRepo();
+    if (isNullOrDefault(repoName)) {
+      throw new InvalidRequestException("No Repo Name provided.");
+    }
+    String filePath = gitAwareEntity.getFilePath();
+    if (isNullOrDefault(filePath)) {
+      throw new InvalidRequestException("No file path provided.");
+    }
+    String connectorRef = gitAwareEntity.getConnectorRef();
+    if (isNullOrDefault(connectorRef)) {
+      throw new InvalidRequestException("No Connector reference provided.");
+    }
+    String baseBranch = gitEntityInfo.getBaseBranch();
+    if (gitEntityInfo.isNewBranch() && isNullOrDefault(baseBranch)) {
+      throw new InvalidRequestException("No base branch provided for committing to new branch");
+    }
+    String branch = isNullOrDefault(gitEntityInfo.getBranch()) ? "" : gitEntityInfo.getBranch();
+    String commitMsg = isNullOrDefault(gitEntityInfo.getCommitMsg()) ? "" : gitEntityInfo.getCommitMsg();
+    ScmCreateFileGitRequest scmCreateFileGitRequest = ScmCreateFileGitRequest.builder()
+                                                          .repoName(repoName)
+                                                          .branchName(branch)
+                                                          .fileContent(yaml)
+                                                          .filePath(filePath)
+                                                          .connectorRef(connectorRef)
+                                                          .isCommitToNewBranch(gitEntityInfo.isNewBranch())
+                                                          .commitMessage(commitMsg)
+                                                          .baseBranch(baseBranch)
+                                                          .build();
 
-    ScmCreateFileGitRequest scmCreateFileGitRequest =
-        ScmCreateFileGitRequest.builder()
-            .repoName(gitAwareEntity.getRepo() != null ? gitAwareEntity.getRepo() : gitEntityInfo.getRepoName())
-            .branchName(gitEntityInfo.getBranch())
-            .fileContent(yaml)
-            .filePath(gitAwareEntity.getFilePath() != null ? gitAwareEntity.getFilePath() : gitEntityInfo.getFilePath())
-            .connectorRef(gitAwareEntity.getConnectorRef() != null ? gitAwareEntity.getConnectorRef()
-                                                                   : gitEntityInfo.getConnectorRef())
-            .isCommitToNewBranch(gitEntityInfo.isNewBranch())
-            .commitMessage(gitEntityInfo.getCommitMsg())
-            .baseBranch(gitEntityInfo.getBaseBranch())
-            .build();
-
-    return scmGitSyncHelper.createFile(scope, scmCreateFileGitRequest, Collections.emptyMap());
+    ScmCreateFileGitResponse scmCreateFileGitResponse =
+        scmGitSyncHelper.createFile(scope, scmCreateFileGitRequest, Collections.emptyMap());
+    GitAwareContextHelper.updateScmGitMetaData(scmCreateFileGitResponse.getGitMetaData());
+    return scmCreateFileGitResponse;
   }
 
   public ScmUpdateFileGitResponse updateEntityOnGit(GitAware gitAwareEntity, String yaml, Scope scope) {
     GitEntityInfo gitEntityInfo = GitAwareContextHelper.getGitEntityInfo();
-
-    ScmUpdateFileGitRequest scmUpdateFileGitRequest =
-        ScmUpdateFileGitRequest.builder()
-            .repoName(gitAwareEntity.getRepo() != null ? gitAwareEntity.getRepo() : gitEntityInfo.getRepoName())
-            .branchName(gitEntityInfo.getBranch())
-            .fileContent(yaml)
-            .filePath(gitAwareEntity.getFilePath() != null ? gitAwareEntity.getFilePath() : gitEntityInfo.getFilePath())
-            .connectorRef(gitAwareEntity.getConnectorRef() != null ? gitAwareEntity.getConnectorRef()
-                                                                   : gitEntityInfo.getConnectorRef())
-            .isCommitToNewBranch(gitEntityInfo.isNewBranch())
-            .commitMessage(gitEntityInfo.getCommitMsg())
-            .baseBranch(gitEntityInfo.getBaseBranch())
-            .oldFileSha(gitEntityInfo.getLastObjectId())
-            .oldCommitId(gitEntityInfo.getCommitId())
-            .build();
+    String repoName = gitAwareEntity.getRepo();
+    if (isNullOrDefault(repoName)) {
+      throw new InvalidRequestException("No Repo Name provided.");
+    }
+    String filePath = gitAwareEntity.getFilePath();
+    if (isNullOrDefault(filePath)) {
+      throw new InvalidRequestException("No file path provided.");
+    }
+    String connectorRef = gitAwareEntity.getConnectorRef();
+    if (isNullOrDefault(connectorRef)) {
+      throw new InvalidRequestException("No Connector reference provided.");
+    }
+    String baseBranch = gitEntityInfo.getBaseBranch();
+    if (gitEntityInfo.isNewBranch() && isNullOrDefault(baseBranch)) {
+      throw new InvalidRequestException("No base branch provided for committing to new branch");
+    }
+    String branch = isNullOrDefault(gitEntityInfo.getBranch()) ? "" : gitEntityInfo.getBranch();
+    String commitMsg = isNullOrDefault(gitEntityInfo.getCommitMsg()) ? "" : gitEntityInfo.getCommitMsg();
+    ScmUpdateFileGitRequest scmUpdateFileGitRequest = ScmUpdateFileGitRequest.builder()
+                                                          .repoName(repoName)
+                                                          .branchName(branch)
+                                                          .fileContent(yaml)
+                                                          .filePath(filePath)
+                                                          .connectorRef(connectorRef)
+                                                          .isCommitToNewBranch(gitEntityInfo.isNewBranch())
+                                                          .commitMessage(commitMsg)
+                                                          .baseBranch(baseBranch)
+                                                          .oldFileSha(gitEntityInfo.getLastObjectId())
+                                                          .oldCommitId(gitEntityInfo.getCommitId())
+                                                          .build();
 
     return scmGitSyncHelper.updateFile(scope, scmUpdateFileGitRequest, Collections.emptyMap());
+  }
+
+  private boolean isNullOrDefault(String val) {
+    return EmptyPredicate.isEmpty(val) || val.equals(DEFAULT);
   }
 }

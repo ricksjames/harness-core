@@ -41,20 +41,16 @@ public class GitEntityInfo {
   String commitId; // used for passing commitId in case of g2h.
   Boolean isFullSyncFlow;
   String resolvedConflictCommitId;
-  StoreType storeType;
+  @Setter StoreType storeType;
   String connectorRef;
-  String repoName;
+  @Setter String repoName;
 
   public boolean isNull() {
     // todo @Abhinav Maybe we should use null in place of default
     final String DEFAULT = "__default__";
     boolean isRepoNull = isEmpty(yamlGitConfigId) || yamlGitConfigId.equals(DEFAULT);
     boolean isBranchNull = isEmpty(branch) || branch.equals(DEFAULT);
-    if (!isRepoNull && isBranchNull || isRepoNull && !isBranchNull) {
-      throw new InvalidRequestException(String.format(
-          "The repo should be provided with the branch, the request has repo %s, branch %s", yamlGitConfigId, branch));
-    }
-    return isRepoNull;
+    return isRepoNull && isBranchNull;
   }
 
   public EntityGitDetails toEntityGitDetails() {
@@ -66,6 +62,7 @@ public class GitEntityInfo {
         .repoIdentifier(yamlGitConfigId)
         .rootFolder(folderPath)
         .filePath(filePath)
+        .repoName(repoName)
         .build();
   }
 }

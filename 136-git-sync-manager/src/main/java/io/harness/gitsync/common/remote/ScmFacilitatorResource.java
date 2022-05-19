@@ -28,6 +28,7 @@ import io.harness.gitsync.common.YamlConstants;
 import io.harness.gitsync.common.dtos.CreatePRDTO;
 import io.harness.gitsync.common.dtos.CreatePRRequest;
 import io.harness.gitsync.common.dtos.CreatePRResponse;
+import io.harness.gitsync.common.dtos.GetFileResponseDTO;
 import io.harness.gitsync.common.dtos.GitBranchesResponseDTO;
 import io.harness.gitsync.common.dtos.GitFileContent;
 import io.harness.gitsync.common.dtos.GitRepositoryResponseDTO;
@@ -36,7 +37,7 @@ import io.harness.gitsync.common.dtos.ScmCommitFileResponseDTO;
 import io.harness.gitsync.common.dtos.ScmCreateFileRequestDTO;
 import io.harness.gitsync.common.dtos.ScmCreatePRRequestDTO;
 import io.harness.gitsync.common.dtos.ScmCreatePRResponseDTO;
-import io.harness.gitsync.common.dtos.ScmGetFileRequestDTO;
+import io.harness.gitsync.common.dtos.ScmGetFileByCommitIdRequestDTO;
 import io.harness.gitsync.common.dtos.ScmGetFileResponseDTO;
 import io.harness.gitsync.common.dtos.ScmUpdateFileRequestDTO;
 import io.harness.gitsync.common.impl.GitUtils;
@@ -245,13 +246,15 @@ public class ScmFacilitatorResource {
   @Operation(operationId = "createPR", summary = "creates a Pull Request",
       responses = { @io.swagger.v3.oas.annotations.responses.ApiResponse(description = "Successfully created a PR") })
   public ResponseDTO<CreatePRResponse>
-  createPRV2(@RequestBody(
-      description = "Details to create a PR", required = true) @Valid @NotNull CreatePRRequest createPRRequest) {
+  createPRV2(@Parameter(description = ACCOUNT_PARAM_MESSAGE) @NotBlank @NotNull @QueryParam(
+                 NGCommonEntityConstants.ACCOUNT_KEY) String accountIdentifier,
+      @RequestBody(
+          description = "Details to create a PR", required = true) @Valid @NotNull CreatePRRequest createPRRequest) {
     ScmCreatePRResponseDTO scmCreatePRResponseDTO =
         scmFacilitatorService.createPR(ScmCreatePRRequestDTO.builder()
                                            .title(createPRRequest.getTitle())
                                            .scope(Scope.builder()
-                                                      .accountIdentifier(createPRRequest.getAccountIdentifier())
+                                                      .accountIdentifier(accountIdentifier)
                                                       .orgIdentifier(createPRRequest.getOrgIdentifier())
                                                       .projectIdentifier(createPRRequest.getProjectIdentifier())
                                                       .build())
@@ -266,36 +269,40 @@ public class ScmFacilitatorResource {
   // API just for testing purpose, not exposed to customer
   // TODO should be removed after testing @Mohit
   @GET
-  @Path("get-file")
-  @ApiOperation(value = "get file", nickname = "getFile")
+  @Path("get-file-by-commit-id")
+  @ApiOperation(value = "get file by commit id", nickname = "getFileByCommitId")
   @Hidden
   @Operation(operationId = "getFile", summary = "get file",
       responses = { @io.swagger.v3.oas.annotations.responses.ApiResponse(description = "Successfully created a PR") },
       hidden = true)
-  public ResponseDTO<ScmGetFileResponseDTO>
-  getFile(@Parameter(description = ACCOUNT_PARAM_MESSAGE) @NotBlank @NotNull @QueryParam(
-              NGCommonEntityConstants.ACCOUNT_KEY) String accountIdentifier,
+  public ResponseDTO<GetFileResponseDTO>
+  getFileByCommitId(@Parameter(description = ACCOUNT_PARAM_MESSAGE) @NotBlank @NotNull @QueryParam(
+                        NGCommonEntityConstants.ACCOUNT_KEY) String accountIdentifier,
       @Parameter(description = ORG_PARAM_MESSAGE) @QueryParam(
           NGCommonEntityConstants.ORG_KEY) @OrgIdentifier String orgIdentifier,
       @Parameter(description = PROJECT_PARAM_MESSAGE) @QueryParam(
           NGCommonEntityConstants.PROJECT_KEY) @ProjectIdentifier String projectIdentifier,
       @Parameter(description = "Repo Name") @QueryParam("RepoName") @NotBlank @NotNull String repoName,
-      @Parameter(description = GitSyncApiConstants.BRANCH_PARAM_MESSAGE) @QueryParam(
-          YamlConstants.BRANCH) String branch,
-      @Parameter(description = "File Path") @QueryParam(YamlConstants.FILE_PATH) @NotBlank @NotNull String filePath, ,
-      @Parameter(description = "Connector Ref") @QueryParam("ConnectorRef") String connectorRef) {
-    return ResponseDTO.newResponse(
-        scmFacilitatorService.getFileByBranch(ScmGetFileRequestDTO.builder()
-                                                  .scope(Scope.builder()
-                                                             .accountIdentifier(accountIdentifier)
-                                                             .orgIdentifier(orgIdentifier)
-                                                             .projectIdentifier(projectIdentifier)
-                                                             .build())
-                                                  .repoName(repoName)
-                                                  .branchName(branch)
-                                                  .filePath(filePath)
-                                                  .connectorRef(connectorRef)
-                                                  .build()));
+      @Parameter(description = "File Path") @QueryParam(YamlConstants.FILE_PATH) @NotBlank @NotNull String filePath,
+      @Parameter(description = "Commit Id") @QueryParam(YamlConstants.COMMIT_ID) @NotBlank String commitId,
+      @Parameter(description = "Connector Ref") @QueryParam("ConnectorRef") @NotBlank String connectorRef) {
+    ScmGetFileResponseDTO scmGetFileResponseDTO =
+        scmFacilitatorService.getFileByCommitId(ScmGetFileByCommitIdRequestDTO.builder()
+                                                    .scope(Scope.builder()
+                                                               .accountIdentifier(accountIdentifier)
+                                                               .orgIdentifier(orgIdentifier)
+                                                               .projectIdentifier(projectIdentifier)
+                                                               .build())
+                                                    .commitId(commitId)
+                                                    .filePath(filePath)
+                                                    .connectorRef(connectorRef)
+                                                    .repoName(repoName)
+                                                    .build());
+    return ResponseDTO.newResponse(GetFileResponseDTO.builder()
+                                       .commitId(scmGetFileResponseDTO.getCommitId())
+                                       .fileContent(scmGetFileResponseDTO.getFileContent())
+                                       .blobId(scmGetFileResponseDTO.getBlobId())
+                                       .build());
   }
 
   // API just for testing purpose, not exposed to customer

@@ -136,16 +136,22 @@ public class PipelineExecutionSummaryDtoMapper {
     }
     String rootFolder = entityGitDetails.getRootFolder();
     String filePath = entityGitDetails.getFilePath();
-    if (rootFolder == null && filePath == null) {
-      return entityGitDetails;
-    } else if (rootFolder == null || filePath == null || rootFolder.equals(GitSyncConstants.DEFAULT)
-        || filePath.equals(GitSyncConstants.DEFAULT)) {
-      return EntityGitDetails.builder()
-          .branch(entityGitDetails.getBranch())
-          .repoIdentifier(entityGitDetails.getRepoIdentifier())
-          .objectId(entityGitDetails.getObjectId())
-          .build();
+    String repoIdentifier = entityGitDetails.getRepoIdentifier();
+    String repoName = entityGitDetails.getRepoName();
+    String branch = entityGitDetails.getBranch();
+    return EntityGitDetails.builder()
+        .rootFolder(nullIfDefault(rootFolder))
+        .filePath(nullIfDefault(filePath))
+        .repoIdentifier(nullIfDefault(repoIdentifier))
+        .repoName(nullIfDefault(repoName))
+        .branch(nullIfDefault(branch))
+        .build();
+  }
+
+  private String nullIfDefault(String val) {
+    if (EmptyPredicate.isEmpty(val) || val.equals(GitSyncConstants.DEFAULT)) {
+      return null;
     }
-    return entityGitDetails;
+    return val;
   }
 }

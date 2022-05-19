@@ -31,9 +31,14 @@ import io.harness.exception.InvalidRequestException;
 import io.harness.exception.SCMExceptionHints;
 import io.harness.exception.ScmException;
 import io.harness.exception.ScmInternalServerErrorException;
+import io.harness.exception.ScmInternalServerErrorV2Exception;
 import io.harness.exception.WingsException;
 import io.harness.exception.ngexception.beans.ScmErrorMetadataDTO;
 import io.harness.git.model.ChangeType;
+import io.harness.gitsync.CreateFileRequest;
+import io.harness.gitsync.CreateFileResponse;
+import io.harness.gitsync.CreatePRRequest;
+import io.harness.gitsync.CreatePRResponse;
 import io.harness.gitsync.ErrorDetails;
 import io.harness.gitsync.FileInfo;
 import io.harness.gitsync.GetFileRequest;
@@ -41,13 +46,20 @@ import io.harness.gitsync.GetFileResponse;
 import io.harness.gitsync.GitMetaData;
 import io.harness.gitsync.HarnessToGitPushInfoServiceGrpc;
 import io.harness.gitsync.PushFileResponse;
+import io.harness.gitsync.UpdateFileRequest;
+import io.harness.gitsync.UpdateFileResponse;
 import io.harness.gitsync.common.helper.GitSyncGrpcClientUtils;
 import io.harness.gitsync.exceptions.GitSyncException;
 import io.harness.gitsync.interceptor.GitEntityInfo;
 import io.harness.gitsync.persistance.GitSyncSdkService;
+import io.harness.gitsync.scm.beans.ScmCreateFileGitRequest;
+import io.harness.gitsync.scm.beans.ScmCreateFileGitResponse;
+import io.harness.gitsync.scm.beans.ScmCreatePRResponse;
 import io.harness.gitsync.scm.beans.ScmGetFileResponse;
 import io.harness.gitsync.scm.beans.ScmPushResponse;
-import io.harness.gitsync.scm.errorhandling.GetFileScmErrorHandler;
+import io.harness.gitsync.scm.beans.ScmUpdateFileGitRequest;
+import io.harness.gitsync.scm.beans.ScmUpdateFileGitResponse;
+import io.harness.gitsync.scm.errorhandling.ScmErrorHandler;
 import io.harness.ng.core.EntityDetail;
 import io.harness.ng.core.entitydetail.EntityDetailRestToProtoMapper;
 import io.harness.rule.Owner;
@@ -59,7 +71,7 @@ import com.google.inject.Inject;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import org.joor.Reflect;
+import org.jooq.tools.reflect.Reflect;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -93,6 +105,10 @@ public class SCMGitSyncHelperTest extends GitSdkTestBase {
   private final String yaml = "yaml";
   private final String fileContent = "fileContent";
   private final String connectorRef = "connectorRef";
+  private final String sourceBranch = "sourceBranch";
+  private final String targetBranch = "targetBranch";
+  private final String title = "title";
+  private final int prNumber = 0;
   private final Map<String, String> contextMap = new HashMap<>();
 
   @InjectMocks SCMGitSyncHelper scmGitSyncHelper;
@@ -100,7 +116,7 @@ public class SCMGitSyncHelperTest extends GitSdkTestBase {
   @Mock GitSyncSdkService gitSyncSdkService;
   @Mock EntityDetailProtoDTO entityDetailProtoDTO;
   @Mock HarnessToGitPushInfoServiceGrpc.HarnessToGitPushInfoServiceBlockingStub harnessToGitPushInfoServiceBlockingStub;
-  @Inject private GetFileScmErrorHandler getFileScmErrorHandler;
+  @Inject ScmErrorHandler scmErrorHandler;
 
   EntityReference entityReference;
   GitEntityInfo gitEntityInfo1;
@@ -114,7 +130,7 @@ public class SCMGitSyncHelperTest extends GitSdkTestBase {
   @Before
   public void setup() {
     MockitoAnnotations.initMocks(this);
-    Reflect.on(scmGitSyncHelper).set("getFileScmErrorHandler", getFileScmErrorHandler);
+    Reflect.on(scmGitSyncHelper).set("scmErrorHandler", scmErrorHandler);
 
     gitEntityInfo1 = buildGitEntityInfo(branch, baseBranch, commitId, commitMessage, filePath, folderPath, false, false,
         true, true, lastObjectId, yamlGitConfigId);
@@ -128,6 +144,9 @@ public class SCMGitSyncHelperTest extends GitSdkTestBase {
     pushFileResponse2 = buildPushFileResponse(1, 304, error);
     pushFileResponse3 = buildPushFileResponse(1, 400, error);
     pushFileResponse4 = buildPushFileResponse(1, 409, error);
+
+    SourcePrincipalContextBuilder.setSourcePrincipal(
+        new UserPrincipal("userName", "DUMMY_USER_EMAIL", "userName", accountId));
   }
 
   @Test
@@ -224,7 +243,7 @@ public class SCMGitSyncHelperTest extends GitSdkTestBase {
   }
 
   @Test
-  @Owner(developers = MEET)
+  @Owner(developers = MOHIT_GARG)
   @Category(UnitTests.class)
   public void testGetFile() {
     GetFileResponse successfulGetFileResponse = GetFileResponse.newBuilder()
@@ -247,18 +266,118 @@ public class SCMGitSyncHelperTest extends GitSdkTestBase {
   }
 
   @Test
-  @Owner(developers = MEET)
+  @Owner(developers = MOHIT_GARG)
   @Category(UnitTests.class)
   public void testGetFileInCaseOfError() {
-    GetFileResponse successfulGetFileResponse =
-        GetFileResponse.newBuilder().setStatusCode(500).setError(ErrorDetails.getDefaultInstance()).build();
+    GetFileResponse failureGetFileResponse =
+        GetFileResponse.newBuilder().setStatusCode(500).setError(getDefaultErrorDetails()).build();
     when(GitSyncGrpcClientUtils.retryAndProcessException(
              harnessToGitPushInfoServiceBlockingStub::getFile, any(GetFileRequest.class)))
-        .thenReturn(successfulGetFileResponse);
+        .thenReturn(failureGetFileResponse);
 
     assertThatThrownBy(
         () -> scmGitSyncHelper.getFileByBranch(getDefaultScope(), repo, branch, filePath, connectorRef, contextMap))
-        .isInstanceOf(ScmInternalServerErrorException.class)
+        .isInstanceOf(ScmInternalServerErrorV2Exception.class)
+        .hasMessage(error);
+  }
+
+  @Test
+  @Owner(developers = MOHIT_GARG)
+  @Category(UnitTests.class)
+  public void testCreateFile() {
+    CreateFileResponse createFileResponse =
+        CreateFileResponse.newBuilder().setStatusCode(200).setGitMetaData(getDefaultGitMetaData()).build();
+    when(GitSyncGrpcClientUtils.retryAndProcessException(
+             harnessToGitPushInfoServiceBlockingStub::createFile, any(CreateFileRequest.class)))
+        .thenReturn(createFileResponse);
+
+    ScmCreateFileGitResponse response =
+        scmGitSyncHelper.createFile(getDefaultScope(), createFileRequestDefault(), contextMap);
+    assertThat(response).isNotNull();
+    assertThat(response.getGitMetaData().getRepoName()).isEqualTo(repo);
+    assertThat(response.getGitMetaData().getBranchName()).isEqualTo(branch);
+    assertThat(response.getGitMetaData().getFilePath()).isEqualTo(filePath);
+    assertThat(response.getGitMetaData().getCommitId()).isEqualTo(commitId);
+  }
+
+  @Test
+  @Owner(developers = MOHIT_GARG)
+  @Category(UnitTests.class)
+  public void testCreateFileInCaseOfError() {
+    CreateFileResponse createFileResponse =
+        CreateFileResponse.newBuilder().setStatusCode(500).setError(getDefaultErrorDetails()).build();
+    when(GitSyncGrpcClientUtils.retryAndProcessException(
+             harnessToGitPushInfoServiceBlockingStub::createFile, any(CreateFileRequest.class)))
+        .thenReturn(createFileResponse);
+
+    assertThatThrownBy(() -> scmGitSyncHelper.createFile(getDefaultScope(), createFileRequestDefault(), contextMap))
+        .isInstanceOf(ScmInternalServerErrorV2Exception.class)
+        .hasMessage(error);
+  }
+
+  @Test
+  @Owner(developers = MOHIT_GARG)
+  @Category(UnitTests.class)
+  public void testUpdateFile() {
+    UpdateFileResponse updateFileResponse =
+        UpdateFileResponse.newBuilder().setStatusCode(200).setGitMetaData(getDefaultGitMetaData()).build();
+    when(GitSyncGrpcClientUtils.retryAndProcessException(
+             harnessToGitPushInfoServiceBlockingStub::updateFile, any(UpdateFileRequest.class)))
+        .thenReturn(updateFileResponse);
+
+    ScmUpdateFileGitResponse response =
+        scmGitSyncHelper.updateFile(getDefaultScope(), updateFileGitRequestDefault(), contextMap);
+    assertThat(response).isNotNull();
+    assertThat(response.getGitMetaData().getRepoName()).isEqualTo(repo);
+    assertThat(response.getGitMetaData().getBranchName()).isEqualTo(branch);
+    assertThat(response.getGitMetaData().getFilePath()).isEqualTo(filePath);
+    assertThat(response.getGitMetaData().getCommitId()).isEqualTo(commitId);
+  }
+
+  @Test
+  @Owner(developers = MOHIT_GARG)
+  @Category(UnitTests.class)
+  public void testUpdateFileInCaseOfError() {
+    UpdateFileResponse updateFileResponse =
+        UpdateFileResponse.newBuilder().setStatusCode(500).setError(getDefaultErrorDetails()).build();
+    when(GitSyncGrpcClientUtils.retryAndProcessException(
+             harnessToGitPushInfoServiceBlockingStub::updateFile, any(UpdateFileRequest.class)))
+        .thenReturn(updateFileResponse);
+
+    assertThatThrownBy(() -> scmGitSyncHelper.updateFile(getDefaultScope(), updateFileGitRequestDefault(), contextMap))
+        .isInstanceOf(ScmInternalServerErrorV2Exception.class)
+        .hasMessage(error);
+  }
+
+  @Test
+  @Owner(developers = MOHIT_GARG)
+  @Category(UnitTests.class)
+  public void testCreatePullRequest() {
+    CreatePRResponse createPRResponse = CreatePRResponse.newBuilder().setStatusCode(200).setPrNumber(prNumber).build();
+    when(GitSyncGrpcClientUtils.retryAndProcessException(
+             harnessToGitPushInfoServiceBlockingStub::createPullRequest, any(CreatePRRequest.class)))
+        .thenReturn(createPRResponse);
+
+    ScmCreatePRResponse response = scmGitSyncHelper.createPullRequest(
+        getDefaultScope(), repo, connectorRef, sourceBranch, targetBranch, title, contextMap);
+    assertThat(response).isNotNull();
+    assertThat(response.getPrNumber()).isEqualTo(prNumber);
+  }
+
+  @Test
+  @Owner(developers = MOHIT_GARG)
+  @Category(UnitTests.class)
+  public void testCreatePullRequestInCaseOfError() {
+    CreatePRResponse createPRResponse =
+        CreatePRResponse.newBuilder().setStatusCode(500).setError(getDefaultErrorDetails()).build();
+    when(GitSyncGrpcClientUtils.retryAndProcessException(
+             harnessToGitPushInfoServiceBlockingStub::createPullRequest, any(CreatePRRequest.class)))
+        .thenReturn(createPRResponse);
+
+    assertThatThrownBy(()
+                           -> scmGitSyncHelper.createPullRequest(
+                               getDefaultScope(), repo, connectorRef, sourceBranch, targetBranch, title, contextMap))
+        .isInstanceOf(ScmInternalServerErrorV2Exception.class)
         .hasMessage(error);
   }
 
@@ -300,7 +419,38 @@ public class SCMGitSyncHelperTest extends GitSdkTestBase {
         .build();
   }
 
+  private ScmCreateFileGitRequest createFileRequestDefault() {
+    return ScmCreateFileGitRequest.builder()
+        .repoName(repo)
+        .baseBranch(baseBranch)
+        .branchName(branch)
+        .fileContent(fileContent)
+        .commitMessage(commitMessage)
+        .connectorRef(connectorRef)
+        .filePath(filePath)
+        .isCommitToNewBranch(false)
+        .build();
+  }
+
+  private ScmUpdateFileGitRequest updateFileGitRequestDefault() {
+    return ScmUpdateFileGitRequest.builder()
+        .repoName(repo)
+        .baseBranch(baseBranch)
+        .branchName(branch)
+        .fileContent(fileContent)
+        .commitMessage(commitMessage)
+        .connectorRef(connectorRef)
+        .filePath(filePath)
+        .isCommitToNewBranch(false)
+        .oldFileSha(commitId)
+        .build();
+  }
+
   private Scope getDefaultScope() {
     return Scope.builder().accountIdentifier(accountId).orgIdentifier(orgId).projectIdentifier(projectId).build();
+  }
+
+  private ErrorDetails getDefaultErrorDetails() {
+    return ErrorDetails.newBuilder().setErrorMessage(error).build();
   }
 }

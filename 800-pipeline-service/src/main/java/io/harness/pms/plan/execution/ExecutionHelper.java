@@ -25,6 +25,7 @@ import io.harness.exception.InvalidRequestException;
 import io.harness.exception.InvalidYamlException;
 import io.harness.execution.PlanExecution;
 import io.harness.execution.PlanExecutionMetadata;
+import io.harness.gitsync.beans.StoreType;
 import io.harness.logging.AutoLogContext;
 import io.harness.notification.bean.NotificationRules;
 import io.harness.plan.Plan;
@@ -207,7 +208,8 @@ public class ExecutionHelper {
             .setRetryInfo(retryExecutionInfo)
             .setPrincipalInfo(principalInfoHelper.getPrincipalInfoFromSecurityContext())
             .setIsNotificationConfigured(EmptyPredicate.isNotEmpty(notificationRules));
-    ByteString gitSyncBranchContext = pmsGitSyncHelper.getGitSyncBranchContextBytesThreadLocal(pipelineEntity);
+    ByteString gitSyncBranchContext = pmsGitSyncHelper.getGitSyncBranchContextBytesThreadLocal(
+        pipelineEntity, pipelineEntity.getStoreType(), pipelineEntity.getRepo());
     if (gitSyncBranchContext != null) {
       builder.setGitSyncBranchContext(gitSyncBranchContext);
     }
@@ -246,9 +248,11 @@ public class ExecutionHelper {
     pipelineYaml = InputSetSanitizer.trimValues(pipelineYaml);
     pmsYamlSchemaService.validateYamlSchema(pipelineEntity.getAccountId(), pipelineEntity.getOrgIdentifier(),
         pipelineEntity.getProjectIdentifier(), pipelineYaml);
-    pipelineRbacServiceImpl.extractAndValidateStaticallyReferredEntities(pipelineEntity.getAccountId(),
-        pipelineEntity.getOrgIdentifier(), pipelineEntity.getProjectIdentifier(), pipelineEntity.getIdentifier(),
-        pipelineYaml);
+    if (pipelineEntity.getStoreType() == null || pipelineEntity.getStoreType() == StoreType.INLINE) {
+      pipelineRbacServiceImpl.extractAndValidateStaticallyReferredEntities(pipelineEntity.getAccountId(),
+          pipelineEntity.getOrgIdentifier(), pipelineEntity.getProjectIdentifier(), pipelineEntity.getIdentifier(),
+          pipelineYaml);
+    }
     return pipelineYaml;
   }
 

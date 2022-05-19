@@ -14,9 +14,9 @@ import io.harness.annotations.dev.OwnedBy;
 import io.harness.exception.ExplanationException;
 import io.harness.exception.HintException;
 import io.harness.exception.ScmBadRequestException;
-import io.harness.exception.ScmConflictException;
+import io.harness.exception.ScmConflictV2Exception;
 import io.harness.exception.ScmException;
-import io.harness.exception.ScmInternalServerErrorException;
+import io.harness.exception.ScmInternalServerErrorV2Exception;
 import io.harness.exception.ScmResourceNotFoundException;
 import io.harness.exception.ScmUnauthorizedException;
 import io.harness.exception.ScmUnexpectedException;
@@ -24,15 +24,15 @@ import io.harness.exception.ScmUnprocessableEntityException;
 import io.harness.exception.WingsException;
 import io.harness.gitsync.scm.beans.ScmErrorDetails;
 
-import lombok.SneakyThrows;
+import groovy.lang.Singleton;
 
+@Singleton
 @OwnedBy(HarnessTeam.PL)
 public class ScmErrorHandler {
   public final void processAndThrowException(int statusCode, ScmErrorDetails errorDetails) {
     handleError(statusCode, errorDetails);
   }
 
-  @SneakyThrows
   void handleError(int statusCode, ScmErrorDetails errorDetails) {
     switch (statusCode) {
       case 400:
@@ -43,11 +43,11 @@ public class ScmErrorHandler {
       case 404:
         throw prepareException(new ScmResourceNotFoundException(errorDetails.getErrorMessage()), errorDetails);
       case 409:
-        throw prepareException(new ScmConflictException(errorDetails.getErrorMessage()), errorDetails);
+        throw prepareException(new ScmConflictV2Exception(errorDetails.getErrorMessage()), errorDetails);
       case 422:
         throw prepareException(new ScmUnprocessableEntityException(errorDetails.getErrorMessage()), errorDetails);
       case 500:
-        throw prepareException(new ScmInternalServerErrorException(errorDetails.getErrorMessage()), errorDetails);
+        throw prepareException(new ScmInternalServerErrorV2Exception(errorDetails.getErrorMessage()), errorDetails);
       default:
         throw prepareException(new ScmUnexpectedException(errorDetails.getErrorMessage()), errorDetails);
     }

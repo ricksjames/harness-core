@@ -36,19 +36,9 @@ public class PMSPipelineFilterHelper {
     return update;
   }
 
-  public Update getUpdateOperationsForSimplifiedGitExperience(
-      PipelineEntity pipelineEntity, StoreType storeType, String connectorRef, String repoName, String filePath) {
-    Update update = getUpdateOperations(pipelineEntity);
-    update.set(PipelineEntityKeys.storeType, storeType);
-    if (EmptyPredicate.isNotEmpty(repoName) && !repoName.equals(GitSyncConstants.DEFAULT)) {
-      update.set(PipelineEntityKeys.repo, repoName);
-    }
-    if (EmptyPredicate.isNotEmpty(connectorRef) && !connectorRef.equals(GitSyncConstants.DEFAULT)) {
-      update.set(PipelineEntityKeys.connectorRef, connectorRef);
-    }
-    if (EmptyPredicate.isNotEmpty(filePath) && !filePath.equals(GitSyncConstants.DEFAULT)) {
-      update.set(PipelineEntityKeys.filePath, filePath);
-    }
+  public Update getUpdateOperationsForOnboardingToInline() {
+    Update update = new Update();
+    update.set(PipelineEntityKeys.storeType, StoreType.INLINE);
     return update;
   }
 

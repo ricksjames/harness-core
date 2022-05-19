@@ -10,6 +10,7 @@ package io.harness.pms.ngpipeline.inputset.beans.resource;
 import static io.harness.annotations.dev.HarnessTeam.PIPELINE;
 
 import io.harness.annotations.dev.OwnedBy;
+import io.harness.gitsync.beans.StoreType;
 import io.harness.gitsync.sdk.EntityGitDetails;
 import io.harness.gitsync.sdk.EntityValidityDetails;
 import io.harness.pms.inputset.InputSetErrorWrapperDTOPMS;
@@ -58,4 +59,6 @@ public class InputSetResponseDTOPMS {
 
   @Schema(description = PipelineResourceConstants.GIT_DETAILS_MESSAGE) EntityGitDetails gitDetails;
   @Schema(description = PipelineResourceConstants.GIT_VALIDITY_MESSAGE) EntityValidityDetails entityValidityDetails;
+  StoreType storeType;
+  String connectorRef;
 }

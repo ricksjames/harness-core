@@ -10,7 +10,6 @@ package io.harness.pms.pipeline.service;
 import static io.harness.annotations.dev.HarnessTeam.PIPELINE;
 import static io.harness.exception.WingsException.USER_SRE;
 import static io.harness.pms.pipeline.service.PMSPipelineServiceStepHelper.LIBRARY;
-import static io.harness.telemetry.Destination.AMPLITUDE;
 
 import static java.lang.String.format;
 
@@ -29,6 +28,7 @@ import io.harness.exception.HintException;
 import io.harness.exception.InvalidRequestException;
 import io.harness.exception.InvalidYamlException;
 import io.harness.exception.ScmException;
+import io.harness.exception.UnexpectedException;
 import io.harness.exception.ngexception.beans.yamlschema.YamlSchemaErrorDTO;
 import io.harness.exception.ngexception.beans.yamlschema.YamlSchemaErrorWrapperDTO;
 import io.harness.git.model.ChangeType;
@@ -45,27 +45,27 @@ import io.harness.pms.contracts.governance.GovernanceMetadata;
 import io.harness.pms.contracts.governance.PolicySetMetadata;
 import io.harness.pms.contracts.steps.StepInfo;
 import io.harness.pms.gitsync.PmsGitSyncBranchContextGuard;
-import io.harness.pms.instrumentaion.PipelineInstrumentationConstants;
 import io.harness.pms.pipeline.CommonStepInfo;
 import io.harness.pms.pipeline.ExecutionSummaryInfo;
 import io.harness.pms.pipeline.PipelineEntity;
 import io.harness.pms.pipeline.PipelineEntity.PipelineEntityKeys;
-import io.harness.pms.pipeline.PipelineEntityUtils;
 import io.harness.pms.pipeline.PipelineFilterPropertiesDto;
+import io.harness.pms.pipeline.PipelineImportRequestDTO;
 import io.harness.pms.pipeline.StepCategory;
 import io.harness.pms.pipeline.StepPalleteFilterWrapper;
 import io.harness.pms.pipeline.StepPalleteInfo;
 import io.harness.pms.pipeline.StepPalleteModuleInfo;
+import io.harness.pms.pipeline.mappers.PMSPipelineDtoMapper;
 import io.harness.pms.sdk.PmsSdkInstanceService;
+import io.harness.pms.yaml.YAMLFieldNameConstants;
+import io.harness.pms.yaml.YamlField;
 import io.harness.pms.yaml.YamlUtils;
 import io.harness.repositories.pipeline.PMSPipelineRepository;
-import io.harness.telemetry.TelemetryReporter;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import java.io.IOException;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -89,20 +89,12 @@ public class PMSPipelineServiceImpl implements PMSPipelineService {
   @Inject private PMSPipelineServiceStepHelper pmsPipelineServiceStepHelper;
   @Inject private GitSyncSdkService gitSyncSdkService;
   @Inject private CommonStepInfo commonStepInfo;
-  @Inject private TelemetryReporter telemetryReporter;
-  @Inject private PipelineMetadataService pipelineMetadataService;
   @Inject private PmsFeatureFlagService pmsFeatureFlagService;
-  public static String PIPELINE_SAVE = "pipeline_save";
-  public static String PIPELINE_SAVE_ACTION_TYPE = "action";
   public static String CREATING_PIPELINE = "creating new pipeline";
   public static String UPDATING_PIPELINE = "updating existing pipeline";
-  public static String PIPELINE_NAME = "pipelineName";
-  public static String ACCOUNT_ID = "accountId";
-  public static String ORG_ID = "orgId";
-  public static String PROJECT_ID = "projectId";
 
   private static final String DUP_KEY_EXP_FORMAT_STRING =
-      "Pipeline [%s] under Project[%s], Organization [%s] already exists";
+      "Pipeline [%s] under Project[%s], Organization [%s] already exists or has been deleted.";
 
   @Override
   public PipelineEntity create(PipelineEntity pipelineEntity) {
@@ -112,8 +104,14 @@ public class PMSPipelineServiceImpl implements PMSPipelineService {
           pipelineEntity.getIdentifier());
 
       PipelineEntity entityWithUpdatedInfo = pmsPipelineServiceHelper.updatePipelineInfo(pipelineEntity);
-      PipelineEntity createdEntity = pmsPipelineRepository.save(entityWithUpdatedInfo);
-      sendPipelineSaveTelemetryEvent(createdEntity, CREATING_PIPELINE);
+      PipelineEntity createdEntity;
+      if (gitSyncSdkService.isGitSyncEnabled(pipelineEntity.getAccountId(), pipelineEntity.getOrgIdentifier(),
+              pipelineEntity.getProjectIdentifier())) {
+        createdEntity = pmsPipelineRepository.saveForOldGitSync(entityWithUpdatedInfo);
+      } else {
+        createdEntity = pmsPipelineRepository.save(entityWithUpdatedInfo);
+      }
+      pmsPipelineServiceHelper.sendPipelineSaveTelemetryEvent(createdEntity, CREATING_PIPELINE);
       return createdEntity;
     } catch (DuplicateKeyException ex) {
       throw new DuplicateFieldException(format(DUP_KEY_EXP_FORMAT_STRING, pipelineEntity.getIdentifier(),
@@ -142,9 +140,13 @@ public class PMSPipelineServiceImpl implements PMSPipelineService {
       String accountId, String orgIdentifier, String projectIdentifier, String identifier, boolean deleted) {
     Optional<PipelineEntity> optionalPipelineEntity;
     try {
-      optionalPipelineEntity =
-          pmsPipelineRepository.findByAccountIdAndOrgIdentifierAndProjectIdentifierAndIdentifierAndDeletedNot(
-              accountId, orgIdentifier, projectIdentifier, identifier, !deleted, false);
+      if (gitSyncSdkService.isGitSyncEnabled(accountId, orgIdentifier, projectIdentifier)) {
+        optionalPipelineEntity = pmsPipelineRepository.findForOldGitSync(
+            accountId, orgIdentifier, projectIdentifier, identifier, !deleted, false);
+      } else {
+        optionalPipelineEntity =
+            pmsPipelineRepository.find(accountId, orgIdentifier, projectIdentifier, identifier, !deleted, false);
+      }
     } catch (ExplanationException | HintException | ScmException e) {
       log.error(String.format("Error while retrieving pipeline [%s]", identifier), e);
       throw e;
@@ -171,18 +173,7 @@ public class PMSPipelineServiceImpl implements PMSPipelineService {
               .build();
       throw new io.harness.yaml.validator.InvalidYamlException(errorMessage, errorWrapperDTO);
     }
-    GovernanceMetadata governanceMetadata = pmsPipelineServiceHelper.validatePipelineYamlAndSetTemplateRefIfAny(
-        pipelineEntity, pmsFeatureFlagService.isEnabled(accountId, FeatureName.OPA_PIPELINE_GOVERNANCE));
-    if (governanceMetadata.getDeny()) {
-      List<String> denyingPolicySetIds = governanceMetadata.getDetailsList()
-                                             .stream()
-                                             .filter(PolicySetMetadata::getDeny)
-                                             .map(PolicySetMetadata::getIdentifier)
-                                             .collect(Collectors.toList());
-      throw new PolicyEvaluationFailureException(
-          "Pipeline does not follow the Policies in these Policy Sets: " + denyingPolicySetIds.toString(),
-          governanceMetadata);
-    }
+    pmsPipelineServiceHelper.validatePipelineFromRemote(pipelineEntity);
     return optionalPipelineEntity;
   }
 
@@ -190,19 +181,22 @@ public class PMSPipelineServiceImpl implements PMSPipelineService {
   public PipelineEntity updatePipelineYaml(PipelineEntity pipelineEntity, ChangeType changeType) {
     PMSPipelineServiceHelper.validatePresenceOfRequiredFields(pipelineEntity.getAccountId(),
         pipelineEntity.getOrgIdentifier(), pipelineEntity.getProjectIdentifier(), pipelineEntity.getIdentifier());
-    if (!GitAwareContextHelper.isOldFlow()) {
-      return makePipelineUpdateCall(pipelineEntity, null, changeType);
+    if (gitSyncSdkService.isGitSyncEnabled(
+            pipelineEntity.getAccountId(), pipelineEntity.getOrgIdentifier(), pipelineEntity.getProjectIdentifier())) {
+      return updatePipelineForOldGitSync(pipelineEntity, changeType);
     }
+    return makePipelineUpdateCall(pipelineEntity, null, changeType, false);
+  }
 
+  private PipelineEntity updatePipelineForOldGitSync(PipelineEntity pipelineEntity, ChangeType changeType) {
     if (GitContextHelper.getGitEntityInfo() != null && GitContextHelper.getGitEntityInfo().isNewBranch()) {
       // sending old entity as null here because a new mongo entity will be created. If audit trail needs to be added
       // to git synced projects, a get call needs to be added here to the base branch of this pipeline update
-      return makePipelineUpdateCall(pipelineEntity, null, changeType);
+      return makePipelineUpdateCall(pipelineEntity, null, changeType, true);
     }
     Optional<PipelineEntity> optionalOriginalEntity =
-        pmsPipelineRepository.findByAccountIdAndOrgIdentifierAndProjectIdentifierAndIdentifierAndDeletedNot(
-            pipelineEntity.getAccountId(), pipelineEntity.getOrgIdentifier(), pipelineEntity.getProjectIdentifier(),
-            pipelineEntity.getIdentifier(), true, false);
+        pmsPipelineRepository.findForOldGitSync(pipelineEntity.getAccountId(), pipelineEntity.getOrgIdentifier(),
+            pipelineEntity.getProjectIdentifier(), pipelineEntity.getIdentifier(), true, false);
     if (!optionalOriginalEntity.isPresent()) {
       throw new InvalidRequestException(PipelineCRUDErrorResponse.errorMessageForPipelineNotFound(
           pipelineEntity.getOrgIdentifier(), pipelineEntity.getProjectIdentifier(), pipelineEntity.getIdentifier()));
@@ -216,7 +210,7 @@ public class PMSPipelineServiceImpl implements PMSPipelineService {
                                     .withTemplateReference(pipelineEntity.getTemplateReference())
                                     .withAllowStageExecutions(pipelineEntity.getAllowStageExecutions());
 
-    return makePipelineUpdateCall(tempEntity, entityToUpdate, changeType);
+    return makePipelineUpdateCall(tempEntity, entityToUpdate, changeType, true);
   }
 
   @Override
@@ -235,15 +229,20 @@ public class PMSPipelineServiceImpl implements PMSPipelineService {
       throw new InvalidRequestException(
           PipelineCRUDErrorResponse.errorMessageForPipelineNotFound(orgId, projectId, pipelineId));
     }
-    return makePipelineUpdateCall(optionalPipelineEntity.get(), optionalPipelineEntity.get(), ChangeType.ADD);
+    return makePipelineUpdateCall(optionalPipelineEntity.get(), optionalPipelineEntity.get(), ChangeType.ADD, true);
   }
 
   private PipelineEntity makePipelineUpdateCall(
-      PipelineEntity pipelineEntity, PipelineEntity oldEntity, ChangeType changeType) {
+      PipelineEntity pipelineEntity, PipelineEntity oldEntity, ChangeType changeType, boolean isOldFlow) {
     try {
       PipelineEntity entityWithUpdatedInfo = pmsPipelineServiceHelper.updatePipelineInfo(pipelineEntity);
-      PipelineEntity updatedResult =
-          pmsPipelineRepository.updatePipelineYaml(entityWithUpdatedInfo, oldEntity, changeType);
+      PipelineEntity updatedResult;
+      if (isOldFlow) {
+        updatedResult =
+            pmsPipelineRepository.updatePipelineYamlForOldGitSync(entityWithUpdatedInfo, oldEntity, changeType);
+      } else {
+        updatedResult = pmsPipelineRepository.updatePipelineYaml(entityWithUpdatedInfo);
+      }
 
       if (updatedResult == null) {
         throw new InvalidRequestException(format(
@@ -251,7 +250,7 @@ public class PMSPipelineServiceImpl implements PMSPipelineService {
             pipelineEntity.getIdentifier(), pipelineEntity.getProjectIdentifier(), pipelineEntity.getOrgIdentifier()));
       }
 
-      sendPipelineSaveTelemetryEvent(updatedResult, UPDATING_PIPELINE);
+      pmsPipelineServiceHelper.sendPipelineSaveTelemetryEvent(updatedResult, UPDATING_PIPELINE);
       return updatedResult;
     } catch (EventsFrameworkDownException ex) {
       log.error("Events framework is down for Pipeline Service.", ex);
@@ -301,16 +300,31 @@ public class PMSPipelineServiceImpl implements PMSPipelineService {
     PipelineEntity pipelineEntityUpdated = existingPipeline.withYaml(invalidYaml)
                                                .withObjectIdOfYaml(EntityObjectIdUtils.getObjectIdOfYaml(invalidYaml))
                                                .withIsEntityInvalid(true);
-    pmsPipelineRepository.updatePipelineYaml(pipelineEntityUpdated, existingPipeline, ChangeType.NONE);
+    pmsPipelineRepository.updatePipelineYamlForOldGitSync(pipelineEntityUpdated, existingPipeline, ChangeType.NONE);
     return true;
   }
 
   @Override
   public boolean delete(
       String accountId, String orgIdentifier, String projectIdentifier, String pipelineIdentifier, Long version) {
-    Optional<PipelineEntity> optionalPipelineEntity =
-        pmsPipelineRepository.findByAccountIdAndOrgIdentifierAndProjectIdentifierAndIdentifierAndDeletedNot(
-            accountId, orgIdentifier, projectIdentifier, pipelineIdentifier, true, true);
+    if (gitSyncSdkService.isGitSyncEnabled(accountId, orgIdentifier, projectIdentifier)) {
+      return deleteForOldGitSync(accountId, orgIdentifier, projectIdentifier, pipelineIdentifier, version);
+    }
+    PipelineEntity deletedEntity =
+        pmsPipelineRepository.delete(accountId, orgIdentifier, projectIdentifier, pipelineIdentifier);
+    if (deletedEntity.getDeleted()) {
+      return true;
+    } else {
+      throw new InvalidRequestException(
+          format("Pipeline [%s] under Project[%s], Organization [%s] could not be deleted.", pipelineIdentifier,
+              projectIdentifier, orgIdentifier));
+    }
+  }
+
+  private boolean deleteForOldGitSync(
+      String accountId, String orgIdentifier, String projectIdentifier, String pipelineIdentifier, Long version) {
+    Optional<PipelineEntity> optionalPipelineEntity = pmsPipelineRepository.findForOldGitSync(
+        accountId, orgIdentifier, projectIdentifier, pipelineIdentifier, true, true);
     if (!optionalPipelineEntity.isPresent()) {
       throw new InvalidRequestException(PipelineCRUDErrorResponse.errorMessageForPipelineNotFound(
           orgIdentifier, projectIdentifier, pipelineIdentifier));
@@ -319,7 +333,7 @@ public class PMSPipelineServiceImpl implements PMSPipelineService {
     PipelineEntity existingEntity = optionalPipelineEntity.get();
     PipelineEntity withDeleted = existingEntity.withDeleted(true);
     try {
-      PipelineEntity deletedEntity = pmsPipelineRepository.deletePipeline(withDeleted);
+      PipelineEntity deletedEntity = pmsPipelineRepository.deleteForOldGitSync(withDeleted);
       if (deletedEntity.getDeleted()) {
         return true;
       } else {
@@ -342,6 +356,59 @@ public class PMSPipelineServiceImpl implements PMSPipelineService {
       return pmsPipelineRepository.findAll(criteria, pageable, accountId, orgIdentifier, projectIdentifier, true);
     }
     return pmsPipelineRepository.findAll(criteria, pageable, accountId, orgIdentifier, projectIdentifier, false);
+  }
+
+  @Override
+  public String importPipelineFromRemote(String accountId, String orgIdentifier, String projectIdentifier,
+      String pipelineIdentifier, PipelineImportRequestDTO pipelineImportRequest) {
+    String importedPipeline =
+        pmsPipelineRepository.importPipelineFromRemote(accountId, orgIdentifier, projectIdentifier);
+    if (EmptyPredicate.isEmpty(importedPipeline)) {
+      String errorMessage = PipelineCRUDErrorResponse.errorMessageForEmptyYamlOnGit(
+          orgIdentifier, projectIdentifier, pipelineIdentifier, GitAwareContextHelper.getBranchInRequest());
+      throw PMSPipelineServiceHelper.buildInvalidYamlException(errorMessage, importedPipeline);
+    }
+    YamlField pipelineYamlField;
+    try {
+      pipelineYamlField = YamlUtils.readTree(importedPipeline);
+    } catch (IOException e) {
+      String errorMessage = PipelineCRUDErrorResponse.errorMessageForNotAYAMLFile(
+          GitAwareContextHelper.getBranchInRequest(), GitAwareContextHelper.getFilepathInRequest());
+      throw PMSPipelineServiceHelper.buildInvalidYamlException(errorMessage, importedPipeline);
+    }
+    YamlField pipelineInnerField = pipelineYamlField.getNode().getField(YAMLFieldNameConstants.PIPELINE);
+    if (pipelineInnerField == null) {
+      String errorMessage = PipelineCRUDErrorResponse.errorMessageForNotAPipelineYAML(
+          GitAwareContextHelper.getBranchInRequest(), GitAwareContextHelper.getFilepathInRequest());
+      throw PMSPipelineServiceHelper.buildInvalidYamlException(errorMessage, importedPipeline);
+    }
+    String identifierFromGit = pipelineInnerField.getNode().getIdentifier();
+    if (!pipelineIdentifier.equals(identifierFromGit)) {
+      String errorMessage = PipelineCRUDErrorResponse.errorMessageForInvalidField(
+          YAMLFieldNameConstants.IDENTIFIER, identifierFromGit, pipelineIdentifier);
+      throw PMSPipelineServiceHelper.buildInvalidYamlException(errorMessage, importedPipeline);
+    }
+
+    String nameFromGit = pipelineInnerField.getNode().getName();
+    if (!pipelineImportRequest.getPipelineName().equals(nameFromGit)) {
+      String errorMessage = PipelineCRUDErrorResponse.errorMessageForInvalidField(
+          YAMLFieldNameConstants.NAME, nameFromGit, pipelineImportRequest.getPipelineName());
+      throw PMSPipelineServiceHelper.buildInvalidYamlException(errorMessage, importedPipeline);
+    }
+    if (EmptyPredicate.isNotEmpty(pipelineImportRequest.getPipelineDescription())) {
+      YamlUtils.setStringValueForField(
+          YAMLFieldNameConstants.DESCRIPTION, pipelineImportRequest.getPipelineDescription(), pipelineInnerField);
+      try {
+        return YamlUtils.writeYamlString(pipelineYamlField).replace("---\n", "");
+      } catch (IOException e) {
+        throw new UnexpectedException("Unexpected error when trying to set description");
+      }
+    }
+
+    PipelineEntity pipelineEntity =
+        PMSPipelineDtoMapper.toPipelineEntity(accountId, orgIdentifier, projectIdentifier, importedPipeline);
+    pmsPipelineServiceHelper.validatePipelineFromRemote(pipelineEntity);
+    return importedPipeline;
   }
 
   @Override
@@ -414,22 +481,9 @@ public class PMSPipelineServiceImpl implements PMSPipelineService {
     Page<PipelineEntity> pipelineEntities =
         pmsPipelineRepository.findAll(criteria, pageRequest, accountId, orgId, projectId, false);
     for (PipelineEntity pipelineEntity : pipelineEntities) {
-      pmsPipelineRepository.deletePipeline(pipelineEntity.withDeleted(true));
+      pmsPipelineRepository.deleteForOldGitSync(pipelineEntity.withDeleted(true));
     }
     return true;
-  }
-
-  // TODO(Brijesh): Make this async.
-  private void sendPipelineSaveTelemetryEvent(PipelineEntity entity, String actionType) {
-    HashMap<String, Object> properties = new HashMap<>();
-    properties.put(PIPELINE_NAME, entity.getName());
-    properties.put(ORG_ID, entity.getOrgIdentifier());
-    properties.put(PROJECT_ID, entity.getProjectIdentifier());
-    properties.put(PIPELINE_SAVE_ACTION_TYPE, actionType);
-    properties.put(PipelineInstrumentationConstants.MODULE_NAME,
-        PipelineEntityUtils.getModuleNameFromPipelineEntity(entity, "cd"));
-    telemetryReporter.sendTrackEvent(PIPELINE_SAVE, null, entity.getAccountId(), properties,
-        Collections.singletonMap(AMPLITUDE, true), io.harness.telemetry.Category.GLOBAL);
   }
 
   @Override
