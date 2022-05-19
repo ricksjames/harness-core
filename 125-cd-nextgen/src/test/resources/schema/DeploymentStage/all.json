@@ -1856,6 +1856,9 @@
         "environmentRef"
       ],
       "properties": {
+        "deployToAll": {
+          "type": "boolean"
+        },
         "environmentInputs": {
           "type": "object",
           "additionalProperties": {
@@ -1866,7 +1869,7 @@
           "type": "string",
           "pattern": "\\<\\+input\\>|^[a-zA-Z_][0-9a-zA-Z_$]{0,63}$"
         },
-        "gitopsClusters": {
+        "gitOpsClusters": {
           "type": "array",
           "items": {
             "$ref": "#/definitions/ClusterYaml"
@@ -6089,13 +6092,19 @@
     "ServiceYamlV2": {
       "type": "object",
       "required": [
-        "serviceConfigRef"
+        "serviceRef"
       ],
       "properties": {
         "metadata": {
           "type": "string"
         },
-        "serviceConfigRef": {
+        "serviceInputs": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object"
+          }
+        },
+        "serviceRef": {
           "type": "string",
           "pattern": "\\<\\+input\\>|^[a-zA-Z_][0-9a-zA-Z_$]{0,63}$"
         }
