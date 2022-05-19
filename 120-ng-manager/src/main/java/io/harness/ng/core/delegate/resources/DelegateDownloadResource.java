@@ -67,7 +67,10 @@ import org.hibernate.validator.constraints.NotEmpty;
 public class DelegateDownloadResource {
   private static final String CONTENT_TRANSFER_ENCODING = "Content-Transfer-Encoding";
   private static final String BINARY = "binary";
-  public static final String YAML = ".yaml";
+  public static final String YML = ".yml";
+  private static final String HARNESS_DELEGATE = "harness-delegate";
+  private static final String CONTENT_DISPOSITION = "Content-Disposition";
+  private static final String ATTACHMENT_FILENAME = "attachment; filename=";
 
   private final AccessControlClient accessControlClient;
   private final DelegateNgManagerCgManagerClient delegateNgManagerCgManagerClient;
@@ -86,8 +89,7 @@ public class DelegateDownloadResource {
   @Operation(operationId = "downloadDelegate", summary = "Downloads a delegate file",
       responses =
       {
-        @io.swagger.v3.oas.annotations.responses.
-        ApiResponse(responseCode = "default", description = "Delegate File (yaml/script).")
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "default", description = "Delegate File.")
       })
   public Response
   downloadDelegate(@Parameter(description = NGCommonEntityConstants.ACCOUNT_PARAM_MESSAGE) @QueryParam(
@@ -109,6 +111,7 @@ public class DelegateDownloadResource {
     return Response.ok(delegateDownloadResponse.getDelegateFile())
         .header(CONTENT_TRANSFER_ENCODING, BINARY)
         .type("text/plain; charset=UTF-8")
+        .header(CONTENT_DISPOSITION, ATTACHMENT_FILENAME + HARNESS_DELEGATE + YML)
         .build();
   }
 }

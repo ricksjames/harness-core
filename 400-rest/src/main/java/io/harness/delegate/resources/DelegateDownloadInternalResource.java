@@ -74,8 +74,8 @@ public class DelegateDownloadInternalResource {
       @RequestBody() DelegateSetupDetails delegateSetupDetails) {
     try (AutoLogContext ignore1 = new AccountLogContext(accountIdentifier, OVERRIDE_ERROR)) {
       String managerUrl = subdomainUrlHelper.getManagerUrl(request, accountIdentifier);
-      DelegateDownloadResponse delegateDownloadResponse = delegateDownloadService.downloadNgDelegate(
-          accountIdentifier, delegateSetupDetails, managerUrl, getVerificationServiceUrl(request));
+      DelegateDownloadResponse delegateDownloadResponse = delegateDownloadService.downloadNgDelegate(accountIdentifier,
+          orgIdentifier, projectIdentifier, delegateSetupDetails, managerUrl, getVerificationServiceUrl(request));
       return new RestResponse<>(delegateDownloadResponse);
     }
   }

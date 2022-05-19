@@ -15,6 +15,6 @@ import io.harness.delegate.beans.DelegateSetupDetails;
 
 @OwnedBy(DEL)
 public interface DelegateDownloadService {
-  DelegateDownloadResponse downloadNgDelegate(
-      String accountId, DelegateSetupDetails delegateSetupDetails, String managerHost, String verificationServiceUrl);
+  DelegateDownloadResponse downloadNgDelegate(String accountId, String orgIdentifier, String projectIdentifier,
+      DelegateSetupDetails delegateSetupDetails, String managerHost, String verificationServiceUrl);
 }

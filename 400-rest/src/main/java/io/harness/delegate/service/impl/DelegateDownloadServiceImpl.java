@@ -52,9 +52,11 @@ public class DelegateDownloadServiceImpl implements DelegateDownloadService {
   }
 
   @Override
-  public DelegateDownloadResponse downloadNgDelegate(
-      String accountId, DelegateSetupDetails delegateSetupDetails, String managerHost, String verificationServiceUrl) {
+  public DelegateDownloadResponse downloadNgDelegate(String accountId, String orgIdentifier, String projectIdentifier,
+      DelegateSetupDetails delegateSetupDetails, String managerHost, String verificationServiceUrl) {
     try {
+      delegateSetupDetails.setOrgIdentifier(orgIdentifier);
+      delegateSetupDetails.setProjectIdentifier(projectIdentifier);
       if (DOCKER.equals(delegateSetupDetails.getDelegateType())) {
         return downloadNgDockerDelegate(accountId, delegateSetupDetails, managerHost, verificationServiceUrl);
       }
@@ -72,7 +74,7 @@ public class DelegateDownloadServiceImpl implements DelegateDownloadService {
   private DelegateDownloadResponse downloadNgKubernetesDelegate(
       String accountId, DelegateSetupDetails delegateSetupDetails, String managerHost, String verificationServiceUrl) {
     try {
-      checkAndBuildProperDelegateSetupDetails(accountId, delegateSetupDetails, KUBERNETES);
+      buildProperDelegateSetupDetails(accountId, delegateSetupDetails, KUBERNETES);
       File delegateFile = delegateService.generateKubernetesYaml(
           accountId, delegateSetupDetails, managerHost, verificationServiceUrl, MediaType.TEXT_PLAIN_TYPE);
       return new DelegateDownloadResponse(null, delegateFile);
@@ -85,7 +87,7 @@ public class DelegateDownloadServiceImpl implements DelegateDownloadService {
   private DelegateDownloadResponse downloadNgDockerDelegate(
       String accountId, DelegateSetupDetails delegateSetupDetails, String managerHost, String verificationServiceUrl) {
     try {
-      checkAndBuildProperDelegateSetupDetails(accountId, delegateSetupDetails, DOCKER);
+      buildProperDelegateSetupDetails(accountId, delegateSetupDetails, DOCKER);
       File delegateFile =
           delegateService.downloadNgDocker(managerHost, verificationServiceUrl, accountId, delegateSetupDetails);
       return new DelegateDownloadResponse(null, delegateFile);
@@ -95,7 +97,7 @@ public class DelegateDownloadServiceImpl implements DelegateDownloadService {
     }
   }
 
-  private void checkAndBuildProperDelegateSetupDetails(
+  private void buildProperDelegateSetupDetails(
       String accountId, DelegateSetupDetails delegateSetupDetails, String delegateType) {
     delegateService.checkUniquenessOfDelegateName(accountId, delegateSetupDetails.getName(), true);
 
