@@ -17,10 +17,10 @@ deps = print_deps_output[1:-1].split(" ")
 # If the build succeeds, remove the dependency, else keep it.
 for dep in deps:
     print("\nChecking " + dep)
-    os.system("buildozer 'remove deps " + dep + "' " + target)
+    os.system("buildozer 'remove deps " + dep + "' " + target + " > /dev/null 2>&1")
     status = os.system("bazel build " + target + " > /dev/null 2>&1")
     if status != 0:
-        os.system("buildozer 'add deps " + dep + "' " + target)
+        os.system("buildozer 'add deps " + dep + "' " + target + " > /dev/null 2>&1")
     else:
         print("\n" + dep + " is removed.")
 
