@@ -20,7 +20,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.FieldNameConstants;
-import org.bson.types.ObjectId;
 import org.hibernate.validator.constraints.NotBlank;
 import org.mongodb.morphia.annotations.Entity;
 import org.mongodb.morphia.annotations.Id;
@@ -35,7 +34,7 @@ import java.util.List;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Entity(value = "ceViewFolder", noClassnameStored = true)
 @Schema(description = "This object will contain the complete definition of a Cloud Cost Perspective")
-public final class CEViewFolder implements PersistentEntity, CreatedAtAware, UpdatedAtAware, AccountAccess,
+public final class CEViewFolder implements PersistentEntity, UuidAware, CreatedAtAware, UpdatedAtAware, AccountAccess,
                                      CreatedByAware, UpdatedByAware {
   public static List<MongoIndex> mongoIndexes() {
     return ImmutableList.<MongoIndex>builder()
@@ -45,7 +44,7 @@ public final class CEViewFolder implements PersistentEntity, CreatedAtAware, Upd
             .build())
         .build();
   }
-  @Id ObjectId uuid;
+  @Id String uuid;
   String accountId;
   @Size(min = 1, max = 80, message = "for view must be between 1 and 80 characters long") @NotBlank String name;
   boolean pinned;
