@@ -17,11 +17,10 @@ import io.harness.cdng.configfile.validator.ConfigFileOutcomeValidator;
 import io.harness.cdng.manifest.yaml.storeConfig.StoreConfig;
 import io.harness.common.ParameterFieldHelper;
 
-import lombok.experimental.UtilityClass;
-
-@UtilityClass
 @OwnedBy(CDP)
-public class ConfigFileOutcomeMapper {
+public final class ConfigFileOutcomeMapper {
+  private ConfigFileOutcomeMapper() {}
+
   public static ConfigFileOutcome toConfigFileOutcome(
       ConfigFileStepParameters configFileStepParameters, ConfigFileAttributes configFileAttributes) {
     StoreConfig store = ParameterFieldHelper.getParameterFieldValue(configFileAttributes.getStore()).getSpec();

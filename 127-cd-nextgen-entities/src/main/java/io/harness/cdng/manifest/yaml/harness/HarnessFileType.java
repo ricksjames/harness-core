@@ -19,11 +19,11 @@ public enum HarnessFileType {
   FILE_STORE("FileStore"),
   ENCRYPTED("Encrypted");
 
+  private final String value;
+
   HarnessFileType(String value) {
     this.value = value;
   }
-
-  private final String value;
 
   @JsonCreator(mode = JsonCreator.Mode.DELEGATING)
   public static HarnessFileType fromString(final String value) {

@@ -19,11 +19,11 @@ public enum ConfigFileType {
   ENCRYPTED("Encrypted"),
   REMOTE("Remote");
 
+  private final String value;
+
   ConfigFileType(String value) {
     this.value = value;
   }
-
-  private final String value;
 
   @JsonCreator(mode = JsonCreator.Mode.DELEGATING)
   public static ConfigFileType fromString(final String value) {
