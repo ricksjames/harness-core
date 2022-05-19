@@ -23,7 +23,6 @@ import io.harness.cdng.CDNGTestBase;
 import io.harness.cdng.configfile.steps.ConfigFilesOutcome;
 import io.harness.cdng.configfile.steps.ConfigFilesStep;
 import io.harness.cdng.service.steps.ServiceStepsHelper;
-import io.harness.logstreaming.NGLogCallback;
 import io.harness.pms.contracts.ambiance.Ambiance;
 import io.harness.pms.contracts.execution.Status;
 import io.harness.pms.sdk.core.resolver.outputs.ExecutionSweepingOutputService;
@@ -46,8 +45,6 @@ public class ConfigFilesStepTest extends CDNGTestBase {
   @Mock private ExecutionSweepingOutputService executionSweepingOutputService;
 
   @InjectMocks private ConfigFilesStep configFilesStep;
-
-  @Mock private NGLogCallback logCallback;
 
   @Test
   @Owner(developers = IVAN)

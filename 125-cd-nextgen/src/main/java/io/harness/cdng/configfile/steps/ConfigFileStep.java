@@ -69,7 +69,7 @@ public class ConfigFileStep implements SyncExecutable<ConfigFileStepParameters> 
   public StepResponse executeSync(Ambiance ambiance, ConfigFileStepParameters stepParameters,
       StepInputPackage inputPackage, PassThroughData passThroughData) {
     ConfigFileAttributes finalConfigFile = applyConfigFileOverrides(stepParameters);
-    getStoreReferences(stepParameters.getIdentifier(), finalConfigFile, ambiance);
+    validateStoreReferences(stepParameters.getIdentifier(), finalConfigFile, ambiance);
     return StepResponse.builder()
         .status(Status.SUCCEEDED)
         .stepOutcome(StepResponse.StepOutcome.builder()
@@ -109,26 +109,27 @@ public class ConfigFileStep implements SyncExecutable<ConfigFileStepParameters> 
     return resultantConfigFile;
   }
 
-  private void getStoreReferences(
+  private void validateStoreReferences(
       String configFileIdentifier, ConfigFileAttributes configFileAttributes, Ambiance ambiance) {
     StoreConfig storeConfig = configFileAttributes.getStore().getValue().getSpec();
-    if (storeConfig.getConnectorReference().isExpression()) {
-      return;
-    }
-
     String storeKind = storeConfig.getKind();
     if (HARNESS_STORE_TYPE.equals(storeKind)) {
-      getFileRef(configFileIdentifier, (HarnessStoreConfig) storeConfig, ambiance);
+      validateFileByRef(configFileIdentifier, (HarnessStoreConfig) storeConfig, ambiance);
     } else {
-      getConnectorRef(configFileIdentifier, storeConfig, ambiance);
+      validateConnectorByRef(configFileIdentifier, storeConfig, ambiance);
     }
   }
 
-  private void getFileRef(String configFileIdentifier, HarnessStoreConfig harnessStoreConfig, Ambiance ambiance) {
+  private void validateFileByRef(
+      String configFileIdentifier, HarnessStoreConfig harnessStoreConfig, Ambiance ambiance) {
     if (ParameterField.isNull(harnessStoreConfig.getFileReference())) {
       throw new InvalidRequestException(
           format("File ref field not present for store kind: %s in ConfigFile with identifier: %s ",
               harnessStoreConfig.getKind(), configFileIdentifier));
+    }
+
+    if (harnessStoreConfig.getFileReference().isExpression()) {
+      return;
     }
 
     String fileIdentifierRef = harnessStoreConfig.getFileReference().getValue();
@@ -137,11 +138,15 @@ public class ConfigFileStep implements SyncExecutable<ConfigFileStepParameters> 
         ngAccess.getOrgIdentifier(), ngAccess.getProjectIdentifier());
   }
 
-  private void getConnectorRef(String configFileIdentifier, StoreConfig storeConfig, Ambiance ambiance) {
+  private void validateConnectorByRef(String configFileIdentifier, StoreConfig storeConfig, Ambiance ambiance) {
     if (ParameterField.isNull(storeConfig.getConnectorReference())) {
       throw new InvalidRequestException(
           format("Connector ref field not present for store kind: %s in ConfigFile with identifier: %s ",
               storeConfig.getKind(), configFileIdentifier));
+    }
+
+    if (storeConfig.getConnectorReference().isExpression()) {
+      return;
     }
 
     String connectorIdentifierRef = storeConfig.getConnectorReference().getValue();
