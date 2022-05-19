@@ -19,7 +19,6 @@ import io.harness.cdng.configfile.ConfigFileAttributes;
 import io.harness.cdng.configfile.mapper.ConfigFileOutcomeMapper;
 import io.harness.cdng.manifest.yaml.harness.HarnessStoreConfig;
 import io.harness.cdng.manifest.yaml.storeConfig.StoreConfig;
-import io.harness.cdng.service.steps.ServiceStepsHelper;
 import io.harness.connector.ConnectorResponseDTO;
 import io.harness.connector.services.ConnectorService;
 import io.harness.connector.utils.ConnectorUtils;
@@ -57,7 +56,6 @@ public class ConfigFileStep implements SyncExecutable<ConfigFileStepParameters> 
   public static final StepType STEP_TYPE =
       StepType.newBuilder().setType(ExecutionNodeType.CONFIG_FILE.getName()).setStepCategory(StepCategory.STEP).build();
 
-  @Inject private ServiceStepsHelper serviceStepsHelper;
   @Named(DEFAULT_CONNECTOR_SERVICE) @Inject private ConnectorService connectorService;
 
   @Override
@@ -134,7 +132,7 @@ public class ConfigFileStep implements SyncExecutable<ConfigFileStepParameters> 
 
     String fileIdentifierRef = harnessStoreConfig.getFileReference().getValue();
     NGAccess ngAccess = AmbianceUtils.getNgAccess(ambiance);
-    IdentifierRef fileRef = IdentifierRefHelper.getIdentifierRef(fileIdentifierRef, ngAccess.getAccountIdentifier(),
+    IdentifierRefHelper.getIdentifierRef(fileIdentifierRef, ngAccess.getAccountIdentifier(),
         ngAccess.getOrgIdentifier(), ngAccess.getProjectIdentifier());
   }
 
@@ -157,8 +155,7 @@ public class ConfigFileStep implements SyncExecutable<ConfigFileStepParameters> 
     Optional<ConnectorResponseDTO> connectorDTO = connectorService.get(connectorRef.getAccountIdentifier(),
         connectorRef.getOrgIdentifier(), connectorRef.getProjectIdentifier(), connectorRef.getIdentifier());
     if (!connectorDTO.isPresent()) {
-      throw new InvalidRequestException(
-          String.format("Connector not found for identifier : [%s]", connectorIdentifierRef));
+      throw new InvalidRequestException(format("Connector not found for identifier : [%s]", connectorIdentifierRef));
     }
     ConnectorUtils.checkForConnectorValidityOrThrow(connectorDTO.get());
   }

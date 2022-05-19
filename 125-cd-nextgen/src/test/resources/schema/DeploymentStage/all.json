@@ -1120,7 +1120,12 @@
           "$ref": "#/definitions/StoreConfigWrapperParameters"
         },
         "type": {
-          "$ref": "#/definitions/ConfigFileType"
+          "type": "string",
+          "enum": [
+            "LocalFile",
+            "Encrypted",
+            "Remote"
+          ]
         }
       },
       "$schema": "http://json-schema.org/draft-07/schema#"
@@ -1132,7 +1137,12 @@
           "$ref": "#/definitions/ConfigFileAttributeStepParameters"
         },
         "fileType": {
-          "$ref": "#/definitions/ConfigFileType"
+          "type": "string",
+          "enum": [
+            "LocalFile",
+            "Encrypted",
+            "Remote"
+          ]
         },
         "hostDestination": {
           "type": "string"
@@ -1168,10 +1178,6 @@
           "type": "string"
         }
       },
-      "$schema": "http://json-schema.org/draft-07/schema#"
-    },
-    "ConfigFileType": {
-      "type": "object",
       "$schema": "http://json-schema.org/draft-07/schema#"
     },
     "ConfigFileWrapper": {

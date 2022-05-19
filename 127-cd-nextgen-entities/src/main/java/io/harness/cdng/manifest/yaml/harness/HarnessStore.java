@@ -65,6 +65,9 @@ public class HarnessStore implements HarnessStoreConfig, Visitable {
   @Wither
   private ParameterField<HarnessFileType> fileType;
 
+  // For Visitor Framework Impl
+  @Getter(onMethod_ = { @ApiModelProperty(hidden = true) }) @ApiModelProperty(hidden = true) String metadata;
+
   @Override
   public String getKind() {
     return HARNESS_STORE_TYPE;
@@ -74,9 +77,6 @@ public class HarnessStore implements HarnessStoreConfig, Visitable {
   public ParameterField<String> getFileReference() {
     return fileReference;
   }
-
-  // For Visitor Framework Impl
-  @Getter(onMethod_ = { @ApiModelProperty(hidden = true) }) @ApiModelProperty(hidden = true) String metadata;
 
   public HarnessStore cloneInternal() {
     return HarnessStore.builder().fileReference(fileReference).filePath(filePath).fileType(fileType).build();

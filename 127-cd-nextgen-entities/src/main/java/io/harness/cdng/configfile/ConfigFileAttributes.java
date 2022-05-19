@@ -30,6 +30,7 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.Value;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.FieldNameConstants;
@@ -62,6 +63,9 @@ public class ConfigFileAttributes implements OverridesApplier<ConfigFileAttribut
   @JsonProperty("fileType")
   ParameterField<ConfigFileType> type;
 
+  // For Visitor Framework Impl
+  @Getter(onMethod_ = { @ApiModelProperty(hidden = true) }) @ApiModelProperty(hidden = true) String metadata;
+
   @Override
   public ConfigFileAttributes applyOverrides(ConfigFileAttributes overrideConfig) {
     ConfigFileAttributes configFileAttributes = this;
@@ -81,9 +85,6 @@ public class ConfigFileAttributes implements OverridesApplier<ConfigFileAttribut
 
     return configFileAttributes;
   }
-
-  // For Visitor Framework Impl
-  String metadata;
 
   @Override
   public VisitableChildren getChildrenToWalk() {
