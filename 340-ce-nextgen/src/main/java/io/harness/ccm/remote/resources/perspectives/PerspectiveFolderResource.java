@@ -88,7 +88,7 @@ public class PerspectiveFolderResource {
         ApiResponse(description = "Returns a created CEViewFolder object with all its details",
             content = { @Content(mediaType = MediaType.APPLICATION_JSON) })
       })
-  public ResponseDTO<Boolean>
+  public ResponseDTO<CEViewFolder>
   create(@Parameter(required = true, description = ACCOUNT_PARAM_MESSAGE) @QueryParam(
              NGCommonEntityConstants.ACCOUNT_KEY) @AccountIdentifier @NotNull @Valid String accountId,
       @RequestBody(

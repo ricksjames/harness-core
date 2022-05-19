@@ -13,7 +13,7 @@ import io.harness.ccm.views.entities.CEViewFolder;
 import java.util.List;
 
 public interface CEViewFolderService {
-  boolean save(CEViewFolder ceViewFolder);
+  CEViewFolder save(CEViewFolder ceViewFolder);
   long numberOfFolders(String accountId);
   long numberOfFolders(String accountId, List<String> folderIds);
   List<CEViewFolder> getFolders(String accountId, long pageNo);
