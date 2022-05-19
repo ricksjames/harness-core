@@ -829,7 +829,7 @@ public class DelegateModule extends AbstractModule {
         new ThreadFactoryBuilder().setNameFormat("jenkins-%d").setPriority(Thread.NORM_PRIORITY).build());
   }
 
-  // TODO: I dont think we need to club this pool also (remove comment before merging)
+  // TODO: Can we club this thread pool with sync/async task thread pool
   @Provides
   @Singleton
   @Named("perpetualTaskTimeoutExecutor")
