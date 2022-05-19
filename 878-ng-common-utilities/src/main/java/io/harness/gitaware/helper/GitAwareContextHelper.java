@@ -72,7 +72,6 @@ public class GitAwareContextHelper {
     return EntityGitDetails.builder()
         .objectId(scmGitMetaData.getBlobId())
         .branch(scmGitMetaData.getBranchName())
-        .repoIdentifier(scmGitMetaData.getRepoName())
         .repoName(scmGitMetaData.getRepoName())
         .filePath(scmGitMetaData.getFilePath())
         .commitId(scmGitMetaData.getCommitId())

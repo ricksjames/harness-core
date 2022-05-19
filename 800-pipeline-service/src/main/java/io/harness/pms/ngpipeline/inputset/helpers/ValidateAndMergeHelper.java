@@ -21,6 +21,7 @@ import io.harness.exception.InvalidRequestException;
 import io.harness.gitsync.helpers.GitContextHelper;
 import io.harness.gitsync.interceptor.GitEntityInfo;
 import io.harness.gitsync.interceptor.GitSyncBranchContext;
+import io.harness.gitsync.persistance.GitSyncSdkService;
 import io.harness.pms.gitsync.PmsGitSyncBranchContextGuard;
 import io.harness.pms.helpers.PmsFeatureFlagHelper;
 import io.harness.pms.inputset.InputSetErrorWrapperDTOPMS;
@@ -56,6 +57,7 @@ public class ValidateAndMergeHelper {
   private final PMSInputSetService pmsInputSetService;
   private final PMSPipelineTemplateHelper pipelineTemplateHelper;
   private final PmsFeatureFlagHelper featureFlagService;
+  private final GitSyncSdkService gitSyncSdkService;
 
   public InputSetErrorWrapperDTOPMS validateInputSet(String accountId, String orgIdentifier, String projectIdentifier,
       String pipelineIdentifier, String yaml, String pipelineBranch, String pipelineRepoID) {
@@ -69,8 +71,31 @@ public class ValidateAndMergeHelper {
     InputSetYamlHelper.confirmPipelineIdentifierInInputSet(yaml, pipelineIdentifier);
     InputSetYamlHelper.confirmOrgAndProjectIdentifier(yaml, "inputSet", orgIdentifier, projectIdentifier);
 
-    String pipelineYaml = getPipelineYaml(
-        accountId, orgIdentifier, projectIdentifier, pipelineIdentifier, pipelineBranch, pipelineRepoID);
+    String pipelineYaml;
+    if (gitSyncSdkService.isGitSyncEnabled(accountId, orgIdentifier, projectIdentifier)) {
+      pipelineYaml = getPipelineYaml(
+          accountId, orgIdentifier, projectIdentifier, pipelineIdentifier, pipelineBranch, pipelineRepoID);
+    } else {
+      Optional<PipelineEntity> optionalPipelineEntity;
+      if (GitContextHelper.isUpdateToNewBranch()) {
+        String baseBranch = Objects.requireNonNull(GitContextHelper.getGitEntityInfo()).getBaseBranch();
+        GitSyncBranchContext branchContext =
+            GitSyncBranchContext.builder().gitBranchInfo(GitEntityInfo.builder().branch(baseBranch).build()).build();
+        try (PmsGitSyncBranchContextGuard ignored = new PmsGitSyncBranchContextGuard(branchContext, true)) {
+          optionalPipelineEntity =
+              pmsPipelineService.get(accountId, orgIdentifier, projectIdentifier, pipelineIdentifier, false);
+        }
+      } else {
+        optionalPipelineEntity =
+            pmsPipelineService.get(accountId, orgIdentifier, projectIdentifier, pipelineIdentifier, false);
+      }
+      if (optionalPipelineEntity.isPresent()) {
+        pipelineYaml = optionalPipelineEntity.get().getYaml();
+      } else {
+        throw new InvalidRequestException(PipelineCRUDErrorResponse.errorMessageForPipelineNotFound(
+            orgIdentifier, projectIdentifier, pipelineIdentifier));
+      }
+    }
 
     return InputSetErrorsHelper.getErrorMap(pipelineYaml, yaml);
   }
@@ -211,8 +236,31 @@ public class ValidateAndMergeHelper {
 
   public String getPipelineTemplate(String accountId, String orgIdentifier, String projectIdentifier,
       String pipelineIdentifier, String pipelineBranch, String pipelineRepoID, List<String> stageIdentifiers) {
-    String pipelineYaml = getPipelineYaml(
-        accountId, orgIdentifier, projectIdentifier, pipelineIdentifier, pipelineBranch, pipelineRepoID);
+    String pipelineYaml;
+    if (gitSyncSdkService.isGitSyncEnabled(accountId, orgIdentifier, projectIdentifier)) {
+      pipelineYaml = getPipelineYaml(
+          accountId, orgIdentifier, projectIdentifier, pipelineIdentifier, pipelineBranch, pipelineRepoID);
+    } else {
+      Optional<PipelineEntity> optionalPipelineEntity;
+      if (GitContextHelper.isUpdateToNewBranch()) {
+        String baseBranch = Objects.requireNonNull(GitContextHelper.getGitEntityInfo()).getBaseBranch();
+        GitSyncBranchContext branchContext =
+            GitSyncBranchContext.builder().gitBranchInfo(GitEntityInfo.builder().branch(baseBranch).build()).build();
+        try (PmsGitSyncBranchContextGuard ignored = new PmsGitSyncBranchContextGuard(branchContext, true)) {
+          optionalPipelineEntity =
+              pmsPipelineService.get(accountId, orgIdentifier, projectIdentifier, pipelineIdentifier, false);
+        }
+      } else {
+        optionalPipelineEntity =
+            pmsPipelineService.get(accountId, orgIdentifier, projectIdentifier, pipelineIdentifier, false);
+      }
+      if (optionalPipelineEntity.isPresent()) {
+        pipelineYaml = optionalPipelineEntity.get().getYaml();
+      } else {
+        throw new InvalidRequestException(PipelineCRUDErrorResponse.errorMessageForPipelineNotFound(
+            orgIdentifier, projectIdentifier, pipelineIdentifier));
+      }
+    }
     if (EmptyPredicate.isEmpty(stageIdentifiers)) {
       return createTemplateFromPipeline(pipelineYaml);
     }

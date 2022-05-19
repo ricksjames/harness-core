@@ -14,14 +14,17 @@ import static org.springframework.data.mongodb.core.query.Criteria.where;
 
 import io.harness.NGResourceFilterConstants;
 import io.harness.annotations.dev.OwnedBy;
+import io.harness.gitsync.beans.StoreType;
 import io.harness.gitsync.helpers.GitContextHelper;
 import io.harness.gitsync.interceptor.GitEntityInfo;
+import io.harness.pms.ngpipeline.inputset.beans.entity.InputSetEntity;
 import io.harness.pms.ngpipeline.inputset.beans.entity.InputSetEntity.InputSetEntityKeys;
 import io.harness.pms.ngpipeline.inputset.beans.entity.InputSetEntityType;
 import io.harness.pms.ngpipeline.inputset.beans.resource.InputSetListTypePMS;
 
 import lombok.experimental.UtilityClass;
 import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Update;
 
 @OwnedBy(PIPELINE)
 @UtilityClass
@@ -79,5 +82,35 @@ public class PMSInputSetFilterHelper {
       return InputSetEntityType.INPUT_SET;
     }
     return InputSetEntityType.OVERLAY_INPUT_SET;
+  }
+
+  public Update getUpdateOperations(InputSetEntity inputSetEntity) {
+    Update update = new Update();
+    update.set(InputSetEntityKeys.accountId, inputSetEntity.getAccountId());
+    update.set(InputSetEntityKeys.orgIdentifier, inputSetEntity.getOrgIdentifier());
+    update.set(InputSetEntityKeys.projectIdentifier, inputSetEntity.getProjectIdentifier());
+    update.set(InputSetEntityKeys.pipelineIdentifier, inputSetEntity.getPipelineIdentifier());
+    update.set(InputSetEntityKeys.yaml, inputSetEntity.getYaml());
+    update.set(InputSetEntityKeys.name, inputSetEntity.getName());
+    update.set(InputSetEntityKeys.tags, inputSetEntity.getTags());
+    update.set(InputSetEntityKeys.description, inputSetEntity.getDescription());
+    update.set(InputSetEntityKeys.deleted, false);
+    update.set(InputSetEntityKeys.inputSetEntityType, inputSetEntity.getInputSetEntityType());
+    update.set(InputSetEntityKeys.inputSetReferences, inputSetEntity.getInputSetReferences());
+    update.set(InputSetEntityKeys.lastUpdatedAt, System.currentTimeMillis());
+    update.set(InputSetEntityKeys.isInvalid, false);
+    return update;
+  }
+
+  public Update getUpdateOperationsForOnboardingToInline() {
+    Update update = new Update();
+    update.set(InputSetEntityKeys.storeType, StoreType.INLINE);
+    return update;
+  }
+
+  public Update getUpdateOperationsForDelete() {
+    Update update = new Update();
+    update.set(InputSetEntityKeys.deleted, true);
+    return update;
   }
 }
