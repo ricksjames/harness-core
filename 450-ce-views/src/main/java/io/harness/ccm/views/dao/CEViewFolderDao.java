@@ -17,7 +17,11 @@ import org.bson.types.ObjectId;
 import org.mongodb.morphia.query.Query;
 import org.mongodb.morphia.query.UpdateOperations;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Singleton
@@ -38,11 +42,12 @@ public class CEViewFolderDao {
   }
 
   public long getNumberOfFolders(String accountId, List<String> folderIds) {
+    List<ObjectId> folderIdsToQuery = folderIds.stream().map(ObjectId::new).collect(Collectors.toList());
     return hPersistence.createQuery(CEViewFolder.class)
         .field(CEViewFolderKeys.accountId)
         .equal(accountId)
         .field(CEViewFolderKeys.uuid)
-        .in(folderIds)
+        .in(folderIdsToQuery)
         .count();
   }
 
@@ -56,11 +61,12 @@ public class CEViewFolderDao {
   }
 
   public List<CEViewFolder> getFolders(String accountId, List<String> folderIds, long pageNo) {
+    List<ObjectId> folderIdsToQuery = folderIds.stream().map(ObjectId::new).collect(Collectors.toList());
     return hPersistence.createQuery(CEViewFolder.class)
         .field(CEViewFolderKeys.accountId)
         .equal(accountId)
         .field(CEViewFolderKeys.uuid)
-        .in(folderIds)
+        .in(folderIdsToQuery)
         .offset(((int) pageNo - 1) * FOLDERS_PER_PAGE)
         .limit(FOLDERS_PER_PAGE)
         .asList();
