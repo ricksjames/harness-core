@@ -27,6 +27,7 @@ import io.harness.accesscontrol.ResourceIdentifier;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.data.structure.EmptyPredicate;
 import io.harness.exception.InvalidRequestException;
+import io.harness.exception.ngexception.ErrorMetadataDTO;
 import io.harness.git.model.ChangeType;
 import io.harness.gitsync.interceptor.GitEntityCreateInfoDTO;
 import io.harness.gitsync.interceptor.GitEntityDeleteInfoDTO;
@@ -558,9 +559,16 @@ public class InputSetResourcePMS {
       @QueryParam("pipelineRepoID") String pipelineRepoID, @BeanParam GitEntityFindInfoDTO gitEntityBasicInfo,
       @NotNull @Valid MergeInputSetRequestDTOPMS mergeInputSetRequestDTO) {
     List<String> inputSetReferences = mergeInputSetRequestDTO.getInputSetReferences();
-    String mergedYaml = validateAndMergeHelper.getMergeInputSetFromPipelineTemplate(accountId, orgIdentifier,
-        projectIdentifier, pipelineIdentifier, inputSetReferences, pipelineBranch, pipelineRepoID,
-        mergeInputSetRequestDTO.getStageIdentifiers());
+    String mergedYaml;
+    try {
+      mergedYaml = validateAndMergeHelper.getMergeInputSetFromPipelineTemplate(accountId, orgIdentifier,
+          projectIdentifier, pipelineIdentifier, inputSetReferences, pipelineBranch, pipelineRepoID,
+          mergeInputSetRequestDTO.getStageIdentifiers());
+    } catch (InvalidInputSetException e) {
+      InputSetErrorWrapperDTOPMS errorWrapperDTO = (InputSetErrorWrapperDTOPMS) e.getMetadata();
+      return ResponseDTO.newResponse(
+          MergeInputSetResponseDTOPMS.builder().isErrorResponse(true).inputSetErrorWrapper(errorWrapperDTO).build());
+    }
     String fullYaml = "";
     if (mergeInputSetRequestDTO.isWithMergedPipelineYaml()) {
       fullYaml = validateAndMergeHelper.mergeInputSetIntoPipeline(accountId, orgIdentifier, projectIdentifier,

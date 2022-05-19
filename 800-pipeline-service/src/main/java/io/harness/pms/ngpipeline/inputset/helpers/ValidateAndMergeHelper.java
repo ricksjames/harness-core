@@ -30,6 +30,7 @@ import io.harness.pms.merger.helpers.InputSetYamlHelper;
 import io.harness.pms.ngpipeline.inputset.beans.entity.InputSetEntity;
 import io.harness.pms.ngpipeline.inputset.beans.entity.InputSetEntityType;
 import io.harness.pms.ngpipeline.inputset.beans.resource.InputSetTemplateResponseDTOPMS;
+import io.harness.pms.ngpipeline.inputset.exceptions.InvalidInputSetException;
 import io.harness.pms.ngpipeline.inputset.service.PMSInputSetService;
 import io.harness.pms.pipeline.PipelineEntity;
 import io.harness.pms.pipeline.service.PMSPipelineService;
@@ -301,6 +302,12 @@ public class ValidateAndMergeHelper {
         });
       }
     });
+    for (String inputSetYaml : inputSetYamlList) {
+      InputSetErrorWrapperDTOPMS errorMap = InputSetErrorsHelper.getErrorMap(pipelineTemplate, inputSetYaml);
+      if (errorMap != null) {
+        throw new InvalidInputSetException("Some fields are not valid", errorMap);
+      }
+    }
     if (EmptyPredicate.isEmpty(stageIdentifiers)) {
       return mergeInputSets(pipelineTemplate, inputSetYamlList, false);
     }
