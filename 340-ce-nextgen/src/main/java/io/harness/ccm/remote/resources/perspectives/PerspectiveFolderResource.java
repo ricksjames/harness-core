@@ -14,6 +14,7 @@ import io.harness.NGCommonEntityConstants;
 import io.harness.accesscontrol.AccountIdentifier;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.ccm.utils.LogAccountIdentifier;
+import io.harness.ccm.views.dto.ViewFolderQueryDTO;
 import io.harness.ccm.views.entities.CEView;
 import io.harness.ccm.views.entities.CEViewFolder;
 import io.harness.ccm.views.service.CEViewFolderService;
@@ -23,6 +24,7 @@ import io.harness.ng.core.dto.ErrorDTO;
 import io.harness.ng.core.dto.FailureDTO;
 import io.harness.ng.core.dto.ResponseDTO;
 import io.harness.security.annotations.NextGenManagerAuth;
+import io.jsonwebtoken.lang.Collections;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.v3.oas.annotations.Hidden;
@@ -39,7 +41,9 @@ import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static io.harness.NGCommonEntityConstants.ACCOUNT_PARAM_MESSAGE;
 import static io.harness.annotations.dev.HarnessTeam.CE;
@@ -67,6 +71,7 @@ public class PerspectiveFolderResource {
   }
 
   @POST
+  @Path("create")
   @Timed
   @ExceptionMetered
   @Consumes(MediaType.APPLICATION_JSON)
@@ -92,7 +97,7 @@ public class PerspectiveFolderResource {
     return ResponseDTO.newResponse(ceViewFolderService.save(ceViewFolder));
   }
 
-  @GET
+  @POST
   @Timed
   @ExceptionMetered
   @ApiOperation(value = "Get folders for account", nickname = "getFolders")
@@ -109,13 +114,27 @@ public class PerspectiveFolderResource {
             content = { @Content(mediaType = MediaType.APPLICATION_JSON) })
       })
   public ResponseDTO<List<CEViewFolder>>
-  getFolders(@Parameter(required = true, description = ACCOUNT_PARAM_MESSAGE) @QueryParam(
-          NGCommonEntityConstants.ACCOUNT_KEY) @AccountIdentifier @NotNull @Valid String accountId) {
-    return ResponseDTO.newResponse(ceViewFolderService.getFoldersForAccount(accountId));
+  getFolders(@RequestBody(required = true, description = "Request body containing accountId and folderIds") @Valid ViewFolderQueryDTO query) {
+    long totalFolders;
+    List<CEViewFolder> ceViewFolders;
+    if (Collections.isEmpty(query.getFolderIds())) {
+      totalFolders = ceViewFolderService.numberOfFolders(query.getAccountId());
+      ceViewFolders = ceViewFolderService.getFolders(query.getAccountId(), query.getPageNo());
+    } else {
+      totalFolders = ceViewFolderService.numberOfFolders(query.getAccountId(), query.getFolderIds());
+      ceViewFolders = ceViewFolderService.getFolders(query.getAccountId(), query.getFolderIds(), query.getPageNo());
+    }
+    Map<String, Long> metadata = new HashMap<>();
+    metadata.put("totalFolders", totalFolders);
+    metadata.put("pageNo", query.getPageNo());
+    ResponseDTO<List<CEViewFolder>> response = ResponseDTO.newResponse(ceViewFolders);
+    response.setMetaData(metadata);
+    return response;
   }
 
   @GET
   @Path("{folderId}")
+  @Deprecated
   @Timed
   @ExceptionMetered
   @ApiOperation(value = "Get All perspectives in a folder", nickname = "getAllPerspectives")
@@ -137,7 +156,30 @@ public class PerspectiveFolderResource {
   }
 
   @PUT
+  @Path("{folderId}")
+  @Timed
+  @ExceptionMetered
+  @Consumes(MediaType.APPLICATION_JSON)
+  @ApiOperation(value = "Update a folder", nickname = "updateFolder")
+  @LogAccountIdentifier
+  @Operation(operationId = "updateFolder",
+      description =
+          "Update a folder",
+      summary = "Update a folder",
+      responses =
+          {
+              @io.swagger.v3.oas.annotations.responses.
+                  ApiResponse(description = "CEViewFolder object",
+                  content = { @Content(mediaType = MediaType.APPLICATION_JSON) })
+          })
+  public ResponseDTO<CEViewFolder>
+  rename(@RequestBody(required = true, description = "Request body containing ceViewFolder object") @Valid CEViewFolder ceViewFolder) {
+    return ResponseDTO.newResponse(ceViewFolderService.updateFolder(ceViewFolder));
+  }
+
+  @PUT
   @Path("{folderId}/renameFolder")
+  @Deprecated
   @Timed
   @ExceptionMetered
   @Consumes(MediaType.APPLICATION_JSON)
@@ -163,6 +205,7 @@ public class PerspectiveFolderResource {
 
   @PUT
   @Path("{folderId}/pinFolder")
+  @Deprecated
   @Timed
   @ExceptionMetered
   @Consumes(MediaType.APPLICATION_JSON)
@@ -184,32 +227,6 @@ public class PerspectiveFolderResource {
          @Parameter(required = true, description = "Unique identifier for folder") @PathParam("folderId") String folderId,
          @QueryParam("pinStatus") @Parameter(required = true, description = "new pin status for the folder") @NotNull @Valid boolean pinStatus) {
     return ResponseDTO.newResponse(ceViewFolderService.pinFolder(accountId, folderId, pinStatus));
-  }
-
-  @POST
-  @Path("movePerspective/{newFolderId}/{perspectiveId}")
-  @Hidden
-  @Timed
-  @ExceptionMetered
-  @ApiOperation(value = "Move perspective", nickname = "movePerspective")
-  @FeatureRestrictionCheck(FeatureRestrictionName.PERSPECTIVES)
-  @LogAccountIdentifier
-  @Operation(operationId = "movePerspective", description = "Move a perspective from a folder to another.",
-      summary = "Move a Perspective",
-      responses =
-          {
-              @io.swagger.v3.oas.annotations.responses.
-                  ApiResponse(description = "Returns the new CEView object",
-                  content = { @Content(mediaType = MediaType.APPLICATION_JSON) })
-          })
-  public ResponseDTO<CEView>
-  movePerspective(@Parameter(required = true, description = ACCOUNT_PARAM_MESSAGE) @QueryParam(
-      NGCommonEntityConstants.ACCOUNT_KEY) @AccountIdentifier @NotNull @Valid String accountId,
-         @Parameter(required = true, description = "Unique identifier for the Perspective folder") @PathParam(
-             "newFolderId") String newFolderId,
-         @Parameter(required = true, description = "Unique identifier for the Perspective") @PathParam(
-             "perspectiveId") String perspectiveId) {
-    return ResponseDTO.newResponse(ceViewFolderService.moveCEView(accountId, perspectiveId, newFolderId));
   }
 
   @POST
@@ -238,6 +255,7 @@ public class PerspectiveFolderResource {
   }
 
   @DELETE
+  @Path("{folderId}")
   @Timed
   @ExceptionMetered
   @ApiOperation(value = "Delete folder", nickname = "deleteFolder")
@@ -253,7 +271,7 @@ public class PerspectiveFolderResource {
   public ResponseDTO<Boolean>
   delete(@Parameter(required = true, description = ACCOUNT_PARAM_MESSAGE) @QueryParam(
              NGCommonEntityConstants.ACCOUNT_KEY) @AccountIdentifier @NotNull @Valid String accountId,
-      @QueryParam("folderId") @Parameter(required = true,
+      @PathParam("folderId") @Parameter(required = true,
           description = "Unique identifier for the Perspective folder") @NotNull @Valid String folderId) {
     return ResponseDTO.newResponse(ceViewFolderService.delete(folderId, accountId));
   }
