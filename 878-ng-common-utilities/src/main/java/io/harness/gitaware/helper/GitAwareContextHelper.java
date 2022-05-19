@@ -30,7 +30,7 @@ public class GitAwareContextHelper {
     final GitSyncBranchContext gitSyncBranchContext =
         GlobalContextManager.get(GitSyncBranchContext.NG_GIT_SYNC_CONTEXT);
     if (gitSyncBranchContext == null) {
-      throw new UnexpectedException("Git Details not found in context");
+      return GitEntityInfo.builder().build();
     }
     return gitSyncBranchContext.getGitBranchInfo();
   }
@@ -72,7 +72,6 @@ public class GitAwareContextHelper {
     return EntityGitDetails.builder()
         .objectId(scmGitMetaData.getBlobId())
         .branch(scmGitMetaData.getBranchName())
-        .repoIdentifier(scmGitMetaData.getRepoName())
         .repoName(scmGitMetaData.getRepoName())
         .filePath(scmGitMetaData.getFilePath())
         .commitId(scmGitMetaData.getCommitId())

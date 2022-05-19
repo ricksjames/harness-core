@@ -186,21 +186,8 @@ public class HarnessToGitPushInfoGrpcService extends HarnessToGitPushInfoService
     } else {
       principal = PrincipalProtoMapper.toPrincipalDTO(request.getAccountId(), principalFromProto);
     }
-    validateThePrincipal(principal);
     GlobalContextManager.upsertGlobalContextRecord(PrincipalContextData.builder().principal(principal).build());
     GlobalContextManager.upsertGlobalContextRecord(SourcePrincipalContextData.builder().principal(principal).build());
-  }
-
-  private void validateThePrincipal(io.harness.security.dto.Principal principal) {
-    if (principal.getType() == PrincipalType.SERVICE) {
-      checkIfServicePrincipalIsValid((io.harness.security.dto.ServicePrincipal) principal);
-    }
-  }
-
-  private void checkIfServicePrincipalIsValid(io.harness.security.dto.ServicePrincipal servicePrincipal) {
-    if (!GIT_SYNC_SERVICE.getServiceId().equals(servicePrincipal.getName())) {
-      throw new InvalidRequestException("Only git sync service principal is allowed for push");
-    }
   }
 
   @Override

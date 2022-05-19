@@ -241,7 +241,7 @@ public class PMSPipelineServiceImpl implements PMSPipelineService {
         updatedResult =
             pmsPipelineRepository.updatePipelineYamlForOldGitSync(entityWithUpdatedInfo, oldEntity, changeType);
       } else {
-        updatedResult = pmsPipelineRepository.updatePipelineYaml(entityWithUpdatedInfo, oldEntity, changeType);
+        updatedResult = pmsPipelineRepository.updatePipelineYaml(entityWithUpdatedInfo);
       }
 
       if (updatedResult == null) {

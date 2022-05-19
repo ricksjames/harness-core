@@ -112,7 +112,10 @@ public class GitAwareEntityHelper {
                                                           .baseBranch(baseBranch)
                                                           .build();
 
-    return scmGitSyncHelper.createFile(scope, scmCreateFileGitRequest, Collections.emptyMap());
+    ScmCreateFileGitResponse scmCreateFileGitResponse =
+        scmGitSyncHelper.createFile(scope, scmCreateFileGitRequest, Collections.emptyMap());
+    GitAwareContextHelper.updateScmGitMetaData(scmCreateFileGitResponse.getGitMetaData());
+    return scmCreateFileGitResponse;
   }
 
   public ScmUpdateFileGitResponse updateEntityOnGit(GitAware gitAwareEntity, String yaml, Scope scope) {
