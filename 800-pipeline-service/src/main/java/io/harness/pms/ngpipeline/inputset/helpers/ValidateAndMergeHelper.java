@@ -18,6 +18,8 @@ import static io.harness.pms.merger.helpers.InputSetTemplateHelper.createTemplat
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.data.structure.EmptyPredicate;
 import io.harness.exception.InvalidRequestException;
+import io.harness.gitaware.helper.GitAwareContextHelper;
+import io.harness.gitsync.beans.StoreType;
 import io.harness.gitsync.helpers.GitContextHelper;
 import io.harness.gitsync.interceptor.GitEntityInfo;
 import io.harness.gitsync.interceptor.GitSyncBranchContext;
@@ -91,7 +93,12 @@ public class ValidateAndMergeHelper {
             pmsPipelineService.get(accountId, orgIdentifier, projectIdentifier, pipelineIdentifier, false);
       }
       if (optionalPipelineEntity.isPresent()) {
-        pipelineYaml = optionalPipelineEntity.get().getYaml();
+        StoreType storeTypeInContext = GitAwareContextHelper.getGitEntityInfo().getStoreType();
+        PipelineEntity pipelineEntity = optionalPipelineEntity.get();
+        if (storeTypeInContext != null && pipelineEntity.getStoreType() != storeTypeInContext) {
+          throw new InvalidRequestException("Input Set should have the same Store Type as the Pipeline it is for");
+        }
+        pipelineYaml = pipelineEntity.getYaml();
       } else {
         throw new InvalidRequestException(PipelineCRUDErrorResponse.errorMessageForPipelineNotFound(
             orgIdentifier, projectIdentifier, pipelineIdentifier));
