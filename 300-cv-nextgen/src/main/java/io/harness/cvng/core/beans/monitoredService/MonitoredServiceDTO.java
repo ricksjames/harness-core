@@ -11,10 +11,10 @@ import static io.harness.data.structure.EmptyPredicate.isEmpty;
 
 import io.harness.cvng.beans.MonitoredServiceType;
 import io.harness.cvng.core.beans.dependency.ServiceDependencyMetadata;
+import io.harness.cvng.core.beans.template.TemplateDTO;
 import io.harness.cvng.notification.beans.NotificationRuleRefDTO;
 import io.harness.data.validator.EntityIdentifier;
 import io.harness.data.validator.NGEntityName;
-import io.harness.gitsync.beans.YamlDTO;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import io.swagger.annotations.ApiModelProperty;
@@ -36,7 +36,7 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Builder
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class MonitoredServiceDTO implements YamlDTO {
+public class MonitoredServiceDTO {
   @ApiModelProperty(required = true) @NotNull @EntityIdentifier String orgIdentifier;
   @ApiModelProperty(required = true) @NotNull @EntityIdentifier String projectIdentifier;
   @ApiModelProperty(required = true) @NotNull String identifier;
@@ -50,6 +50,7 @@ public class MonitoredServiceDTO implements YamlDTO {
   @Valid Sources sources;
   @Valid Set<ServiceDependencyDTO> dependencies;
   List<NotificationRuleRefDTO> notificationRuleRefs;
+  @Valid TemplateDTO template;
 
   public List<String> getEnvironmentRefList() {
     // For migration. Remove once envRefList is populated from UI.

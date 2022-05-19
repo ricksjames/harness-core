@@ -195,4 +195,21 @@ public class ScmOrchestratorServiceImpl implements ScmOrchestratorService {
   public GetUserRepoResponse getRepoDetails(ScmConnector scmConnector) {
     return scmServiceGitClient.getRepoDetails(scmConnector);
   }
+
+  @Override
+  public GetUserReposResponse getAllUserRepos(ScmConnector scmConnector) {
+    return scmServiceGitClient.getAllUserRepos(scmConnector);
+  }
+
+  @Override
+  public CreateBranchResponse createNewBranchV2(
+      ScmConnector scmConnector, String newBranchName, String baseBranchName) {
+    return scmServiceGitClient.createNewBranchV2(scmConnector, newBranchName, baseBranchName);
+  }
+
+  @Override
+  public CreatePRResponse createPullRequestV2(
+      ScmConnector scmConnector, String sourceBranchName, String targetBranchName, String prTitle) {
+    return scmServiceGitClient.createPullRequestV2(scmConnector, sourceBranchName, targetBranchName, prTitle);
+  }
 }

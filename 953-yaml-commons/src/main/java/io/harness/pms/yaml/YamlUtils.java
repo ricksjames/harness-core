@@ -25,6 +25,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
@@ -50,7 +51,7 @@ public class YamlUtils {
     mapper = new ObjectMapper(new YAMLFactory());
     mapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
     mapper.setSubtypeResolver(AnnotationAwareJsonSubtypeResolver.newInstance(mapper.getSubtypeResolver()));
-    mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+    mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
     mapper.registerModule(new Jdk8Module());
     mapper.registerModule(new GuavaModule());
     mapper.registerModule(new JavaTimeModule());
@@ -440,6 +441,9 @@ public class YamlUtils {
 
   private YamlField getMatchingFieldNameFromParentUsingUUID(YamlNode parent, String uuid) {
     for (YamlField field : parent.fields()) {
+      if (parent.getField(field.getName()) == null) {
+        continue;
+      }
       if (uuid.equals(parent.getField(field.getName()).getNode().getUuid())) {
         return field;
       }
@@ -457,8 +461,7 @@ public class YamlUtils {
   }
 
   public String writeYamlString(YamlField yamlField) throws IOException {
-    String json = yamlField.getNode().toString();
-    JsonNode jsonNode = mapper.readTree(json);
+    JsonNode jsonNode = yamlField.getNode().getCurrJsonNode();
     return mapper.writeValueAsString(jsonNode);
   }
 
@@ -539,5 +542,11 @@ public class YamlUtils {
     for (Iterator<JsonNode> it = arrayNode.elements(); it.hasNext();) {
       removeUuid(it.next());
     }
+  }
+
+  public void setStringValueForField(String fieldName, String value, YamlField yamlField) {
+    YamlNode yamlNode = yamlField.getNode();
+    ObjectNode currJsonNode = (ObjectNode) yamlNode.getCurrJsonNode();
+    currJsonNode.set(fieldName, new TextNode(value));
   }
 }
