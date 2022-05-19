@@ -113,7 +113,6 @@ java_library(
         "@maven//:org_slf4j_slf4j_api",
         "@maven//:org_zeroturnaround_zt_exec",
         "@maven//:xerces_xercesImpl",
-        "@maven//:javax_javaee_api",
     ],
 )
 
