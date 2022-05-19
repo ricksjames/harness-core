@@ -216,7 +216,6 @@ public class HarnessToGitPushInfoGrpcService extends HarnessToGitPushInfoService
   private void setPrincipal(String accountIdentifier, Principal requestPrincipal) {
     final io.harness.security.dto.Principal principal =
         PrincipalProtoMapper.toPrincipalDTO(accountIdentifier, requestPrincipal);
-    validateThePrincipal(principal);
     GlobalContextManager.upsertGlobalContextRecord(PrincipalContextData.builder().principal(principal).build());
     GlobalContextManager.upsertGlobalContextRecord(SourcePrincipalContextData.builder().principal(principal).build());
   }
