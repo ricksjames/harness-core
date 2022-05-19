@@ -41,9 +41,9 @@ public class GitEntityInfo {
   String commitId; // used for passing commitId in case of g2h.
   Boolean isFullSyncFlow;
   String resolvedConflictCommitId;
-  StoreType storeType;
+  @Setter StoreType storeType;
   String connectorRef;
-  String repoName;
+  @Setter String repoName;
 
   public boolean isNull() {
     // todo @Abhinav Maybe we should use null in place of default
@@ -62,6 +62,7 @@ public class GitEntityInfo {
         .repoIdentifier(yamlGitConfigId)
         .rootFolder(folderPath)
         .filePath(filePath)
+        .repoName(repoName)
         .build();
   }
 }
