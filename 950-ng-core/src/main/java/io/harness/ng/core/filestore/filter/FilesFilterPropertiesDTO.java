@@ -5,20 +5,16 @@
  * https://polyformproject.org/wp-content/uploads/2020/05/PolyForm-Free-Trial-1.0.0.txt.
  */
 
-package io.harness.ng.core.dto.filestore.filter;
+package io.harness.ng.core.filestore.filter;
 
-import static io.harness.annotations.dev.HarnessTeam.CDP;
-import static io.harness.filter.FilterConstants.FILE_STORE_FILTER;
-
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonTypeName;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.filter.FilterType;
 import io.harness.filter.dto.FilterPropertiesDTO;
 import io.harness.ng.core.EntityDetail;
 import io.harness.ng.core.dto.EmbeddedUserDetailsDTO;
 import io.harness.ng.core.filestore.FileUsage;
-
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonTypeName;
 import io.swagger.annotations.ApiModel;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AccessLevel;
@@ -28,6 +24,9 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
+
+import static io.harness.annotations.dev.HarnessTeam.CDP;
+import static io.harness.filter.FilterConstants.FILE_STORE_FILTER;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonTypeName(FILE_STORE_FILTER)

@@ -7,8 +7,8 @@
 
 package io.harness.ng.core.filestore.api;
 
-import io.harness.ng.core.entities.NGFile;
 import io.harness.ng.core.filestore.dto.FileDTO;
+import io.harness.ng.core.filestore.entities.NGFile;
 
 public interface FileFailsafeService {
   /**
@@ -17,7 +17,7 @@ public interface FileFailsafeService {
    * @param ngFile the NG file
    * @return published file
    */
-  FileDTO saveAndPublish(NGFile ngFile);
+  FileDTO saveAndPublish(io.harness.ng.core.filestore.entities.NGFile ngFile);
 
   /**
    * Update NG file in DB and publish file update event
@@ -26,7 +26,7 @@ public interface FileFailsafeService {
    * @param newNGFile the new NG file
    * @return published file
    */
-  FileDTO updateAndPublish(NGFile oldNGFile, NGFile newNGFile);
+  FileDTO updateAndPublish(io.harness.ng.core.filestore.entities.NGFile oldNGFile, io.harness.ng.core.filestore.entities.NGFile newNGFile);
 
   /**
    * Delete NG file in DB and publish file delete event

@@ -12,19 +12,19 @@ import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.ng.core.beans.SearchPageParams;
 import io.harness.ng.core.dto.EmbeddedUserDetailsDTO;
-import io.harness.ng.core.dto.filestore.filter.FilesFilterPropertiesDTO;
-import io.harness.ng.core.dto.filestore.node.FolderNodeDTO;
 import io.harness.ng.core.entitysetupusage.dto.EntitySetupUsageDTO;
 import io.harness.ng.core.filestore.dto.FileDTO;
 import io.harness.ng.core.filestore.dto.FileFilterDTO;
+import io.harness.ng.core.filestore.filter.FilesFilterPropertiesDTO;
+import io.harness.ng.core.filestore.node.FolderNodeDTO;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
+import javax.validation.constraints.NotNull;
 import java.io.File;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Set;
-import javax.validation.constraints.NotNull;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 
 @OwnedBy(HarnessTeam.CDP)
 public interface FileStoreService {
@@ -81,8 +81,8 @@ public interface FileStoreService {
    * @param folderNodeDTO the folder for which to return the list of nodes
    * @return the folder populated with nodes
    */
-  FolderNodeDTO listFolderNodes(@NotNull String accountIdentifier, String orgIdentifier, String projectIdentifier,
-      @NotNull FolderNodeDTO folderNodeDTO);
+  io.harness.ng.core.filestore.node.FolderNodeDTO listFolderNodes(@NotNull String accountIdentifier, String orgIdentifier, String projectIdentifier,
+                                                                  @NotNull FolderNodeDTO folderNodeDTO);
 
   /**
    * Get list of entities file is referenced by.
@@ -125,7 +125,7 @@ public interface FileStoreService {
    * @return filtered list of NG files by pages
    */
   Page<FileDTO> listFilesWithFilter(String accountIdentifier, String orgIdentifier, String projectIdentifier,
-      String filterIdentifier, String searchTerm, FilesFilterPropertiesDTO filesFilterPropertiesDTO, Pageable pageable);
+                                    String filterIdentifier, String searchTerm, FilesFilterPropertiesDTO filesFilterPropertiesDTO, Pageable pageable);
 
   /**
    * Get the list of created by principals.

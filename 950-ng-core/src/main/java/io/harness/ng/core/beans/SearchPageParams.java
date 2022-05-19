@@ -7,18 +7,18 @@
 
 package io.harness.ng.core.beans;
 
-import static io.harness.annotations.dev.HarnessTeam.CDP;
-
 import io.harness.annotations.dev.OwnedBy;
-
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.QueryParam;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import lombok.Value;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.SuperBuilder;
+
+import javax.ws.rs.DefaultValue;
+import javax.ws.rs.QueryParam;
+
+import static io.harness.annotations.dev.HarnessTeam.CDP;
 
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Value

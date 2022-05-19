@@ -5,10 +5,10 @@
  * https://polyformproject.org/wp-content/uploads/2020/05/PolyForm-Free-Trial-1.0.0.txt.
  */
 
-package io.harness.ng.core.entities;
+package io.harness.ng.core.filestore.entities;
 
-import static io.harness.beans.EmbeddedUser.EmbeddedUserKeys;
-
+import com.google.common.collect.ImmutableList;
+import com.sun.istack.internal.NotNull;
 import io.harness.annotation.HarnessEntity;
 import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
@@ -30,11 +30,6 @@ import io.harness.persistence.CreatedByAware;
 import io.harness.persistence.PersistentEntity;
 import io.harness.persistence.UpdatedByAware;
 import io.harness.persistence.UuidAware;
-
-import com.google.common.collect.ImmutableList;
-import java.util.List;
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Size;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Data;
@@ -52,6 +47,11 @@ import org.springframework.data.annotation.LastModifiedBy;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.annotation.TypeAlias;
 import org.springframework.data.mongodb.core.mapping.Document;
+
+import javax.validation.constraints.Size;
+import java.util.List;
+
+import static io.harness.beans.EmbeddedUser.EmbeddedUserKeys;
 
 @Data
 @Builder
@@ -78,8 +78,10 @@ public class NGFile implements PersistentEntity, UuidAware, NGAccountAccess, NGO
   @EntityIdentifier String identifier;
   @Size(max = 1024) String description;
   @Size(max = 128) List<NGTag> tags;
-  @NotNull FileUsage fileUsage;
-  @NotNull NGFileType type;
+  @com.sun.istack.internal.NotNull
+  FileUsage fileUsage;
+  @NotNull
+  NGFileType type;
   @NotEmpty String parentIdentifier;
   @NotEmpty String fileUuid;
   @NotEmpty String name;

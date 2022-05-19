@@ -10,9 +10,8 @@ package io.harness.ng.core.filestore.api;
 import io.harness.EntityType;
 import io.harness.exception.ReferencedEntityException;
 import io.harness.ng.core.beans.SearchPageParams;
-import io.harness.ng.core.entities.NGFile;
 import io.harness.ng.core.entitysetupusage.dto.EntitySetupUsageDTO;
-
+import io.harness.ng.core.filestore.entities.NGFile;
 import org.springframework.data.domain.Page;
 
 public interface FileReferenceService {
@@ -22,7 +21,7 @@ public interface FileReferenceService {
    * @param file the file
    * @return if the file is referenced by other entities
    */
-  Long countEntitiesReferencingFile(NGFile file);
+  Long countEntitiesReferencingFile(io.harness.ng.core.filestore.entities.NGFile file);
 
   /**
    * The list of entities where the file is referenced
@@ -32,7 +31,7 @@ public interface FileReferenceService {
    * @param entityType the entity type
    * @return the list of usage DTOs where the file is referenced by
    */
-  Page<EntitySetupUsageDTO> getReferencedBy(SearchPageParams pageParams, NGFile file, EntityType entityType);
+  Page<EntitySetupUsageDTO> getReferencedBy(SearchPageParams pageParams, io.harness.ng.core.filestore.entities.NGFile file, EntityType entityType);
 
   /**
    * Validates if file is referenced by other entities
