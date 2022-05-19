@@ -31,7 +31,7 @@ fi
 if [ "${RUN_BAZEL_FUNCTIONAL_TESTS}" == "true" ]; then
 
   bazel build ${GCP} ${BAZEL_ARGUMENTS} -- //200-functional-test/...
-  java -Xmx4096m -XX:+HeapDumpOnOutOfMemoryError -XX:+UseParallelGC \
+  java -Xmx4096m -XX:+HeapDumpOnOutOfMemoryError -Xloggc:mygclogfilename.gc -XX:+UseParallelGC \
     -XX:MaxGCPauseMillis=500 -jar /harness/bazel-out/k8-fastbuild/bin/260-delegate/module_deploy.jar /harness/260-delegate/config-delegate.yml &> /harness/delegate.log &
   DELEGATE_PID=$!
 
