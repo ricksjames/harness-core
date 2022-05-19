@@ -58,6 +58,7 @@ public class StreamModule extends AbstractModule {
             isEmpty(System.getenv(ATMOSPHERE_ASYNC_WRITE_THREADPOOL_MAXSIZE))
                 ? "40"
                 : System.getenv(ATMOSPHERE_ASYNC_WRITE_THREADPOOL_MAXSIZE))
+        .addInitParameter(ApplicationConfig.WEBSOCKET_SUPPRESS_JSR356, "true")
         .addInitParameter(ApplicationConfig.WEBSOCKET_SUPPORT, "true")
         .addInitParameter(ApplicationConfig.ANNOTATION_PACKAGE, getClass().getPackage().getName());
 
