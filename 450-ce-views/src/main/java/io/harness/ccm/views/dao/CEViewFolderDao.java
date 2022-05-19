@@ -14,12 +14,10 @@ import io.harness.ccm.views.entities.CEViewFolder.CEViewFolderKeys;
 import io.harness.ccm.views.entities.ViewType;
 import io.harness.persistence.HPersistence;
 import lombok.extern.slf4j.Slf4j;
-import org.bson.types.ObjectId;
 import org.mongodb.morphia.query.Query;
 import org.mongodb.morphia.query.UpdateOperations;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Singleton
@@ -32,7 +30,7 @@ public class CEViewFolderDao {
     String id = hPersistence.save(ceViewFolder);
     return hPersistence.createQuery(CEViewFolder.class)
         .field(CEViewFolderKeys.uuid)
-        .equal(new ObjectId(id))
+        .equal(id)
         .get();
   }
 
@@ -44,12 +42,11 @@ public class CEViewFolderDao {
   }
 
   public long getNumberOfFolders(String accountId, List<String> folderIds) {
-    List<ObjectId> folderIdsToQuery = folderIds.stream().map(ObjectId::new).collect(Collectors.toList());
     return hPersistence.createQuery(CEViewFolder.class)
         .field(CEViewFolderKeys.accountId)
         .equal(accountId)
         .field(CEViewFolderKeys.uuid)
-        .in(folderIdsToQuery)
+        .in(folderIds)
         .count();
   }
 
@@ -72,12 +69,11 @@ public class CEViewFolderDao {
   }
 
   public List<CEViewFolder> getFolders(String accountId, List<String> folderIds, long pageNo) {
-    List<ObjectId> folderIdsToQuery = folderIds.stream().map(ObjectId::new).collect(Collectors.toList());
     return hPersistence.createQuery(CEViewFolder.class)
         .field(CEViewFolderKeys.accountId)
         .equal(accountId)
         .field(CEViewFolderKeys.uuid)
-        .in(folderIdsToQuery)
+        .in(folderIds)
         .offset(((int) pageNo - 1) * FOLDERS_PER_PAGE)
         .limit(FOLDERS_PER_PAGE)
         .asList();
@@ -114,7 +110,7 @@ public class CEViewFolderDao {
         .field(CEViewFolderKeys.accountId)
         .equal(accountId)
         .field(CEViewFolderKeys.uuid)
-        .equal(new ObjectId(uuid));
+        .equal(uuid);
 
     UpdateOperations<CEViewFolder> updateOperations =
         hPersistence.createUpdateOperations(CEViewFolder.class).set(CEViewFolderKeys.name, newName);
@@ -127,7 +123,7 @@ public class CEViewFolderDao {
         .field(CEViewFolderKeys.accountId)
         .equal(accountId)
         .field(CEViewFolderKeys.uuid)
-        .equal(new ObjectId(uuid));
+        .equal(uuid);
 
     UpdateOperations<CEViewFolder> updateOperations =
         hPersistence.createUpdateOperations(CEViewFolder.class).set(CEViewFolderKeys.pinned, pinStatus);
@@ -140,7 +136,7 @@ public class CEViewFolderDao {
         .field(CEViewFolderKeys.accountId)
         .equal(accountId)
         .field(CEViewFolderKeys.uuid)
-        .equal(new ObjectId(uuid));
+        .equal(uuid);
     return hPersistence.delete(query);
   }
 }
