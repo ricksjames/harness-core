@@ -14,6 +14,7 @@ import io.harness.batch.processing.anomalydetection.helpers.TimeSeriesUtils;
 import io.harness.batch.processing.config.BatchMainConfig;
 import io.harness.ccm.bigQuery.BigQueryService;
 import io.harness.ccm.billing.graphql.CloudBillingGroupBy;
+import io.harness.ccm.billing.graphql.CloudBillingSortCriteria;
 import io.harness.ccm.billing.graphql.CloudEntityGroupBy;
 import io.harness.ccm.billing.preaggregated.PreAggregatedTableSchema;
 import io.harness.exception.InvalidArgumentsException;
@@ -60,18 +61,20 @@ public class AnomalyDetectionBigQueryServiceImplNG {
       return hashCodes;
     }
 
+    List<CloudBillingSortCriteria> sortCriteriaList = timeSeriesMetaData.getCloudQueryMetaData().getSortCriteriaList();
+    log.info("Sort list {}", sortCriteriaList);
     String queryStatement = timeSeriesMetaData.getCloudQueryMetaData().getMetaDataQuery();
     queryStatement = queryStatement.replace("<Project>.<DataSet>.<TableName>",
         cloudBillingHelper.getCloudProviderTableName(config.getBillingDataPipelineConfig().getGcpProjectId(),
             timeSeriesMetaData.getAccountId(), CloudBillingHelper.unified));
-    log.info("Step 1 : query statement prepared for meta data : {}", queryStatement);
+    log.info("Step 1 : query statement prepared for meta data ng : {}", queryStatement);
 
     QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(queryStatement).build();
     try {
       TableResult result = bigQueryService.get().query(queryConfig);
       hashCodes = extractHashCodes(result);
     } catch (Exception e) {
-      log.error("failed to fetch batch meta data for account {} , query : {} , exception : {}",
+      log.error("failed to fetch batch meta data for account ng {} , query : {} , exception : {}",
           timeSeriesMetaData.getAccountId(), queryStatement, e);
     }
     return hashCodes;
