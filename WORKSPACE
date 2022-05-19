@@ -4725,6 +4725,7 @@ plain_artifacts = [
     "javax.xml.soap:javax.xml.soap-api:1.4.0",
     "javax.xml.ws:jaxws-api:2.3.1",
     "jaxen:jaxen:1.1.6",
+    "javax:javaee-api:8.0",
     "joda-time:joda-time:2.10.1",
     "net.arnx:nashorn-promise:0.1.1",
     "net.bytebuddy:byte-buddy:1.10.7",
