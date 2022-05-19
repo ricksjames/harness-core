@@ -40,15 +40,14 @@ import org.springframework.stereotype.Service;
 @Service
 @Singleton
 @Slf4j
-public class AnomalyDetectionBigQueryServiceImpl {
-  private static final String preAggregated = "preAggregated";
+public class AnomalyDetectionBigQueryServiceImplNG {
   private BatchMainConfig config;
   private BigQueryService bigQueryService;
   private CloudBillingHelper cloudBillingHelper;
 
   @Autowired
   @Inject
-  public AnomalyDetectionBigQueryServiceImpl(
+  public AnomalyDetectionBigQueryServiceImplNG(
       BatchMainConfig config, BigQueryService bigQueryService, CloudBillingHelper cloudBillingHelper) {
     this.config = config;
     this.cloudBillingHelper = cloudBillingHelper;
@@ -63,8 +62,8 @@ public class AnomalyDetectionBigQueryServiceImpl {
 
     String queryStatement = timeSeriesMetaData.getCloudQueryMetaData().getMetaDataQuery();
     queryStatement = queryStatement.replace("<Project>.<DataSet>.<TableName>",
-        cloudBillingHelper.getCloudProviderTableName(
-            config.getBillingDataPipelineConfig().getGcpProjectId(), timeSeriesMetaData.getAccountId(), preAggregated));
+        cloudBillingHelper.getCloudProviderTableName(config.getBillingDataPipelineConfig().getGcpProjectId(),
+            timeSeriesMetaData.getAccountId(), CloudBillingHelper.unified));
     log.info("Step 1 : query statement prepared for meta data : {}", queryStatement);
 
     QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(queryStatement).build();
@@ -81,7 +80,7 @@ public class AnomalyDetectionBigQueryServiceImpl {
   private boolean isTableExists(String accountId) {
     try {
       String datasetName = cloudBillingHelper.getDataSetId(accountId);
-      Table table = bigQueryService.get().getTable(TableId.of(datasetName, preAggregated));
+      Table table = bigQueryService.get().getTable(TableId.of(datasetName, CloudBillingHelper.unified));
       if (table == null) {
         return false;
       }
@@ -113,8 +112,8 @@ public class AnomalyDetectionBigQueryServiceImpl {
 
     String queryStatement = timeSeriesMetaData.getCloudQueryMetaData().getQuery(batchHashCodes);
     queryStatement = queryStatement.replace("<Project>.<DataSet>.<TableName>",
-        cloudBillingHelper.getCloudProviderTableName(
-            config.getBillingDataPipelineConfig().getGcpProjectId(), timeSeriesMetaData.getAccountId(), preAggregated));
+        cloudBillingHelper.getCloudProviderTableName(config.getBillingDataPipelineConfig().getGcpProjectId(),
+            timeSeriesMetaData.getAccountId(), CloudBillingHelper.unified));
     log.info("STEP 2 : query statement prepared for reading batch data : {}", queryStatement);
 
     QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(queryStatement).build();

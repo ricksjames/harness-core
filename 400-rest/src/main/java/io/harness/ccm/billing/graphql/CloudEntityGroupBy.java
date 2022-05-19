@@ -34,6 +34,8 @@ public enum CloudEntityGroupBy {
   awsLinkedAccount(PreAggregatedTableSchema.awsUsageAccountId, null, RawBillingTableSchema.awsUsageAccountId),
   awsUsageType(PreAggregatedTableSchema.awsUsageType, null, RawBillingTableSchema.awsUsageType),
   awsInstanceType(PreAggregatedTableSchema.awsInstanceType, null, RawBillingTableSchema.awsInstanceType),
+  azureSubscriptionGuid(
+      PreAggregatedTableSchema.azureSubscriptionGuid, null, RawBillingTableSchema.azureSubscriptionGuid),
   awsService(PreAggregatedTableSchema.awsServiceCode, null, RawBillingTableSchema.awsServiceCode),
   projectNumber(PreAggregatedTableSchema.gcpProjectNumbers, null, null),
   cloudProvider(PreAggregatedTableSchema.cloudProvider, null, null);

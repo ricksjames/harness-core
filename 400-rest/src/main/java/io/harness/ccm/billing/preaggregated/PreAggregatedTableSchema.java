@@ -49,6 +49,7 @@ public class PreAggregatedTableSchema {
   public static final DbColumn awsServiceCode;
   public static final DbColumn awsAvailabilityZone;
   public static final DbColumn awsUsageAccountId;
+  public static final DbColumn azureSubscriptionGuid;
   public static final DbColumn awsInstanceType;
   public static final DbColumn awsUsageType;
   public static final DbColumn startTime;
@@ -84,5 +85,7 @@ public class PreAggregatedTableSchema {
     gcpProduct = table.addColumn("gcpProduct");
     gcpSkuId = table.addColumn("gcpSkuId");
     gcpSkuDescription = table.addColumn("gcpSkuDescription");
+
+    azureSubscriptionGuid = table.addColumn("azureSubscriptionGuid");
   }
 }

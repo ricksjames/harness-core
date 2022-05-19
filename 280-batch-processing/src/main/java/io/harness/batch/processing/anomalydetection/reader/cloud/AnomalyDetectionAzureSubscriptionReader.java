@@ -34,7 +34,11 @@ import java.util.ArrayList;
 import java.util.List;
 import org.springframework.batch.core.StepExecution;
 
-public class AnomalyDetectionAzureSubscriptionReader extends AnomalyDetectionCloudReader {
+public class AnomalyDetectionAzureSubscriptionReader extends AnomalyDetectionCloudReaderNG {
+  private static final String AZURE_SUBSCRIPTION_ID = "azureSubscriptionGuid";
+  private static final String START_TIME = "startTime";
+  private static final String COST = "cost";
+
   @Override
   public void beforeStep(StepExecution stepExecution) {
     parameters = stepExecution.getJobExecution().getJobParameters();
@@ -86,7 +90,7 @@ public class AnomalyDetectionAzureSubscriptionReader extends AnomalyDetectionClo
 
     // groupby
     CloudBillingGroupBy projectIdGroupBy = new CloudBillingGroupBy();
-    projectIdGroupBy.setEntityGroupBy(CloudEntityGroupBy.projectId);
+    projectIdGroupBy.setEntityGroupBy(CloudEntityGroupBy.azureSubscriptionGuid);
     groupByList.add(projectIdGroupBy);
 
     CloudBillingGroupBy startTime = new CloudBillingGroupBy();
@@ -102,7 +106,7 @@ public class AnomalyDetectionAzureSubscriptionReader extends AnomalyDetectionClo
 
     // sort Critera
     sortCriteriaList.add(CloudBillingSortCriteria.builder()
-                             .sortType(CloudSortType.gcpProjectId)
+                             .sortType(CloudSortType.azureSubscriptionGuid)
                              .sortOrder(QLSortOrder.ASCENDING)
                              .build());
 
