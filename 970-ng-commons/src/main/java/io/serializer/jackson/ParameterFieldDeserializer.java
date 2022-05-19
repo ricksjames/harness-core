@@ -12,6 +12,7 @@ import io.harness.common.NGExpressionUtils;
 import io.harness.expression.EngineExpressionEvaluator;
 import io.harness.pms.yaml.ParameterField;
 import io.harness.pms.yaml.validation.InputSetValidator;
+import io.harness.serializer.JsonUtils;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
@@ -24,9 +25,12 @@ import com.fasterxml.jackson.databind.deser.ContextualDeserializer;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.fasterxml.jackson.databind.jsontype.TypeDeserializer;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class ParameterFieldDeserializer extends StdDeserializer<ParameterField<?>> implements ContextualDeserializer {
   private static final long serialVersionUID = 1L;
@@ -86,8 +90,12 @@ public class ParameterFieldDeserializer extends StdDeserializer<ParameterField<?
     InputSetValidator inputSetValidator = getInputSetValidator(text);
 
     if (NGExpressionUtils.matchesInputSetPattern(text)) {
-      return ParameterField.createExpressionField(
-          true, NGExpressionUtils.DEFAULT_INPUT_SET_EXPRESSION, inputSetValidator, isTypeString);
+      String defaultValue = extractDefaultValue(text);
+
+      return ParameterField.createExpressionFieldWithDefault(defaultValue == null,
+          NGExpressionUtils.DEFAULT_INPUT_SET_EXPRESSION,
+          defaultValue == null ? null : JsonUtils.asObject(defaultValue, this.referenceType.getRawClass()),
+          inputSetValidator, isTypeString);
     }
     if (inputSetValidator != null) {
       String value = getLeftSideOfExpression(text);
@@ -160,5 +168,32 @@ public class ParameterFieldDeserializer extends StdDeserializer<ParameterField<?
       this.validatorType = validatorType;
       this.validatorPattern = validatorPattern;
     }
+  }
+
+  protected String extractDefaultValue(String text) {
+    String defaultValueString = null;
+    // Checking the pattern when field ends with .default(*)
+    Matcher matcher = Pattern.compile("\\.default\\((.*?)\\)$").matcher(text);
+    if (matcher.find()) {
+      defaultValueString = matcher.group(1);
+      // when any inputSetValidator is present after .default() construct
+      List<Pattern> patterns = Arrays.stream(InputSetValidatorType.values())
+                                   .map(o -> Pattern.compile("\\.default\\((.*?)\\)." + o.getYamlName() + "\\(.*?\\)$"))
+                                   .collect(Collectors.toList());
+      // when .executionInput() is present after .default construct.
+      patterns.add(Pattern.compile("\\.default\\((.*?)\\).executionInput\\(.*?\\)$"));
+      for (Pattern pattern : patterns) {
+        Matcher m = pattern.matcher(text);
+        if (m.find()) {
+          String defaultValue = m.group(1);
+          // Take the smallest match as default value. <+input>.default("abc").executionInput() can match to "abc" and
+          // "abc").executionInput(). We need to take the "abc"
+          if (defaultValueString == null || defaultValue.length() < defaultValueString.length()) {
+            defaultValueString = defaultValue;
+          }
+        }
+      }
+    }
+    return defaultValueString;
   }
 }
