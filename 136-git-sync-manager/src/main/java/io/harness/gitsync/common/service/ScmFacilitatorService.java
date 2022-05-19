@@ -16,6 +16,7 @@ import io.harness.gitsync.common.dtos.ScmCreateBranchRequestDTO;
 import io.harness.gitsync.common.dtos.ScmCreateFileRequestDTO;
 import io.harness.gitsync.common.dtos.ScmCreatePRRequestDTO;
 import io.harness.gitsync.common.dtos.ScmCreatePRResponseDTO;
+import io.harness.gitsync.common.dtos.ScmGetFileByBranchRequestDTO;
 import io.harness.gitsync.common.dtos.ScmGetFileByCommitIdRequestDTO;
 import io.harness.gitsync.common.dtos.ScmGetFileRequestDTO;
 import io.harness.gitsync.common.dtos.ScmGetFileResponseDTO;
@@ -38,7 +39,7 @@ public interface ScmFacilitatorService {
 
   ScmCreatePRResponseDTO createPR(ScmCreatePRRequestDTO scmCreatePRRequestDTO);
 
-  ScmGetFileResponseDTO getFileByBranch(ScmGetFileRequestDTO scmGetFileRequestDTO);
+  ScmGetFileResponseDTO getFileByBranch(ScmGetFileByBranchRequestDTO scmGetFileByBranchRequestDTO);
 
   void createBranch(ScmCreateBranchRequestDTO scmCreateBranchRequestDTO);
 
