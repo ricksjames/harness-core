@@ -17,6 +17,7 @@ import io.harness.CategoryTest;
 import io.harness.category.element.UnitTests;
 import io.harness.packages.HarnessPackages;
 import io.harness.rule.Owner;
+import io.harness.serializer.DelegateRegistrars;
 import io.harness.serializer.KryoRegistrar;
 
 import com.esotericsoftware.kryo.Kryo;
@@ -228,11 +229,7 @@ public class KryoRegistrationTest extends CategoryTest {
   }
 
   private static Set<Class<? extends KryoRegistrar>> getAllKryoRegistrars() {
-    Set<Class<? extends KryoRegistrar>> result = new HashSet<>();
-    Reflections reflections =
-        new Reflections(HarnessPackages.IO_HARNESS, HarnessPackages.SOFTWARE_WINGS, "io.serializer");
-    result.addAll(reflections.getSubTypesOf(KryoRegistrar.class));
-    return result;
+    return DelegateRegistrars.kryoRegistrars;
   }
 
   private static Map<Integer, String> loadAllExpectedKryoRegistrations() throws IOException {

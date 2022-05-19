@@ -18,7 +18,6 @@ import io.harness.ccm.cluster.entities.EcsCluster;
 import io.harness.ccm.license.CeLicenseInfo;
 import io.harness.ccm.license.CeLicenseType;
 import io.harness.cvng.state.CVNGVerificationTask;
-import io.harness.perpetualtask.PerpetualTaskSchedule;
 import io.harness.serializer.KryoRegistrar;
 
 import software.wings.api.ARMStateExecutionData;
@@ -54,7 +53,6 @@ import software.wings.api.JenkinsExecutionData;
 import software.wings.api.KubernetesSteadyStateCheckExecutionData;
 import software.wings.api.KubernetesSteadyStateCheckExecutionSummary;
 import software.wings.api.KubernetesSwapServiceSelectorsExecutionData;
-import software.wings.api.LoadBalancerConfig;
 import software.wings.api.PhaseExecutionData;
 import software.wings.api.PhaseStepExecutionData;
 import software.wings.api.PipelineElement;
@@ -113,7 +111,6 @@ import software.wings.beans.AuthToken;
 import software.wings.beans.AwsAmiInfrastructureMapping;
 import software.wings.beans.AwsInfrastructureMapping;
 import software.wings.beans.AwsLambdaInfraStructureMapping;
-import software.wings.beans.AwsS3BucketDetails;
 import software.wings.beans.AzureInfrastructureMapping;
 import software.wings.beans.AzureKubernetesInfrastructureMapping;
 import software.wings.beans.AzureVMSSInfrastructureMapping;
@@ -122,19 +119,13 @@ import software.wings.beans.Base;
 import software.wings.beans.CanaryWorkflowExecutionAdvisor;
 import software.wings.beans.CodeDeployInfrastructureMapping;
 import software.wings.beans.ConfigFile;
-import software.wings.beans.CustomArtifactServerConfig;
 import software.wings.beans.CustomInfrastructureMapping;
-import software.wings.beans.DatadogConfig;
-import software.wings.beans.DatadogYaml;
-import software.wings.beans.DelegateTaskBroadcast;
 import software.wings.beans.DirectKubernetesInfrastructureMapping;
 import software.wings.beans.EcsInfrastructureMapping;
-import software.wings.beans.ElasticLoadBalancerConfig;
 import software.wings.beans.ElementExecutionSummary;
 import software.wings.beans.EntityVersion;
 import software.wings.beans.Event;
 import software.wings.beans.GcpKubernetesInfrastructureMapping;
-import software.wings.beans.GitValidationParameters;
 import software.wings.beans.Graph;
 import software.wings.beans.GraphGroup;
 import software.wings.beans.GraphLink;
@@ -145,22 +136,16 @@ import software.wings.beans.HelmCommandFlagConstants.HelmSubCommand;
 import software.wings.beans.InfraMappingSweepingOutput;
 import software.wings.beans.PcfInfrastructureMapping;
 import software.wings.beans.Permission;
-import software.wings.beans.PerpetualTaskBroadcastEvent;
-import software.wings.beans.PhysicalDataCenterConfig;
 import software.wings.beans.PhysicalInfrastructureMapping;
 import software.wings.beans.PhysicalInfrastructureMappingWinRm;
 import software.wings.beans.PipelineStageExecutionAdvisor;
-import software.wings.beans.PrometheusConfig;
 import software.wings.beans.RancherKubernetesInfrastructureMapping;
 import software.wings.beans.Role;
 import software.wings.beans.RoleType;
-import software.wings.beans.ScalyrConfig;
 import software.wings.beans.ServiceInstance;
 import software.wings.beans.ServiceVariable;
 import software.wings.beans.Setup;
 import software.wings.beans.Setup.SetupStatus;
-import software.wings.beans.SlackConfig;
-import software.wings.beans.StringValue;
 import software.wings.beans.TechStack;
 import software.wings.beans.TrialSignupOptions;
 import software.wings.beans.User;
@@ -186,12 +171,8 @@ import software.wings.beans.artifact.JenkinsArtifactStream;
 import software.wings.beans.artifact.NexusArtifactStream;
 import software.wings.beans.artifact.SftpArtifactStream;
 import software.wings.beans.artifact.SmbArtifactStream;
-import software.wings.beans.ce.CEAwsConfig;
-import software.wings.beans.ce.CEAzureConfig;
-import software.wings.beans.ce.CEGcpConfig;
 import software.wings.beans.command.CommandUnitDetails;
 import software.wings.beans.command.OverridingCommandUnitDescriptor;
-import software.wings.beans.container.ContainerCommandExecutionResponse;
 import software.wings.beans.loginSettings.UserLockoutInfo;
 import software.wings.beans.security.AccountPermissions;
 import software.wings.beans.security.AppPermission;
@@ -206,7 +187,6 @@ import software.wings.beans.template.TemplateReference;
 import software.wings.beans.template.dto.HarnessImportedTemplateDetails;
 import software.wings.beans.utm.UtmInfo;
 import software.wings.beans.yaml.ChangeContext;
-import software.wings.beans.yaml.GitPullResult;
 import software.wings.beans.yaml.YamlType;
 import software.wings.collect.ArtifactCollectionCallback;
 import software.wings.common.RancherK8sClusterProcessor;
@@ -244,14 +224,10 @@ import software.wings.service.impl.WorkflowExecutionUpdate;
 import software.wings.service.impl.WorkflowTree;
 import software.wings.service.impl.analysis.DataCollectionCallback;
 import software.wings.service.impl.analysis.MLAnalysisType;
-import software.wings.service.impl.analysis.TimeSeries;
 import software.wings.service.impl.aws.model.AwsEcsAllPhaseRollbackData;
-import software.wings.service.impl.aws.model.AwsElbListElbsRequest;
-import software.wings.service.impl.aws.model.AwsElbListNetworkElbsRequest;
 import software.wings.service.impl.azure.manager.AzureVMSSAllPhaseRollbackData;
 import software.wings.service.impl.email.EmailNotificationCallBack;
 import software.wings.service.impl.newrelic.NewRelicMarkerExecutionData;
-import software.wings.service.impl.prometheus.PrometheusDataCollectionInfo;
 import software.wings.service.impl.prometheus.PrometheusMetricDataResponse;
 import software.wings.service.impl.spotinst.SpotinstAllPhaseRollbackData;
 import software.wings.service.impl.trigger.TriggerCallback;
@@ -305,25 +281,7 @@ import software.wings.sm.status.StateStatusUpdateInfo;
 import software.wings.verification.VerificationDataAnalysisResponse;
 import software.wings.verification.VerificationStateAnalysisExecutionData;
 
-import com.amazonaws.services.cloudformation.model.StackStatus;
-import com.amazonaws.services.cloudwatch.model.StandardUnit;
-import com.amazonaws.services.ecs.model.Deployment;
-import com.amazonaws.services.ecs.model.DeploymentConfiguration;
-import com.amazonaws.services.ecs.model.Service;
-import com.amazonaws.services.ecs.model.ServiceEvent;
 import com.esotericsoftware.kryo.Kryo;
-import com.google.api.services.logging.v2.model.LogEntry;
-import com.google.api.services.logging.v2.model.LogEntryOperation;
-import com.google.api.services.logging.v2.model.LogEntrySourceLocation;
-import com.google.api.services.logging.v2.model.MonitoredResource;
-import com.google.api.services.logging.v2.model.MonitoredResourceMetadata;
-import com.google.gson.internal.LinkedTreeMap;
-import com.google.protobuf.Duration;
-import com.splunk.HttpException;
-import com.sumologic.client.SumoClientException;
-import com.sumologic.client.SumoException;
-import io.kubernetes.client.openapi.ApiException;
-import java.time.Instant;
 
 @OwnedBy(PL)
 @TargetModule(_360_CG_MANAGER)
@@ -359,7 +317,6 @@ public class ManagerKryoRegistrar implements KryoRegistrar {
     kryo.register(KubernetesSteadyStateCheckExecutionData.class, 5278);
     kryo.register(KubernetesSteadyStateCheckExecutionSummary.class, 5331);
     kryo.register(KubernetesSwapServiceSelectorsExecutionData.class, 5367);
-    kryo.register(LoadBalancerConfig.class, 5081);
     kryo.register(PcfDeployExecutionSummary.class, 5287);
     kryo.register(PcfDeployStateExecutionData.class, 5292);
     kryo.register(PcfRouteSwapExecutionSummary.class, 5300);
@@ -382,9 +339,6 @@ public class ManagerKryoRegistrar implements KryoRegistrar {
     kryo.register(Base.class, 5001);
     kryo.register(CanaryWorkflowExecutionAdvisor.class, 5024);
 
-    kryo.register(DatadogYaml.class, 5468);
-    kryo.register(DatadogConfig.class, 5467);
-    kryo.register(ElasticLoadBalancerConfig.class, 5020);
     kryo.register(ElementExecutionSummary.class, 5027);
     kryo.register(Graph.class, 5060);
     kryo.register(ChangeContext.class, 5199);
@@ -392,7 +346,6 @@ public class ManagerKryoRegistrar implements KryoRegistrar {
     kryo.register(GraphLink.class, 5062);
     kryo.register(GraphNode.class, 5061);
     kryo.register(Permission.class, 5310);
-    kryo.register(PrometheusConfig.class, 5314);
     kryo.register(Role.class, 5194);
     kryo.register(RoleType.class, 5195);
     kryo.register(AccountPermissions.class, 5350);
@@ -406,16 +359,11 @@ public class ManagerKryoRegistrar implements KryoRegistrar {
     kryo.register(UserInvite.class, 5182);
     kryo.register(UserInviteSource.SourceType.class, 5507);
     kryo.register(UserInviteSource.class, 5506);
-    kryo.register(GitPullResult.class, 5209);
     kryo.register(YamlType.class, 5211);
     kryo.register(EcsListenerUpdateRequestConfigData.class, 5610);
     kryo.register(TwoFactorAuthenticationMechanism.class, 5358);
-    kryo.register(TimeSeries.class, 5312);
 
-    kryo.register(AwsElbListElbsRequest.class, 5541);
-    kryo.register(AwsElbListNetworkElbsRequest.class, 5542);
     kryo.register(NewRelicMarkerExecutionData.class, 5243);
-    kryo.register(PrometheusDataCollectionInfo.class, 5311);
     kryo.register(PrometheusMetricDataResponse.PrometheusMetric.class, 5489);
     kryo.register(PrometheusMetricDataResponse.PrometheusMetricData.class, 5487);
     kryo.register(PrometheusMetricDataResponse.PrometheusMetricDataResult.class, 5488);
@@ -449,21 +397,10 @@ public class ManagerKryoRegistrar implements KryoRegistrar {
     kryo.register(ConfigFile.ConfigOverrideType.class, 71108);
     kryo.register(EntityVersion.class, 71109);
     kryo.register(EntityVersion.ChangeType.class, 71110);
-    kryo.register(Deployment.class, 7208);
-    kryo.register(ServiceEvent.class, 7209);
-    kryo.register(Service.class, 7210);
-    kryo.register(DeploymentConfiguration.class, 7211);
-    kryo.register(StandardUnit.class, 7215);
     kryo.register(ApprovalState.class, 7219);
     kryo.register(SpotInstSetupExecutionSummary.class, 7224);
     kryo.register(SpotInstDeployStateExecutionData.class, 7225);
     kryo.register(SpotInstListenerUpdateStateExecutionData.class, 7227);
-    kryo.register(LogEntry.class, 7230);
-    kryo.register(MonitoredResourceMetadata.class, 7231);
-    kryo.register(LogEntryOperation.class, 7232);
-    kryo.register(MonitoredResource.class, 7233);
-    kryo.register(LogEntrySourceLocation.class, 7234);
-    kryo.register(Instant.class, 7235);
     kryo.register(PcfSetupStateExecutionData.class, 7237);
     kryo.register(SpotInstSetupStateExecutionData.class, 7241);
     kryo.register(SpotinstDeployExecutionSummary.class, 7242);
@@ -475,7 +412,6 @@ public class ManagerKryoRegistrar implements KryoRegistrar {
 
     kryo.register(EnvExecutionResponseData.class, 7270);
     kryo.register(BambooExecutionData.class, 7271);
-    kryo.register(ContainerCommandExecutionResponse.class, 7274);
     kryo.register(VerificationDataAnalysisResponse.class, 7275);
     kryo.register(ResourceConstraintStatusData.class, 7276);
 
@@ -487,13 +423,9 @@ public class ManagerKryoRegistrar implements KryoRegistrar {
     kryo.register(UtmInfo.class, 7291);
 
     kryo.register(TerraformApplyMarkerParam.class, 7292);
-    kryo.register(HttpException.class, 7308);
-    kryo.register(SumoException.class, 7309);
-    kryo.register(SumoClientException.class, 7310);
 
     kryo.register(SkipStateExecutionData.class, 7322);
     kryo.register(InstanceInfoVariables.class, 7331);
-    kryo.register(ScalyrConfig.class, 7334);
 
     kryo.register(SpotinstTrafficShiftAlbSetupExecutionData.class, 7339);
     kryo.register(SpotinstTrafficShiftAlbDeployExecutionData.class, 7340);
@@ -503,7 +435,6 @@ public class ManagerKryoRegistrar implements KryoRegistrar {
     kryo.register(HarnessImportedTemplateDetails.class, 7373);
     kryo.register(ImportedTemplateMetadata.class, 7375);
     kryo.register(CopiedTemplateMetadata.class, 7376);
-    kryo.register(GitValidationParameters.class, 7392);
     kryo.register(AppPermissionSummaryForUI.class, 7395);
     kryo.register(UserRestrictionInfo.class, 7396);
     kryo.register(AppPermissionSummary.class, 7397);
@@ -518,7 +449,6 @@ public class ManagerKryoRegistrar implements KryoRegistrar {
     kryo.register(AppPermissionSummary.ExecutableElementInfo.class, 7407);
 
     kryo.register(GcbExecutionData.class, 7410);
-    kryo.register(DelegateTaskBroadcast.class, 7428);
     kryo.register(Event.class, 7429);
     kryo.register(Event.Type.class, 7430);
     kryo.register(AwsAmiTrafficShiftAlbStateExecutionData.class, 7436);
@@ -571,7 +501,6 @@ public class ManagerKryoRegistrar implements KryoRegistrar {
     kryo.register(AccountPreferences.class, 8124);
     kryo.register(TerragruntApplyMarkerParam.class, 8506);
     kryo.register(TerragruntOutputVariables.class, 8508);
-    kryo.register(ApiException.class, 8125);
 
     kryo.register(StateMachineResumeCallback.class, 40001);
     kryo.register(BuildSourceCleanupCallback.class, 40002);
@@ -586,15 +515,10 @@ public class ManagerKryoRegistrar implements KryoRegistrar {
     kryo.register(ArtifactCollectionCallback.class, 40011);
     kryo.register(ExecutionWaitCallback.class, 40012);
 
-    kryo.register(StackStatus.class, 40113);
     kryo.register(EventsDeliveryCallback.class, 40014);
-    kryo.register(PerpetualTaskBroadcastEvent.class, 40015);
     kryo.register(K8sResourcesSweepingOutput.class, 40019);
     kryo.register(K8sGitConfigMapInfo.class, 40023);
     kryo.register(K8sApplicationManifestSourceInfo.class, 40024);
-    kryo.register(LinkedTreeMap.class, 40025);
-    kryo.register(PerpetualTaskSchedule.class, 40028);
-    kryo.register(Duration.class, 40029);
     kryo.register(DirectKubernetesCluster.class, 40051);
     kryo.register(EcsCluster.class, 40052);
     kryo.register(io.harness.ccm.cluster.entities.GcpKubernetesCluster.class, 40053);
@@ -639,14 +563,6 @@ public class ManagerKryoRegistrar implements KryoRegistrar {
     kryo.register(CodeDeployInfrastructure.class, 40095);
     kryo.register(PhysicalInfra.class, 40096);
     kryo.register(AzureWebAppInfra.class, 40097);
-    kryo.register(PhysicalDataCenterConfig.class, 40098);
-    kryo.register(SlackConfig.class, 40099);
-    kryo.register(CEAzureConfig.class, 40100);
-    kryo.register(CEAwsConfig.class, 400101);
-    kryo.register(CEGcpConfig.class, 400102);
-    kryo.register(CustomArtifactServerConfig.class, 400103);
-    kryo.register(AwsS3BucketDetails.class, 400104);
-    kryo.register(StringValue.class, 400105);
     kryo.register(AzureVMSSInfrastructureMapping.class, 400106);
     kryo.register(AwsLambdaInfraStructureMapping.class, 400107);
     kryo.register(EcsInfrastructureMapping.class, 400108);
