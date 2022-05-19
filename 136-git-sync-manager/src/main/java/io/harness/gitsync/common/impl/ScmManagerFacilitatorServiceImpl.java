@@ -344,8 +344,4 @@ public class ScmManagerFacilitatorServiceImpl extends AbstractScmClientFacilitat
     GitFileDetails gitFileDetails = getGitFileDetails(updateGitFileRequestDTO);
     return scmClient.updateFile(decryptedConnector, gitFileDetails);
   }
-
-  private CreateBranchResponse createBranch(String branch, String baseBranch, ScmConnector scmConnector) {
-    return scmClient.createNewBranch(scmConnector, branch, baseBranch);
-  }
 }
