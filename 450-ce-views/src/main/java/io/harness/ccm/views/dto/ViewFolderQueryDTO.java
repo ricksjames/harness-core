@@ -7,7 +7,6 @@
 
 package io.harness.ccm.views.dto;
 
-import io.harness.walktree.visitor.validation.annotations.Required;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Value;
@@ -19,7 +18,6 @@ import java.util.List;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class ViewFolderQueryDTO {
-  @Required String accountId;
   List<String> folderIds;
   long pageNo = 1;
 }

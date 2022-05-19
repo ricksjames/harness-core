@@ -18,6 +18,8 @@ import io.harness.persistence.HPersistence;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import java.util.List;
+import java.util.stream.Collectors;
+
 import lombok.extern.slf4j.Slf4j;
 import org.mongodb.morphia.query.Query;
 import org.mongodb.morphia.query.UpdateOperations;
@@ -40,6 +42,7 @@ public class CEViewDao {
     UpdateOperations<CEView> updateOperations = hPersistence.createUpdateOperations(CEView.class)
                                                     .set(CEViewKeys.viewVersion, ceView.getViewVersion())
                                                     .set(CEViewKeys.name, ceView.getName())
+                                                    .set(CEViewKeys.folderId, ceView.getFolderId())
                                                     .set(CEViewKeys.viewTimeRange, ceView.getViewTimeRange())
                                                     .set(CEViewKeys.viewRules, ceView.getViewRules())
                                                     .set(CEViewKeys.viewVisualization, ceView.getViewVisualization())
