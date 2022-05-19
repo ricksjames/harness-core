@@ -29,8 +29,8 @@ public class CEViewFolderServiceImpl implements CEViewFolderService {
   @Inject private CEViewFolderDao ceViewFolderDao;
 
   @Override
-  public boolean save(CEViewFolder ceViewFolder) {
-    return ceViewFolderDao.save(ceViewFolder);
+  public CEViewFolder save(CEViewFolder ceViewFolder) {
+    ceViewFolderDao.save(ceViewFolder));
   }
 
   @Override

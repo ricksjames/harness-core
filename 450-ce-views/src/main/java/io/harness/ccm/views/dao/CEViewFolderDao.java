@@ -18,10 +18,7 @@ import org.bson.types.ObjectId;
 import org.mongodb.morphia.query.Query;
 import org.mongodb.morphia.query.UpdateOperations;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Function;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -31,8 +28,12 @@ public class CEViewFolderDao {
 
   private static final int FOLDERS_PER_PAGE = 1;
 
-  public boolean save(CEViewFolder ceViewFolder) {
-    return hPersistence.save(ceViewFolder) != null;
+  public CEViewFolder save(CEViewFolder ceViewFolder) {
+    String id = hPersistence.save(ceViewFolder);
+    return hPersistence.createQuery(CEViewFolder.class)
+        .field(CEViewFolderKeys.uuid)
+        .equal(new ObjectId(id))
+        .get();
   }
 
   public long getNumberOfFolders(String accountId) {
