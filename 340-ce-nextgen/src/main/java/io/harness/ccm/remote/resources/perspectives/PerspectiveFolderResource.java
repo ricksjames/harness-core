@@ -160,7 +160,6 @@ public class PerspectiveFolderResource {
   }
 
   @PUT
-  @Path("{folderId}")
   @Timed
   @ExceptionMetered
   @Consumes(MediaType.APPLICATION_JSON)
@@ -181,58 +180,6 @@ public class PerspectiveFolderResource {
       NGCommonEntityConstants.ACCOUNT_KEY) @AccountIdentifier @NotNull @Valid String accountId,
          @RequestBody(required = true, description = "Request body containing ceViewFolder object") @Valid CEViewFolder ceViewFolder) {
     return ResponseDTO.newResponse(ceViewFolderService.updateFolder(accountId, ceViewFolder));
-  }
-
-  @PUT
-  @Path("{folderId}/renameFolder")
-  @Deprecated
-  @Timed
-  @ExceptionMetered
-  @Consumes(MediaType.APPLICATION_JSON)
-  @ApiOperation(value = "Rename folder", nickname = "renameFolder")
-  @LogAccountIdentifier
-  @Operation(operationId = "renameFolder",
-      description =
-          "Rename a folder",
-      summary = "Rename a folder",
-      responses =
-      {
-        @io.swagger.v3.oas.annotations.responses.
-        ApiResponse(description = "CEViewFolder object",
-            content = { @Content(mediaType = MediaType.APPLICATION_JSON) })
-      })
-  public ResponseDTO<CEViewFolder>
-  rename(@Parameter(required = true, description = ACCOUNT_PARAM_MESSAGE) @QueryParam(
-             NGCommonEntityConstants.ACCOUNT_KEY) @AccountIdentifier @NotNull @Valid String accountId,
-         @Parameter(required = true, description = "Unique identifier for folder") @PathParam("folderId") String folderId,
-         @QueryParam("newName") @Parameter(required = true, description = "new name for the folder") @NotNull @Valid String newName) {
-    return ResponseDTO.newResponse(ceViewFolderService.updateFolderName(accountId, folderId, newName));
-  }
-
-  @PUT
-  @Path("{folderId}/pinFolder")
-  @Deprecated
-  @Timed
-  @ExceptionMetered
-  @Consumes(MediaType.APPLICATION_JSON)
-  @ApiOperation(value = "Pin/Unpin a folder", nickname = "pinFolder")
-  @LogAccountIdentifier
-  @Operation(operationId = "pinFolder",
-      description =
-          "Pin/Unpin a folder",
-      summary = "Pin/Unpin a folder",
-      responses =
-          {
-              @io.swagger.v3.oas.annotations.responses.
-                  ApiResponse(description = "CEViewFolder object",
-                  content = { @Content(mediaType = MediaType.APPLICATION_JSON) })
-          })
-  public ResponseDTO<CEViewFolder>
-  pinFolder(@Parameter(required = true, description = ACCOUNT_PARAM_MESSAGE) @QueryParam(
-      NGCommonEntityConstants.ACCOUNT_KEY) @AccountIdentifier @NotNull @Valid String accountId,
-         @Parameter(required = true, description = "Unique identifier for folder") @PathParam("folderId") String folderId,
-         @QueryParam("pinStatus") @Parameter(required = true, description = "new pin status for the folder") @NotNull @Valid boolean pinStatus) {
-    return ResponseDTO.newResponse(ceViewFolderService.pinFolder(accountId, folderId, pinStatus));
   }
 
   @POST
