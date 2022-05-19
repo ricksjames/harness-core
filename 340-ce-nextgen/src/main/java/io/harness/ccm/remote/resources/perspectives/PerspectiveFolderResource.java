@@ -17,6 +17,7 @@ import io.harness.ccm.utils.LogAccountIdentifier;
 import io.harness.ccm.views.dto.ViewFolderQueryDTO;
 import io.harness.ccm.views.entities.CEView;
 import io.harness.ccm.views.entities.CEViewFolder;
+import io.harness.ccm.views.entities.ViewType;
 import io.harness.ccm.views.service.CEViewFolderService;
 import io.harness.enforcement.client.annotation.FeatureRestrictionCheck;
 import io.harness.enforcement.constants.FeatureRestrictionName;
@@ -94,6 +95,7 @@ public class PerspectiveFolderResource {
           required = true, description = "Request body containing Perspective's CEViewFolder object") @Valid CEViewFolder ceViewFolder) {
     ceViewFolder.setAccountId(accountId);
     ceViewFolder.setPinned(false);
+    ceViewFolder.setViewType(ViewType.CUSTOMER);
     return ResponseDTO.newResponse(ceViewFolderService.save(ceViewFolder));
   }
 
@@ -114,15 +116,17 @@ public class PerspectiveFolderResource {
             content = { @Content(mediaType = MediaType.APPLICATION_JSON) })
       })
   public ResponseDTO<List<CEViewFolder>>
-  getFolders(@RequestBody(required = true, description = "Request body containing accountId and folderIds") @Valid ViewFolderQueryDTO query) {
+  getFolders(@Parameter(required = true, description = ACCOUNT_PARAM_MESSAGE) @QueryParam(
+      NGCommonEntityConstants.ACCOUNT_KEY) @AccountIdentifier @NotNull @Valid String accountId,
+             @RequestBody(required = true, description = "Request body containing accountId and folderIds") @Valid ViewFolderQueryDTO query) {
     long totalFolders;
     List<CEViewFolder> ceViewFolders;
     if (Collections.isEmpty(query.getFolderIds())) {
-      totalFolders = ceViewFolderService.numberOfFolders(query.getAccountId());
-      ceViewFolders = ceViewFolderService.getFolders(query.getAccountId(), query.getPageNo());
+      totalFolders = ceViewFolderService.numberOfFolders(accountId);
+      ceViewFolders = ceViewFolderService.getFolders(accountId, query.getPageNo());
     } else {
-      totalFolders = ceViewFolderService.numberOfFolders(query.getAccountId(), query.getFolderIds());
-      ceViewFolders = ceViewFolderService.getFolders(query.getAccountId(), query.getFolderIds(), query.getPageNo());
+      totalFolders = ceViewFolderService.numberOfFolders(accountId, query.getFolderIds());
+      ceViewFolders = ceViewFolderService.getFolders(accountId, query.getFolderIds(), query.getPageNo());
     }
     Map<String, Long> metadata = new HashMap<>();
     metadata.put("totalFolders", totalFolders);
@@ -173,8 +177,10 @@ public class PerspectiveFolderResource {
                   content = { @Content(mediaType = MediaType.APPLICATION_JSON) })
           })
   public ResponseDTO<CEViewFolder>
-  rename(@RequestBody(required = true, description = "Request body containing ceViewFolder object") @Valid CEViewFolder ceViewFolder) {
-    return ResponseDTO.newResponse(ceViewFolderService.updateFolder(ceViewFolder));
+  rename(@Parameter(required = true, description = ACCOUNT_PARAM_MESSAGE) @QueryParam(
+      NGCommonEntityConstants.ACCOUNT_KEY) @AccountIdentifier @NotNull @Valid String accountId,
+         @RequestBody(required = true, description = "Request body containing ceViewFolder object") @Valid CEViewFolder ceViewFolder) {
+    return ResponseDTO.newResponse(ceViewFolderService.updateFolder(accountId, ceViewFolder));
   }
 
   @PUT
@@ -273,6 +279,6 @@ public class PerspectiveFolderResource {
              NGCommonEntityConstants.ACCOUNT_KEY) @AccountIdentifier @NotNull @Valid String accountId,
       @PathParam("folderId") @Parameter(required = true,
           description = "Unique identifier for the Perspective folder") @NotNull @Valid String folderId) {
-    return ResponseDTO.newResponse(ceViewFolderService.delete(folderId, accountId));
+    return ResponseDTO.newResponse(ceViewFolderService.delete(accountId, folderId));
   }
 }

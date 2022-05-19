@@ -17,6 +17,7 @@ import io.harness.ccm.views.service.CEViewFolderService;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static io.harness.annotations.dev.HarnessTeam.CE;
 
@@ -58,8 +59,8 @@ public class CEViewFolderServiceImpl implements CEViewFolderService {
   }
 
   @Override
-  public CEViewFolder updateFolder(CEViewFolder ceViewFolder) {
-    return ceViewFolderDao.updateFolder(ceViewFolder);
+  public CEViewFolder updateFolder(String accountId, CEViewFolder ceViewFolder) {
+    return ceViewFolderDao.updateFolder(accountId, ceViewFolder);
   }
 
   @Override
@@ -84,7 +85,11 @@ public class CEViewFolderServiceImpl implements CEViewFolderService {
   }
 
   @Override
-  public boolean delete(String uuid, String accountId) {
+  public boolean delete(String accountId, String uuid) {
+    List<CEView> perspectives = ceViewDao.findByAccountIdAndFolderId(accountId, uuid);
+    List<String> perspectiveIds = perspectives.stream().map(CEView::getUuid).collect(Collectors.toList());
+    CEViewFolder folder = ceViewFolderDao.getDefaultFolder(accountId);
+    ceViewDao.moveMultiplePerspectiveFolder(accountId, perspectiveIds, String.valueOf(folder.getUuid()));
     return ceViewFolderDao.delete(accountId, uuid);
   }
 }

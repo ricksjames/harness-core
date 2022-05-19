@@ -11,6 +11,7 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import io.harness.ccm.views.entities.CEViewFolder;
 import io.harness.ccm.views.entities.CEViewFolder.CEViewFolderKeys;
+import io.harness.ccm.views.entities.ViewType;
 import io.harness.persistence.HPersistence;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.types.ObjectId;
@@ -60,6 +61,15 @@ public class CEViewFolderDao {
         .asList();
   }
 
+  public CEViewFolder getDefaultFolder(String accountId) {
+    return hPersistence.createQuery(CEViewFolder.class)
+        .field(CEViewFolderKeys.accountId)
+        .equal(accountId)
+        .field(CEViewFolderKeys.viewType)
+        .equal(ViewType.DEFAULT)
+        .get();
+  }
+
   public List<CEViewFolder> getFolders(String accountId, List<String> folderIds, long pageNo) {
     List<ObjectId> folderIdsToQuery = folderIds.stream().map(ObjectId::new).collect(Collectors.toList());
     return hPersistence.createQuery(CEViewFolder.class)
@@ -72,10 +82,10 @@ public class CEViewFolderDao {
         .asList();
   }
 
-  public CEViewFolder updateFolder(CEViewFolder ceViewFolder) {
+  public CEViewFolder updateFolder(String accountId, CEViewFolder ceViewFolder) {
     Query<CEViewFolder> query = hPersistence.createQuery(CEViewFolder.class)
         .field(CEViewFolderKeys.accountId)
-        .equal(ceViewFolder.getAccountId())
+        .equal(accountId)
         .field(CEViewFolderKeys.uuid)
         .equal(ceViewFolder.getUuid());
 
