@@ -118,15 +118,6 @@ public class CEViewDao {
         .asList();
   }
 
-  public CEView movePerspectiveFolder(String accountId, String uuid, String toFolderId) {
-    Query<CEView> query = hPersistence.createQuery(CEView.class)
-        .filter(CEViewKeys.accountId, accountId)
-        .filter(CEViewKeys.uuid, uuid);
-    UpdateOperations<CEView> updateOperations =
-        hPersistence.createUpdateOperations(CEView.class).set(CEViewKeys.folderId, toFolderId);
-    hPersistence.update(query, updateOperations);
-    return query.asList().get(0);
-  }
   public List<CEView> moveMultiplePerspectiveFolder(String accountId, List<String> uuids, String toFolderId) {
     Query<CEView> query = hPersistence.createQuery(CEView.class)
         .field(CEViewKeys.accountId)

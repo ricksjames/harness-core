@@ -105,32 +105,6 @@ public class CEViewFolderDao {
     return query.asList().get(0);
   }
 
-  public CEViewFolder updateFolderName(String accountId, String uuid, String newName) {
-    Query<CEViewFolder> query = hPersistence.createQuery(CEViewFolder.class)
-        .field(CEViewFolderKeys.accountId)
-        .equal(accountId)
-        .field(CEViewFolderKeys.uuid)
-        .equal(uuid);
-
-    UpdateOperations<CEViewFolder> updateOperations =
-        hPersistence.createUpdateOperations(CEViewFolder.class).set(CEViewFolderKeys.name, newName);
-    hPersistence.update(query, updateOperations);
-    return query.asList().get(0);
-  }
-
-  public CEViewFolder updateFolderPinStatus(String accountId, String uuid, boolean pinStatus) {
-    Query<CEViewFolder> query = hPersistence.createQuery(CEViewFolder.class)
-        .field(CEViewFolderKeys.accountId)
-        .equal(accountId)
-        .field(CEViewFolderKeys.uuid)
-        .equal(uuid);
-
-    UpdateOperations<CEViewFolder> updateOperations =
-        hPersistence.createUpdateOperations(CEViewFolder.class).set(CEViewFolderKeys.pinned, pinStatus);
-    hPersistence.update(query, updateOperations);
-    return query.asList().get(0);
-  }
-
   public boolean delete(String accountId, String uuid) {
     Query<CEViewFolder> query = hPersistence.createQuery(CEViewFolder.class)
         .field(CEViewFolderKeys.accountId)

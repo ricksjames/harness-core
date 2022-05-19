@@ -64,22 +64,6 @@ public class CEViewFolderServiceImpl implements CEViewFolderService {
   }
 
   @Override
-  public CEViewFolder updateFolderName(String accountId, String uuid, String newName) {
-    return ceViewFolderDao.updateFolderName(accountId, uuid, newName);
-  }
-
-  @Override
-  public CEViewFolder pinFolder(String accountId, String uuid, boolean pinStatus) {
-    return ceViewFolderDao.updateFolderPinStatus(accountId, uuid, pinStatus);
-  }
-
-  @Override
-  public CEView moveCEView(String accountId, String ceViewId, String toFolderId) {
-    // check toFolderId
-    return ceViewDao.movePerspectiveFolder(accountId, ceViewId, toFolderId);
-  }
-
-  @Override
   public List<CEView> moveMultipleCEViews(String accountId, List<String> ceViewIds, String toFolderId) {
     return ceViewDao.moveMultiplePerspectiveFolder(accountId, ceViewIds, toFolderId);
   }

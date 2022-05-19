@@ -20,9 +20,6 @@ public interface CEViewFolderService {
   List<CEViewFolder> getFolders(String accountId, List<String> folderIds, long pageNo);
   List<CEView> getPerspectivesForFolder(String accountId, String folderId);
   CEViewFolder updateFolder(String accountId, CEViewFolder ceViewFolder);
-  CEViewFolder updateFolderName(String accountId, String uuid, String newName);
-  CEViewFolder pinFolder(String accountId, String uuid, boolean pinStatus);
-  CEView moveCEView(String accountId, String ceViewId, String toFolderId);
   List<CEView> moveMultipleCEViews(String accountId, List<String> ceViewIds, String toFolderId);
   boolean delete(String accountId, String uuid);
 }
