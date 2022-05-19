@@ -150,7 +150,7 @@ public class PMSPipelineRepositoryCustomImpl implements PMSPipelineRepositoryCus
     pipelineToSave.setFilePath(gitEntityInfo.getFilePath());
 
     gitAwareEntityHelper.createEntityOnGit(pipelineToSave, yamlToPush, scope);
-    // todo (@Naman): Check if the supplier needs to be thrown in this case or not
+    supplier.get();
     return mongoTemplate.save(pipelineToSave);
   }
 
@@ -248,8 +248,7 @@ public class PMSPipelineRepositoryCustomImpl implements PMSPipelineRepositoryCus
   }
 
   @Override
-  public PipelineEntity updatePipelineYaml(
-      PipelineEntity pipelineToUpdate, PipelineEntity oldPipelineEntity, ChangeType changeType) {
+  public PipelineEntity updatePipelineYaml(PipelineEntity pipelineToUpdate) {
     Criteria criteria = Criteria.where(PipelineEntityKeys.deleted)
                             .is(false)
                             .and(PipelineEntityKeys.identifier)
@@ -268,14 +267,12 @@ public class PMSPipelineRepositoryCustomImpl implements PMSPipelineRepositoryCus
       // onboarding old entities as INLINE
       Update updateOperationsForOnboardingToInline = PMSPipelineFilterHelper.getUpdateOperationsForOnboardingToInline();
       updatedPipelineEntity = mongoTemplate.findAndModify(query, updateOperationsForOnboardingToInline,
-          new FindAndModifyOptions().returnNew(true), PipelineEntity.class);
+          new FindAndModifyOptions().returnNew(false), PipelineEntity.class);
     }
     if (updatedPipelineEntity.getStoreType() == StoreType.INLINE) {
-      Supplier<OutboxEvent> supplier = ()
-          -> outboxService.save(
-              new PipelineUpdateEvent(pipelineToUpdate.getAccountIdentifier(), pipelineToUpdate.getOrgIdentifier(),
-                  pipelineToUpdate.getProjectIdentifier(), pipelineToUpdate, oldPipelineEntity));
-      supplier.get();
+      outboxService.save(
+          new PipelineUpdateEvent(pipelineToUpdate.getAccountIdentifier(), pipelineToUpdate.getOrgIdentifier(),
+              pipelineToUpdate.getProjectIdentifier(), pipelineToUpdate, updatedPipelineEntity));
       return updatedPipelineEntity;
     }
     Scope scope = Scope.builder()
@@ -338,8 +335,11 @@ public class PMSPipelineRepositoryCustomImpl implements PMSPipelineRepositoryCus
                             .is(accountId);
     Query query = new Query(criteria);
     Update updateOperationsForDelete = PMSPipelineFilterHelper.getUpdateOperationsForDelete();
-    return mongoTemplate.findAndModify(
+    PipelineEntity deletedPipelineEntity = mongoTemplate.findAndModify(
         query, updateOperationsForDelete, new FindAndModifyOptions().returnNew(true), PipelineEntity.class);
+    outboxService.save(
+        new PipelineDeleteEvent(accountId, orgIdentifier, projectIdentifier, deletedPipelineEntity, true));
+    return deletedPipelineEntity;
   }
 
   private RetryPolicy<Object> getRetryPolicyForPipelineUpdate() {
