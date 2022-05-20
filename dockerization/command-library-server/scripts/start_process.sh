@@ -31,8 +31,6 @@ if [[ "${ENABLE_APPDYNAMICS}" == "true" ]]; then
   echo "Using Appdynamics java agent"
 fi
 
-export ENABLE_OPENTELEMETRY="true"
-
 if [[ "${ENABLE_OPENTELEMETRY}" == "true" ]] ; then
     echo "OpenTelemetry is enabled"
     wget https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v1.13.0/opentelemetry-javaagent.jar -O /opt/harness/opentelemetry-javaagent.jar
