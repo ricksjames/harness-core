@@ -295,7 +295,7 @@ public class ExecutionHelperTest extends CategoryTest {
     assertThat(planExecutionMetadata.getProcessedYaml()).isEqualTo(YamlUtils.injectUuid(mergedPipelineYaml));
 
     verify(principalInfoHelper, times(1)).getPrincipalInfoFromSecurityContext();
-    verify(pmsGitSyncHelper, times(1)).getGitSyncBranchContextBytesThreadLocal(entityWithTemplateReference);
+    verify(pmsGitSyncHelper, times(1)).getGitSyncBranchContextBytesThreadLocal(entityWithTemplateReference, null, null);
     verify(pmsYamlSchemaService, times(0)).validateYamlSchema(accountId, orgId, projectId, pipelineYaml);
     verify(pmsYamlSchemaService, times(1)).validateYamlSchema(accountId, orgId, projectId, mergedPipelineYaml);
     verify(pipelineRbacServiceImpl, times(1))
@@ -371,7 +371,8 @@ public class ExecutionHelperTest extends CategoryTest {
     assertThat(planExecutionMetadata.getProcessedYaml()).isEqualTo(YamlUtils.injectUuid(mergedPipelineYamlForS2));
 
     verify(principalInfoHelper, times(1)).getPrincipalInfoFromSecurityContext();
-    verify(pmsGitSyncHelper, times(1)).getGitSyncBranchContextBytesThreadLocal(pipelineEntityWithExpressions);
+    verify(pmsGitSyncHelper, times(1))
+        .getGitSyncBranchContextBytesThreadLocal(pipelineEntityWithExpressions, null, null);
     verify(pmsYamlSchemaService, times(1)).validateYamlSchema(accountId, orgId, projectId, pipelineYamlWithExpressions);
     verify(pipelineRbacServiceImpl, times(1))
         .extractAndValidateStaticallyReferredEntities(
@@ -387,7 +388,7 @@ public class ExecutionHelperTest extends CategoryTest {
 
     doReturn(executionPrincipalInfo).when(principalInfoHelper).getPrincipalInfoFromSecurityContext();
     doReturn(394).when(pipelineMetadataService).incrementRunSequence(any());
-    doReturn(null).when(pmsGitSyncHelper).getGitSyncBranchContextBytesThreadLocal(pipelineEntity);
+    doReturn(null).when(pmsGitSyncHelper).getGitSyncBranchContextBytesThreadLocal(pipelineEntity, null, null);
     doNothing().when(pmsYamlSchemaService).validateYamlSchema(accountId, orgId, projectId, mergedPipelineYaml);
     doNothing()
         .when(pipelineRbacServiceImpl)
@@ -406,7 +407,7 @@ public class ExecutionHelperTest extends CategoryTest {
 
   private void buildExecutionMetadataVerifications() {
     verify(principalInfoHelper, times(1)).getPrincipalInfoFromSecurityContext();
-    verify(pmsGitSyncHelper, times(1)).getGitSyncBranchContextBytesThreadLocal(pipelineEntity);
+    verify(pmsGitSyncHelper, times(1)).getGitSyncBranchContextBytesThreadLocal(pipelineEntity, null, null);
     verify(pmsYamlSchemaService, times(0)).validateYamlSchema(accountId, orgId, projectId, pipelineYaml);
     verify(pmsYamlSchemaService, times(1)).validateYamlSchema(accountId, orgId, projectId, mergedPipelineYaml);
     verify(pipelineRbacServiceImpl, times(1))
