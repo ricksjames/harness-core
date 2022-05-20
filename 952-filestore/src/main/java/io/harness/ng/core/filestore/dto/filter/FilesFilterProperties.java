@@ -5,17 +5,14 @@
  * https://polyformproject.org/wp-content/uploads/2020/05/PolyForm-Free-Trial-1.0.0.txt.
  */
 
-package io.harness.ng.core.dto.filestore.filter;
+package io.harness.ng.core.filestore.dto.filter;
 
-import static io.harness.annotations.dev.HarnessTeam.CDP;
-
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.filter.entity.FilterProperties;
 import io.harness.ng.core.EntityDetail;
 import io.harness.ng.core.dto.EmbeddedUserDetailsDTO;
 import io.harness.ng.core.filestore.FileUsage;
-
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -24,6 +21,8 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.data.annotation.TypeAlias;
+
+import static io.harness.annotations.dev.HarnessTeam.CDP;
 
 @Data
 @Builder

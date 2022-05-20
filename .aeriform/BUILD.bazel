@@ -368,6 +368,10 @@ aeriform("//951-debezium-service")
 
 aeriform("//952-debezium-engine")
 
+aeriform("//952-filestore:module")
+
+aeriform("//952-filestore:tests")
+
 aeriform("//952-scm-java-client:module")
 
 aeriform("//952-scm-java-client:tests")

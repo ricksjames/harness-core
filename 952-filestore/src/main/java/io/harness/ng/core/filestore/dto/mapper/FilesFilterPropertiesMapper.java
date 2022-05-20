@@ -5,16 +5,15 @@
  * https://polyformproject.org/wp-content/uploads/2020/05/PolyForm-Free-Trial-1.0.0.txt.
  */
 
-package io.harness.ng.core.dto.filestore.mapper;
+package io.harness.ng.core.filestore.dto.mapper;
 
+import com.google.inject.Singleton;
 import io.harness.filter.dto.FilterPropertiesDTO;
 import io.harness.filter.entity.FilterProperties;
 import io.harness.filter.mapper.FilterPropertiesMapper;
 import io.harness.ng.core.dto.filestore.filter.FilesFilterProperties;
 import io.harness.ng.core.dto.filestore.filter.FilesFilterPropertiesDTO;
 import io.harness.ng.core.mapper.TagMapper;
-
-import com.google.inject.Singleton;
 import org.modelmapper.ModelMapper;
 
 @Singleton

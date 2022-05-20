@@ -7,8 +7,8 @@
 
 package io.harness.ng.core.filestore.api;
 
-import io.harness.ng.core.entities.NGFile;
 import io.harness.ng.core.filestore.dto.FileDTO;
+import io.harness.ng.core.filestore.entities.NGFile;
 
 public interface FileFailsafeService {
   /**

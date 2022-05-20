@@ -8,11 +8,10 @@
 package io.harness.ng.core.filestore.api;
 
 import io.harness.EntityType;
+import io.harness.beans.SearchPageParams;
 import io.harness.exception.ReferencedEntityException;
-import io.harness.ng.core.beans.SearchPageParams;
-import io.harness.ng.core.entities.NGFile;
 import io.harness.ng.core.entitysetupusage.dto.EntitySetupUsageDTO;
-
+import io.harness.ng.core.filestore.entities.NGFile;
 import org.springframework.data.domain.Page;
 
 public interface FileReferenceService {

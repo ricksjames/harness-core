@@ -11,6 +11,7 @@ targets:
   platform-service/service:module
   800-pipeline-service:module
   935-analyser-service:module
+  952-filestore:module
 
 import_run_configurations:
   project/run-configurations/Analyser_Service.xml
