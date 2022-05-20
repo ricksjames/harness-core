@@ -30,7 +30,6 @@ import io.harness.exception.HintException;
 import io.harness.exception.InvalidRequestException;
 import io.harness.exception.SCMExceptionHints;
 import io.harness.exception.ScmException;
-import io.harness.exception.ScmInternalServerErrorException;
 import io.harness.exception.ScmInternalServerErrorV2Exception;
 import io.harness.exception.WingsException;
 import io.harness.exception.ngexception.beans.ScmErrorMetadataDTO;

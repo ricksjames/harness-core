@@ -204,6 +204,7 @@ public class ScmFacilitatorServiceImpl implements ScmFacilitatorService {
                                                           .scmConnector(scmConnector)
                                                           .oldFileSha(scmUpdateFileRequestDTO.getOldFileSha())
                                                           .yaml(scmUpdateFileRequestDTO.getFileContent())
+                                                          .commitId(scmUpdateFileRequestDTO.getOldCommitId())
                                                           .build()),
             scmConnector);
 
