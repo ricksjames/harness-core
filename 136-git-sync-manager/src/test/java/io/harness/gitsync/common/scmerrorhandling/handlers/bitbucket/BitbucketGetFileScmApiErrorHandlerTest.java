@@ -15,6 +15,7 @@ import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.category.element.UnitTests;
 import io.harness.exception.ExceptionUtils;
+import io.harness.exception.SCMExceptionErrorMessages;
 import io.harness.exception.ScmBadRequestException;
 import io.harness.exception.ScmUnauthorizedException;
 import io.harness.exception.ScmUnexpectedException;
@@ -29,8 +30,8 @@ import org.junit.experimental.categories.Category;
 import org.mockito.MockitoAnnotations;
 
 @OwnedBy(HarnessTeam.PL)
-public class BitbucketCreateFileScmApiErrorHandlerTest extends GitSyncTestBase {
-  @Inject BitbucketCreateFileScmApiErrorHandler bitbucketCreateFileScmApiErrorHandler;
+public class BitbucketGetFileScmApiErrorHandlerTest extends GitSyncTestBase {
+  @Inject BitbucketGetFileScmApiErrorHandler bitbucketGetFileScmApiErrorHandler;
 
   private static final String errorMessage = "errorMessage";
 
@@ -44,7 +45,7 @@ public class BitbucketCreateFileScmApiErrorHandlerTest extends GitSyncTestBase {
   @Category(UnitTests.class)
   public void testHandleErrorOnUnauthorizedResponse() {
     try {
-      bitbucketCreateFileScmApiErrorHandler.handleError(401, errorMessage);
+      bitbucketGetFileScmApiErrorHandler.handleError(401, errorMessage);
     } catch (Exception ex) {
       WingsException exception = ExceptionUtils.cause(ScmUnauthorizedException.class, ex);
       assertThat(exception).isNotNull();
@@ -57,7 +58,7 @@ public class BitbucketCreateFileScmApiErrorHandlerTest extends GitSyncTestBase {
   @Category(UnitTests.class)
   public void testHandleErrorOnUnauthenticatedResponse() {
     try {
-      bitbucketCreateFileScmApiErrorHandler.handleError(403, errorMessage);
+      bitbucketGetFileScmApiErrorHandler.handleError(403, errorMessage);
     } catch (Exception ex) {
       WingsException exception = ExceptionUtils.cause(ScmUnauthorizedException.class, ex);
       assertThat(exception).isNotNull();
@@ -70,11 +71,11 @@ public class BitbucketCreateFileScmApiErrorHandlerTest extends GitSyncTestBase {
   @Category(UnitTests.class)
   public void testHandleErrorOnResourceNotFoundResponse() {
     try {
-      bitbucketCreateFileScmApiErrorHandler.handleError(404, errorMessage);
+      bitbucketGetFileScmApiErrorHandler.handleError(404, errorMessage);
     } catch (Exception ex) {
       WingsException exception = ExceptionUtils.cause(ScmBadRequestException.class, ex);
       assertThat(exception).isNotNull();
-      assertThat(exception.getMessage()).isEqualTo(errorMessage);
+      assertThat(exception.getMessage()).isEqualTo(SCMExceptionErrorMessages.FILE_NOT_FOUND_ERROR);
     }
   }
 
@@ -83,7 +84,7 @@ public class BitbucketCreateFileScmApiErrorHandlerTest extends GitSyncTestBase {
   @Category(UnitTests.class)
   public void testHandleErrorWhenUnexpectedStatusCode() {
     try {
-      bitbucketCreateFileScmApiErrorHandler.handleError(405, errorMessage);
+      bitbucketGetFileScmApiErrorHandler.handleError(405, errorMessage);
     } catch (Exception ex) {
       WingsException exception = ExceptionUtils.cause(ScmUnexpectedException.class, ex);
       assertThat(exception).isNotNull();

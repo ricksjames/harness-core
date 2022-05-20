@@ -8,7 +8,6 @@
 package io.harness.gitsync.common.scmerrorhandling.handlers.bitbucket;
 
 import static io.harness.annotations.dev.HarnessTeam.PL;
-import static io.harness.eraro.ErrorCode.UNEXPECTED;
 import static io.harness.gitsync.common.scmerrorhandling.handlers.bitbucket.ScmErrorHints.FILE_NOT_FOUND;
 import static io.harness.gitsync.common.scmerrorhandling.handlers.bitbucket.ScmErrorHints.INVALID_CREDENTIALS;
 
@@ -16,8 +15,8 @@ import io.harness.annotations.dev.OwnedBy;
 import io.harness.exception.NestedExceptionUtils;
 import io.harness.exception.SCMExceptionErrorMessages;
 import io.harness.exception.ScmBadRequestException;
-import io.harness.exception.ScmException;
 import io.harness.exception.ScmUnauthorizedException;
+import io.harness.exception.ScmUnexpectedException;
 import io.harness.exception.WingsException;
 import io.harness.gitsync.common.scmerrorhandling.handlers.ScmApiErrorHandler;
 
@@ -37,7 +36,7 @@ public class BitbucketGetFileScmApiErrorHandler implements ScmApiErrorHandler {
         throw NestedExceptionUtils.hintWithExplanationException(FILE_NOT_FOUND, ScmErrorExplanations.FILE_NOT_FOUND,
             new ScmBadRequestException(SCMExceptionErrorMessages.FILE_NOT_FOUND_ERROR));
       default:
-        throw new ScmException(UNEXPECTED);
+        throw new ScmUnexpectedException(errorMessage);
     }
   }
 }
