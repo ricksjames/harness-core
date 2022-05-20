@@ -530,8 +530,13 @@ import io.harness.delegate.task.spotinst.response.SpotInstTaskExecutionResponse;
 import io.harness.delegate.task.spotinst.response.SpotInstTaskResponse;
 import io.harness.delegate.task.spotinst.response.SpotinstTrafficShiftAlbDeployResponse;
 import io.harness.delegate.task.spotinst.response.SpotinstTrafficShiftAlbSetupResponse;
+import io.harness.delegate.task.ssh.CopyCommandUnit;
+import io.harness.delegate.task.ssh.NGCommandUnitType;
+import io.harness.delegate.task.ssh.NgCleanupCommandUnit;
+import io.harness.delegate.task.ssh.NgCommandUnit;
+import io.harness.delegate.task.ssh.NgInitCommandUnit;
 import io.harness.delegate.task.ssh.PdcSshInfraDelegateConfig;
-import io.harness.delegate.task.ssh.PdcSshInfraDelegateConfig;
+import io.harness.delegate.task.ssh.ScriptCommandUnit;
 import io.harness.delegate.task.stepstatus.StepExecutionStatus;
 import io.harness.delegate.task.stepstatus.StepMapOutput;
 import io.harness.delegate.task.stepstatus.StepStatus;
@@ -1477,6 +1482,13 @@ public class DelegateTasksBeansKryoRegister implements KryoRegistrar {
     kryo.register(SshCommandTaskParameters.class, 29307);
     kryo.register(TailFilePatternDto.class, 29308);
     kryo.register(PdcSshInfraDelegateConfig.class, 55309);
+    kryo.register(NgCommandUnit.class, 55310);
+    kryo.register(NGCommandUnitType.class, 55311);
+    kryo.register(ScriptCommandUnit.class, 55312);
+    kryo.register(CopyCommandUnit.class, 55313);
+    kryo.register(NgInitCommandUnit.class, 55314);
+    kryo.register(NgCleanupCommandUnit.class, 55315);
+
 
   }
 }
