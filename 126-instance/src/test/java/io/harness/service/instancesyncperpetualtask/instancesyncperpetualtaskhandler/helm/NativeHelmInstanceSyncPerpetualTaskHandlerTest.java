@@ -171,25 +171,5 @@ public class NativeHelmInstanceSyncPerpetualTaskHandlerTest extends InstancesTes
         nativeHelmInstanceSyncPerpetualTaskHandler.getExecutionBundle(
             infrastructureMappingDTO, deploymentInfoDTOList, infrastructureOutcome);
     assertThat(perpetualTaskExecutionBundle).isEqualTo(expectedPerpetualTaskExecutionBundle);
-    //        PerpetualTaskExecutionBundle perpetualTaskExecutionBundle =
-    //        PerpetualTaskExecutionBundle.newBuilder().addCapabilities( Capability.newBuilder()
-    //                .setKryoCapability(ByteString.copyFrom(bytes2)).build()).setTaskParams(perpetualTaskPack)
-    //                .putAllSetupAbstractions(Maps.of(NG, "true", OWNER, ORG_IDENTIFIER + "/" +
-    //                PROJECT_IDENTIFIER)).build();
-    //        PerpetualTaskExecutionBundle perpetualTaskExecutionBundle =
-    //        nativeHelmInstanceSyncPerpetualTaskHandler.getExecutionBundle(infrastructureMappingDTO,
-    //        deploymentInfoDTOList, infrastructureOutcome); List<Capability> executionCapabilityList =
-    //        perpetualTaskExecutionBundle.getCapabilitiesList();
-    //        assertThat(executionCapabilityList.size()).isEqualTo(1);
-    //        Any perpetualTaskPack = perpetualTaskExecutionBundle.getTaskParams();
-    //        NativeHelmInstanceSyncPerpetualTaskParams nativeHelmInstanceSyncPerpetualTaskParams =
-    //        perpetualTaskPack.unpack(NativeHelmInstanceSyncPerpetualTaskParams.class);
-    //        assertThat(nativeHelmInstanceSyncPerpetualTaskParams.getAccountId()).isEqualTo(ACCOUNT_IDENTIFIER);
-    //        assertThat(nativeHelmInstanceSyncPerpetualTaskParams.getHelmVersion()).isEqualTo(HELM_VERSION);
-    //        assertThat(nativeHelmInstanceSyncPerpetualTaskParams.getDeploymentReleaseListCount()).isEqualTo(1);
-    //        assertThat(nativeHelmInstanceSyncPerpetualTaskParams.getDeploymentReleaseList(0).getReleaseName()).isEqualTo(RELEASE_NAME);
-    //        assertThat(nativeHelmInstanceSyncPerpetualTaskParams.getDeploymentReleaseList(0).getNamespaces(0)).isEqualTo(NAMESPACE);
-    //        assertThat(nativeHelmInstanceSyncPerpetualTaskHandler.getExecutionBundle(infrastructureMappingDTO,
-    //        deploymentInfoDTOList, infrastructureOutcome).getCapabilities(0)).isEqualTo(1);
   }
 }

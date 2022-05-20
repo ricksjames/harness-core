@@ -132,15 +132,10 @@ public class K8SInstanceSyncPerpetualTaskHandlerTest extends InstancesTestBase {
             .build();
     List<ExecutionCapability> expectedExecutionCapabilityList =
         k8sInstanceSyncRequest.fetchRequiredExecutionCapabilities(null);
-    //        expectedExecutionCapabilityList.add(HelmInstallationCapability.builder()
-    //                .version(HELM_VERSION)
-    //                .criteria(String.format("Helm %s Installed", HELM_VERSION))
-    //                .build());
 
     when(k8sEntityHelper.getK8sInfraDelegateConfig(infrastructureOutcome, baseNGAccess))
         .thenReturn(k8sInfraDelegateConfig);
     when(kryoSerializer.asBytes(k8sDeploymentReleaseData.getK8sInfraDelegateConfig())).thenReturn(bytes);
-    //        when(kryoSerializer.asDeflatedBytes(expectedExecutionCapabilityList.get(0))).thenReturn(bytes3);
 
     PerpetualTaskExecutionBundle.Builder builder = PerpetualTaskExecutionBundle.newBuilder();
     expectedExecutionCapabilityList.forEach(executionCapability

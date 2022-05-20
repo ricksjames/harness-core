@@ -7,6 +7,10 @@
 
 package io.harness.util;
 
+import static io.harness.rule.OwnerRule.IVAN;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
 import io.harness.CategoryTest;
 import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
@@ -15,16 +19,13 @@ import io.harness.dtos.deploymentinfo.K8sDeploymentInfoDTO;
 import io.harness.dtos.instanceinfo.K8sInstanceInfoDTO;
 import io.harness.k8s.model.K8sContainer;
 import io.harness.rule.Owner;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
 
 import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
-
-import static io.harness.rule.OwnerRule.IVAN;
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 @OwnedBy(HarnessTeam.CDP)
 public class InstanceSyncKeyTest extends CategoryTest {
