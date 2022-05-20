@@ -3738,41 +3738,32 @@ public class DelegateServiceTest extends WingsBaseTest {
   @Category(UnitTests.class)
   public void shouldGenerateNgHelmValuesYamlFile() throws IOException {
     when(accountService.get(ACCOUNT_ID))
-            .thenReturn(anAccount().withAccountKey("ACCOUNT_KEY").withUuid(ACCOUNT_ID).build());
+        .thenReturn(anAccount().withAccountKey("ACCOUNT_KEY").withUuid(ACCOUNT_ID).build());
     when(delegateVersionService.getDelegateImageTag(ACCOUNT_ID, HELM_DELEGATE)).thenReturn(DELEGATE_IMAGE_TAG);
     when(delegateVersionService.getUpgraderImageTag(ACCOUNT_ID, HELM_DELEGATE)).thenReturn(UPGRADER_IMAGE_TAG);
     DelegateSetupDetails setupDetails =
-            DelegateSetupDetails.builder()
-                    .delegateConfigurationId("delConfigId")
-                    .name("harness-delegate")
-                    .identifier("_delegateGroupId1")
-                    .size(DelegateSize.LAPTOP)
-                    .delegateType(DelegateType.KUBERNETES)
-                    .k8sConfigDetails(K8sConfigDetails.builder().k8sPermissionType(CLUSTER_ADMIN).build())
-                    .tokenName(TOKEN_NAME)
-                    .build();
+        DelegateSetupDetails.builder()
+            .delegateConfigurationId("delConfigId")
+            .name("harness-delegate")
+            .identifier("_delegateGroupId1")
+            .size(DelegateSize.LAPTOP)
+            .delegateType(DelegateType.KUBERNETES)
+            .k8sConfigDetails(K8sConfigDetails.builder().k8sPermissionType(CLUSTER_ADMIN).build())
+            .tokenName(TOKEN_NAME)
+            .build();
     when(delegateProfileService.get(ACCOUNT_ID, "delConfigId")).thenReturn(DelegateProfile.builder().build());
 
-    File gzipFile = delegateService.generateNgHelmValuesYaml(ACCOUNT_ID, setupDetails, "https://localhost:9090",
-            "https://localhost:7070", MediaType.MULTIPART_FORM_DATA_TYPE);
-    File tarFile = File.createTempFile(DELEGATE_DIR, ".tar");
-    uncompressGzipFile(gzipFile, tarFile);
-    try (TarArchiveInputStream tarArchiveInputStream = new TarArchiveInputStream(new FileInputStream(tarFile))) {
-      assertThat(tarArchiveInputStream.getNextEntry().getName()).isEqualTo(HELM_DELEGATE + "/");
+    File yamlFile = delegateService.generateNgHelmValuesYaml(
+        ACCOUNT_ID, setupDetails, "https://localhost:9090", "https://localhost:7070");
 
-      TarArchiveEntry file = (TarArchiveEntry) tarArchiveInputStream.getNextEntry();
-      assertThat(file).extracting(ArchiveEntry::getName).isEqualTo(HELM_DELEGATE + "/harness-ng-delegate.yaml");
-      byte[] buffer = new byte[(int) file.getSize()];
-      IOUtils.read(tarArchiveInputStream, buffer);
-      assertThat(new String(buffer))
-              .isEqualTo(CharStreams
-                      .toString(new InputStreamReader(
-                              getClass().getResourceAsStream("/expectedNgHelmDelegateValues.yaml")))
-                      .replaceAll("8888", "" + port));
-
-      file = (TarArchiveEntry) tarArchiveInputStream.getNextEntry();
-      assertThat(file).extracting(TarArchiveEntry::getName).isEqualTo(HELM_DELEGATE + "/README.txt");
-    }
+    byte[] buffer = new byte[(int) yamlFile.length()];
+    FileInputStream fileInputStream = new FileInputStream(yamlFile);
+    IOUtils.read(fileInputStream, buffer);
+    assertThat(new String(buffer))
+        .isEqualTo(
+            CharStreams
+                .toString(new InputStreamReader(getClass().getResourceAsStream("/expectedNgHelmDelegateValues.yaml")))
+                .replaceAll("8888", "" + port));
   }
 
   @Test

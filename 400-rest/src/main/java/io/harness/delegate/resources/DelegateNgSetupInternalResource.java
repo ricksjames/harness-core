@@ -36,7 +36,6 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
 import lombok.extern.slf4j.Slf4j;
 
 @Api("/delegate-setup/internal")
@@ -69,13 +68,11 @@ public class DelegateNgSetupInternalResource {
           NGCommonEntityConstants.ORG_KEY) String orgIdentifier,
       @Parameter(description = NGCommonEntityConstants.PROJECT_PARAM_MESSAGE) @QueryParam(
           NGCommonEntityConstants.PROJECT_KEY) String projectIdentifier,
-      @Parameter(description = "File format: text/plain for .yaml file, otherwise tar.gz will be generated.")
-      @QueryParam("fileFormat") MediaType fileFormat,
       @RequestBody(
           required = true, description = "Delegate setup details, containing data to populate yaml file values.")
       DelegateSetupDetails delegateSetupDetails) throws IOException {
     File delegateFile = delegateService.generateNgHelmValuesYaml(accountIdentifier, delegateSetupDetails,
-        subdomainUrlHelper.getManagerUrl(request, accountIdentifier), getVerificationUrl(request), fileFormat);
+        subdomainUrlHelper.getManagerUrl(request, accountIdentifier), getVerificationUrl(request));
     return new RestResponse<>(delegateFile);
   }
 

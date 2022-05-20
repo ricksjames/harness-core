@@ -24,7 +24,6 @@ import java.io.File;
 import java.util.List;
 import java.util.Optional;
 import javax.validation.constraints.NotNull;
-import javax.ws.rs.core.MediaType;
 import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.DELETE;
@@ -158,6 +157,6 @@ public interface DelegateNgManagerCgManagerClient {
   Call<RestResponse<File>> generateHelmValuesFile(
       @Query(NGCommonEntityConstants.ACCOUNT_KEY) @NotNull String accountIdentifier,
       @Query(NGCommonEntityConstants.ORG_KEY) String orgIdentifier,
-      @Query(NGCommonEntityConstants.PROJECT_KEY) String projectIdentifier, @Query("fileFormat") MediaType fileFormat,
+      @Query(NGCommonEntityConstants.PROJECT_KEY) String projectIdentifier,
       @Body @NotNull DelegateSetupDetails delegateSetupDetails);
 }

@@ -702,7 +702,8 @@ public class DelegateServiceImpl implements DelegateService {
       throw new InvalidRequestException("K8s namespace must be provided for this type of permission.", USER);
     }
 
-    if (!(KUBERNETES.equals(delegateSetupDetails.getDelegateType()) || HELM_DELEGATE.equals(delegateSetupDetails.getDelegateType()))) {
+    if (!(KUBERNETES.equals(delegateSetupDetails.getDelegateType())
+            || HELM_DELEGATE.equals(delegateSetupDetails.getDelegateType()))) {
       throw new InvalidRequestException("Delegate type must be KUBERNETES OR HELM_DELEGATE.");
     }
 
@@ -3948,91 +3949,56 @@ public class DelegateServiceImpl implements DelegateService {
 
   @Override
   public File generateNgHelmValuesYaml(String accountId, DelegateSetupDetails delegateSetupDetails, String managerHost,
-      String verificationServiceUrl, MediaType fileFormat) throws IOException {
+      String verificationServiceUrl) throws IOException {
     validateKubernetesSetupDetails(accountId, delegateSetupDetails);
 
-    File helmDelegateFile = File.createTempFile(HELM_DELEGATE, ".tar");
-
-    try (TarArchiveOutputStream out = new TarArchiveOutputStream(new FileOutputStream(helmDelegateFile))) {
-      out.putArchiveEntry(new TarArchiveEntry(HELM_DELEGATE + "/"));
-      out.closeArchiveEntry();
-
-      String version;
-      if (mainConfiguration.getDeployMode() == DeployMode.KUBERNETES) {
-        List<String> delegateVersions = accountService.getDelegateConfiguration(accountId).getDelegateVersions();
-        version = delegateVersions.get(delegateVersions.size() - 1);
-      } else {
-        version = EMPTY_VERSION;
-      }
-
-      boolean isCiEnabled = accountService.isNextGenEnabled(accountId);
-
-      DelegateSizeDetails sizeDetails = fetchAvailableSizes()
-                                            .stream()
-                                            .filter(size -> size.getSize() == delegateSetupDetails.getSize())
-                                            .findFirst()
-                                            .orElse(null);
-
-      upsertDelegateGroup(delegateSetupDetails.getName(), accountId, delegateSetupDetails);
-
-      ImmutableMap<String, String> scriptParams = getJarAndScriptRunTimeParamMap(
-          TemplateParameters.builder()
-              .accountId(accountId)
-              .version(version)
-              .managerHost(managerHost)
-              .verificationHost(verificationServiceUrl)
-              .delegateName(delegateSetupDetails.getName())
-              .delegateType(HELM_DELEGATE)
-              .ciEnabled(isCiEnabled)
-              .delegateDescription(delegateSetupDetails.getDescription())
-              .delegateSize(sizeDetails.getSize().name())
-              .delegateReplicas(sizeDetails.getReplicas())
-              .delegateRam(sizeDetails.getRam() / sizeDetails.getReplicas())
-              .delegateCpu(sizeDetails.getCpu() / sizeDetails.getReplicas())
-              .delegateRequestsRam(sizeDetails.getRam() / sizeDetails.getReplicas())
-              .delegateRequestsCpu(sizeDetails.getCpu() / sizeDetails.getReplicas())
-              .delegateTags(
-                  isNotEmpty(delegateSetupDetails.getTags()) ? String.join(",", delegateSetupDetails.getTags()) : "")
-              .delegateNamespace(delegateSetupDetails.getK8sConfigDetails().getNamespace())
-              .k8sPermissionsType(delegateSetupDetails.getK8sConfigDetails().getK8sPermissionType())
-              .logStreamingServiceBaseUrl(mainConfiguration.getLogStreamingServiceConfig().getBaseUrl())
-              .delegateTokenName(delegateSetupDetails.getTokenName())
-              .build(),
-          true);
-
-      File yaml = File.createTempFile(HARNESS_NG_DELEGATE, YAML);
-      saveProcessedTemplate(scriptParams, yaml, "delegate-ng-helm-values.yaml.ftl");
-      delegateTelemetryPublisher.sendTelemetryTrackEvents(accountId, HELM_DELEGATE, true, DELEGATE_CREATED_EVENT);
-
-      if (fileFormat != null && fileFormat.equals(MediaType.TEXT_PLAIN_TYPE)) {
-        return yaml;
-      }
-
-      TarArchiveEntry yamlTarArchiveEntry =
-          new TarArchiveEntry(yaml, HELM_DELEGATE + "/" + HARNESS_NG_DELEGATE + YAML);
-      out.putArchiveEntry(yamlTarArchiveEntry);
-      try (FileInputStream fis = new FileInputStream(yaml)) {
-        IOUtils.copy(fis, out);
-      }
-      out.closeArchiveEntry();
-
-      File readme = File.createTempFile(README, ".txt");
-      saveProcessedTemplate(emptyMap(), readme, "readme-helm.txt.ftl");
-      readme = new File(readme.getAbsolutePath());
-      TarArchiveEntry readmeTarArchiveEntry = new TarArchiveEntry(readme, HELM_DELEGATE + README_TXT);
-      out.putArchiveEntry(readmeTarArchiveEntry);
-      try (FileInputStream fis = new FileInputStream(readme)) {
-        IOUtils.copy(fis, out);
-      }
-      out.closeArchiveEntry();
-
-      out.flush();
-      out.finish();
+    String version;
+    if (mainConfiguration.getDeployMode() == DeployMode.KUBERNETES) {
+      List<String> delegateVersions = accountService.getDelegateConfiguration(accountId).getDelegateVersions();
+      version = delegateVersions.get(delegateVersions.size() - 1);
+    } else {
+      version = EMPTY_VERSION;
     }
 
-    File gzipHelmDelegateFile = File.createTempFile(DELEGATE_DIR, TAR_GZ);
-    compressGzipFile(helmDelegateFile, gzipHelmDelegateFile);
-    return gzipHelmDelegateFile;
+    boolean isCiEnabled = accountService.isNextGenEnabled(accountId);
+
+    DelegateSizeDetails sizeDetails = fetchAvailableSizes()
+                                          .stream()
+                                          .filter(size -> size.getSize() == delegateSetupDetails.getSize())
+                                          .findFirst()
+                                          .orElse(null);
+
+    upsertDelegateGroup(delegateSetupDetails.getName(), accountId, delegateSetupDetails);
+
+    ImmutableMap<String, String> scriptParams = getJarAndScriptRunTimeParamMap(
+        TemplateParameters.builder()
+            .accountId(accountId)
+            .version(version)
+            .managerHost(managerHost)
+            .verificationHost(verificationServiceUrl)
+            .delegateName(delegateSetupDetails.getName())
+            .delegateType(HELM_DELEGATE)
+            .ciEnabled(isCiEnabled)
+            .delegateDescription(delegateSetupDetails.getDescription())
+            .delegateSize(sizeDetails.getSize().name())
+            .delegateReplicas(sizeDetails.getReplicas())
+            .delegateRam(sizeDetails.getRam() / sizeDetails.getReplicas())
+            .delegateCpu(sizeDetails.getCpu() / sizeDetails.getReplicas())
+            .delegateRequestsRam(sizeDetails.getRam() / sizeDetails.getReplicas())
+            .delegateRequestsCpu(sizeDetails.getCpu() / sizeDetails.getReplicas())
+            .delegateTags(
+                isNotEmpty(delegateSetupDetails.getTags()) ? String.join(",", delegateSetupDetails.getTags()) : "")
+            .delegateNamespace(delegateSetupDetails.getK8sConfigDetails().getNamespace())
+            .k8sPermissionsType(delegateSetupDetails.getK8sConfigDetails().getK8sPermissionType())
+            .logStreamingServiceBaseUrl(mainConfiguration.getLogStreamingServiceConfig().getBaseUrl())
+            .delegateTokenName(delegateSetupDetails.getTokenName())
+            .build(),
+        true);
+
+    File yaml = File.createTempFile(HARNESS_NG_DELEGATE, YAML);
+    saveProcessedTemplate(scriptParams, yaml, "delegate-ng-helm-values.yaml.ftl");
+    delegateTelemetryPublisher.sendTelemetryTrackEvents(accountId, HELM_DELEGATE, true, DELEGATE_CREATED_EVENT);
+    return yaml;
   }
 
   private ImmutableMap<String, String> getDockerScriptParametersForTemplate(String managerHost,
