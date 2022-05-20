@@ -75,65 +75,6 @@ public class K8SInstanceSyncPerpetualTaskHandlerTest extends InstancesTestBase {
   @Owner(developers = PIYUSH_BHUWALKA)
   @Category(UnitTests.class)
   public void testGetExecutionBundle() throws InvalidProtocolBufferException {
-    //        InfrastructureMappingDTO infrastructureMappingDTO =
-    //        InfrastructureMappingDTO.builder().projectIdentifier(PROJECT_IDENTIFIER)
-    //                .orgIdentifier(ORG_IDENTIFIER).accountIdentifier(ACCOUNT_IDENTIFIER).infrastructureKind("KUBERNETES_DIRECT").connectorRef("connector").
-    //                envIdentifier("env").serviceIdentifier("service").infrastructureKey("key").build();
-    //        LinkedHashSet<String> namespaces = new LinkedHashSet<>();
-    //        namespaces.add(NAMESPACE);
-    //        DeploymentInfoDTO deploymentInfoDTO =
-    //        K8sDeploymentInfoDTO.builder().namespaces(namespaces).releaseName(RELEASE_NAME).build();
-    //        List<DeploymentInfoDTO> deploymentInfoDTOList = Arrays.asList(deploymentInfoDTO);
-    //        InfrastructureOutcome infrastructureOutcome = K8sDirectInfrastructureOutcome.builder().build();
-    ////        K8sInfraDelegateConfig k8sInfraDelegateConfig = DirectK8sInfraDelegateConfig.builder().build();
-    ////        byte[] bytes2 = {71};
-    ////        BaseNGAccess baseNGAccess =
-    ///BaseNGAccess.builder().accountIdentifier(ACCOUNT_IDENTIFIER).orgIdentifier(ORG_IDENTIFIER).projectIdentifier(PROJECT_IDENTIFIER).build();
-    ////        NativeHelmDeploymentReleaseData k8sDeploymentReleaseData =
-    ///NativeHelmDeploymentReleaseData.builder().k8sInfraDelegateConfig(k8sInfraDelegateConfig) /
-    ///.namespaces(((K8sDeploymentInfoDTO) deploymentInfoDTO).getNamespaces()) / .releaseName(((K8sDeploymentInfoDTO)
-    ///deploymentInfoDTO).getReleaseName()) /                .build(); /        K8sDeploymentRelease
-    ///k8sDeploymentRelease = K8sDeploymentRelease.newBuilder() /
-    ///.setReleaseName(k8sDeploymentReleaseData.getReleaseName()) /
-    ///.addAllNamespaces(k8sDeploymentReleaseData.getNamespaces()) /
-    ///.setK8SInfraDelegateConfig(ByteString.copyFrom(bytes)) /                .build(); / List<K8sDeploymentRelease>
-    ///k8sDeploymentReleaseList = Arrays.asList(k8sDeploymentRelease); /        K8sInstanceSyncPerpetualTaskParams
-    ///k8sInstanceSyncPerpetualTaskParams = K8sInstanceSyncPerpetualTaskParams.newBuilder() /
-    ///.setAccountId(ACCOUNT_IDENTIFIER) /                .addAllK8SDeploymentReleaseList(k8sDeploymentReleaseList) /
-    ///.build(); /        Any perpetualTaskPack = Any.pack(k8sInstanceSyncPerpetualTaskParams); / K8sInstanceSyncRequest
-    ///k8sInstanceSyncRequest = K8sInstanceSyncRequest.builder() /                .taskType(K8sTaskType.INSTANCE_SYNC)
-    ////                .timeoutIntervalInMin(DEFAULT_TIMEOUT_IN_MIN)
-    ////                .releaseName(k8sDeploymentReleaseData.getReleaseName())
-    ////                .k8sInfraDelegateConfig(k8sDeploymentReleaseData.getK8sInfraDelegateConfig())
-    ////                .commandName(K8S_INSTANCE_SYNC_COMMAND_NAME)
-    ////                .namespace(NAMESPACE)
-    ////                .build();
-    ////        List<ExecutionCapability> executionCapabilityList =
-    ///k8sInstanceSyncRequest.fetchRequiredExecutionCapabilities(null); / System.out.println(infrastructureOutcome); /
-    ///System.out.println(baseNGAccess); /        System.out.println(k8sInfraDelegateConfig); /
-    ///when(k8sEntityHelper.getK8sInfraDelegateConfig(infrastructureOutcome,
-    ///baseNGAccess)).thenReturn(k8sInfraDelegateConfig); /
-    ///when(kryoSerializer.asDeflatedBytes(executionCapabilityList.get(0))).thenReturn(bytes2); /
-    ///PerpetualTaskExecutionBundle perpetualTaskExecutionBundle =
-    ///PerpetualTaskExecutionBundle.newBuilder().addCapabilities( /        Capability.newBuilder() /
-    ///.setKryoCapability(ByteString.copyFrom(bytes2)).build()).setTaskParams(perpetualTaskPack) /
-    ///.putAllSetupAbstractions(Maps.of(NG, "true", OWNER, ORG_IDENTIFIER + "/" + PROJECT_IDENTIFIER)).build();
-    //        PerpetualTaskExecutionBundle perpetualTaskExecutionBundle =
-    //        nativeHelmInstanceSyncPerpetualTaskHandler.getExecutionBundle(infrastructureMappingDTO,
-    //        deploymentInfoDTOList, infrastructureOutcome); List<Capability> executionCapabilityList =
-    //        perpetualTaskExecutionBundle.getCapabilitiesList();
-    //        assertThat(executionCapabilityList.size()).isEqualTo(1);
-    //        Any perpetualTaskPack = perpetualTaskExecutionBundle.getTaskParams();
-    //        NativeHelmInstanceSyncPerpetualTaskParams nativeHelmInstanceSyncPerpetualTaskParams =
-    //        perpetualTaskPack.unpack(NativeHelmInstanceSyncPerpetualTaskParams.class);
-    //        assertThat(nativeHelmInstanceSyncPerpetualTaskParams.getAccountId()).isEqualTo(ACCOUNT_IDENTIFIER);
-    //        assertThat(nativeHelmInstanceSyncPerpetualTaskParams.getHelmVersion()).isEqualTo(HELM_VERSION);
-    //        assertThat(nativeHelmInstanceSyncPerpetualTaskParams.getDeploymentReleaseListCount()).isEqualTo(1);
-    //        assertThat(nativeHelmInstanceSyncPerpetualTaskParams.getDeploymentReleaseList(0).getReleaseName()).isEqualTo(RELEASE_NAME);
-    //        assertThat(nativeHelmInstanceSyncPerpetualTaskParams.getDeploymentReleaseList(0).getNamespaces(0)).isEqualTo(NAMESPACE);
-    //        assertThat(nativeHelmInstanceSyncPerpetualTaskHandler.getExecutionBundle(infrastructureMappingDTO,
-    //        deploymentInfoDTOList, infrastructureOutcome).getCapabilities(0)).isEqualTo(1);
-
     InfrastructureMappingDTO infrastructureMappingDTO = InfrastructureMappingDTO.builder()
                                                             .projectIdentifier(PROJECT_IDENTIFIER)
                                                             .orgIdentifier(ORG_IDENTIFIER)
