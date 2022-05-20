@@ -3341,7 +3341,7 @@ public class WorkflowServiceTest extends WingsBaseTest {
     Workflow savedWorkflow = workflowService.createWorkflow(workflow1);
     assertThat(savedWorkflow).isNotNull().hasFieldOrProperty("uuid");
     List<InfrastructureDefinition> resolvedInfraDefinitions =
-        workflowService.getResolvedInfraDefinitions(savedWorkflow, null);
+        workflowService.getResolvedInfraDefinitions(savedWorkflow, null, null);
     assertThat(resolvedInfraDefinitions)
         .isNotEmpty()
         .extracting(InfrastructureDefinition::getUuid)
@@ -3396,7 +3396,7 @@ public class WorkflowServiceTest extends WingsBaseTest {
         .thenReturn(java.util.Arrays.asList(service));
 
     List<InfrastructureDefinition> resolvedInfraDefinitions = workflowService.getResolvedInfraDefinitions(
-        workflow3, ImmutableMap.of("Service", SERVICE_ID, "InfraDef_SSH", INFRA_DEFINITION_ID));
+        workflow3, ImmutableMap.of("Service", SERVICE_ID, "InfraDef_SSH", INFRA_DEFINITION_ID), null);
 
     assertThat(resolvedInfraDefinitions)
         .isNotEmpty()

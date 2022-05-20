@@ -25,6 +25,7 @@ import software.wings.service.intfc.ServiceResourceService;
 import software.wings.service.intfc.SettingsService;
 import software.wings.settings.SettingVariableTypes;
 import software.wings.sm.ExecutionContext;
+import software.wings.sm.ExecutionContextImpl;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
@@ -79,6 +80,10 @@ public class TemplateExpressionProcessor {
       ExecutionContext context, String appId, TemplateExpression templateExpression) {
     String infraDefinitionId = resolveTemplateExpression(context, templateExpression);
     InfrastructureDefinition infrastructureDefinition = infrastructureDefinitionService.get(appId, infraDefinitionId);
+    if (infrastructureDefinition == null) {
+      infrastructureDefinition = infrastructureDefinitionService.getInfraDefByName(
+          appId, ((ExecutionContextImpl) context).getEnv().getUuid(), infraDefinitionId);
+    }
     if (infrastructureDefinition == null) {
       if (matchesVariablePattern(infraDefinitionId)) {
         throw new WingsException("No value provided for templated Infra Definition workflow variable ["

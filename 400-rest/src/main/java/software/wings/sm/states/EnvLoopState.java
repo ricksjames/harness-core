@@ -15,12 +15,17 @@ import io.harness.annotations.dev.TargetModule;
 import io.harness.beans.ExecutionStatus;
 import io.harness.beans.ExecutionStatusResponseData;
 import io.harness.beans.RepairActionCode;
+import io.harness.exception.InvalidRequestException;
+import io.harness.expression.ExpressionEvaluator;
 import io.harness.ff.FeatureFlagService;
 import io.harness.tasks.ResponseData;
 
 import software.wings.api.ForkElement;
 import software.wings.beans.LoopEnvStateParams;
 import software.wings.beans.LoopEnvStateParams.LoopEnvStateParamsBuilder;
+import software.wings.expression.ManagerExpressionEvaluator;
+import software.wings.infra.InfrastructureDefinition;
+import software.wings.service.intfc.InfrastructureDefinitionService;
 import software.wings.sm.ExecutionContext;
 import software.wings.sm.ExecutionContextImpl;
 import software.wings.sm.ExecutionResponse;
@@ -34,10 +39,9 @@ import software.wings.sm.states.ForkState.ForkStateExecutionData;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.github.reinert.jjschema.SchemaIgnore;
 import com.google.inject.Inject;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.FieldNameConstants;
@@ -90,6 +94,17 @@ public class EnvLoopState extends State implements WorkflowState {
     ForkStateExecutionData forkStateExecutionData = new ForkStateExecutionData();
     List<String> forkStateNames = new ArrayList<>();
     forkStateExecutionData.setElements(new ArrayList<>());
+    if (loopedValues.size() == 1 && ExpressionEvaluator.matchesVariablePattern(loopedValues.get(0))
+        && loopedValues.get(0).contains(".")) {
+      String resolvedValue = context.renderExpression(loopedValues.get(0));
+      if (resolvedValue == null || resolvedValue.equals(loopedValues.get(0))) {
+        throw new InvalidRequestException(
+            "The expression " + loopedValues.get(0) + " provided for the variable doesn't resolve to a valid value");
+      }
+      loopedValues = new ArrayList<>();
+      loopedValues.addAll(Arrays.asList(resolvedValue.trim().split("\\s*,\\s*")));
+    }
+
     int i = 1;
     for (String loopedValue : loopedValues) {
       String state = getName() + "_" + i;

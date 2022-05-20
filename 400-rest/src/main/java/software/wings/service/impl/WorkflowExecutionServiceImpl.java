@@ -4408,9 +4408,12 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
     Workflow workflow = workflowService.readWorkflow(workflowExecution.getAppId(), workflowExecution.getWorkflowId());
     if (workflow != null && workflow.getOrchestrationWorkflow() != null) {
       List<Service> services = getResolvedServices(workflow, workflowExecution);
+      String envId = workflowService.resolveEnvironmentId(workflow,
+          workflowExecution.getExecutionArgs() != null ? workflowExecution.getExecutionArgs().getWorkflowVariables()
+                                                       : null);
       List<InfrastructureMapping> infrastructureMappings = null;
       List<InfrastructureDefinition> infrastructureDefinitions = null;
-      infrastructureDefinitions = getResolvedInfraDefinitions(workflow, workflowExecution);
+      infrastructureDefinitions = getResolvedInfraDefinitions(workflow, workflowExecution, envId);
 
       if (services != null) {
         List<InfrastructureDefinition> finalInfrastructureDefinitions = infrastructureDefinitions;
@@ -4470,11 +4473,11 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
 
   @Override
   public List<InfrastructureDefinition> getResolvedInfraDefinitions(
-      Workflow workflow, WorkflowExecution workflowExecution) {
+      Workflow workflow, WorkflowExecution workflowExecution, String envId) {
     Map<String, String> workflowVariables = workflowExecution.getExecutionArgs() != null
         ? workflowExecution.getExecutionArgs().getWorkflowVariables()
         : null;
-    return workflowService.getResolvedInfraDefinitions(workflow, workflowVariables);
+    return workflowService.getResolvedInfraDefinitions(workflow, workflowVariables, envId);
   }
 
   private void populateServiceSummary(
