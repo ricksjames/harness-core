@@ -174,8 +174,6 @@ public class SshSessionFactory {
     session.setTimeout(config.getSshSessionTimeout());
     session.setServerAliveInterval(10 * 1000); // Send noop packet every 10 sec
 
-    session.connect(config.getSshConnectionTimeout());
-
     final String ssh_network_proxy = System.getenv(SSH_NETWORK_PROXY);
     boolean enableProxy = "true".equals(ssh_network_proxy);
     log.info("proxy enabled: " + enableProxy + ". Connecting host: " + config.getHost());
@@ -186,6 +184,7 @@ public class SshSessionFactory {
         session.setProxy(proxyHTTP);
       }
     }
+    session.connect(config.getSshConnectionTimeout());
 
     return session;
   }
