@@ -99,13 +99,12 @@ public class PMSPipelineRepositoryCustomImpl implements PMSPipelineRepositoryCus
     String accountIdentifier = pipelineToSave.getAccountIdentifier();
     String orgIdentifier = pipelineToSave.getOrgIdentifier();
     String projectIdentifier = pipelineToSave.getProjectIdentifier();
-    Supplier<OutboxEvent> supplierWithGitSyncTrue = ()
-        -> outboxService.save(
-            new PipelineCreateEvent(accountIdentifier, orgIdentifier, projectIdentifier, pipelineToSave, true));
+
     return transactionHelper.performTransaction(() -> {
       PipelineEntity savedEntity = gitAwarePersistence.save(
           pipelineToSave, pipelineToSave.getYaml(), ChangeType.ADD, PipelineEntity.class, null);
-      supplierWithGitSyncTrue.get();
+      outboxService.save(
+          new PipelineCreateEvent(accountIdentifier, orgIdentifier, projectIdentifier, pipelineToSave, true));
       checkForMetadataAndSaveIfAbsent(savedEntity);
       return savedEntity;
     });
@@ -126,7 +125,7 @@ public class PMSPipelineRepositoryCustomImpl implements PMSPipelineRepositoryCus
     });
   }
 
-  private PipelineEntity savePipelineEntity(PipelineEntity pipelineToSave, Supplier<OutboxEvent> supplier) {
+  PipelineEntity savePipelineEntity(PipelineEntity pipelineToSave, Supplier<OutboxEvent> supplier) {
     GitAwareContextHelper.initDefaultScmGitMetaData();
     GitEntityInfo gitEntityInfo = GitContextHelper.getGitEntityInfo();
     if (gitEntityInfo == null || gitEntityInfo.getStoreType().equals(StoreType.INLINE)) {
@@ -154,7 +153,7 @@ public class PMSPipelineRepositoryCustomImpl implements PMSPipelineRepositoryCus
     return mongoTemplate.save(pipelineToSave);
   }
 
-  private void checkForMetadataAndSaveIfAbsent(PipelineEntity savedEntity) {
+  void checkForMetadataAndSaveIfAbsent(PipelineEntity savedEntity) {
     // checking if PipelineMetadata exists or not, if exists don't re-save the entity, as only one entry across git
     // repos should be there.
     Optional<PipelineMetadataV2> metadataOptional =
@@ -239,10 +238,8 @@ public class PMSPipelineRepositoryCustomImpl implements PMSPipelineRepositoryCus
     PipelineEntity updatedEntity =
         gitAwarePersistence.save(pipelineToUpdate, pipelineToUpdate.getYaml(), changeType, PipelineEntity.class, null);
     if (updatedEntity != null) {
-      Supplier<OutboxEvent> supplierWithGitSyncTrue = ()
-          -> outboxService.save(new PipelineUpdateEvent(
-              accountIdentifier, orgIdentifier, projectIdentifier, pipelineToUpdate, oldPipelineEntity, true));
-      supplierWithGitSyncTrue.get();
+      outboxService.save(new PipelineUpdateEvent(
+          accountIdentifier, orgIdentifier, projectIdentifier, pipelineToUpdate, oldPipelineEntity, true));
     }
     return updatedEntity;
   }
@@ -310,10 +307,8 @@ public class PMSPipelineRepositoryCustomImpl implements PMSPipelineRepositoryCus
       PipelineEntity pipelineEntity = gitAwarePersistence.save(
           pipelineToUpdate, pipelineToUpdate.getYaml(), ChangeType.DELETE, PipelineEntity.class, null);
       if (pipelineEntity.getDeleted()) {
-        Supplier<OutboxEvent> supplierWithGitSyncTrue = ()
-            -> outboxService.save(
-                new PipelineDeleteEvent(accountId, orgIdentifier, projectIdentifier, pipelineToUpdate, true));
-        supplierWithGitSyncTrue.get();
+        outboxService.save(
+            new PipelineDeleteEvent(accountId, orgIdentifier, projectIdentifier, pipelineToUpdate, true));
       }
       return pipelineEntity;
     }
