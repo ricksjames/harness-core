@@ -53,6 +53,10 @@ if [[ "${ENABLE_OPENTELEMETRY}" == "true" ]] ; then
     echo "OpenTelemetry is enabled"
     wget https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v1.13.0/opentelemetry-javaagent.jar -O /opt/harness/opentelemetry-javaagent.jar
     JAVA_OPTS=$JAVA_OPTS" -javaagent:/opt/harness/opentelemetry-javaagent.jar -Dotel.service.name=migrator"
+
+    if [ -n "$OPENTELEMETRY_COLLECTOR_URL" ]; then
+        JAVA_OPTS=$JAVA_OPTS" -Dotel.exporter.otlp.endpoint=$OPENTELEMETRY_COLLECTOR_URL "
+    fi
     echo "Using OpenTelemetry Java Agent"
 fi
 
