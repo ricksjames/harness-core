@@ -44,8 +44,8 @@ if [[ "${ENABLE_OPENTELEMETRY}" == "true" ]] ; then
     wget https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v1.13.0/opentelemetry-javaagent.jar -O /opt/harness/opentelemetry-javaagent.jar
     JAVA_OPTS=$JAVA_OPTS" -javaagent:/opt/harness/opentelemetry-javaagent.jar -Dotel.service.name=pipeline-service"
 
-    if [ -n "$OPENTELEMETRY_COLLECTOR_URL" ]; then
-        JAVA_OPTS=$JAVA_OPTS" -Dotel.exporter.otlp.endpoint=$OPENTELEMETRY_COLLECTOR_URL "
+    if [ -n "$OTEL_EXPORTER_OTLP_ENDPOINT" ]; then
+        JAVA_OPTS=$JAVA_OPTS" -Dotel.exporter.otlp.endpoint=$OTEL_EXPORTER_OTLP_ENDPOINT "
     fi
     echo "Using OpenTelemetry Java Agent"
 fi
