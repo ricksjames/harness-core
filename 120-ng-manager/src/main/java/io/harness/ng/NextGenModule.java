@@ -85,8 +85,6 @@ import io.harness.exception.exceptionmanager.ExceptionModule;
 import io.harness.exception.exceptionmanager.exceptionhandler.CCMConnectorExceptionHandler;
 import io.harness.exception.exceptionmanager.exceptionhandler.ExceptionHandler;
 import io.harness.file.NGFileServiceModule;
-import io.harness.filter.FilterType;
-import io.harness.filter.mapper.FilterPropertiesMapper;
 import io.harness.gitsync.GitSyncConfigClientModule;
 import io.harness.gitsync.GitSyncModule;
 import io.harness.gitsync.common.events.FullSyncMessageListener;
@@ -131,7 +129,6 @@ import io.harness.ng.core.api.impl.NGSecretServiceV2Impl;
 import io.harness.ng.core.api.impl.TokenServiceImpl;
 import io.harness.ng.core.api.impl.UserGroupServiceImpl;
 import io.harness.ng.core.delegate.client.DelegateNgManagerCgManagerClientModule;
-import io.harness.ng.core.dto.filestore.mapper.FilesFilterPropertiesMapper;
 import io.harness.ng.core.encryptors.NGManagerKmsEncryptor;
 import io.harness.ng.core.encryptors.NGManagerVaultEncryptor;
 import io.harness.ng.core.entityactivity.event.EntityActivityCrudEventMessageListener;
@@ -157,7 +154,6 @@ import io.harness.ng.core.impl.ProjectServiceImpl;
 import io.harness.ng.core.outbox.ApiKeyEventHandler;
 import io.harness.ng.core.outbox.DelegateProfileEventHandler;
 import io.harness.ng.core.outbox.EnvironmentEventHandler;
-import io.harness.ng.core.outbox.FileEventHandler;
 import io.harness.ng.core.outbox.NextGenOutboxEventHandler;
 import io.harness.ng.core.outbox.OrganizationEventHandler;
 import io.harness.ng.core.outbox.ProjectEventHandler;
@@ -184,6 +180,8 @@ import io.harness.ng.core.variable.services.impl.VariableServiceImpl;
 import io.harness.ng.eventsframework.EventsFrameworkModule;
 import io.harness.ng.feedback.services.FeedbackService;
 import io.harness.ng.feedback.services.impls.FeedbackServiceImpl;
+import io.harness.ng.filestore.module.NgFileStoreModule;
+import io.harness.ng.filestore.outbox.FileEventHandler;
 import io.harness.ng.opa.OpaService;
 import io.harness.ng.opa.OpaServiceImpl;
 import io.harness.ng.opa.entities.connector.OpaConnectorService;
@@ -710,9 +708,7 @@ public class NextGenModule extends AbstractModule {
     bind(VariableService.class).to(VariableServiceImpl.class);
     bindExceptionHandlers();
 
-    MapBinder<String, FilterPropertiesMapper> filterPropertiesMapper =
-        MapBinder.newMapBinder(binder(), String.class, FilterPropertiesMapper.class);
-    filterPropertiesMapper.addBinding(FilterType.FILESTORE.toString()).to(FilesFilterPropertiesMapper.class);
+    install(new NgFileStoreModule());
   }
 
   private void bindExceptionHandlers() {

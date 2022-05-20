@@ -31,6 +31,7 @@ shared_dependencies = [
     "//940-primary-version-manager:module",
     "//942-enforcement-sdk:module",
     "//947-scim-core:module",
+    "//877-filestore:module",
     "//950-ng-core:module",
     "//950-opa-client:module",
     "//950-telemetry:module",
