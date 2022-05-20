@@ -524,12 +524,9 @@ public class PipelineResource implements YamlSchemaResource {
         String.format("Get pipeline summary for pipeline with with identifier %s in project %s, org %s, account %s",
             pipelineId, projectId, orgId, accountId));
 
-    Optional<PipelineEntity> pipelineEntity = Optional.empty();
-    try {
-      pipelineEntity = pmsPipelineService.get(accountId, orgId, projectId, pipelineId, false);
-    } catch (PolicyEvaluationFailureException | InvalidYamlException pe) {
-      // ignore
-    }
+    Optional<PipelineEntity> pipelineEntity;
+    pipelineEntity = pmsPipelineService.getWithoutPerformingValidations(accountId, orgId, projectId, pipelineId, false);
+
     PMSPipelineSummaryResponseDTO pipelineSummary =
         PMSPipelineDtoMapper.preparePipelineSummary(pipelineEntity.orElseThrow(
             ()
