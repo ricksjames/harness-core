@@ -28,6 +28,7 @@ public interface CEViewService {
   CEView updateTotalCost(CEView ceView, BigQuery bigQuery, String cloudProviderTableName);
   boolean delete(String uuid, String accountId);
   List<QLCEView> getAllViews(String accountId, boolean includeDefault);
+  List<QLCEView> getAllViews(String accountId, String folderId, boolean includeDefault);
   List<CEView> getViewByState(String accountId, ViewState viewState);
   void createDefaultView(String accountId, ViewFieldIdentifier viewFieldIdentifier);
   DefaultViewIdDto getDefaultViewIds(String accountId);
