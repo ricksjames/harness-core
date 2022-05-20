@@ -35,7 +35,6 @@ def harness_grpc_library(**kwargs):
         name = kwargs.get("name"),
         srcs = [name_pb],
         deps = GRPC_DEPS,
-#        runtime_deps = ["@maven//:io_grpc_grpc_netty"],
         visibility = kwargs.get("visibility"),
     )
 

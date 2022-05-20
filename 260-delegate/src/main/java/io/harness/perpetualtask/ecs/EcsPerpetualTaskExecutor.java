@@ -529,8 +529,7 @@ public class EcsPerpetualTaskExecutor implements PerpetualTaskExecutor {
 
   private Set<String> fetchActiveEc2InstanceIds(String clusterId) {
     EcsActiveInstancesCache ecsActiveInstancesCache = cache.getIfPresent(clusterId);
-    if (null != ecsActiveInstancesCache
-        && !isEmpty(ecsActiveInstancesCache.getActiveEc2InstanceIds())) {
+    if (null != ecsActiveInstancesCache && !isEmpty(ecsActiveInstancesCache.getActiveEc2InstanceIds())) {
       return ecsActiveInstancesCache.getActiveEc2InstanceIds();
     } else {
       return emptySet();
@@ -539,8 +538,7 @@ public class EcsPerpetualTaskExecutor implements PerpetualTaskExecutor {
 
   private Set<String> fetchActiveContainerInstancesArns(String clusterId) {
     EcsActiveInstancesCache ecsActiveInstancesCache = cache.getIfPresent(clusterId);
-    if (null != ecsActiveInstancesCache
-        && !isEmpty(ecsActiveInstancesCache.getActiveContainerInstanceArns())) {
+    if (null != ecsActiveInstancesCache && !isEmpty(ecsActiveInstancesCache.getActiveContainerInstanceArns())) {
       return ecsActiveInstancesCache.getActiveContainerInstanceArns();
     } else {
       return emptySet();

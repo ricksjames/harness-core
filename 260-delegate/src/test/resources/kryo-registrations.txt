@@ -1618,8 +1618,6 @@
 400133:io.harness.delegate.beans.DelegateInstanceStatus
 400134:software.wings.helpers.ext.helm.request.HelmChartCollectionParams$HelmChartCollectionType
 400135:software.wings.api.helm.ServiceHelmElement
-500001:io.harness.beans.EventType
-500002:io.harness.beans.EventStatus
 543122:io.harness.delegate.task.scm.ScmGitFileTaskParams
 543123:io.harness.delegate.task.scm.GitFileTaskResponseData
 543124:io.harness.delegate.task.scm.GitFileTaskType

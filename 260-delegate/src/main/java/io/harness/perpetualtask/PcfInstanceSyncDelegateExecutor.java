@@ -87,7 +87,9 @@ public class PcfInstanceSyncDelegateExecutor implements PerpetualTaskExecutor {
                                      .build();
         cfCommandExecutionResponse.setPcfCommandResponse(cfInstanceSyncResponse);
       } else {
-        int instanceSize = cfInstanceSyncResponse.getInstanceIndices() == null? 0: cfInstanceSyncResponse.getInstanceIndices().size();
+        int instanceSize = cfInstanceSyncResponse.getInstanceIndices() == null
+            ? 0
+            : cfInstanceSyncResponse.getInstanceIndices().size();
         log.info("Found {} number of instances pcf deployment", instanceSize);
       }
       execute(delegateAgentManagerClient.publishInstanceSyncResult(
