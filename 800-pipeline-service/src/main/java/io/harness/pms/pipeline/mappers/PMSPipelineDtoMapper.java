@@ -51,14 +51,14 @@ public class PMSPipelineDtoMapper {
         .build();
   }
 
-  EntityGitDetails getEntityGitDetails(PipelineEntity pipelineEntity) {
+  public EntityGitDetails getEntityGitDetails(PipelineEntity pipelineEntity) {
     return pipelineEntity.getStoreType() == null ? EntityGitDetailsMapper.mapEntityGitDetails(pipelineEntity)
         : pipelineEntity.getStoreType() == StoreType.REMOTE
         ? GitAwareContextHelper.getEntityGitDetailsFromScmGitMetadata()
         : null;
   }
 
-  EntityValidityDetails getEntityValidityDetails(PipelineEntity pipelineEntity) {
+  public EntityValidityDetails getEntityValidityDetails(PipelineEntity pipelineEntity) {
     return pipelineEntity.getStoreType() != null || !pipelineEntity.isEntityInvalid()
         ? EntityValidityDetails.builder().valid(true).build()
         : EntityValidityDetails.builder().valid(false).invalidYaml(pipelineEntity.getYaml()).build();
