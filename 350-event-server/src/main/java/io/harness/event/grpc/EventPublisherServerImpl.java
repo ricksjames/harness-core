@@ -81,7 +81,6 @@ public class EventPublisherServerImpl extends EventPublisherGrpc.EventPublisherI
           .filter(Objects::nonNull)
           .forEach(publishedMessage -> {
             if (isEmpty(publishedMessage.getCategory())) {
-              log.info("Received publish message {}", publishedMessage);
               withoutCategory.add(publishedMessage);
             } else {
               withCategory.add(publishedMessage);

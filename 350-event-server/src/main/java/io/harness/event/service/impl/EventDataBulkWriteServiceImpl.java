@@ -49,8 +49,6 @@ public class EventDataBulkWriteServiceImpl implements EventDataBulkWriteService 
                                                             .append("category", publishedMessage.getCategory())
                                                             .append("attributes", publishedMessage.getAttributes());
 
-    log.info("publishedMessageBasicDBObject: {}", publishedMessageBasicDBObject);
-
     final BasicDBObject filter = new BasicDBObject(
         ImmutableMap.of("accountId", publishedMessage.getAccountId(), "uuid", publishedMessage.getUuid()));
 
@@ -65,6 +63,7 @@ public class EventDataBulkWriteServiceImpl implements EventDataBulkWriteService 
   private <T> boolean batchQueryExecutor(
       final List<T> itemsList, final EventBatchQueryFnFactory<T> k8sBatchQueryFn, final Class clazz) {
     final int bulkWriteLimit = eventServiceConfig.getBatchQueryConfig().getQueryBatchSize();
+    log.info("bulkWriteLimit: {}", bulkWriteLimit);
 
     for (final List<T> itemsListPartitioned : Lists.partition(itemsList, bulkWriteLimit)) {
       final BulkWriteOperation bulkWriteOperation =
