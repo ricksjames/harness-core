@@ -13,12 +13,15 @@ import com.google.inject.Inject;
 import io.harness.NGCommonEntityConstants;
 import io.harness.accesscontrol.AccountIdentifier;
 import io.harness.annotations.dev.OwnedBy;
+import io.harness.ccm.graphql.dto.perspectives.PerspectiveData;
 import io.harness.ccm.utils.LogAccountIdentifier;
 import io.harness.ccm.views.dto.ViewFolderQueryDTO;
 import io.harness.ccm.views.entities.CEView;
 import io.harness.ccm.views.entities.CEViewFolder;
 import io.harness.ccm.views.entities.ViewType;
+import io.harness.ccm.views.graphql.QLCEView;
 import io.harness.ccm.views.service.CEViewFolderService;
+import io.harness.ccm.views.service.CEViewService;
 import io.harness.enforcement.client.annotation.FeatureRestrictionCheck;
 import io.harness.enforcement.constants.FeatureRestrictionName;
 import io.harness.ng.core.dto.ErrorDTO;
@@ -65,10 +68,12 @@ import static io.harness.annotations.dev.HarnessTeam.CE;
     content = { @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ErrorDTO.class)) })
 public class PerspectiveFolderResource {
   private final CEViewFolderService ceViewFolderService;
+  private final CEViewService ceViewService;
 
   @Inject
-  public PerspectiveFolderResource(CEViewFolderService ceViewFolderService) {
+  public PerspectiveFolderResource(CEViewFolderService ceViewFolderService, CEViewService ceViewService) {
     this.ceViewFolderService = ceViewFolderService;
+    this.ceViewService = ceViewService;
   }
 
   @POST
@@ -137,8 +142,7 @@ public class PerspectiveFolderResource {
   }
 
   @GET
-  @Path("{folderId}")
-  @Deprecated
+  @Path("{folderId}/perspectives")
   @Timed
   @ExceptionMetered
   @ApiOperation(value = "Get All perspectives in a folder", nickname = "getAllPerspectives")
@@ -152,11 +156,11 @@ public class PerspectiveFolderResource {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(description = "Returns a List of Perspectives",
             content = { @Content(mediaType = MediaType.APPLICATION_JSON) })
       })
-  public ResponseDTO<List<CEView>>
+  public ResponseDTO<List<QLCEView>>
   getPerspectives(@Parameter(required = true, description = ACCOUNT_PARAM_MESSAGE) @QueryParam(
       NGCommonEntityConstants.ACCOUNT_KEY) @AccountIdentifier @NotNull @Valid String accountId,
                   @Parameter(required = true, description = "Unique identifier for folder") @PathParam("folderId") String folderId) {
-    return ResponseDTO.newResponse(ceViewFolderService.getPerspectivesForFolder(accountId, folderId));
+    return ResponseDTO.newResponse(ceViewService.getAllViews(accountId, folderId, true));
   }
 
   @PUT
