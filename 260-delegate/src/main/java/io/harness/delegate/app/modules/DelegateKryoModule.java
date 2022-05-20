@@ -7,9 +7,6 @@
 
 package io.harness.delegate.app.modules;
 
-import com.google.common.collect.ImmutableSet;
-import com.google.inject.Provides;
-import com.google.inject.Singleton;
 import io.harness.govern.ProviderModule;
 import io.harness.serializer.AccessControlClientRegistrars;
 import io.harness.serializer.CgOrchestrationRegistrars;
@@ -34,8 +31,11 @@ import io.harness.serializer.kryo.NotificationBeansKryoRegistrar;
 import io.harness.serializer.kryo.NotificationDelegateTasksKryoRegistrar;
 import io.harness.serializer.kryo.ProjectAndOrgKryoRegistrar;
 import io.harness.serializer.kryo.WatcherBeansKryoRegister;
-import io.serializer.registrars.NGCommonsRegistrars;
 
+import com.google.common.collect.ImmutableSet;
+import com.google.inject.Provides;
+import com.google.inject.Singleton;
+import io.serializer.registrars.NGCommonsRegistrars;
 import java.util.Set;
 
 public class DelegateKryoModule extends ProviderModule {

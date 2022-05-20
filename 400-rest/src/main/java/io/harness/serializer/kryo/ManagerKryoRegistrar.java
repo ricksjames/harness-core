@@ -274,7 +274,6 @@ import software.wings.sm.states.spotinst.SpotInstSetupExecutionSummary;
 import software.wings.sm.states.spotinst.SpotInstSetupStateExecutionData;
 import software.wings.sm.states.spotinst.SpotinstDeployExecutionSummary;
 import software.wings.sm.states.spotinst.SpotinstTrafficShiftAlbDeployExecutionData;
-import software.wings.sm.states.spotinst.SpotinstTrafficShiftAlbSetupElement;
 import software.wings.sm.states.spotinst.SpotinstTrafficShiftAlbSetupExecutionData;
 import software.wings.sm.states.spotinst.SpotinstTrafficShiftAlbSwapRoutesExecutionData;
 import software.wings.sm.status.StateStatusUpdateInfo;

@@ -7,7 +7,6 @@
 
 package io.harness.serializer;
 
-import com.google.common.collect.ImmutableSet;
 import io.harness.annotations.dev.HarnessModule;
 import io.harness.annotations.dev.TargetModule;
 import io.harness.serializer.kryo.CgOrchestrationBeansKryoRegistrar;
@@ -20,6 +19,8 @@ import io.harness.serializer.kryo.NotificationBeansKryoRegistrar;
 import io.harness.serializer.kryo.NotificationDelegateTasksKryoRegistrar;
 import io.harness.serializer.kryo.ProjectAndOrgKryoRegistrar;
 import io.harness.serializer.kryo.WatcherBeansKryoRegister;
+
+import com.google.common.collect.ImmutableSet;
 import io.serializer.registrars.NGCommonsRegistrars;
 import lombok.experimental.UtilityClass;
 
