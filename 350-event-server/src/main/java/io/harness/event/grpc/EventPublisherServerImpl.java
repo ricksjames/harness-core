@@ -27,6 +27,7 @@ import io.harness.event.PublishResponse;
 import io.harness.event.metrics.ClusterResourcesMetricsGroup;
 import io.harness.event.metrics.EventServiceMetricNames;
 import io.harness.event.metrics.MessagesMetricsGroupContext;
+import io.harness.event.service.intfc.EventDataBulkWriteService;
 import io.harness.event.service.intfc.LastReceivedPublishedMessageRepository;
 import io.harness.grpc.utils.AnyUtils;
 import io.harness.grpc.utils.HTimestamps;
@@ -34,7 +35,6 @@ import io.harness.logging.AccountLogContext;
 import io.harness.logging.AutoLogContext;
 import io.harness.metrics.service.api.MetricService;
 import io.harness.perpetualtask.k8s.watch.K8SClusterSyncEvent;
-import io.harness.persistence.HPersistence;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
@@ -50,16 +50,16 @@ import org.apache.commons.lang3.StringUtils;
 @Slf4j
 @Singleton
 public class EventPublisherServerImpl extends EventPublisherGrpc.EventPublisherImplBase {
-  private final HPersistence hPersistence;
+  private final EventDataBulkWriteService eventDataBulkWriteService;
   private final LastReceivedPublishedMessageRepository lastReceivedPublishedMessageRepository;
   private final MessageProcessorRegistry messageProcessorRegistry;
   private final MetricService metricService;
 
   @Inject
-  public EventPublisherServerImpl(HPersistence hPersistence,
+  public EventPublisherServerImpl(EventDataBulkWriteService eventDataBulkWriteService,
       LastReceivedPublishedMessageRepository lastReceivedPublishedMessageRepository,
       MessageProcessorRegistry messageProcessorRegistry, MetricService metricService) {
-    this.hPersistence = hPersistence;
+    this.eventDataBulkWriteService = eventDataBulkWriteService;
     this.lastReceivedPublishedMessageRepository = lastReceivedPublishedMessageRepository;
     this.messageProcessorRegistry = messageProcessorRegistry;
     this.metricService = metricService;
@@ -73,14 +73,15 @@ public class EventPublisherServerImpl extends EventPublisherGrpc.EventPublisherI
          AutoLogContext ignore1 = new DelegateLogContext(delegateId, OVERRIDE_ERROR)) {
       log.info("Received publish request with {} messages", request.getMessagesCount());
 
-      List<io.harness.ccm.commons.entities.events.PublishedMessage> withoutCategory = new ArrayList<>();
-      List<io.harness.ccm.commons.entities.events.PublishedMessage> withCategory = new ArrayList<>();
+      List<PublishedMessage> withoutCategory = new ArrayList<>();
+      List<PublishedMessage> withCategory = new ArrayList<>();
       request.getMessagesList()
           .stream()
           .map(publishMessage -> toPublishedMessage(accountId, publishMessage))
           .filter(Objects::nonNull)
           .forEach(publishedMessage -> {
             if (isEmpty(publishedMessage.getCategory())) {
+              log.info("Received publish message {}", publishedMessage);
               withoutCategory.add(publishedMessage);
             } else {
               withCategory.add(publishedMessage);
@@ -89,7 +90,7 @@ public class EventPublisherServerImpl extends EventPublisherGrpc.EventPublisherI
 
       if (isNotEmpty(withoutCategory)) {
         try {
-          hPersistence.saveIgnoringDuplicateKeys(withoutCategory);
+          eventDataBulkWriteService.upsertPublishedMessages(withoutCategory);
         } catch (Exception e) {
           log.warn("Encountered error while persisting messages", e);
           responseObserver.onError(Status.INTERNAL.withCause(e).asException());

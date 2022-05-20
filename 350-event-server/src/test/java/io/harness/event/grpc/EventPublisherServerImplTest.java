@@ -27,11 +27,11 @@ import io.harness.event.PublishMessage;
 import io.harness.event.PublishRequest;
 import io.harness.event.PublishResponse;
 import io.harness.event.payloads.Lifecycle;
+import io.harness.event.service.intfc.EventDataBulkWriteService;
 import io.harness.event.service.intfc.LastReceivedPublishedMessageRepository;
 import io.harness.grpc.auth.DelegateAuthServerInterceptor;
 import io.harness.grpc.utils.HTimestamps;
 import io.harness.metrics.service.api.MetricService;
-import io.harness.persistence.HPersistence;
 import io.harness.rule.Owner;
 
 import com.google.common.collect.ImmutableMap;
@@ -62,7 +62,7 @@ import org.mockito.runners.MockitoJUnitRunner;
 public class EventPublisherServerImplTest extends CategoryTest {
   private static final String TEST_ACC_ID = UUID.randomUUID().toString();
 
-  @Mock private HPersistence hPersistence;
+  @Mock private EventDataBulkWriteService eventDataBulkWriteService;
   @Mock private StreamObserver<PublishResponse> observer;
   @Mock private LastReceivedPublishedMessageRepository lastReceivedPublishedMessageRepository;
   @Mock private MessageProcessorRegistry messageProcessorRegistry;
@@ -102,7 +102,7 @@ public class EventPublisherServerImplTest extends CategoryTest {
                                   .collect(toList()))
               .build();
       publisherServer.publish(publishRequest, observer);
-      verify(hPersistence).saveIgnoringDuplicateKeys(captor.capture());
+      verify(eventDataBulkWriteService).upsertPublishedMessages(captor.capture());
       List<io.harness.ccm.commons.entities.events.PublishedMessage> captured = captor.getValue();
       assertThat(captured).containsExactlyElementsOf(
           streamWithIndex(testMessages().stream())
@@ -125,7 +125,7 @@ public class EventPublisherServerImplTest extends CategoryTest {
   @Category(UnitTests.class)
   public void shouldRespondErrorWhenPersistFail() {
     RuntimeException exception = new RuntimeException("Persistence error");
-    doThrow(exception).when(hPersistence).saveIgnoringDuplicateKeys(anyListOf(PublishedMessage.class));
+    doThrow(exception).when(eventDataBulkWriteService).upsertPublishedMessages(anyListOf(PublishedMessage.class));
     ArgumentCaptor<StatusException> captor = ArgumentCaptor.forClass(StatusException.class);
     Context.current().withValue(DelegateAuthServerInterceptor.ACCOUNT_ID_CTX_KEY, TEST_ACC_ID).run(() -> {
       publisherServer.publish(
@@ -152,6 +152,6 @@ public class EventPublisherServerImplTest extends CategoryTest {
   }
 
   public <T> Stream<ImmutablePair<Integer, T>> streamWithIndex(Stream<T> stream) {
-    return Streams.zip(IntStream.iterate(0, i -> i + 1).boxed(), stream, (i, item) -> ImmutablePair.of(i, item));
+    return Streams.zip(IntStream.iterate(0, i -> i + 1).boxed(), stream, ImmutablePair::of);
   }
 }

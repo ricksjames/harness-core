@@ -12,6 +12,8 @@ import io.harness.mongo.MongoConfig;
 import io.harness.secret.ConfigSecret;
 import io.harness.secret.SecretsConfiguration;
 
+import software.wings.security.authentication.BatchQueryConfig;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 import lombok.Builder;
@@ -30,6 +32,7 @@ public class EventServiceConfig {
   @ConfigSecret
   private MongoConfig eventsMongo = MongoConfig.builder().build();
   @JsonProperty("secretsConfiguration") private SecretsConfiguration secretsConfiguration;
+  @JsonProperty("batchQueryConfig") private BatchQueryConfig batchQueryConfig;
 
   @Singular private List<Connector> connectors;
 }
