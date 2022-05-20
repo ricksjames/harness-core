@@ -26,13 +26,12 @@ import lombok.extern.slf4j.Slf4j;
 
 @Singleton
 @Slf4j
-public class EventEventDataBulkWriteServiceImpl implements EventDataBulkWriteService {
+public class EventDataBulkWriteServiceImpl implements EventDataBulkWriteService {
   private final HPersistence hPersistence;
   private final EventServiceConfig eventServiceConfig;
 
   @Inject
-  public EventEventDataBulkWriteServiceImpl(
-      final HPersistence hPersistence, final EventServiceConfig eventServiceConfig) {
+  public EventDataBulkWriteServiceImpl(final HPersistence hPersistence, final EventServiceConfig eventServiceConfig) {
     this.hPersistence = hPersistence;
     this.eventServiceConfig = eventServiceConfig;
   }
