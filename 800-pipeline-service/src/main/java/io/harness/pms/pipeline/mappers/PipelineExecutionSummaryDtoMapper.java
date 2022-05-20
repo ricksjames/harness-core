@@ -139,12 +139,16 @@ public class PipelineExecutionSummaryDtoMapper {
     String repoIdentifier = entityGitDetails.getRepoIdentifier();
     String repoName = entityGitDetails.getRepoName();
     String branch = entityGitDetails.getBranch();
+    String objectId = entityGitDetails.getObjectId();
+    String commitId = entityGitDetails.getCommitId();
     return EntityGitDetails.builder()
         .rootFolder(nullIfDefault(rootFolder))
         .filePath(nullIfDefault(filePath))
         .repoIdentifier(nullIfDefault(repoIdentifier))
         .repoName(nullIfDefault(repoName))
         .branch(nullIfDefault(branch))
+        .objectId(nullIfDefault(objectId))
+        .commitId(nullIfDefault(commitId))
         .build();
   }
 
