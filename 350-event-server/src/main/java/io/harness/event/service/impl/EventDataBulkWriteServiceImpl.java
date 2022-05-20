@@ -61,7 +61,7 @@ public class EventDataBulkWriteServiceImpl implements EventDataBulkWriteService 
   }
 
   private <T> boolean batchQueryExecutor(
-      final List<T> itemsList, final EventBatchQueryFnFactory<T> k8sBatchQueryFn, final Class clazz) {
+      final List<T> itemsList, final EventBatchQueryFnFactory<T> eventBatchQueryFnFactory, final Class clazz) {
     final int bulkWriteLimit = eventServiceConfig.getBatchQueryConfig().getQueryBatchSize();
     log.info("bulkWriteLimit: {}", bulkWriteLimit);
 
@@ -70,7 +70,8 @@ public class EventDataBulkWriteServiceImpl implements EventDataBulkWriteService 
           hPersistence.getCollection(clazz).initializeUnorderedBulkOperation();
       for (final T singleItem : itemsListPartitioned) {
         try {
-          k8sBatchQueryFn.addQueryFor(bulkWriteOperation, singleItem);
+          log.info("singleItem: {}", singleItem);
+          eventBatchQueryFnFactory.addQueryFor(bulkWriteOperation, singleItem);
         } catch (final Exception ex) {
           log.error("Error updating {}:[{}]", clazz.getSimpleName(), singleItem.toString(), ex);
         }
@@ -85,10 +86,11 @@ public class EventDataBulkWriteServiceImpl implements EventDataBulkWriteService 
     return true;
   }
 
-  private static BulkWriteResult bulkWriteExecutor(final BulkWriteOperation bulkWriteOperation) {
+  private BulkWriteResult bulkWriteExecutor(final BulkWriteOperation bulkWriteOperation) {
     BulkWriteResult result;
     for (int i = 1; i < 5; i++) {
       try {
+        log.info("bulkWriteOperation: {}", bulkWriteOperation);
         result = bulkWriteOperation.execute();
         log.info("BulkWriteExecutor result: {}", result.toString());
         return result;
