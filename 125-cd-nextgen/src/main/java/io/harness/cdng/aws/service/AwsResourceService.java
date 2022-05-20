@@ -13,6 +13,7 @@ import io.harness.annotations.dev.OwnedBy;
 import io.harness.beans.IdentifierRef;
 
 import software.wings.service.impl.aws.model.AwsCFTemplateParamsData;
+import software.wings.service.impl.aws.model.AwsInstance;
 
 import java.util.List;
 import java.util.Map;
@@ -69,4 +70,7 @@ public interface AwsResourceService {
    */
   List<AwsCFTemplateParamsData> getCFparametersKeys(String type, String region, boolean isBranch, String branch,
       String filePath, String commitId, IdentifierRef awsConnectorRef, String data, String connectorDTO);
+
+  List<AwsInstance> filterHosts(
+      IdentifierRef awsConnectorRef, boolean winRm, String region, List<String> vpcIds, Map<String, String> tags);
 }

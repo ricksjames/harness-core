@@ -23,6 +23,8 @@ import io.harness.delegate.beans.connector.awsconnector.AwsCFTaskParamsRequest;
 import io.harness.delegate.beans.connector.awsconnector.AwsCFTaskResponse;
 import io.harness.delegate.beans.connector.awsconnector.AwsConnectorDTO;
 import io.harness.delegate.beans.connector.awsconnector.AwsIAMRolesResponse;
+import io.harness.delegate.beans.connector.awsconnector.AwsListInstancesTaskParamsRequest;
+import io.harness.delegate.beans.connector.awsconnector.AwsListInstancesTaskResponse;
 import io.harness.delegate.beans.connector.awsconnector.AwsTaskParams;
 import io.harness.delegate.beans.connector.awsconnector.AwsTaskType;
 import io.harness.delegate.beans.storeconfig.FetchType;
@@ -36,6 +38,7 @@ import io.harness.security.encryption.EncryptedDataDetail;
 
 import software.wings.beans.TaskType;
 import software.wings.service.impl.aws.model.AwsCFTemplateParamsData;
+import software.wings.service.impl.aws.model.AwsInstance;
 
 import com.amazonaws.services.cloudformation.model.Capability;
 import com.amazonaws.services.cloudformation.model.StackStatus;
@@ -160,6 +163,31 @@ public class AwsResourceServiceImpl implements AwsResourceService {
     return executeSyncTask(params, access);
   }
 
+  @Override
+  public List<AwsInstance> filterHosts(
+      IdentifierRef awsConnectorRef, boolean winRm, String region, List<String> vpcIds, Map<String, String> tags) {
+    BaseNGAccess access = serviceHelper.getBaseNGAccess(awsConnectorRef.getAccountIdentifier(),
+        awsConnectorRef.getOrgIdentifier(), awsConnectorRef.getProjectIdentifier());
+
+    AwsConnectorDTO awsConnector = serviceHelper.getAwsConnector(awsConnectorRef);
+    List<EncryptedDataDetail> encryptedData = serviceHelper.getAwsEncryptionDetails(awsConnector, access);
+
+    AwsListInstancesTaskParamsRequest awsTaskParams = AwsListInstancesTaskParamsRequest.builder()
+                                                          .awsConnector(awsConnector)
+                                                          .awsTaskType(AwsTaskType.LIST_INSTANCES)
+                                                          .encryptionDetails(encryptedData)
+                                                          .region(region)
+                                                          .vpcIds(vpcIds)
+                                                          .tags(tags)
+                                                          .winRm(winRm)
+                                                          .build();
+
+    DelegateResponseData responseData =
+        serviceHelper.getResponseData(access, awsTaskParams, TaskType.NG_AWS_TASK.name());
+
+    return getListInstancesTaskExecutionResponse(responseData);
+  }
+
   private AwsIAMRolesResponse executeSyncTask(AwsTaskParams awsTaskParams, BaseNGAccess baseNGAccess) {
     DelegateResponseData responseData =
         serviceHelper.getResponseData(baseNGAccess, awsTaskParams, TaskType.NG_AWS_TASK.name());
@@ -197,5 +225,18 @@ public class AwsResourceServiceImpl implements AwsResourceService {
       throw new AwsCFException("Failed to get CloudFormation template parameters");
     }
     return response.getListOfParams();
+  }
+
+  private List<AwsInstance> getListInstancesTaskExecutionResponse(DelegateResponseData responseData) {
+    if (responseData instanceof ErrorNotifyResponseData) {
+      ErrorNotifyResponseData errorNotifyResponseData = (ErrorNotifyResponseData) responseData;
+      throw new AwsCFException("Failed to get aws instances"
+          + " : " + errorNotifyResponseData.getErrorMessage());
+    }
+    AwsListInstancesTaskResponse response = (AwsListInstancesTaskResponse) responseData;
+    if (response.getCommandExecutionStatus() != SUCCESS) {
+      throw new AwsCFException("Failed to get aws instances");
+    }
+    return response.getInstances();
   }
 }

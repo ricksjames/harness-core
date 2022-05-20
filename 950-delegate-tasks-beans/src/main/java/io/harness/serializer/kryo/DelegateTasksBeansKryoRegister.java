@@ -146,6 +146,8 @@ import io.harness.delegate.beans.connector.awsconnector.AwsCFTaskParamsRequest;
 import io.harness.delegate.beans.connector.awsconnector.AwsCFTaskResponse;
 import io.harness.delegate.beans.connector.awsconnector.AwsDelegateTaskResponse;
 import io.harness.delegate.beans.connector.awsconnector.AwsIAMRolesResponse;
+import io.harness.delegate.beans.connector.awsconnector.AwsListInstancesTaskParamsRequest;
+import io.harness.delegate.beans.connector.awsconnector.AwsListInstancesTaskResponse;
 import io.harness.delegate.beans.connector.awsconnector.AwsS3BucketResponse;
 import io.harness.delegate.beans.connector.awsconnector.AwsTaskParams;
 import io.harness.delegate.beans.connector.awsconnector.AwsTaskType;
@@ -669,6 +671,7 @@ import software.wings.service.impl.aws.model.AwsAmiPreDeploymentData;
 import software.wings.service.impl.aws.model.AwsAsgGetRunningCountData;
 import software.wings.service.impl.aws.model.AwsCFTemplateParamsData;
 import software.wings.service.impl.aws.model.AwsCodeDeployS3LocationData;
+import software.wings.service.impl.aws.model.AwsInstance;
 import software.wings.service.impl.aws.model.AwsLambdaFunctionParams;
 import software.wings.service.impl.aws.model.AwsLambdaVpcConfig;
 import software.wings.service.impl.aws.model.AwsSecurityGroup;
@@ -1385,6 +1388,10 @@ public class DelegateTasksBeansKryoRegister implements KryoRegistrar {
     kryo.register(EcsContainerInfo.class, 5166);
     kryo.register(KubernetesContainerInfo.class, 5165);
     kryo.register(S3FileRequest.class, 8067);
+    kryo.register(AwsListInstancesTaskParamsRequest.class, 83071);
+    kryo.register(AwsListInstancesTaskResponse.class, 83072);
+    kryo.register(AwsInstance.class, 83073);
+
     // WinRm
     kryo.register(WinRmCredentialsSpecDTO.class, 600001);
     kryo.register(WinRmAuthScheme.class, 600002);

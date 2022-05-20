@@ -20,6 +20,7 @@ import io.harness.delegate.beans.connector.awsconnector.AwsCFTaskParamsRequest;
 import io.harness.delegate.beans.connector.awsconnector.AwsConnectorDTO;
 import io.harness.delegate.beans.connector.awsconnector.AwsCredentialDTO;
 import io.harness.delegate.beans.connector.awsconnector.AwsCredentialType;
+import io.harness.delegate.beans.connector.awsconnector.AwsListInstancesTaskParamsRequest;
 import io.harness.delegate.beans.connector.awsconnector.AwsTaskParams;
 import io.harness.delegate.beans.connector.awsconnector.AwsTaskType;
 import io.harness.delegate.beans.connector.awsconnector.AwsValidateTaskResponse;
@@ -47,6 +48,7 @@ public class AwsDelegateTask extends AbstractDelegateRunnableTask {
   @Inject private AwsS3DelegateTaskHelper awsS3DelegateTaskHelper;
   @Inject private AwsIAMDelegateTaskHelper awsIAMDelegateTaskHelper;
   @Inject private AwsCFDelegateTaskHelper awsCFDelegateTaskHelper;
+  @Inject private AwsListInstancesDelegateTaskHelper awsListInstancesDelegateTaskHelper;
 
   public AwsDelegateTask(DelegateTaskPackage delegateTaskPackage, ILogStreamingTaskClient logStreamingTaskClient,
       Consumer<DelegateTaskResponse> consumer, BooleanSupplier preExecute) {
@@ -82,6 +84,8 @@ public class AwsDelegateTask extends AbstractDelegateRunnableTask {
         return awsIAMDelegateTaskHelper.getIAMRoleList(awsTaskParams);
       case CF_LIST_PARAMS:
         return awsCFDelegateTaskHelper.getCFParamsList((AwsCFTaskParamsRequest) parameters);
+      case LIST_INSTANCES:
+        return awsListInstancesDelegateTaskHelper.getListInstances((AwsListInstancesTaskParamsRequest) parameters);
       default:
         throw new InvalidRequestException("Task type not identified");
     }
