@@ -48,6 +48,7 @@ public class CfClientModule extends AbstractModule {
                                       .eventUrl(cfClientConfig.getEventUrl())
                                       .connectionTimeout(cfClientConfig.getConnectionTimeout())
                                       .readTimeout(cfClientConfig.getReadTimeout())
+                                      .bufferSize(cfClientConfig.getBufferSize())
                                       .build();
 
     final HarnessConnector harnessConnector = new HarnessConnector(cfClientConfig.getApiKey(), harnessConfig);
