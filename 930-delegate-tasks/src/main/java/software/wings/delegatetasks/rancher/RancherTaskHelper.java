@@ -34,14 +34,18 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import io.fabric8.kubernetes.api.model.Cluster;
 import io.fabric8.kubernetes.api.model.Config;
+import io.fabric8.kubernetes.api.model.NamedCluster;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.http.HttpHeaders;
 import org.jetbrains.annotations.NotNull;
 
@@ -127,13 +131,39 @@ public class RancherTaskHelper {
     ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
     Config config = yamlMapper.readValue(kubeConfig, Config.class);
 
-    return kubernetesConfigBuilder.masterUrl(config.getClusters().get(0).getCluster().getServer())
-        .caCert(config.getClusters().get(0).getCluster().getCertificateAuthorityData().toCharArray())
-        .serviceAccountTokenSupplier(() -> config.getUsers().get(0).getUser().getToken())
+    String server = null;
+    char[] caCert = null;
+    String token = null;
+
+    NamedCluster k8sCluster =
+        config != null && CollectionUtils.isNotEmpty(config.getClusters()) ? config.getClusters().get(0) : null;
+
+    if (k8sCluster != null) {
+      Cluster cluster = k8sCluster.getCluster();
+
+      if (cluster != null) {
+        server = cluster.getServer();
+
+        if (cluster.getCertificateAuthorityData() != null) {
+          caCert = cluster.getCertificateAuthorityData().toCharArray();
+        }
+      }
+    }
+
+    if (config != null && CollectionUtils.isNotEmpty(config.getUsers()) && config.getUsers().get(0) != null
+        && config.getUsers().get(0).getUser() != null) {
+      token = config.getUsers().get(0).getUser().getToken();
+    }
+
+    String finalToken = token;
+    return kubernetesConfigBuilder.masterUrl(server)
+        .caCert(caCert)
+        .serviceAccountTokenSupplier(() -> finalToken)
         .build();
   }
 
-  private String generateKubeConfigFromRancher(RancherConfig rancherConfig, String clusterId) throws IOException {
+  @VisibleForTesting
+  String generateKubeConfigFromRancher(RancherConfig rancherConfig, String clusterId) throws IOException {
     String url = String.format("/v3/clusters/%s?action=generateKubeconfig", clusterId);
     HttpInternalResponse response = makeRancherApi("POST", url, rancherConfig);
 

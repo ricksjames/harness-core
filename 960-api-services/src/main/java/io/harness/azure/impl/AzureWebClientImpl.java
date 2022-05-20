@@ -31,8 +31,7 @@ import io.harness.azure.model.AzureAppServiceApplicationSetting;
 import io.harness.azure.model.AzureAppServiceConnectionString;
 import io.harness.azure.model.WebAppHostingOS;
 import io.harness.azure.utility.AzureResourceUtility;
-
-import software.wings.delegatetasks.ExceptionMessageSanitizer;
+import io.harness.exception.sanitizer.ExceptionMessageSanitizer;
 
 import com.google.inject.Singleton;
 import com.microsoft.azure.PagedList;

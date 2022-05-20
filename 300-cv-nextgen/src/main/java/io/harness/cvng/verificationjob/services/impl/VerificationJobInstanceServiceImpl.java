@@ -34,6 +34,7 @@ import io.harness.cvng.beans.activity.ActivityVerificationStatus;
 import io.harness.cvng.beans.job.VerificationJobType;
 import io.harness.cvng.client.NextGenService;
 import io.harness.cvng.core.beans.TimeRange;
+import io.harness.cvng.core.beans.params.MonitoredServiceParams;
 import io.harness.cvng.core.entities.CVConfig;
 import io.harness.cvng.core.entities.DataCollectionTask;
 import io.harness.cvng.core.entities.DataCollectionTask.Type;
@@ -181,8 +182,8 @@ public class VerificationJobInstanceServiceImpl implements VerificationJobInstan
     // We dont do any data collection for health verification. So just queue the analysis.
     List<CVConfig> cvConfigs = getCVConfigsForVerificationJob(verificationJobInstance.getResolvedJob());
     cvConfigs.forEach(cvConfig -> {
-      String verificationTaskId = verificationTaskService.createDeploymentVerificationTask(
-          cvConfig.getAccountId(), cvConfig.getUuid(), verificationJobInstance.getUuid(), cvConfig.getType());
+      String verificationTaskId = verificationTaskService.createDeploymentVerificationTask(cvConfig.getAccountId(),
+          cvConfig.getUuid(), verificationJobInstance.getUuid(), cvConfig.getVerificationTaskTags());
       log.info("For verificationJobInstance with ID: {}, creating a new health analysis with verificationTaskID {}",
           verificationJobInstance.getUuid(), verificationTaskId);
       orchestrationService.queueAnalysis(verificationTaskId,
@@ -201,9 +202,14 @@ public class VerificationJobInstanceServiceImpl implements VerificationJobInstan
       monitoringSourceFilter = null;
     }
 
-    return cvConfigService.listByMonitoringSources(verificationJob.getAccountId(), verificationJob.getOrgIdentifier(),
-        verificationJob.getProjectIdentifier(), verificationJob.getServiceIdentifier(),
-        verificationJob.getEnvIdentifier(), monitoringSourceFilter);
+    return cvConfigService.listByMonitoringSources(
+        MonitoredServiceParams.builder()
+            .accountIdentifier(verificationJob.getAccountId())
+            .orgIdentifier(verificationJob.getOrgIdentifier())
+            .projectIdentifier(verificationJob.getProjectIdentifier())
+            .monitoredServiceIdentifier(verificationJob.getMonitoredServiceIdentifier())
+            .build(),
+        monitoringSourceFilter);
   }
   @Override
   public void markTimedOutIfNoProgress(VerificationJobInstance verificationJobInstance) {
@@ -314,8 +320,8 @@ public class VerificationJobInstanceServiceImpl implements VerificationJobInstan
       List<CVConfig> cvConfigs = getCVConfigsForVerificationJob(verificationJob);
       Preconditions.checkState(isNotEmpty(cvConfigs), "No config is matching the criteria");
       cvConfigs.forEach(cvConfig -> {
-        String verificationTaskId = verificationTaskService.createDeploymentVerificationTask(
-            cvConfig.getAccountId(), cvConfig.getUuid(), verificationJobInstance.getUuid(), cvConfig.getType());
+        String verificationTaskId = verificationTaskService.createDeploymentVerificationTask(cvConfig.getAccountId(),
+            cvConfig.getUuid(), verificationJobInstance.getUuid(), cvConfig.getVerificationTaskTags());
         verificationJobInstanceAnalysisService.addDemoAnalysisData(
             verificationTaskId, cvConfig, verificationJobInstance);
       });
@@ -627,8 +633,8 @@ public class VerificationJobInstanceServiceImpl implements VerificationJobInstan
     cvConfigs.forEach(cvConfig -> {
       populateMetricPack(cvConfig);
       List<DataCollectionTask> dataCollectionTasks = new ArrayList<>();
-      String verificationTaskId = verificationTaskService.createDeploymentVerificationTask(
-          cvConfig.getAccountId(), cvConfig.getUuid(), verificationJobInstance.getUuid(), cvConfig.getType());
+      String verificationTaskId = verificationTaskService.createDeploymentVerificationTask(cvConfig.getAccountId(),
+          cvConfig.getUuid(), verificationJobInstance.getUuid(), cvConfig.getVerificationTaskTags());
       DataCollectionInfoMapper dataCollectionInfoMapper =
           dataSourceTypeDataCollectionInfoMapperMap.get(cvConfig.getType());
 

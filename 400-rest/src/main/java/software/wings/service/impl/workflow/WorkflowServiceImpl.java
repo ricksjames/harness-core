@@ -205,6 +205,7 @@ import software.wings.beans.appmanifest.LastDeployedHelmChartInformation;
 import software.wings.beans.appmanifest.LastDeployedHelmChartInformation.LastDeployedHelmChartInformationBuilder;
 import software.wings.beans.appmanifest.ManifestSummary;
 import software.wings.beans.artifact.Artifact;
+import software.wings.beans.artifact.ArtifactInput;
 import software.wings.beans.artifact.ArtifactMetadataKeys;
 import software.wings.beans.artifact.ArtifactStream;
 import software.wings.beans.artifact.ArtifactStreamSummary;
@@ -215,6 +216,7 @@ import software.wings.beans.command.ServiceCommand;
 import software.wings.beans.concurrency.ConcurrencyStrategy;
 import software.wings.beans.concurrency.ConcurrencyStrategy.UnitType;
 import software.wings.beans.container.KubernetesContainerTask;
+import software.wings.beans.container.KubernetesContainerTaskUtils;
 import software.wings.beans.deployment.DeploymentMetadata;
 import software.wings.beans.deployment.DeploymentMetadata.DeploymentMetadataBuilder;
 import software.wings.beans.deployment.DeploymentMetadata.Include;
@@ -1047,14 +1049,14 @@ public class WorkflowServiceImpl implements WorkflowService {
     KubernetesContainerTask containerTask =
         (KubernetesContainerTask) serviceResourceService.getContainerTaskByDeploymentType(
             appId, serviceId, KUBERNETES.name());
-    return containerTask != null && containerTask.checkDaemonSet();
+    return containerTask != null && KubernetesContainerTaskUtils.checkDaemonSet(containerTask.getAdvancedConfig());
   }
 
   private boolean isStatefulSet(String appId, String serviceId) {
     KubernetesContainerTask containerTask =
         (KubernetesContainerTask) serviceResourceService.getContainerTaskByDeploymentType(
             appId, serviceId, KUBERNETES.name());
-    return containerTask != null && containerTask.checkStatefulSet();
+    return containerTask != null && KubernetesContainerTaskUtils.checkStatefulSet(containerTask.getAdvancedConfig());
   }
 
   private void updateKeywordsAndLinkedTemplateUuids(Workflow workflow, List<String> linkedTemplateUuids) {
@@ -2604,6 +2606,9 @@ public class WorkflowServiceImpl implements WorkflowService {
         deploymentMetadataBuilder.artifactVariables(artifactVariables);
         updateArtifactVariables(appId, workflow, artifactVariables, withDefaultArtifact, workflowExecution);
         resolveArtifactStreamMetadata(appId, artifactVariables, workflowExecution);
+        if (featureFlagService.isEnabled(FeatureName.DISABLE_ARTIFACT_COLLECTION, accountId) && withDefaultArtifact) {
+          addArtifactInputToArtifactVariables(artifactVariables, workflowExecution);
+        }
       }
 
       deploymentMetadataBuilder.artifactRequiredServiceIds(artifactRequiredServiceIds);
@@ -2628,6 +2633,36 @@ public class WorkflowServiceImpl implements WorkflowService {
     }
 
     return deploymentMetadataBuilder.build();
+  }
+
+  @VisibleForTesting
+  void addArtifactInputToArtifactVariables(
+      List<ArtifactVariable> artifactVariables, WorkflowExecution workflowExecution) {
+    for (ArtifactVariable artifactVariable : artifactVariables) {
+      if (isNotEmpty(artifactVariable.getArtifactStreamSummaries())
+          && artifactVariable.getArtifactStreamSummaries().get(0).getDefaultArtifact() != null) {
+        ArtifactSummary defaultArtifact = artifactVariable.getArtifactStreamSummaries().get(0).getDefaultArtifact();
+        artifactVariable.setArtifactInput(ArtifactInput.builder()
+                                              .artifactStreamId(defaultArtifact.getArtifactStreamId())
+                                              .buildNo(defaultArtifact.getBuildNo())
+                                              .build());
+      } else if (workflowExecution != null) {
+        List<ArtifactVariable> previousArtifactVariables = workflowExecution.getExecutionArgs().getArtifactVariables();
+        if (isNotEmpty(previousArtifactVariables)) {
+          ArtifactVariable foundArtifactVariable =
+              previousArtifactVariables.stream()
+                  .filter(previousArtifactVariable
+                      -> artifactVariable.getName().equals(previousArtifactVariable.getName())
+                          && artifactVariable.getEntityType() == previousArtifactVariable.getEntityType()
+                          && artifactVariable.getEntityId().equals(previousArtifactVariable.getEntityId()))
+                  .findFirst()
+                  .orElse(null);
+          if (foundArtifactVariable != null && foundArtifactVariable.getArtifactInput() != null) {
+            artifactVariable.setArtifactInput(foundArtifactVariable.getArtifactInput());
+          }
+        }
+      }
+    }
   }
 
   private String getServiceNameFromCache(Map<String, Service> serviceCache, String serviceId, String appId) {

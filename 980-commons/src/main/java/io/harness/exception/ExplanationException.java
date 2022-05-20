@@ -17,6 +17,7 @@ import java.util.EnumSet;
 
 @OwnedBy(HarnessTeam.DX)
 public class ExplanationException extends WingsException {
+  static final long serialVersionUID = -1494201320263679028L;
   public static String EXPLANATION_IRSA_ROLE_CHECK =
       "IRSA capability for delegate doesn't exist or doesn't have required permissions to describe regions.";
   public static final String EXPLANATION_EMPTY_ACCESS_KEY = "Access Key cannot be empty";
@@ -28,6 +29,7 @@ public class ExplanationException extends WingsException {
       "\nCross account role ARN or External Id is invalid or User / IAM Role on delegate / IRSA role doesn't have permission to perform sts:AssumeRole. \nAssumed Cross account role may not have permissions to describe regions.";
   public static String EXPLANATION_AWS_AM_ROLE_CHECK =
       "IAM role on delegate ec2 doesn't exist or doesn't have required permissions to describe regions.";
+  public static String EXPLANATION_LITE_ENGINE_CHECK = "Delegate is not able to connect to the created build farm";
   public static String EXPLANATION_AWS_CLIENT_UNKNOWN_ISSUE = "Seems to encounter unknown AWS client issue";
   public static String EXPLANATION_UNEXPECTED_ERROR = "Unexpected error while handling task";
   public static String IMAGE_TAG_METADATA_NOT_FOUND =

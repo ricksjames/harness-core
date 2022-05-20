@@ -16,6 +16,8 @@ import io.harness.delegate.beans.connector.ConnectorType;
 import io.harness.delegate.beans.connector.scm.GitAuthType;
 import io.harness.delegate.beans.connector.scm.GitConnectionType;
 import io.harness.delegate.beans.connector.scm.ScmConnector;
+import io.harness.git.GitClientHelper;
+import io.harness.gitsync.beans.GitRepositoryDTO;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -50,6 +52,7 @@ public class GitlabConnectorDTO extends ConnectorConfigDTO implements ScmConnect
   @Valid @NotNull GitlabAuthenticationDTO authentication;
   @Valid GitlabApiAccessDTO apiAccess;
   Set<String> delegateSelectors;
+
   @Builder
   public GitlabConnectorDTO(GitConnectionType connectionType, String url, String validationRepo,
       GitlabAuthenticationDTO authentication, GitlabApiAccessDTO apiAccess, Set<String> delegateSelectors) {
@@ -91,5 +94,15 @@ public class GitlabConnectorDTO extends ConnectorConfigDTO implements ScmConnect
   @Override
   public String getGitConnectionUrl(String repoName) {
     return "";
+  }
+
+  @Override
+  public GitRepositoryDTO getGitRepositoryDetails() {
+    return GitRepositoryDTO.builder().build();
+  }
+
+  @Override
+  public void validate() {
+    GitClientHelper.validateURL(url);
   }
 }

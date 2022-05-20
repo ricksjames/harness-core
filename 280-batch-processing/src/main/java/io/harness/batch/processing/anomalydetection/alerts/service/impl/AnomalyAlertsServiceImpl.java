@@ -14,7 +14,6 @@ import static io.harness.notification.NotificationChannelType.SLACK;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.slack.api.webhook.WebhookPayloads.payload;
 
-import io.harness.Team;
 import io.harness.batch.processing.anomalydetection.alerts.SlackMessageGenerator;
 import io.harness.batch.processing.anomalydetection.alerts.service.itfc.AnomalyAlertsService;
 import io.harness.batch.processing.shard.AccountShardService;
@@ -30,13 +29,13 @@ import io.harness.ccm.communication.entities.CESlackWebhook;
 import io.harness.ccm.views.service.CEViewService;
 import io.harness.ccm.views.service.PerspectiveAnomalyService;
 import io.harness.notification.NotificationChannelType;
+import io.harness.notification.Team;
 import io.harness.notification.channeldetails.EmailChannel;
 import io.harness.notification.channeldetails.EmailChannel.EmailChannelBuilder;
 import io.harness.notification.channeldetails.MSTeamChannel;
 import io.harness.notification.channeldetails.MSTeamChannel.MSTeamChannelBuilder;
 import io.harness.notification.channeldetails.SlackChannel;
 import io.harness.notification.channeldetails.SlackChannel.SlackChannelBuilder;
-import io.harness.notification.notificationclient.NotificationClient;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
@@ -67,7 +66,6 @@ public class AnomalyAlertsServiceImpl implements AnomalyAlertsService {
   @Autowired @Inject private Slack slack;
 
   // NG Anomaly alerts
-  @Autowired private NotificationClient notificationClient;
   @Autowired private CEViewService viewService;
   @Autowired private PerspectiveAnomalyService perspectiveAnomalyService;
   @Autowired private CCMNotificationsDao notificationSettingsDao;
@@ -191,7 +189,6 @@ public class AnomalyAlertsServiceImpl implements AnomalyAlertsService {
 
     // Sending email alerts
     emailChannelBuilder.templateData(templateData);
-    notificationClient.sendNotificationAsync(emailChannelBuilder.build());
   }
 
   public List<CCMPerspectiveNotificationChannelsDTO> listNotificationChannelsPerPerspective(String accountId) {

@@ -8,11 +8,13 @@
 package io.harness.impl.scm;
 
 import static io.harness.annotations.dev.HarnessTeam.DX;
+import static io.harness.data.structure.EmptyPredicate.isNotEmpty;
 import static io.harness.utils.FieldWithPlainTextOrSecretValueHelper.getSecretAsStringFromPlainTextOrSecretRef;
 
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.cistatus.service.GithubAppConfig;
 import io.harness.cistatus.service.GithubService;
+import io.harness.delegate.beans.connector.scm.GitAuthType;
 import io.harness.delegate.beans.connector.scm.ScmConnector;
 import io.harness.delegate.beans.connector.scm.azurerepo.AzureRepoApiAccessDTO;
 import io.harness.delegate.beans.connector.scm.azurerepo.AzureRepoConnectorDTO;
@@ -40,7 +42,6 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.NotImplementedException;
-import org.apache.commons.lang3.StringUtils;
 
 @Singleton
 @Slf4j
@@ -49,9 +50,6 @@ public class ScmGitProviderMapper {
   @Inject(optional = true) GithubService githubService;
   private static final String SCM_SKIP_SSL = "SCM_SKIP_SSL";
   private static final String ADDITIONAL_CERTS_PATH = "ADDITIONAL_CERTS_PATH";
-  private static final String azure_repo_name_separator = "/_git/";
-  private static final String azure_repo_url_prefix = "dev.azure.com/";
-  private static final String azure_repo_org_separator = "/";
 
   public Provider mapToSCMGitProvider(ScmConnector scmConnector) {
     return mapToSCMGitProvider(scmConnector, false);
@@ -85,20 +83,28 @@ public class ScmGitProviderMapper {
   }
 
   private Provider mapToAzureRepoProvider(AzureRepoConnectorDTO azureRepoConnector, boolean debug) {
-    // e.g:= https.dev.azure.com/org/project_name/_git/repo_name
-    String projectUrl = StringUtils.substringBeforeLast(azureRepoConnector.getUrl(), azure_repo_name_separator);
-    String orgAndProject = StringUtils.substringAfter(projectUrl, azure_repo_url_prefix);
-    String org = StringUtils.substringBefore(orgAndProject, azure_repo_org_separator);
-    String project = StringUtils.substringAfter(orgAndProject, azure_repo_org_separator);
-
     boolean skipVerify = checkScmSkipVerify();
+    String org;
+    String orgAndProject;
+    String project;
+    if (azureRepoConnector.getAuthentication().getAuthType() == GitAuthType.HTTP) {
+      orgAndProject = GitClientHelper.getAzureRepoOrgAndProjectHTTP(azureRepoConnector.getUrl());
+    } else {
+      orgAndProject = GitClientHelper.getAzureRepoOrgAndProjectSSH(azureRepoConnector.getUrl());
+    }
+    org = GitClientHelper.getAzureRepoOrg(orgAndProject);
+    project = GitClientHelper.getAzureRepoProject(orgAndProject);
+    String azureRepoApiURL = GitClientHelper.getAzureRepoApiURL(azureRepoConnector.getUrl());
     AzureRepoApiAccessDTO apiAccess = azureRepoConnector.getApiAccess();
-    AzureRepoTokenSpecDTO bitbucketUsernameTokenApiAccessDTO = (AzureRepoTokenSpecDTO) apiAccess.getSpec();
-    String pat = String.valueOf(bitbucketUsernameTokenApiAccessDTO.getTokenRef().getDecryptedValue());
+    AzureRepoTokenSpecDTO azureRepoUsernameTokenApiAccessDTO = (AzureRepoTokenSpecDTO) apiAccess.getSpec();
+    String personalAccessToken = String.valueOf(azureRepoUsernameTokenApiAccessDTO.getTokenRef().getDecryptedValue());
     AzureProvider.Builder azureProvider =
-        AzureProvider.newBuilder().setOrganization(org).setProject(project).setPersonalAccessToken(pat);
-    Provider.Builder builder = Provider.newBuilder().setDebug(debug).setAzure(azureProvider);
-
+        AzureProvider.newBuilder().setOrganization(org).setPersonalAccessToken(personalAccessToken);
+    if (isNotEmpty(project)) {
+      azureProvider.setProject(project);
+    }
+    Provider.Builder builder =
+        Provider.newBuilder().setDebug(debug).setAzure(azureProvider).setEndpoint(azureRepoApiURL);
     return builder.setSkipVerify(skipVerify).setAdditionalCertsPath(getAdditionalCertsPath()).build();
   }
 
@@ -162,7 +168,7 @@ public class ScmGitProviderMapper {
 
   private GitlabProvider createGitLabProvider(GitlabConnectorDTO gitlabConnector) {
     String accessToken = getAccessToken(gitlabConnector);
-    return GitlabProvider.newBuilder().setPersonalToken(accessToken).build();
+    return GitlabProvider.newBuilder().setAccessToken(accessToken).build();
   }
 
   private String getAccessToken(GitlabConnectorDTO gitlabConnector) {

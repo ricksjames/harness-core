@@ -22,8 +22,7 @@ import io.harness.azure.model.AzureConfig;
 import io.harness.azure.model.AzureConstants;
 import io.harness.azure.utility.AzureResourceUtility;
 import io.harness.exception.InvalidRequestException;
-
-import software.wings.delegatetasks.ExceptionMessageSanitizer;
+import io.harness.exception.sanitizer.ExceptionMessageSanitizer;
 
 import com.google.inject.Singleton;
 import com.microsoft.azure.PagedList;

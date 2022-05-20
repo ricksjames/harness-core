@@ -32,9 +32,8 @@ import io.harness.azure.model.blueprint.assignment.Assignment;
 import io.harness.azure.model.blueprint.assignment.WhoIsBlueprintContract;
 import io.harness.azure.model.blueprint.assignment.operation.AssignmentOperation;
 import io.harness.azure.utility.AzureResourceUtility;
+import io.harness.exception.sanitizer.ExceptionMessageSanitizer;
 import io.harness.serializer.JsonUtils;
-
-import software.wings.delegatetasks.ExceptionMessageSanitizer;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.reflect.TypeToken;

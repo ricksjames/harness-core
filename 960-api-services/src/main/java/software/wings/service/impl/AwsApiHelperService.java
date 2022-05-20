@@ -30,11 +30,11 @@ import io.harness.exception.AwsAutoScaleException;
 import io.harness.exception.ExceptionUtils;
 import io.harness.exception.InvalidRequestException;
 import io.harness.exception.WingsException;
+import io.harness.exception.sanitizer.ExceptionMessageSanitizer;
 import io.harness.serializer.JsonUtils;
 
 import software.wings.beans.AmazonClientSDKDefaultBackoffStrategy;
 import software.wings.beans.AwsCrossAccountAttributes;
-import software.wings.delegatetasks.ExceptionMessageSanitizer;
 
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
@@ -73,6 +73,7 @@ import com.amazonaws.services.ecs.model.ServiceNotFoundException;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.Bucket;
+import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.securitytoken.AWSSecurityTokenService;
 import com.amazonaws.services.securitytoken.AWSSecurityTokenServiceClient;
 import com.amazonaws.services.securitytoken.AWSSecurityTokenServiceClientBuilder;
@@ -171,6 +172,45 @@ public class AwsApiHelperService {
       throw new InvalidRequestException(ExceptionUtils.getMessage(sanitizeException), sanitizeException);
     }
     return emptyList();
+  }
+
+  public S3Object getObjectFromS3(AwsInternalConfig awsInternalConfig, String region, String bucketName, String key) {
+    try {
+      tracker.trackS3Call("Get Object");
+      return getAmazonS3Client(awsInternalConfig, getBucketRegion(awsInternalConfig, bucketName, region))
+          .getObject(bucketName, key);
+    } catch (AmazonServiceException amazonServiceException) {
+      handleAmazonServiceException(amazonServiceException);
+    } catch (AmazonClientException amazonClientException) {
+      handleAmazonClientException(amazonClientException);
+    }
+    return null;
+  }
+
+  private String getBucketRegion(AwsInternalConfig awsConfig, String bucketName, String region) {
+    try (CloseableAmazonWebServiceClient<AmazonS3Client> closeableAmazonS3Client =
+             new CloseableAmazonWebServiceClient(getAmazonS3Client(awsConfig, region))) {
+      // You can query the bucket location using any region, it returns the result. So, using the default
+      String bucketRegion = closeableAmazonS3Client.getClient().getBucketLocation(bucketName);
+      // Aws returns US if the bucket was created in the default region. Not sure why it doesn't return just the region
+      // name in all cases. Also, their documentation says it would return empty string if its in the default region.
+      // http://docs.aws.amazon.com/AmazonS3/latest/API/RESTBucketGETlocation.html But it returns US. Added additional
+      // checks based on other stuff
+      if (bucketRegion == null || bucketRegion.equals("US")) {
+        return AWS_DEFAULT_REGION;
+      } else if (bucketRegion.equals("EU")) {
+        return "eu-west-1";
+      }
+      return bucketRegion;
+    } catch (AmazonServiceException amazonServiceException) {
+      handleAmazonServiceException(amazonServiceException);
+    } catch (AmazonClientException amazonClientException) {
+      handleAmazonClientException(amazonClientException);
+    } catch (Exception e) {
+      log.error("Exception getBucketRegion", e);
+      throw new InvalidRequestException(ExceptionUtils.getMessage(e), e);
+    }
+    return null;
   }
 
   public Map<String, String> fetchLabels(

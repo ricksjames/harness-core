@@ -46,8 +46,7 @@ import io.harness.azure.model.image.AzureMachineImage;
 import io.harness.azure.model.image.AzureMachineImageFactory;
 import io.harness.azure.utility.AzureResourceUtility;
 import io.harness.exception.InvalidRequestException;
-
-import software.wings.delegatetasks.ExceptionMessageSanitizer;
+import io.harness.exception.sanitizer.ExceptionMessageSanitizer;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Singleton;

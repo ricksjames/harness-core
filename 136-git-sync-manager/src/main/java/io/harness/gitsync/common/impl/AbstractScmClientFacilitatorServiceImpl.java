@@ -24,7 +24,9 @@ import io.harness.delegate.beans.connector.scm.ScmConnector;
 import io.harness.delegate.beans.git.YamlGitConfigDTO;
 import io.harness.exception.InvalidRequestException;
 import io.harness.exception.UnexpectedException;
+import io.harness.gitsync.common.dtos.CreateGitFileRequestDTO;
 import io.harness.gitsync.common.dtos.GitFileContent;
+import io.harness.gitsync.common.dtos.UpdateGitFileRequestDTO;
 import io.harness.gitsync.common.helper.GitSyncConnectorHelper;
 import io.harness.gitsync.common.helper.UserProfileHelper;
 import io.harness.gitsync.common.service.ScmClientFacilitatorService;
@@ -164,14 +166,6 @@ public abstract class AbstractScmClientFacilitatorServiceImpl implements ScmClie
         .userName(isEmpty(scmUserName) ? currentUser.getName() : scmUserName);
   }
 
-  ScmConnector getScmConnector(
-      String accountIdentifier, String orgIdentifier, String projectIdentifier, String connectorRef, String repoName) {
-    ScmConnector connector = gitSyncConnectorHelper.getDecryptedConnectorByRef(
-        accountIdentifier, orgIdentifier, projectIdentifier, connectorRef);
-    connector.setUrl(connector.getGitConnectionUrl(repoName));
-    return connector;
-  }
-
   private String getScmUserName(String accountId, SCMType scmType) {
     String scmUserName = "";
     try {
@@ -180,5 +174,33 @@ public abstract class AbstractScmClientFacilitatorServiceImpl implements ScmClie
       log.error("Error occurred while getting scm user", ex);
     }
     return scmUserName;
+  }
+
+  GitFileDetails getGitFileDetails(CreateGitFileRequestDTO createGitFileRequestDTO) {
+    final EmbeddedUser currentUser = ScmUserHelper.getCurrentUser();
+    return GitFileDetails.builder()
+        .branch(createGitFileRequestDTO.getBranchName())
+        .commitMessage(isEmpty(createGitFileRequestDTO.getCommitMessage()) ? GitSyncConstants.COMMIT_MSG
+                                                                           : createGitFileRequestDTO.getCommitMessage())
+        .fileContent(createGitFileRequestDTO.getFileContent())
+        .filePath(createGitFileRequestDTO.getFilePath())
+        .userEmail(currentUser.getEmail())
+        .userName(currentUser.getName())
+        .build();
+  }
+
+  GitFileDetails getGitFileDetails(UpdateGitFileRequestDTO updateGitFileRequestDTO) {
+    final EmbeddedUser currentUser = ScmUserHelper.getCurrentUser();
+    return GitFileDetails.builder()
+        .branch(updateGitFileRequestDTO.getBranchName())
+        .commitMessage(isEmpty(updateGitFileRequestDTO.getCommitMessage()) ? GitSyncConstants.COMMIT_MSG
+                                                                           : updateGitFileRequestDTO.getCommitMessage())
+        .fileContent(updateGitFileRequestDTO.getFileContent())
+        .filePath(updateGitFileRequestDTO.getFilePath())
+        .commitId(updateGitFileRequestDTO.getOldCommitId())
+        .oldFileSha(updateGitFileRequestDTO.getOldFileSha())
+        .userEmail(currentUser.getEmail())
+        .userName(currentUser.getName())
+        .build();
   }
 }

@@ -36,16 +36,14 @@ import io.harness.azure.model.AzureConfig;
 import io.harness.azure.model.management.ManagementGroupInfo;
 import io.harness.azure.utility.AzureUtils;
 import io.harness.exception.AzureClientException;
+import io.harness.exception.sanitizer.ExceptionMessageSanitizer;
 import io.harness.serializer.JsonUtils;
-
-import software.wings.delegatetasks.ExceptionMessageSanitizer;
 
 import com.google.common.reflect.TypeToken;
 import com.google.inject.Singleton;
 import com.microsoft.azure.CloudException;
 import com.microsoft.azure.Page;
 import com.microsoft.azure.PagedList;
-import com.microsoft.azure.credentials.ApplicationTokenCredentials;
 import com.microsoft.azure.management.Azure;
 import com.microsoft.azure.management.resources.Deployment;
 import com.microsoft.azure.management.resources.DeploymentMode;
@@ -60,7 +58,6 @@ import com.microsoft.azure.management.resources.implementation.DeploymentOperati
 import com.microsoft.azure.management.resources.implementation.DeploymentValidateResultInner;
 import com.microsoft.azure.management.resources.implementation.DeploymentsInner;
 import com.microsoft.azure.management.resources.implementation.PageImpl;
-import com.microsoft.rest.LogLevel;
 import com.microsoft.rest.ServiceResponse;
 import java.io.IOException;
 import java.util.Arrays;
@@ -614,34 +611,5 @@ public class AzureManagementClientImpl extends AzureClient implements AzureManag
     properties.withTemplate(JsonUtils.readTree(template.getTemplateJSON()));
     properties.withParameters(JsonUtils.readTree(template.getParametersJSON()));
     return properties;
-  }
-
-  @Override
-  public void validateAzureConnection(
-      String clientId, String tenantId, String secret, AzureEnvironmentType azureEnvironmentType) {
-    authenticateWithCredentials(new ApplicationTokenCredentials(
-        clientId, tenantId, secret, AzureUtils.getAzureEnvironment(azureEnvironmentType)));
-  }
-
-  @Override
-  public void validateAzureConnectionWithCert(
-      String clientId, String tenantId, byte[] cert, AzureEnvironmentType azureEnvironmentType) {
-    authenticateWithCredentials(new ApplicationTokenCredentials(
-        clientId, tenantId, cert, null, AzureUtils.getAzureEnvironment(azureEnvironmentType)));
-  }
-
-  private void authenticateWithCredentials(ApplicationTokenCredentials applicationTokenCredentials) {
-    try {
-      Azure.configure().withLogLevel(LogLevel.NONE).authenticate(applicationTokenCredentials).withDefaultSubscription();
-      log.debug("Azure connection validated for clientId {} ", applicationTokenCredentials.clientId());
-    } catch (Exception e) {
-      handleAzureAuthenticationException(e);
-    }
-  }
-
-  @Override
-  public void validateAzureConnection(
-      boolean isUserAssignedManagedIdentity, String clientId, AzureEnvironmentType azureEnvironmentType) {
-    getAzureClientWithManagedIdentity(isUserAssignedManagedIdentity, clientId, azureEnvironmentType);
   }
 }
