@@ -33,7 +33,7 @@ brew install npm
 export JAVA_HOME=$(/usr/libexec/java_home -v1.8)
 ```
 
-If bash used, the better option might be specifying full path to jdk, e.g:
+If bash is used, the better option might be specifying full path to jdk, e.g:
 
 ```
 export JAVA_HOME=/Library/Java/JavaVirtualMachines/adoptopenjdk-8.jdk/Contents/Home
