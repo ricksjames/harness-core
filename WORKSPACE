@@ -3577,8 +3577,8 @@ go_repository(
 go_repository(
     name = "com_github_rs_zerolog",
     importpath = "github.com/rs/zerolog",
-    sum = "h1:uPRuwkWF4J6fGsJ2R0Gn2jB1EQiav9k3S6CSdygQJXY=",
-    version = "v1.15.0",
+    sum = "h1:38k9hgtUBdxFwE34yS8rTHmHBa4eN16E4DJlv177LNs=",
+    version = "v1.20.0",
 )
 
 go_repository(
@@ -4314,6 +4314,27 @@ http_archive(
 )
 
 RULES_JVM_EXTERNAL_TAG = "4.1"
+
+http_archive(
+  name = "contrib_rules_jvm",
+  strip_prefix = "rules_jvm-main",
+  url = "https://github.com/bazel-contrib/rules_jvm/archive/master.zip"
+)
+
+load("@contrib_rules_jvm//:repositories.bzl", "contrib_rules_jvm_deps", "contrib_rules_jvm_gazelle_deps")
+
+contrib_rules_jvm_deps()
+
+contrib_rules_jvm_gazelle_deps()
+
+load("@contrib_rules_jvm//:setup.bzl", "contrib_rules_jvm_setup")
+
+contrib_rules_jvm_setup()
+
+load("@contrib_rules_jvm//:gazelle_setup.bzl", "contib_rules_jvm_gazelle_setup")
+
+contib_rules_jvm_gazelle_setup()
+
 
 http_archive(
     name = "rules_jvm_external",
