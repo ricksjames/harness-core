@@ -689,11 +689,6 @@ public class ScmDelegateFacilitatorServiceImpl extends AbstractScmClientFacilita
   }
 
   @Override
-  public CreateBranchResponse createBranch(String branch, String baseBranch, ScmConnector scmConnector) {
-    return null;
-  }
-
-  @Override
   public GetUserRepoResponse getRepoDetails(
       String accountIdentifier, String orgIdentifier, String projectIdentifier, ScmConnector scmConnector) {
     final List<EncryptedDataDetail> encryptionDetails =

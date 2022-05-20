@@ -332,7 +332,7 @@ public class ScmFacilitatorResource {
       @Parameter(description = "new branch") @QueryParam("newBranch") String newBranch,
       @Parameter(description = "commit message") @QueryParam("commitMessage") String commitMessage) {
     return ResponseDTO.newResponse(scmFacilitatorService.createFile(ScmCreateFileRequestDTO.builder()
-                                                                        .baseBranch(newBranch)
+                                                                        .baseBranch(branch)
                                                                         .isCommitToNewBranch(isCommitToNewBranch)
                                                                         .commitMessage(commitMessage)
                                                                         .filePath(filePath)
@@ -343,8 +343,9 @@ public class ScmFacilitatorResource {
                                                                                    .orgIdentifier(orgIdentifier)
                                                                                    .projectIdentifier(projectIdentifier)
                                                                                    .build())
-                                                                        .branchName(branch)
+                                                                        .branchName(newBranch)
                                                                         .repoName(repoName)
+                                                                        .connectorRef(connectorRef)
                                                                         .build()));
   }
 
