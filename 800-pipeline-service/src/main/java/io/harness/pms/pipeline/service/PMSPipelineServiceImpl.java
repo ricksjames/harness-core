@@ -138,6 +138,29 @@ public class PMSPipelineServiceImpl implements PMSPipelineService {
   @Override
   public Optional<PipelineEntity> get(
       String accountId, String orgIdentifier, String projectIdentifier, String identifier, boolean deleted) {
+    Optional<PipelineEntity> optionalPipelineEntity =
+        getWithoutPerformingValidations(accountId, orgIdentifier, projectIdentifier, identifier, deleted);
+    PipelineEntity pipelineEntity = optionalPipelineEntity.get();
+    if (pipelineEntity.getStoreType() == null || pipelineEntity.getStoreType() == StoreType.INLINE) {
+      return optionalPipelineEntity;
+    }
+    if (EmptyPredicate.isEmpty(pipelineEntity.getData())) {
+      String errorMessage = PipelineCRUDErrorResponse.errorMessageForEmptyYamlOnGit(
+          orgIdentifier, projectIdentifier, identifier, GitAwareContextHelper.getBranchInRequest());
+      YamlSchemaErrorWrapperDTO errorWrapperDTO =
+          YamlSchemaErrorWrapperDTO.builder()
+              .schemaErrors(Collections.singletonList(
+                  YamlSchemaErrorDTO.builder().message(errorMessage).fqn("$.pipeline").build()))
+              .build();
+      throw new io.harness.yaml.validator.InvalidYamlException(errorMessage, errorWrapperDTO);
+    }
+    pmsPipelineServiceHelper.validatePipelineFromRemote(pipelineEntity);
+    return optionalPipelineEntity;
+  }
+
+  @Override
+  public Optional<PipelineEntity> getWithoutPerformingValidations(
+      String accountId, String orgIdentifier, String projectIdentifier, String identifier, boolean deleted) {
     Optional<PipelineEntity> optionalPipelineEntity;
     try {
       if (gitSyncSdkService.isGitSyncEnabled(accountId, orgIdentifier, projectIdentifier)) {
@@ -159,21 +182,6 @@ public class PMSPipelineServiceImpl implements PMSPipelineService {
       throw new EntityNotFoundException(
           PipelineCRUDErrorResponse.errorMessageForPipelineNotFound(orgIdentifier, projectIdentifier, identifier));
     }
-    PipelineEntity pipelineEntity = optionalPipelineEntity.get();
-    if (pipelineEntity.getStoreType() == null || pipelineEntity.getStoreType() == StoreType.INLINE) {
-      return optionalPipelineEntity;
-    }
-    if (EmptyPredicate.isEmpty(pipelineEntity.getData())) {
-      String errorMessage = PipelineCRUDErrorResponse.errorMessageForEmptyYamlOnGit(
-          orgIdentifier, projectIdentifier, identifier, GitAwareContextHelper.getBranchInRequest());
-      YamlSchemaErrorWrapperDTO errorWrapperDTO =
-          YamlSchemaErrorWrapperDTO.builder()
-              .schemaErrors(Collections.singletonList(
-                  YamlSchemaErrorDTO.builder().message(errorMessage).fqn("$.pipeline").build()))
-              .build();
-      throw new io.harness.yaml.validator.InvalidYamlException(errorMessage, errorWrapperDTO);
-    }
-    pmsPipelineServiceHelper.validatePipelineFromRemote(pipelineEntity);
     return optionalPipelineEntity;
   }
 
