@@ -48,12 +48,15 @@ public class CfClientModule extends AbstractModule {
                                       .eventUrl(cfClientConfig.getEventUrl())
                                       .connectionTimeout(cfClientConfig.getConnectionTimeout())
                                       .readTimeout(cfClientConfig.getReadTimeout())
-                                      .bufferSize(cfClientConfig.getBufferSize())
                                       .build();
 
     final HarnessConnector harnessConnector = new HarnessConnector(cfClientConfig.getApiKey(), harnessConfig);
 
-    final BaseConfig config = BaseConfig.builder().analyticsEnabled(cfClientConfig.isAnalyticsEnabled()).build();
+    final BaseConfig config = BaseConfig
+                                      .builder()
+                                      .analyticsEnabled(cfClientConfig.isAnalyticsEnabled())
+                                      .bufferSize(cfClientConfig.getBufferSize())
+                                      .build();
 
     final CfClient client = new CfClient(harnessConnector, config);
     try {
