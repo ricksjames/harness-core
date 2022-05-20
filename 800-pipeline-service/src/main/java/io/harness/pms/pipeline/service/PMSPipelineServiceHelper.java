@@ -171,7 +171,7 @@ public class PMSPipelineServiceHelper {
                                              .collect(Collectors.toList());
       throw new PolicyEvaluationFailureException(
           "Pipeline does not follow the Policies in these Policy Sets: " + denyingPolicySetIds.toString(),
-          governanceMetadata);
+          governanceMetadata, pipelineEntity.getYaml());
     }
   }
 

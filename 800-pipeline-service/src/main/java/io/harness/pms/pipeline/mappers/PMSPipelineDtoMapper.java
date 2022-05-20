@@ -46,17 +46,22 @@ public class PMSPipelineDtoMapper {
         .yamlPipeline(pipelineEntity.getYaml())
         .version(pipelineEntity.getVersion())
         .modules(pipelineEntity.getFilters().keySet())
-        // TODO @naman to clean the below condition
-        .gitDetails(pipelineEntity.getStoreType() == null ? EntityGitDetailsMapper.mapEntityGitDetails(pipelineEntity)
-                : pipelineEntity.getStoreType() == StoreType.REMOTE
-                ? GitAwareContextHelper.getEntityGitDetailsFromScmGitMetadata()
-                : null)
-        // TODO @naman to check if entity validity details should be there in v2 flow or not
-        // depends if we want to throw exception or we want to return error + pipeline metadata
-        .entityValidityDetails(pipelineEntity.isEntityInvalid()
-                ? EntityValidityDetails.builder().valid(false).invalidYaml(pipelineEntity.getYaml()).build()
-                : EntityValidityDetails.builder().valid(true).build())
+        .gitDetails(getEntityGitDetails(pipelineEntity))
+        .entityValidityDetails(getEntityValidityDetails(pipelineEntity))
         .build();
+  }
+
+  EntityGitDetails getEntityGitDetails(PipelineEntity pipelineEntity) {
+    return pipelineEntity.getStoreType() == null ? EntityGitDetailsMapper.mapEntityGitDetails(pipelineEntity)
+        : pipelineEntity.getStoreType() == StoreType.REMOTE
+        ? GitAwareContextHelper.getEntityGitDetailsFromScmGitMetadata()
+        : null;
+  }
+
+  EntityValidityDetails getEntityValidityDetails(PipelineEntity pipelineEntity) {
+    return pipelineEntity.getStoreType() != null || !pipelineEntity.isEntityInvalid()
+        ? EntityValidityDetails.builder().valid(true).build()
+        : EntityValidityDetails.builder().valid(false).invalidYaml(pipelineEntity.getYaml()).build();
   }
 
   public PipelineEntity toPipelineEntity(String accountId, String orgId, String projectId, String yaml) {
@@ -82,11 +87,6 @@ public class PMSPipelineDtoMapper {
   }
 
   public PMSPipelineSummaryResponseDTO preparePipelineSummary(PipelineEntity pipelineEntity) {
-    EntityGitDetails entityGitDetails = pipelineEntity.getStoreType() == null
-        ? EntityGitDetailsMapper.mapEntityGitDetails(pipelineEntity)
-        : pipelineEntity.getStoreType() == StoreType.REMOTE
-        ? GitAwareContextHelper.getEntityGitDetailsFromScmGitMetadata()
-        : null;
     return PMSPipelineSummaryResponseDTO.builder()
         .identifier(pipelineEntity.getIdentifier())
         .description(pipelineEntity.getDescription())
@@ -101,11 +101,9 @@ public class PMSPipelineDtoMapper {
         .filters(ModuleInfoMapper.getModuleInfo(pipelineEntity.getFilters()))
         .stageNames(pipelineEntity.getStageNames())
         .storeType(pipelineEntity.getStoreType())
-            .connectorRef(pipelineEntity.getConnectorRef())
-        .gitDetails(entityGitDetails)
-        .entityValidityDetails(pipelineEntity.isEntityInvalid()
-                ? EntityValidityDetails.builder().valid(false).invalidYaml(pipelineEntity.getYaml()).build()
-                : EntityValidityDetails.builder().valid(true).build())
+        .connectorRef(pipelineEntity.getConnectorRef())
+        .gitDetails(getEntityGitDetails(pipelineEntity))
+        .entityValidityDetails(getEntityValidityDetails(pipelineEntity))
         .build();
   }
 
@@ -130,9 +128,7 @@ public class PMSPipelineDtoMapper {
         .storeType(pipelineEntity.getStoreType())
         .connectorRef(pipelineEntity.getConnectorRef())
         .gitDetails(entityGitDetails)
-        .entityValidityDetails(pipelineEntity.isEntityInvalid()
-                ? EntityValidityDetails.builder().valid(false).invalidYaml(pipelineEntity.getYaml()).build()
-                : EntityValidityDetails.builder().valid(true).build())
+        .entityValidityDetails(getEntityValidityDetails(pipelineEntity))
         .build();
   }
 

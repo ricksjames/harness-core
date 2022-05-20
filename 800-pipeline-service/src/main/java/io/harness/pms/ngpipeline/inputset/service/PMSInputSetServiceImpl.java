@@ -162,7 +162,7 @@ public class PMSInputSetServiceImpl implements PMSInputSetService {
           format("Input Set [%s], for pipeline [%s], under Project[%s], Organization [%s] doesn't exist.", inputSetId,
               pipelineId, projectId, orgId));
     }
-    return makeInputSetUpdateCall(optionalInputSetEntity.get(), ChangeType.ADD, true);
+    return makeInputSetUpdateCall(optionalInputSetEntity.get().withStoreType(null), ChangeType.ADD, true);
   }
 
   @Override
