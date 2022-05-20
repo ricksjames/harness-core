@@ -13,7 +13,6 @@ import com.google.inject.Inject;
 import io.harness.NGCommonEntityConstants;
 import io.harness.accesscontrol.AccountIdentifier;
 import io.harness.annotations.dev.OwnedBy;
-import io.harness.ccm.graphql.dto.perspectives.PerspectiveData;
 import io.harness.ccm.utils.LogAccountIdentifier;
 import io.harness.ccm.views.dto.ViewFolderQueryDTO;
 import io.harness.ccm.views.entities.CEView;
