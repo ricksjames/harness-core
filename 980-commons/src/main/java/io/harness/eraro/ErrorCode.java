@@ -608,7 +608,8 @@ public enum ErrorCode {
   DATA_PROCESSING_ERROR,
   INVALID_AZURE_AKS_REQUEST,
   AWS_IAM_ERROR,
-  AWS_CF_ERROR;
+  AWS_CF_ERROR,
+  SCM_INTERNAL_SERVER_ERROR_V2(INTERNAL_SERVER_ERROR);
 
   private Status status = BAD_REQUEST;
   private String description;
