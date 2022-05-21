@@ -237,7 +237,8 @@ public class PMSPipelineServiceImpl implements PMSPipelineService {
       throw new InvalidRequestException(
           PipelineCRUDErrorResponse.errorMessageForPipelineNotFound(orgId, projectId, pipelineId));
     }
-    return makePipelineUpdateCall(optionalPipelineEntity.get(), optionalPipelineEntity.get(), ChangeType.ADD, true);
+    return makePipelineUpdateCall(
+        optionalPipelineEntity.get(), optionalPipelineEntity.get().withStoreType(null), ChangeType.ADD, true);
   }
 
   private PipelineEntity makePipelineUpdateCall(

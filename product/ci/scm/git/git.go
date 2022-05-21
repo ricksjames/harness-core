@@ -596,10 +596,7 @@ func GetLatestCommitOnFile(ctx context.Context, request *pb.GetLatestCommitOnFil
 	// For Bitbucket, we also get commits for a non-existent file if it had been created before (deleted now)
 	response, err := ListCommits(ctx, &pb.ListCommitsRequest{Provider: request.Provider, Slug: request.Slug, Type: &pb.ListCommitsRequest_Branch{Branch: request.Branch}, FilePath: request.FilePath}, log)
 	if err != nil {
-		return &pb.GetLatestCommitOnFileResponse{
-			CommitId: "",
-			Error:    err.Error(),
-		}, err
+		return nil, err
 	}
 
 	if response.CommitIds != nil && len(response.CommitIds) != 0 {

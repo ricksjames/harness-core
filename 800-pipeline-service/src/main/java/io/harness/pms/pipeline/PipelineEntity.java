@@ -133,7 +133,7 @@ public class PipelineEntity
   @Getter(AccessLevel.NONE) @Wither @NonFinal Boolean isEntityInvalid;
 
   // git experience parameters after simplification
-  @Setter @NonFinal StoreType storeType;
+  @Wither @Setter @NonFinal StoreType storeType;
   @Setter @NonFinal String repo;
   @Setter @NonFinal String connectorRef;
 

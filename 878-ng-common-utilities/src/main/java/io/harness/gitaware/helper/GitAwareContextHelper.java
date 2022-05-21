@@ -46,7 +46,7 @@ public class GitAwareContextHelper {
   public ScmGitMetaData getScmGitMetaData() {
     ScmGitMetaDataContext gitMetaDataContext = GlobalContextManager.get(ScmGitMetaDataContext.NG_GIT_SYNC_CONTEXT);
     if (gitMetaDataContext == null) {
-      throw new UnexpectedException("No SCM Git Metadata found in context");
+      return ScmGitMetaData.builder().build();
     }
     return gitMetaDataContext.getScmGitMetaData();
   }

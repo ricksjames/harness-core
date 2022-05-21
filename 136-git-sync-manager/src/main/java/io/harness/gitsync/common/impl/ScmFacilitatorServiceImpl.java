@@ -23,7 +23,6 @@ import io.harness.gitsync.common.dtos.GitBranchDetailsDTO;
 import io.harness.gitsync.common.dtos.GitBranchesResponseDTO;
 import io.harness.gitsync.common.dtos.GitRepositoryResponseDTO;
 import io.harness.gitsync.common.dtos.ScmCommitFileResponseDTO;
-import io.harness.gitsync.common.dtos.ScmCreateBranchRequestDTO;
 import io.harness.gitsync.common.dtos.ScmCreateFileRequestDTO;
 import io.harness.gitsync.common.dtos.ScmCreatePRRequestDTO;
 import io.harness.gitsync.common.dtos.ScmCreatePRResponseDTO;
@@ -242,29 +241,6 @@ public class ScmFacilitatorServiceImpl implements ScmFacilitatorService {
     }
 
     return ScmCreatePRResponseDTO.builder().prNumber(createPRResponse.getNumber()).build();
-  }
-
-  public void createBranch(ScmCreateBranchRequestDTO scmCreateBranchRequestDTO) {
-    Scope scope = scmCreateBranchRequestDTO.getScope();
-    ScmConnector scmConnector = gitSyncConnectorHelper.getScmConnectorForGivenRepo(scope.getAccountIdentifier(),
-        scope.getOrgIdentifier(), scope.getProjectIdentifier(), scmCreateBranchRequestDTO.getConnectorRef(),
-        scmCreateBranchRequestDTO.getRepoName());
-    createBranch(
-        scmCreateBranchRequestDTO.getBranchName(), scmCreateBranchRequestDTO.getBaseBranchName(), scmConnector);
-  }
-
-  private void createBranch(String branch, String baseBranch, ScmConnector scmConnector) {
-    CreateBranchResponse createBranchResponse =
-        scmOrchestratorService.processScmRequestUsingConnectorSettings(scmClientFacilitatorService
-            -> scmClientFacilitatorService.createBranch(branch, baseBranch, scmConnector),
-            scmConnector);
-
-    if (isFailureResponse(createBranchResponse.getStatus())) {
-      ScmApiErrorHandlingHelper.processAndThrowError(ScmApis.CREATE_BRANCH, scmConnector.getConnectorType(),
-          createBranchResponse.getStatus(), createBranchResponse.getError());
-    }
-
-    return;
   }
 
   @Override

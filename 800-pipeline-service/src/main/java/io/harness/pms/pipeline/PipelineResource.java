@@ -27,13 +27,13 @@ import io.harness.engine.governance.PolicyEvaluationFailureException;
 import io.harness.exception.EntityNotFoundException;
 import io.harness.exception.InvalidRequestException;
 import io.harness.exception.ngexception.beans.yamlschema.YamlSchemaErrorWrapperDTO;
-import io.harness.filter.dto.FilterPropertiesDTO;
 import io.harness.git.model.ChangeType;
 import io.harness.gitsync.interceptor.GitEntityCreateInfoDTO;
 import io.harness.gitsync.interceptor.GitEntityDeleteInfoDTO;
 import io.harness.gitsync.interceptor.GitEntityFindInfoDTO;
 import io.harness.gitsync.interceptor.GitEntityUpdateInfoDTO;
 import io.harness.gitsync.interceptor.GitImportInfoDTO;
+import io.harness.gitsync.sdk.EntityValidityDetails;
 import io.harness.ng.core.dto.ErrorDTO;
 import io.harness.ng.core.dto.FailureDTO;
 import io.harness.ng.core.dto.ResponseDTO;
@@ -308,12 +308,18 @@ public class PipelineResource implements YamlSchemaResource {
       pipelineEntity = pmsPipelineService.get(accountId, orgId, projectId, pipelineId, false);
     } catch (PolicyEvaluationFailureException pe) {
       return ResponseDTO.newResponse(
-          PMSPipelineResponseDTO.builder().governanceMetadata(pe.getGovernanceMetadata()).build());
+          PMSPipelineResponseDTO.builder()
+              .yamlPipeline(pe.getYaml())
+              .governanceMetadata(pe.getGovernanceMetadata())
+              .entityValidityDetails(EntityValidityDetails.builder().valid(false).invalidYaml(pe.getYaml()).build())
+              .build());
     } catch (InvalidYamlException e) {
-      return ResponseDTO.newResponse(PMSPipelineResponseDTO.builder()
-                                         .yamlPipeline(e.getYaml())
-                                         .yamlSchemaErrorWrapper((YamlSchemaErrorWrapperDTO) e.getMetadata())
-                                         .build());
+      return ResponseDTO.newResponse(
+          PMSPipelineResponseDTO.builder()
+              .yamlPipeline(e.getYaml())
+              .entityValidityDetails(EntityValidityDetails.builder().valid(false).invalidYaml(e.getYaml()).build())
+              .yamlSchemaErrorWrapper((YamlSchemaErrorWrapperDTO) e.getMetadata())
+              .build());
     }
     String version = "0";
     if (pipelineEntity.isPresent()) {
