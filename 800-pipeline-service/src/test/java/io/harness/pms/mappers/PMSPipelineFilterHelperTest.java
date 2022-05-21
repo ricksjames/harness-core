@@ -8,6 +8,7 @@
 package io.harness.pms.mappers;
 
 import static io.harness.annotations.dev.HarnessTeam.PIPELINE;
+import static io.harness.rule.OwnerRule.NAMAN;
 import static io.harness.rule.OwnerRule.SAHIL;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -22,8 +23,10 @@ import io.harness.rule.Owner;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.bson.Document;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.springframework.data.mongodb.core.query.Update;
 
 @OwnedBy(PIPELINE)
 public class PMSPipelineFilterHelperTest extends CategoryTest {
@@ -48,5 +51,17 @@ public class PMSPipelineFilterHelperTest extends CategoryTest {
     for (String field : fieldsToBeUpdated) {
       assertThat(true).isEqualTo(PMSPipelineFilterHelper.getUpdateOperations(pipelineEntity).modifies(field));
     }
+  }
+
+  @Test
+  @Owner(developers = NAMAN)
+  @Category(UnitTests.class)
+  public void testGetUpdateOperationsForOnboardingToInline() {
+    Update updateOperationsForOnboardingToInline = PMSPipelineFilterHelper.getUpdateOperationsForOnboardingToInline();
+    Document updateObject = updateOperationsForOnboardingToInline.getUpdateObject();
+    assertThat(updateObject.size()).isEqualTo(1);
+    Document setObject = (Document) updateObject.get("$set");
+    assertThat(setObject.size()).isEqualTo(1);
+    assertThat(setObject.containsKey("storeType")).isTrue();
   }
 }
