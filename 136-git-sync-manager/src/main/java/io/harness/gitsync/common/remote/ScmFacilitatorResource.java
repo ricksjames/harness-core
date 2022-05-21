@@ -373,7 +373,8 @@ public class ScmFacilitatorResource {
       @Parameter(description = "isCommitToNewBranch") @QueryParam("isCommitToNewBranch") boolean isCommitToNewBranch,
       @Parameter(description = "new branch") @QueryParam("baseBranch") String baseBranch,
       @Parameter(description = "commit message") @QueryParam("commitMessage") String commitMessage,
-      @Parameter(description = "old file sha") @QueryParam("oldFileSha") String oldFileSha) {
+      @Parameter(description = "old file sha") @QueryParam("oldFileSha") String oldFileSha,
+      @Parameter(description = "old commit id") @QueryParam("oldCommitId") String oldCommitId) {
     return ResponseDTO.newResponse(scmFacilitatorService.updateFile(ScmUpdateFileRequestDTO.builder()
                                                                         .baseBranch(baseBranch)
                                                                         .isCommitToNewBranch(isCommitToNewBranch)
@@ -389,6 +390,7 @@ public class ScmFacilitatorResource {
                                                                         .branchName(branch)
                                                                         .repoName(repoName)
                                                                         .oldFileSha(oldFileSha)
+                                                                        .oldCommitId(oldCommitId)
                                                                         .build()));
   }
 
