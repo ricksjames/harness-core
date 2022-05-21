@@ -72,4 +72,6 @@ public class PreAggregateConstants {
   public static final String entityNoCloudProviderConst = "No Cloud Provider";
   public static final String entityNoLabelConst = "Label not present";
   public static final String entityNoTagConst = "Tag not present";
+
+  public static final String azureSubscriptionGuid = "azureSubscriptionGuid";
 }
