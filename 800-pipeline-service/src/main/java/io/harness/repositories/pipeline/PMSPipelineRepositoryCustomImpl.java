@@ -283,6 +283,9 @@ public class PMSPipelineRepositoryCustomImpl implements PMSPipelineRepositoryCus
                       .projectIdentifier(updatedPipelineEntity.getProjectIdentifier())
                       .build();
     gitAwareEntityHelper.updateEntityOnGit(updatedPipelineEntity, pipelineToUpdate.getYaml(), scope);
+    outboxService.save(
+        new PipelineUpdateEvent(pipelineToUpdate.getAccountIdentifier(), pipelineToUpdate.getOrgIdentifier(),
+            pipelineToUpdate.getProjectIdentifier(), updatedPipelineEntity, oldEntityFromDB, true));
     return updatedPipelineEntity;
   }
 
