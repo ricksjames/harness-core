@@ -38,7 +38,6 @@ import io.harness.gitsync.helpers.GitContextHelper;
 import io.harness.gitsync.persistance.GitSyncSdkService;
 import io.harness.gitsync.scm.EntityObjectIdUtils;
 import io.harness.grpc.utils.StringValueUtils;
-import io.harness.pms.PmsFeatureFlagService;
 import io.harness.pms.contracts.steps.StepInfo;
 import io.harness.pms.gitsync.PmsGitSyncBranchContextGuard;
 import io.harness.pms.pipeline.CommonStepInfo;
@@ -77,17 +76,16 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Update;
 
 @Singleton
-@Slf4j
 @AllArgsConstructor(access = AccessLevel.PACKAGE, onConstructor = @__({ @Inject }))
+@Slf4j
 @OwnedBy(PIPELINE)
 public class PMSPipelineServiceImpl implements PMSPipelineService {
-  @Inject private PMSPipelineRepository pmsPipelineRepository;
-  @Inject private PmsSdkInstanceService pmsSdkInstanceService;
-  @Inject private PMSPipelineServiceHelper pmsPipelineServiceHelper;
-  @Inject private PMSPipelineServiceStepHelper pmsPipelineServiceStepHelper;
-  @Inject private GitSyncSdkService gitSyncSdkService;
-  @Inject private CommonStepInfo commonStepInfo;
-  @Inject private PmsFeatureFlagService pmsFeatureFlagService;
+  @Inject private final PMSPipelineRepository pmsPipelineRepository;
+  @Inject private final PmsSdkInstanceService pmsSdkInstanceService;
+  @Inject private final PMSPipelineServiceHelper pmsPipelineServiceHelper;
+  @Inject private final PMSPipelineServiceStepHelper pmsPipelineServiceStepHelper;
+  @Inject private final GitSyncSdkService gitSyncSdkService;
+  @Inject private final CommonStepInfo commonStepInfo;
   public static String CREATING_PIPELINE = "creating new pipeline";
   public static String UPDATING_PIPELINE = "updating existing pipeline";
 
@@ -319,7 +317,7 @@ public class PMSPipelineServiceImpl implements PMSPipelineService {
   public boolean delete(
       String accountId, String orgIdentifier, String projectIdentifier, String pipelineIdentifier, Long version) {
     if (gitSyncSdkService.isGitSyncEnabled(accountId, orgIdentifier, projectIdentifier)) {
-      return deleteForOldGitSync(accountId, orgIdentifier, projectIdentifier, pipelineIdentifier, version);
+      return deleteForOldGitSync(accountId, orgIdentifier, projectIdentifier, pipelineIdentifier);
     }
     PipelineEntity deletedEntity =
         pmsPipelineRepository.delete(accountId, orgIdentifier, projectIdentifier, pipelineIdentifier);
@@ -333,7 +331,7 @@ public class PMSPipelineServiceImpl implements PMSPipelineService {
   }
 
   private boolean deleteForOldGitSync(
-      String accountId, String orgIdentifier, String projectIdentifier, String pipelineIdentifier, Long version) {
+      String accountId, String orgIdentifier, String projectIdentifier, String pipelineIdentifier) {
     Optional<PipelineEntity> optionalPipelineEntity = pmsPipelineRepository.findForOldGitSync(
         accountId, orgIdentifier, projectIdentifier, pipelineIdentifier, true, true);
     if (!optionalPipelineEntity.isPresent()) {

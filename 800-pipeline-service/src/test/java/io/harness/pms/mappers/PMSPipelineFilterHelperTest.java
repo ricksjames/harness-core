@@ -16,12 +16,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.harness.CategoryTest;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.category.element.UnitTests;
+import io.harness.ng.core.common.beans.NGTag;
 import io.harness.pms.pipeline.PipelineEntity;
 import io.harness.pms.pipeline.PipelineEntity.PipelineEntityKeys;
 import io.harness.pms.pipeline.mappers.PMSPipelineFilterHelper;
 import io.harness.rule.Owner;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import org.bson.Document;
 import org.junit.Test;
@@ -56,6 +59,56 @@ public class PMSPipelineFilterHelperTest extends CategoryTest {
   @Test
   @Owner(developers = NAMAN)
   @Category(UnitTests.class)
+  public void testUpdateFieldsInDBEntry() {
+    PipelineEntity fromDB = PipelineEntity.builder()
+                                .uuid("uuid")
+                                .accountId("acc")
+                                .orgIdentifier("org")
+                                .projectIdentifier("pr")
+                                .identifier("id")
+                                .yaml("oldYaml")
+                                .createdAt(1L)
+                                .lastUpdatedAt(2L)
+                                .deleted(false)
+                                .name("oldName")
+                                .description("oldDec")
+                                .tags(Collections.emptyList())
+                                .version(22L)
+                                .stageCount(1)
+                                .stageNames(Collections.singletonList("s1"))
+                                .allowStageExecutions(true)
+                                .templateReference(true)
+                                .build();
+    PipelineEntity fieldsToUpdate = PipelineEntity.builder()
+                                        .accountId("acc")
+                                        .orgIdentifier("org")
+                                        .projectIdentifier("pr")
+                                        .identifier("id")
+                                        .yaml("not the oldYaml")
+                                        .deleted(false)
+                                        .name("New Name")
+                                        .description("New Dec")
+                                        .tags(Collections.singletonList(NGTag.builder().build()))
+                                        .stageCount(2)
+                                        .stageNames(Arrays.asList("s11", "s12"))
+                                        .allowStageExecutions(false)
+                                        .templateReference(false)
+                                        .build();
+    long timeOfUpdate = 10L;
+    PipelineEntity pipelineEntity = PMSPipelineFilterHelper.updateFieldsInDBEntry(fromDB, fieldsToUpdate, timeOfUpdate);
+    assertThat(pipelineEntity.getYaml()).isEqualTo("not the oldYaml");
+    assertThat(pipelineEntity.getName()).isEqualTo("New Name");
+    assertThat(pipelineEntity.getDescription()).isEqualTo("New Dec");
+    assertThat(pipelineEntity.getTags()).isEqualTo(Collections.singletonList(NGTag.builder().build()));
+    assertThat(pipelineEntity.getStageCount()).isEqualTo(2);
+    assertThat(pipelineEntity.getStageNames()).containsExactly("s11", "s12");
+    assertThat(pipelineEntity.getAllowStageExecutions()).isFalse();
+    assertThat(pipelineEntity.getTemplateReference()).isFalse();
+  }
+
+  @Test
+  @Owner(developers = NAMAN)
+  @Category(UnitTests.class)
   public void testGetUpdateOperationsForOnboardingToInline() {
     Update updateOperationsForOnboardingToInline = PMSPipelineFilterHelper.getUpdateOperationsForOnboardingToInline();
     Document updateObject = updateOperationsForOnboardingToInline.getUpdateObject();
@@ -63,5 +116,17 @@ public class PMSPipelineFilterHelperTest extends CategoryTest {
     Document setObject = (Document) updateObject.get("$set");
     assertThat(setObject.size()).isEqualTo(1);
     assertThat(setObject.containsKey("storeType")).isTrue();
+  }
+
+  @Test
+  @Owner(developers = NAMAN)
+  @Category(UnitTests.class)
+  public void testGetUpdateOperationsForDelete() {
+    Update updateOperationsForOnboardingToInline = PMSPipelineFilterHelper.getUpdateOperationsForDelete();
+    Document updateObject = updateOperationsForOnboardingToInline.getUpdateObject();
+    assertThat(updateObject.size()).isEqualTo(1);
+    Document setObject = (Document) updateObject.get("$set");
+    assertThat(setObject.size()).isEqualTo(1);
+    assertThat(setObject.containsKey("deleted")).isTrue();
   }
 }
