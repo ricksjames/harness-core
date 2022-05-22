@@ -254,27 +254,32 @@ public class PMSPipelineRepositoryCustomImpl implements PMSPipelineRepositoryCus
                             .is(pipelineToUpdate.getAccountId());
     Query query = new Query(criteria);
     Update updateOperations = PMSPipelineFilterHelper.getUpdateOperations(pipelineToUpdate);
-    PipelineEntity updatedPipelineEntity = mongoTemplate.findAndModify(
-        query, updateOperations, new FindAndModifyOptions().returnNew(true), PipelineEntity.class);
-    if (updatedPipelineEntity == null) {
+    PipelineEntity oldEntityFromDB = mongoTemplate.findAndModify(
+        query, updateOperations, new FindAndModifyOptions().returnNew(false), PipelineEntity.class);
+    if (oldEntityFromDB == null) {
       return null;
     }
+    PipelineEntity updatedPipelineEntity =
+        PMSPipelineFilterHelper.updateFieldsInDBEntry(oldEntityFromDB, pipelineToUpdate);
     if (updatedPipelineEntity.getStoreType() == null) {
       // onboarding old entities as INLINE
       Update updateOperationsForOnboardingToInline = PMSPipelineFilterHelper.getUpdateOperationsForOnboardingToInline();
       updatedPipelineEntity = mongoTemplate.findAndModify(query, updateOperationsForOnboardingToInline,
-          new FindAndModifyOptions().returnNew(false), PipelineEntity.class);
+          new FindAndModifyOptions().returnNew(true), PipelineEntity.class);
+    }
+    if (updatedPipelineEntity == null) {
+      return null;
     }
     if (updatedPipelineEntity.getStoreType() == StoreType.INLINE) {
       outboxService.save(
           new PipelineUpdateEvent(pipelineToUpdate.getAccountIdentifier(), pipelineToUpdate.getOrgIdentifier(),
-              pipelineToUpdate.getProjectIdentifier(), pipelineToUpdate, updatedPipelineEntity));
+              pipelineToUpdate.getProjectIdentifier(), updatedPipelineEntity, oldEntityFromDB));
       return updatedPipelineEntity;
     }
     Scope scope = Scope.builder()
-                      .accountIdentifier(pipelineToUpdate.getAccountIdentifier())
-                      .orgIdentifier(pipelineToUpdate.getOrgIdentifier())
-                      .projectIdentifier(pipelineToUpdate.getProjectIdentifier())
+                      .accountIdentifier(updatedPipelineEntity.getAccountIdentifier())
+                      .orgIdentifier(updatedPipelineEntity.getOrgIdentifier())
+                      .projectIdentifier(updatedPipelineEntity.getProjectIdentifier())
                       .build();
     gitAwareEntityHelper.updateEntityOnGit(updatedPipelineEntity, pipelineToUpdate.getYaml(), scope);
     return updatedPipelineEntity;

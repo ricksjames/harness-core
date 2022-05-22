@@ -111,7 +111,7 @@ public class PipelineEntity
 
   @Wither @Version Long version;
 
-  @Default Map<String, org.bson.Document> filters = new HashMap<>();
+  @Wither @Default Map<String, org.bson.Document> filters = new HashMap<>();
   // Todo: Move this to pipelineMetadata
   ExecutionSummaryInfo executionSummaryInfo;
   int runSequence;

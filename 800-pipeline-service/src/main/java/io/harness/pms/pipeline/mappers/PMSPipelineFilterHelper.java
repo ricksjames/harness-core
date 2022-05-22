@@ -18,20 +18,30 @@ import org.springframework.data.mongodb.core.query.Update;
 public class PMSPipelineFilterHelper {
   public Update getUpdateOperations(PipelineEntity pipelineEntity) {
     Update update = new Update();
-    update.set(PipelineEntityKeys.accountId, pipelineEntity.getAccountId());
-    update.set(PipelineEntityKeys.orgIdentifier, pipelineEntity.getOrgIdentifier());
-    update.set(PipelineEntityKeys.projectIdentifier, pipelineEntity.getProjectIdentifier());
     update.set(PipelineEntityKeys.yaml, pipelineEntity.getYaml());
-    update.set(PipelineEntityKeys.tags, pipelineEntity.getTags());
+    update.set(PipelineEntityKeys.lastUpdatedAt, System.currentTimeMillis());
     update.set(PipelineEntityKeys.deleted, false);
     update.set(PipelineEntityKeys.name, pipelineEntity.getName());
     update.set(PipelineEntityKeys.description, pipelineEntity.getDescription());
-    update.set(PipelineEntityKeys.stageCount, pipelineEntity.getStageCount());
-    update.set(PipelineEntityKeys.lastUpdatedAt, System.currentTimeMillis());
+    update.set(PipelineEntityKeys.tags, pipelineEntity.getTags());
     update.set(PipelineEntityKeys.filters, pipelineEntity.getFilters());
+    update.set(PipelineEntityKeys.stageCount, pipelineEntity.getStageCount());
     update.set(PipelineEntityKeys.stageNames, pipelineEntity.getStageNames());
-
+    update.set(PipelineEntityKeys.allowStageExecutions, pipelineEntity.getAllowStageExecutions());
+    update.set(PipelineEntityKeys.templateReference, pipelineEntity.getTemplateReference());
     return update;
+  }
+
+  public PipelineEntity updateFieldsInDBEntry(PipelineEntity entityFromDB, PipelineEntity fieldsToUpdate) {
+    return entityFromDB.withYaml(fieldsToUpdate.getYaml())
+        .withName(fieldsToUpdate.getName())
+        .withDescription(fieldsToUpdate.getYaml())
+        .withTags(fieldsToUpdate.getTags())
+        .withFilters(fieldsToUpdate.getFilters())
+        .withStageCount(fieldsToUpdate.getStageCount())
+        .withStageNames(fieldsToUpdate.getStageNames())
+        .withAllowStageExecutions(fieldsToUpdate.getAllowStageExecutions())
+        .withTemplateReference(fieldsToUpdate.getTemplateReference());
   }
 
   public Update getUpdateOperationsForOnboardingToInline() {
