@@ -81,23 +81,6 @@ public class PMSInputSetElementMapper {
         .build();
   }
 
-  public InputSetResponseDTOPMS toInputSetResponseDTOPMS(String accountId, String orgIdentifier,
-      String projectIdentifier, String pipelineIdentifier, String yaml, InputSetErrorWrapperDTOPMS errorWrapperDTO) {
-    return InputSetResponseDTOPMS.builder()
-        .accountId(accountId)
-        .orgIdentifier(orgIdentifier)
-        .projectIdentifier(projectIdentifier)
-        .pipelineIdentifier(pipelineIdentifier)
-        .identifier(InputSetYamlHelper.getStringField(yaml, "identifier", "inputSet"))
-        .inputSetYaml(yaml)
-        .name(InputSetYamlHelper.getStringField(yaml, "name", "inputSet"))
-        .description(InputSetYamlHelper.getStringField(yaml, "description", "inputSet"))
-        .tags(InputSetYamlHelper.getTags(yaml, "inputSet"))
-        .isErrorResponse(true)
-        .inputSetErrorWrapper(errorWrapperDTO)
-        .build();
-  }
-
   public EntityGitDetails getEntityGitDetails(InputSetEntity entity) {
     return entity.getStoreType() == null            ? EntityGitDetailsMapper.mapEntityGitDetails(entity)
         : entity.getStoreType() == StoreType.REMOTE ? GitAwareContextHelper.getEntityGitDetailsFromScmGitMetadata()

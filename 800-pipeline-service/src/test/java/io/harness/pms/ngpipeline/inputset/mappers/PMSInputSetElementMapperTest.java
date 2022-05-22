@@ -198,18 +198,4 @@ public class PMSInputSetElementMapperTest extends CategoryTest {
     assertEquals(inputSetEntity.getAccountId(), "accountId");
     assertEquals(inputSetEntity.getIdentifier(), "overlay1");
   }
-
-  @Test
-  @Owner(developers = BRIJESH)
-  @Category(UnitTests.class)
-  public void testToInputSetResponseDTOPMSByDetails() {
-    InputSetResponseDTOPMS inputSetResponseDTOPMS =
-        PMSInputSetElementMapper.toInputSetResponseDTOPMS(ACCOUNT_ID, ORG_IDENTIFIER, PROJ_IDENTIFIER,
-            PIPELINE_IDENTIFIER, inputSetYaml, InputSetErrorWrapperDTOPMS.builder().build());
-    assertEquals(inputSetResponseDTOPMS.getAccountId(), ACCOUNT_ID);
-    assertEquals(inputSetResponseDTOPMS.getOrgIdentifier(), ORG_IDENTIFIER);
-    assertEquals(inputSetResponseDTOPMS.getProjectIdentifier(), PROJ_IDENTIFIER);
-    assertEquals(inputSetResponseDTOPMS.getPipelineIdentifier(), PIPELINE_IDENTIFIER);
-    assertEquals(inputSetResponseDTOPMS.getInputSetYaml(), inputSetYaml);
-  }
 }
