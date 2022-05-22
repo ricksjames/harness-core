@@ -84,6 +84,35 @@ public class PMSInputSetElementMapperTest extends CategoryTest {
   @Test
   @Owner(developers = NAMAN)
   @Category(UnitTests.class)
+  public void testGetEntityGitDetails() {
+    InputSetEntity oldNonGitSync = InputSetEntity.builder().build();
+    EntityGitDetails entityGitDetails0 = PMSInputSetElementMapper.getEntityGitDetails(oldNonGitSync);
+    assertThat(entityGitDetails0).isEqualTo(EntityGitDetails.builder().build());
+
+    InputSetEntity oldGitSync = InputSetEntity.builder().yamlGitConfigRef("repo").branch("branch1").build();
+    EntityGitDetails entityGitDetails1 = PMSInputSetElementMapper.getEntityGitDetails(oldGitSync);
+    assertThat(entityGitDetails1).isNotNull();
+    assertThat(entityGitDetails1.getRepoIdentifier()).isEqualTo("repo");
+    assertThat(entityGitDetails1.getBranch()).isEqualTo("branch1");
+
+    InputSetEntity inline = InputSetEntity.builder().storeType(StoreType.INLINE).build();
+    EntityGitDetails entityGitDetails2 = PMSInputSetElementMapper.getEntityGitDetails(inline);
+    assertThat(entityGitDetails2).isNull();
+
+    GitAwareContextHelper.updateScmGitMetaData(
+        ScmGitMetaData.builder().branchName("brName").repoName("repoName").build());
+
+    InputSetEntity remote = InputSetEntity.builder().storeType(StoreType.REMOTE).build();
+    EntityGitDetails entityGitDetails3 = PMSInputSetElementMapper.getEntityGitDetails(remote);
+    assertThat(entityGitDetails3).isNotNull();
+    assertThat(entityGitDetails3.getBranch()).isEqualTo("brName");
+    assertThat(entityGitDetails3.getRepoName()).isEqualTo("repoName");
+    assertThat(entityGitDetails3.getRepoIdentifier()).isNull();
+  }
+
+  @Test
+  @Owner(developers = NAMAN)
+  @Category(UnitTests.class)
   public void testToInputSetEntityForOverlay() {
     InputSetEntity entity = PMSInputSetElementMapper.toInputSetEntityForOverlay(
         ACCOUNT_ID, ORG_IDENTIFIER, PROJ_IDENTIFIER, PIPELINE_IDENTIFIER, overlayInputSetYaml);

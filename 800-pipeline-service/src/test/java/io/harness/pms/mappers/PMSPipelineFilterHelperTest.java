@@ -36,20 +36,20 @@ public class PMSPipelineFilterHelperTest extends CategoryTest {
   public void testGetUpdateOperations() {
     PipelineEntity pipelineEntity = PipelineEntity.builder().build();
     List<String> fieldsToBeUpdated = new ArrayList<>();
-    fieldsToBeUpdated.add(PipelineEntityKeys.name);
-    fieldsToBeUpdated.add(PipelineEntityKeys.accountId);
-    fieldsToBeUpdated.add(PipelineEntityKeys.orgIdentifier);
-    fieldsToBeUpdated.add(PipelineEntityKeys.projectIdentifier);
     fieldsToBeUpdated.add(PipelineEntityKeys.yaml);
-    fieldsToBeUpdated.add(PipelineEntityKeys.tags);
-    fieldsToBeUpdated.add(PipelineEntityKeys.deleted);
-    fieldsToBeUpdated.add(PipelineEntityKeys.description);
-    fieldsToBeUpdated.add(PipelineEntityKeys.stageCount);
     fieldsToBeUpdated.add(PipelineEntityKeys.lastUpdatedAt);
+    fieldsToBeUpdated.add(PipelineEntityKeys.deleted);
+    fieldsToBeUpdated.add(PipelineEntityKeys.name);
+    fieldsToBeUpdated.add(PipelineEntityKeys.description);
+    fieldsToBeUpdated.add(PipelineEntityKeys.tags);
     fieldsToBeUpdated.add(PipelineEntityKeys.filters);
+    fieldsToBeUpdated.add(PipelineEntityKeys.stageCount);
+    fieldsToBeUpdated.add(PipelineEntityKeys.stageNames);
+    fieldsToBeUpdated.add(PipelineEntityKeys.allowStageExecutions);
+    fieldsToBeUpdated.add(PipelineEntityKeys.templateReference);
 
     for (String field : fieldsToBeUpdated) {
-      assertThat(true).isEqualTo(PMSPipelineFilterHelper.getUpdateOperations(pipelineEntity).modifies(field));
+      assertThat(true).isEqualTo(PMSPipelineFilterHelper.getUpdateOperations(pipelineEntity, 0L).modifies(field));
     }
   }
 

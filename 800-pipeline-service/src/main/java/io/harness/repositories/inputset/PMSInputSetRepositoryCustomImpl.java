@@ -237,13 +237,28 @@ public class PMSInputSetRepositoryCustomImpl implements PMSInputSetRepositoryCus
                             .and(InputSetEntityKeys.identifier)
                             .is(entityToUpdate.getIdentifier());
     Query query = new Query(criteria);
-    Update updateOperations = PMSInputSetFilterHelper.getUpdateOperations(entityToUpdate);
-    InputSetEntity updatedEntity = mongoTemplate.findAndModify(
-        query, updateOperations, new FindAndModifyOptions().returnNew(true), InputSetEntity.class);
+    long timeOfUpdate = System.currentTimeMillis();
+    Update updateOperations = PMSInputSetFilterHelper.getUpdateOperations(entityToUpdate, timeOfUpdate);
+    InputSetEntity oldEntityFromDB = mongoTemplate.findAndModify(
+        query, updateOperations, new FindAndModifyOptions().returnNew(false), InputSetEntity.class);
+    if (oldEntityFromDB == null) {
+      return null;
+    }
+    InputSetEntity updatedEntity =
+        PMSInputSetFilterHelper.updateFieldsInDBEntry(oldEntityFromDB, entityToUpdate, timeOfUpdate);
     if (updatedEntity.getStoreType() == null) {
       Update updateOperationsForOnboardingToInline = PMSInputSetFilterHelper.getUpdateOperationsForOnboardingToInline();
       updatedEntity = mongoTemplate.findAndModify(query, updateOperationsForOnboardingToInline,
           new FindAndModifyOptions().returnNew(true), InputSetEntity.class);
+    }
+    if (updatedEntity == null) {
+      return null;
+    }
+    if (updatedEntity.getStoreType() == StoreType.INLINE) {
+      outboxService.save(new InputSetUpdateEvent(entityToUpdate.getAccountIdentifier(),
+          entityToUpdate.getOrgIdentifier(), entityToUpdate.getProjectIdentifier(),
+          entityToUpdate.getPipelineIdentifier(), updatedEntity, oldEntityFromDB));
+      return updatedEntity;
     }
     Scope scope = Scope.builder()
                       .accountIdentifier(updatedEntity.getAccountIdentifier())

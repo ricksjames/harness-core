@@ -84,22 +84,27 @@ public class PMSInputSetFilterHelper {
     return InputSetEntityType.OVERLAY_INPUT_SET;
   }
 
-  public Update getUpdateOperations(InputSetEntity inputSetEntity) {
+  public Update getUpdateOperations(InputSetEntity inputSetEntity, long timeOfUpdate) {
     Update update = new Update();
-    update.set(InputSetEntityKeys.accountId, inputSetEntity.getAccountId());
-    update.set(InputSetEntityKeys.orgIdentifier, inputSetEntity.getOrgIdentifier());
-    update.set(InputSetEntityKeys.projectIdentifier, inputSetEntity.getProjectIdentifier());
-    update.set(InputSetEntityKeys.pipelineIdentifier, inputSetEntity.getPipelineIdentifier());
     update.set(InputSetEntityKeys.yaml, inputSetEntity.getYaml());
     update.set(InputSetEntityKeys.name, inputSetEntity.getName());
-    update.set(InputSetEntityKeys.tags, inputSetEntity.getTags());
     update.set(InputSetEntityKeys.description, inputSetEntity.getDescription());
-    update.set(InputSetEntityKeys.deleted, false);
-    update.set(InputSetEntityKeys.inputSetEntityType, inputSetEntity.getInputSetEntityType());
+    update.set(InputSetEntityKeys.tags, inputSetEntity.getTags());
     update.set(InputSetEntityKeys.inputSetReferences, inputSetEntity.getInputSetReferences());
-    update.set(InputSetEntityKeys.lastUpdatedAt, System.currentTimeMillis());
+    update.set(InputSetEntityKeys.lastUpdatedAt, timeOfUpdate);
+    update.set(InputSetEntityKeys.deleted, false);
     update.set(InputSetEntityKeys.isInvalid, false);
     return update;
+  }
+
+  public InputSetEntity updateFieldsInDBEntry(
+      InputSetEntity entityFromDB, InputSetEntity fieldsToUpdate, long timeOfUpdate) {
+    return entityFromDB.withYaml(fieldsToUpdate.getYaml())
+        .withName(fieldsToUpdate.getName())
+        .withDescription(fieldsToUpdate.getDescription())
+        .withTags(fieldsToUpdate.getTags())
+        .withInputSetReferences(fieldsToUpdate.getInputSetReferences())
+        .withLastUpdatedAt(timeOfUpdate);
   }
 
   public Update getUpdateOperationsForOnboardingToInline() {

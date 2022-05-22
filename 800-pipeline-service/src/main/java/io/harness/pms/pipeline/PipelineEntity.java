@@ -102,7 +102,7 @@ public class PipelineEntity
   @Wither @NotEmpty @NonFinal @Setter String yaml;
 
   @Setter @NonFinal @SchemaIgnore @FdIndex @CreatedDate long createdAt;
-  @Setter @NonFinal @SchemaIgnore @NotNull @LastModifiedDate long lastUpdatedAt;
+  @Wither @Setter @NonFinal @SchemaIgnore @NotNull @LastModifiedDate long lastUpdatedAt;
   @Wither @Default Boolean deleted = Boolean.FALSE;
 
   @Wither @EntityName String name;
@@ -111,7 +111,7 @@ public class PipelineEntity
 
   @Wither @Version Long version;
 
-  @Default Map<String, org.bson.Document> filters = new HashMap<>();
+  @Wither @Default Map<String, org.bson.Document> filters = new HashMap<>();
   // Todo: Move this to pipelineMetadata
   ExecutionSummaryInfo executionSummaryInfo;
   int runSequence;
@@ -128,14 +128,14 @@ public class PipelineEntity
   @Setter @NonFinal Boolean isFromDefaultBranch;
   @Setter @NonFinal String branch;
   @Setter @NonFinal String yamlGitConfigRef;
-  @Setter @NonFinal String filePath;
+  @Wither @Setter @NonFinal String filePath; // -> also used in git simplification
   @Setter @NonFinal String rootFolder;
   @Getter(AccessLevel.NONE) @Wither @NonFinal Boolean isEntityInvalid;
 
   // git experience parameters after simplification
   @Wither @Setter @NonFinal StoreType storeType;
-  @Setter @NonFinal String repo;
-  @Setter @NonFinal String connectorRef;
+  @Wither @Setter @NonFinal String repo;
+  @Wither @Setter @NonFinal String connectorRef;
 
   public String getData() {
     return yaml;

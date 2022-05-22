@@ -163,7 +163,6 @@ public class InputSetResourcePMS {
         inputSetIdentifier, pipelineIdentifier, projectIdentifier, orgIdentifier, accountId));
     Optional<InputSetEntity> optionalInputSetEntity = pmsInputSetService.get(
         accountId, orgIdentifier, projectIdentifier, pipelineIdentifier, inputSetIdentifier, false);
-    String version = "0";
     if (!optionalInputSetEntity.isPresent()) {
       throw new InvalidRequestException(
           String.format("InputSet with the given ID: %s does not exist or has been deleted", inputSetIdentifier));
@@ -180,7 +179,7 @@ public class InputSetResourcePMS {
     }
 
     InputSetResponseDTOPMS inputSet = PMSInputSetElementMapper.toInputSetResponseDTOPMS(inputSetEntity);
-    version = inputSetEntity.getVersion().toString();
+    String version = inputSetEntity.getVersion().toString();
 
     return ResponseDTO.newResponse(version, inputSet);
   }

@@ -21,11 +21,9 @@ import io.harness.gitsync.common.helper.EntityDistinctElementHelper;
 import io.harness.gitsync.helpers.GitContextHelper;
 import io.harness.gitsync.interceptor.GitEntityInfo;
 import io.harness.gitsync.persistance.GitAwarePersistence;
-import io.harness.gitsync.persistance.GitSyncSdkService;
 import io.harness.gitsync.persistance.GitSyncableHarnessRepo;
 import io.harness.outbox.OutboxEvent;
 import io.harness.outbox.api.OutboxService;
-import io.harness.pms.PmsFeatureFlagService;
 import io.harness.pms.events.PipelineCreateEvent;
 import io.harness.pms.events.PipelineDeleteEvent;
 import io.harness.pms.events.PipelineUpdateEvent;
@@ -36,6 +34,7 @@ import io.harness.pms.pipeline.mappers.PMSPipelineFilterHelper;
 import io.harness.pms.pipeline.service.PipelineMetadataService;
 import io.harness.springdata.TransactionHelper;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Inject;
 import java.time.Duration;
 import java.util.Collections;
@@ -59,16 +58,14 @@ import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.data.repository.support.PageableExecutionUtils;
 
 @GitSyncableHarnessRepo
-@AllArgsConstructor(access = AccessLevel.PRIVATE, onConstructor = @__({ @Inject }))
+@AllArgsConstructor(access = AccessLevel.PACKAGE, onConstructor = @__({ @Inject }))
 @Slf4j
 @OwnedBy(PIPELINE)
 public class PMSPipelineRepositoryCustomImpl implements PMSPipelineRepositoryCustom {
   private final MongoTemplate mongoTemplate;
   private final GitAwarePersistence gitAwarePersistence;
-  private final GitSyncSdkService gitSyncSdkService;
   private final TransactionHelper transactionHelper;
   private final PipelineMetadataService pipelineMetadataService;
-  private final PmsFeatureFlagService pmsFeatureFlagService;
   private final GitAwareEntityHelper gitAwareEntityHelper;
   private final OutboxService outboxService;
 
@@ -118,13 +115,17 @@ public class PMSPipelineRepositoryCustomImpl implements PMSPipelineRepositoryCus
     Supplier<OutboxEvent> supplier = ()
         -> outboxService.save(
             new PipelineCreateEvent(accountIdentifier, orgIdentifier, projectIdentifier, pipelineToSave));
-    return transactionHelper.performTransaction(() -> {
-      PipelineEntity savedEntity = savePipelineEntity(pipelineToSave, supplier);
-      checkForMetadataAndSaveIfAbsent(savedEntity);
-      return savedEntity;
-    });
+    return transactionHelper.performTransaction(() -> savePipelineOperations(pipelineToSave, supplier));
   }
 
+  @VisibleForTesting
+  PipelineEntity savePipelineOperations(PipelineEntity pipelineToSave, Supplier<OutboxEvent> supplier) {
+    PipelineEntity savedEntity = savePipelineEntity(pipelineToSave, supplier);
+    checkForMetadataAndSaveIfAbsent(savedEntity);
+    return savedEntity;
+  }
+
+  @VisibleForTesting
   PipelineEntity savePipelineEntity(PipelineEntity pipelineToSave, Supplier<OutboxEvent> supplier) {
     GitAwareContextHelper.initDefaultScmGitMetaData();
     GitEntityInfo gitEntityInfo = GitContextHelper.getGitEntityInfo();
@@ -257,27 +258,39 @@ public class PMSPipelineRepositoryCustomImpl implements PMSPipelineRepositoryCus
                             .and(PipelineEntityKeys.accountId)
                             .is(pipelineToUpdate.getAccountId());
     Query query = new Query(criteria);
-    Update updateOperations = PMSPipelineFilterHelper.getUpdateOperations(pipelineToUpdate);
-    PipelineEntity updatedPipelineEntity = mongoTemplate.findAndModify(
-        query, updateOperations, new FindAndModifyOptions().returnNew(true), PipelineEntity.class);
+    long timeOfUpdate = System.currentTimeMillis();
+    Update updateOperations = PMSPipelineFilterHelper.getUpdateOperations(pipelineToUpdate, timeOfUpdate);
+    PipelineEntity oldEntityFromDB = mongoTemplate.findAndModify(
+        query, updateOperations, new FindAndModifyOptions().returnNew(false), PipelineEntity.class);
+    if (oldEntityFromDB == null) {
+      return null;
+    }
+    PipelineEntity updatedPipelineEntity =
+        PMSPipelineFilterHelper.updateFieldsInDBEntry(oldEntityFromDB, pipelineToUpdate, timeOfUpdate);
     if (updatedPipelineEntity.getStoreType() == null) {
       // onboarding old entities as INLINE
       Update updateOperationsForOnboardingToInline = PMSPipelineFilterHelper.getUpdateOperationsForOnboardingToInline();
       updatedPipelineEntity = mongoTemplate.findAndModify(query, updateOperationsForOnboardingToInline,
-          new FindAndModifyOptions().returnNew(false), PipelineEntity.class);
+          new FindAndModifyOptions().returnNew(true), PipelineEntity.class);
+    }
+    if (updatedPipelineEntity == null) {
+      return null;
     }
     if (updatedPipelineEntity.getStoreType() == StoreType.INLINE) {
       outboxService.save(
           new PipelineUpdateEvent(pipelineToUpdate.getAccountIdentifier(), pipelineToUpdate.getOrgIdentifier(),
-              pipelineToUpdate.getProjectIdentifier(), pipelineToUpdate, updatedPipelineEntity));
+              pipelineToUpdate.getProjectIdentifier(), updatedPipelineEntity, oldEntityFromDB));
       return updatedPipelineEntity;
     }
     Scope scope = Scope.builder()
-                      .accountIdentifier(pipelineToUpdate.getAccountIdentifier())
-                      .orgIdentifier(pipelineToUpdate.getOrgIdentifier())
-                      .projectIdentifier(pipelineToUpdate.getProjectIdentifier())
+                      .accountIdentifier(updatedPipelineEntity.getAccountIdentifier())
+                      .orgIdentifier(updatedPipelineEntity.getOrgIdentifier())
+                      .projectIdentifier(updatedPipelineEntity.getProjectIdentifier())
                       .build();
     gitAwareEntityHelper.updateEntityOnGit(updatedPipelineEntity, pipelineToUpdate.getYaml(), scope);
+    outboxService.save(
+        new PipelineUpdateEvent(pipelineToUpdate.getAccountIdentifier(), pipelineToUpdate.getOrgIdentifier(),
+            pipelineToUpdate.getProjectIdentifier(), updatedPipelineEntity, oldEntityFromDB, true));
     return updatedPipelineEntity;
   }
 
@@ -332,8 +345,7 @@ public class PMSPipelineRepositoryCustomImpl implements PMSPipelineRepositoryCus
     Update updateOperationsForDelete = PMSPipelineFilterHelper.getUpdateOperationsForDelete();
     PipelineEntity deletedPipelineEntity = mongoTemplate.findAndModify(
         query, updateOperationsForDelete, new FindAndModifyOptions().returnNew(true), PipelineEntity.class);
-    outboxService.save(
-        new PipelineDeleteEvent(accountId, orgIdentifier, projectIdentifier, deletedPipelineEntity, true));
+    outboxService.save(new PipelineDeleteEvent(accountId, orgIdentifier, projectIdentifier, deletedPipelineEntity));
     return deletedPipelineEntity;
   }
 
