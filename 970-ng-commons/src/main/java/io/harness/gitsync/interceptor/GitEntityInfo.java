@@ -27,7 +27,7 @@ import lombok.experimental.Wither;
 @JsonIgnoreProperties(ignoreUnknown = true)
 @OwnedBy(DX)
 public class GitEntityInfo {
-  String branch;
+  @Setter String branch;
   String yamlGitConfigId;
   @Wither @Setter String folderPath;
   @Wither @Setter String filePath;
