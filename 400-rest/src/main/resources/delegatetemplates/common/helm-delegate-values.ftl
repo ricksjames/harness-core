@@ -15,13 +15,21 @@ managerHostAndPort: ${managerHostAndPort}
 
 <#macro ngSpecific>
 nextGen: true
-delegateTags:${delegateTags}
-delegateDescription:${delegateDescription}
+delegateTags: "${delegateTags}"
+delegateDescription: "${delegateDescription}"
 k8sPermissionsType: ${k8sPermissionsType}
+namespace: ${delegateNamespace}
+
 delegateReplicas: ${delegateReplicas}
 delegateCpu: ${delegateCpu}
 delegateRam: ${delegateRam}
-delegateNamespace: ${delegateNamespace}
+
+enableCE: ${ciEnabled}
+<#if ciEnabled == "true">
+delegateGrpcServicePort: ${delegateGrpcServicePort}
+</#if>
+
+initScript: ""
 </#macro>
 
 <#macro cgSpecific>

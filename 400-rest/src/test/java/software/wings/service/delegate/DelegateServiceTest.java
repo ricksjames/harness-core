@@ -3578,7 +3578,7 @@ public class DelegateServiceTest extends WingsBaseTest {
                            -> delegateService.generateKubernetesYaml(accountId, setupDetails, "https://localhost:9090",
                                "https://localhost:7070", MediaType.MULTIPART_FORM_DATA_TYPE))
         .isInstanceOf(InvalidRequestException.class)
-        .hasMessage("Delegate type must be KUBERNETES.");
+        .hasMessage("Delegate type must be KUBERNETES OR HELM_DELEGATE.");
   }
 
   @Test
