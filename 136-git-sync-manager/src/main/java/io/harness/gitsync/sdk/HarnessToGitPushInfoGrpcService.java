@@ -7,14 +7,12 @@
 
 package io.harness.gitsync.sdk;
 
-import static io.harness.AuthorizationServiceHeader.GIT_SYNC_SERVICE;
 import static io.harness.annotations.dev.HarnessTeam.DX;
 import static io.harness.gitsync.common.scmerrorhandling.ScmErrorCodeToHttpStatusCodeMapping.HTTP_500;
 
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.eventsframework.schemas.entity.EntityScopeInfo;
 import io.harness.exception.ExceptionUtils;
-import io.harness.exception.InvalidRequestException;
 import io.harness.exception.exceptionmanager.ExceptionManager;
 import io.harness.gitsync.BranchDetails;
 import io.harness.gitsync.CreateFileRequest;
@@ -41,7 +39,6 @@ import io.harness.security.Principal;
 import io.harness.security.PrincipalContextData;
 import io.harness.security.PrincipalProtoMapper;
 import io.harness.security.SourcePrincipalContextData;
-import io.harness.security.dto.PrincipalType;
 import io.harness.serializer.KryoSerializer;
 
 import com.google.common.annotations.VisibleForTesting;

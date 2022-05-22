@@ -6,8 +6,6 @@ import io.harness.eraro.Level;
 import io.harness.exception.WingsException;
 import io.harness.pms.contracts.governance.GovernanceMetadata;
 
-import jdk.nashorn.internal.objects.annotations.Getter;
-
 public class PolicyEvaluationFailureException extends WingsException {
   private static final String MESSAGE_KEY = "message";
 

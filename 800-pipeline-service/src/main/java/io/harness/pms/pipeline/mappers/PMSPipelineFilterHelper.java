@@ -7,9 +7,7 @@
 
 package io.harness.pms.pipeline.mappers;
 
-import io.harness.data.structure.EmptyPredicate;
 import io.harness.gitsync.beans.StoreType;
-import io.harness.gitsync.interceptor.GitSyncConstants;
 import io.harness.pms.pipeline.PipelineEntity;
 import io.harness.pms.pipeline.PipelineEntity.PipelineEntityKeys;
 
