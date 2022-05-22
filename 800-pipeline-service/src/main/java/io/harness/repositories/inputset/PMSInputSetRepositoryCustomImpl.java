@@ -240,6 +240,9 @@ public class PMSInputSetRepositoryCustomImpl implements PMSInputSetRepositoryCus
     Update updateOperations = PMSInputSetFilterHelper.getUpdateOperations(entityToUpdate);
     InputSetEntity updatedEntity = mongoTemplate.findAndModify(
         query, updateOperations, new FindAndModifyOptions().returnNew(true), InputSetEntity.class);
+    if (updatedEntity == null) {
+      return null;
+    }
     if (updatedEntity.getStoreType() == null) {
       Update updateOperationsForOnboardingToInline = PMSInputSetFilterHelper.getUpdateOperationsForOnboardingToInline();
       updatedEntity = mongoTemplate.findAndModify(query, updateOperationsForOnboardingToInline,
