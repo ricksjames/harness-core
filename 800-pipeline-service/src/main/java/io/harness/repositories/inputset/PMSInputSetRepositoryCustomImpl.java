@@ -245,6 +245,9 @@ public class PMSInputSetRepositoryCustomImpl implements PMSInputSetRepositoryCus
       updatedEntity = mongoTemplate.findAndModify(query, updateOperationsForOnboardingToInline,
           new FindAndModifyOptions().returnNew(true), InputSetEntity.class);
     }
+    if (updatedEntity.getStoreType() == StoreType.INLINE) {
+      return updatedEntity;
+    }
     Scope scope = Scope.builder()
                       .accountIdentifier(updatedEntity.getAccountIdentifier())
                       .orgIdentifier(updatedEntity.getOrgIdentifier())
