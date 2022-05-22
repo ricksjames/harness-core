@@ -100,7 +100,6 @@ public class PMSInputSetServiceImpl implements PMSInputSetService {
       throw new InvalidRequestException(
           String.format("Error while retrieving input set [%s]: %s", identifier, e.getMessage()));
     }
-    // TODO: add validations on input set yaml
     return optionalInputSetEntity;
   }
 

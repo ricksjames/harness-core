@@ -13,6 +13,7 @@ import static io.harness.pms.merger.helpers.InputSetYamlHelper.getPipelineCompon
 import io.harness.EntityType;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.beans.InputSetReference;
+import io.harness.data.structure.EmptyPredicate;
 import io.harness.gitaware.helper.GitAwareContextHelper;
 import io.harness.gitsync.beans.StoreType;
 import io.harness.gitsync.sdk.EntityGitDetails;
@@ -125,6 +126,29 @@ public class PMSInputSetElementMapper {
         .build();
   }
 
+  public InputSetResponseDTOPMS toInputSetResponseDTOPMSWithErrors(
+      InputSetEntity entity, InputSetErrorWrapperDTOPMS errorWrapperDTO) {
+    return InputSetResponseDTOPMS.builder()
+        .accountId(entity.getAccountId())
+        .orgIdentifier(entity.getOrgIdentifier())
+        .projectIdentifier(entity.getProjectIdentifier())
+        .pipelineIdentifier(entity.getPipelineIdentifier())
+        .identifier(entity.getIdentifier())
+        .inputSetYaml(entity.getYaml())
+        .name(entity.getName())
+        .description(entity.getDescription())
+        .tags(TagMapper.convertToMap(entity.getTags()))
+        .version(entity.getVersion())
+        .gitDetails(getEntityGitDetails(entity))
+        .isOutdated(entity.getIsInvalid())
+        .entityValidityDetails(EntityValidityDetails.builder().valid(false).invalidYaml(entity.getYaml()).build())
+        .inputSetErrorWrapper(errorWrapperDTO)
+        .isErrorResponse(true)
+        .storeType(entity.getStoreType())
+        .connectorRef(entity.getConnectorRef())
+        .build();
+  }
+
   public OverlayInputSetResponseDTOPMS toOverlayInputSetResponseDTOPMS(InputSetEntity entity) {
     return toOverlayInputSetResponseDTOPMS(entity, false, null);
   }
@@ -147,7 +171,7 @@ public class PMSInputSetElementMapper {
         .invalidInputSetReferences(invalidReferences)
         .gitDetails(getEntityGitDetails(entity))
         .isOutdated(entity.getIsInvalid())
-        .entityValidityDetails(entity.isEntityInvalid()
+        .entityValidityDetails(entity.isEntityInvalid() || EmptyPredicate.isNotEmpty(invalidReferences)
                 ? EntityValidityDetails.builder().valid(false).invalidYaml(entity.getYaml()).build()
                 : EntityValidityDetails.builder().valid(true).build())
         .storeType(entity.getStoreType())
