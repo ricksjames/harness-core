@@ -5,22 +5,22 @@
  * https://polyformproject.org/wp-content/uploads/2020/05/PolyForm-Free-Trial-1.0.0.txt.
  */
 
-package io.harness.template.beans.refresh;
+package io.harness.gitsync.scm.beans;
 
 import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
-import io.harness.ng.core.template.TemplateEntityType;
 
+import lombok.AccessLevel;
 import lombok.Builder;
-import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.experimental.FieldDefaults;
 
-@OwnedBy(HarnessTeam.CDC)
+@OwnedBy(HarnessTeam.PL)
 @Getter
 @Builder
-@EqualsAndHashCode
-public class TemplateInfo {
-  private String templateIdentifier;
-  private String versionLabel;
-  private TemplateEntityType templateEntityType;
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class ScmErrorDetails {
+  String errorMessage;
+  String explanationMessage;
+  String hintMessage;
 }
