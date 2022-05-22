@@ -34,6 +34,7 @@ import io.harness.pms.pipeline.mappers.PMSPipelineFilterHelper;
 import io.harness.pms.pipeline.service.PipelineMetadataService;
 import io.harness.springdata.TransactionHelper;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Inject;
 import java.time.Duration;
 import java.util.Collections;
@@ -57,7 +58,7 @@ import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.data.repository.support.PageableExecutionUtils;
 
 @GitSyncableHarnessRepo
-@AllArgsConstructor(access = AccessLevel.PRIVATE, onConstructor = @__({ @Inject }))
+@AllArgsConstructor(access = AccessLevel.PACKAGE, onConstructor = @__({ @Inject }))
 @Slf4j
 @OwnedBy(PIPELINE)
 public class PMSPipelineRepositoryCustomImpl implements PMSPipelineRepositoryCustom {
@@ -114,13 +115,17 @@ public class PMSPipelineRepositoryCustomImpl implements PMSPipelineRepositoryCus
     Supplier<OutboxEvent> supplier = ()
         -> outboxService.save(
             new PipelineCreateEvent(accountIdentifier, orgIdentifier, projectIdentifier, pipelineToSave));
-    return transactionHelper.performTransaction(() -> {
-      PipelineEntity savedEntity = savePipelineEntity(pipelineToSave, supplier);
-      checkForMetadataAndSaveIfAbsent(savedEntity);
-      return savedEntity;
-    });
+    return transactionHelper.performTransaction(() -> savePipelineOperations(pipelineToSave, supplier));
   }
 
+  @VisibleForTesting
+  PipelineEntity savePipelineOperations(PipelineEntity pipelineToSave, Supplier<OutboxEvent> supplier) {
+    PipelineEntity savedEntity = savePipelineEntity(pipelineToSave, supplier);
+    checkForMetadataAndSaveIfAbsent(savedEntity);
+    return savedEntity;
+  }
+
+  @VisibleForTesting
   PipelineEntity savePipelineEntity(PipelineEntity pipelineToSave, Supplier<OutboxEvent> supplier) {
     GitAwareContextHelper.initDefaultScmGitMetaData();
     GitEntityInfo gitEntityInfo = GitContextHelper.getGitEntityInfo();
@@ -340,8 +345,7 @@ public class PMSPipelineRepositoryCustomImpl implements PMSPipelineRepositoryCus
     Update updateOperationsForDelete = PMSPipelineFilterHelper.getUpdateOperationsForDelete();
     PipelineEntity deletedPipelineEntity = mongoTemplate.findAndModify(
         query, updateOperationsForDelete, new FindAndModifyOptions().returnNew(true), PipelineEntity.class);
-    outboxService.save(
-        new PipelineDeleteEvent(accountId, orgIdentifier, projectIdentifier, deletedPipelineEntity, true));
+    outboxService.save(new PipelineDeleteEvent(accountId, orgIdentifier, projectIdentifier, deletedPipelineEntity));
     return deletedPipelineEntity;
   }
 

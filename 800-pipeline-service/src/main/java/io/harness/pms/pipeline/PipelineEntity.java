@@ -128,14 +128,14 @@ public class PipelineEntity
   @Setter @NonFinal Boolean isFromDefaultBranch;
   @Setter @NonFinal String branch;
   @Setter @NonFinal String yamlGitConfigRef;
-  @Setter @NonFinal String filePath;
+  @Wither @Setter @NonFinal String filePath; // -> also used in git simplification
   @Setter @NonFinal String rootFolder;
   @Getter(AccessLevel.NONE) @Wither @NonFinal Boolean isEntityInvalid;
 
   // git experience parameters after simplification
   @Wither @Setter @NonFinal StoreType storeType;
-  @Setter @NonFinal String repo;
-  @Setter @NonFinal String connectorRef;
+  @Wither @Setter @NonFinal String repo;
+  @Wither @Setter @NonFinal String connectorRef;
 
   public String getData() {
     return yaml;

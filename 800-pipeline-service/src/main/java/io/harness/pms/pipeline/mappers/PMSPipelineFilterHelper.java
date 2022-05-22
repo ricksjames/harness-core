@@ -37,7 +37,7 @@ public class PMSPipelineFilterHelper {
     return entityFromDB.withYaml(fieldsToUpdate.getYaml())
         .withLastUpdatedAt(timeOfUpdate)
         .withName(fieldsToUpdate.getName())
-        .withDescription(fieldsToUpdate.getYaml())
+        .withDescription(fieldsToUpdate.getDescription())
         .withTags(fieldsToUpdate.getTags())
         .withFilters(fieldsToUpdate.getFilters())
         .withStageCount(fieldsToUpdate.getStageCount())
