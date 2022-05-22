@@ -14,9 +14,7 @@ import static io.harness.pms.pipeline.service.PMSPipelineServiceStepHelper.LIBRA
 import static java.lang.String.format;
 
 import io.harness.annotations.dev.OwnedBy;
-import io.harness.beans.FeatureName;
 import io.harness.data.structure.EmptyPredicate;
-import io.harness.engine.governance.PolicyEvaluationFailureException;
 import io.harness.eventsframework.api.EventsFrameworkDownException;
 import io.harness.eventsframework.schemas.entity.EntityDetailProtoDTO;
 import io.harness.eventsframework.schemas.entity.IdentifierRefProtoDTO;
@@ -41,8 +39,6 @@ import io.harness.gitsync.persistance.GitSyncSdkService;
 import io.harness.gitsync.scm.EntityObjectIdUtils;
 import io.harness.grpc.utils.StringValueUtils;
 import io.harness.pms.PmsFeatureFlagService;
-import io.harness.pms.contracts.governance.GovernanceMetadata;
-import io.harness.pms.contracts.governance.PolicySetMetadata;
 import io.harness.pms.contracts.steps.StepInfo;
 import io.harness.pms.gitsync.PmsGitSyncBranchContextGuard;
 import io.harness.pms.pipeline.CommonStepInfo;
@@ -69,7 +65,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.domain.Page;
