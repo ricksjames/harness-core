@@ -21,11 +21,9 @@ import io.harness.gitsync.common.helper.EntityDistinctElementHelper;
 import io.harness.gitsync.helpers.GitContextHelper;
 import io.harness.gitsync.interceptor.GitEntityInfo;
 import io.harness.gitsync.persistance.GitAwarePersistence;
-import io.harness.gitsync.persistance.GitSyncSdkService;
 import io.harness.gitsync.persistance.GitSyncableHarnessRepo;
 import io.harness.outbox.OutboxEvent;
 import io.harness.outbox.api.OutboxService;
-import io.harness.pms.PmsFeatureFlagService;
 import io.harness.pms.events.PipelineCreateEvent;
 import io.harness.pms.events.PipelineDeleteEvent;
 import io.harness.pms.events.PipelineUpdateEvent;
@@ -65,10 +63,8 @@ import org.springframework.data.repository.support.PageableExecutionUtils;
 public class PMSPipelineRepositoryCustomImpl implements PMSPipelineRepositoryCustom {
   private final MongoTemplate mongoTemplate;
   private final GitAwarePersistence gitAwarePersistence;
-  private final GitSyncSdkService gitSyncSdkService;
   private final TransactionHelper transactionHelper;
   private final PipelineMetadataService pipelineMetadataService;
-  private final PmsFeatureFlagService pmsFeatureFlagService;
   private final GitAwareEntityHelper gitAwareEntityHelper;
   private final OutboxService outboxService;
 
