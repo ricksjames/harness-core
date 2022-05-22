@@ -16,10 +16,10 @@ import org.springframework.data.mongodb.core.query.Update;
 
 @UtilityClass
 public class PMSPipelineFilterHelper {
-  public Update getUpdateOperations(PipelineEntity pipelineEntity) {
+  public Update getUpdateOperations(PipelineEntity pipelineEntity, long timestamp) {
     Update update = new Update();
     update.set(PipelineEntityKeys.yaml, pipelineEntity.getYaml());
-    update.set(PipelineEntityKeys.lastUpdatedAt, System.currentTimeMillis());
+    update.set(PipelineEntityKeys.lastUpdatedAt, timestamp);
     update.set(PipelineEntityKeys.deleted, false);
     update.set(PipelineEntityKeys.name, pipelineEntity.getName());
     update.set(PipelineEntityKeys.description, pipelineEntity.getDescription());
@@ -32,8 +32,10 @@ public class PMSPipelineFilterHelper {
     return update;
   }
 
-  public PipelineEntity updateFieldsInDBEntry(PipelineEntity entityFromDB, PipelineEntity fieldsToUpdate) {
+  public PipelineEntity updateFieldsInDBEntry(
+      PipelineEntity entityFromDB, PipelineEntity fieldsToUpdate, long timeOfUpdate) {
     return entityFromDB.withYaml(fieldsToUpdate.getYaml())
+        .withLastUpdatedAt(timeOfUpdate)
         .withName(fieldsToUpdate.getName())
         .withDescription(fieldsToUpdate.getYaml())
         .withTags(fieldsToUpdate.getTags())

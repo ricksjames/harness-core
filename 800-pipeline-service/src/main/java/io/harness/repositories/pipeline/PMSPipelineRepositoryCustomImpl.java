@@ -253,14 +253,15 @@ public class PMSPipelineRepositoryCustomImpl implements PMSPipelineRepositoryCus
                             .and(PipelineEntityKeys.accountId)
                             .is(pipelineToUpdate.getAccountId());
     Query query = new Query(criteria);
-    Update updateOperations = PMSPipelineFilterHelper.getUpdateOperations(pipelineToUpdate);
+    long timeOfUpdate = System.currentTimeMillis();
+    Update updateOperations = PMSPipelineFilterHelper.getUpdateOperations(pipelineToUpdate, timeOfUpdate);
     PipelineEntity oldEntityFromDB = mongoTemplate.findAndModify(
         query, updateOperations, new FindAndModifyOptions().returnNew(false), PipelineEntity.class);
     if (oldEntityFromDB == null) {
       return null;
     }
     PipelineEntity updatedPipelineEntity =
-        PMSPipelineFilterHelper.updateFieldsInDBEntry(oldEntityFromDB, pipelineToUpdate);
+        PMSPipelineFilterHelper.updateFieldsInDBEntry(oldEntityFromDB, pipelineToUpdate, timeOfUpdate);
     if (updatedPipelineEntity.getStoreType() == null) {
       // onboarding old entities as INLINE
       Update updateOperationsForOnboardingToInline = PMSPipelineFilterHelper.getUpdateOperationsForOnboardingToInline();

@@ -109,7 +109,7 @@ public class InputSetEntity
   @Wither List<String> inputSetReferences;
 
   @Setter @NonFinal @SchemaIgnore @FdIndex @CreatedDate long createdAt;
-  @Setter @NonFinal @SchemaIgnore @NotNull @LastModifiedDate long lastUpdatedAt;
+  @Wither @Setter @NonFinal @SchemaIgnore @NotNull @LastModifiedDate long lastUpdatedAt;
   @Wither @Builder.Default Boolean deleted = Boolean.FALSE;
   @Wither @Version Long version;
 

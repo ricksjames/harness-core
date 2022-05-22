@@ -102,7 +102,7 @@ public class PipelineEntity
   @Wither @NotEmpty @NonFinal @Setter String yaml;
 
   @Setter @NonFinal @SchemaIgnore @FdIndex @CreatedDate long createdAt;
-  @Setter @NonFinal @SchemaIgnore @NotNull @LastModifiedDate long lastUpdatedAt;
+  @Wither @Setter @NonFinal @SchemaIgnore @NotNull @LastModifiedDate long lastUpdatedAt;
   @Wither @Default Boolean deleted = Boolean.FALSE;
 
   @Wither @EntityName String name;
