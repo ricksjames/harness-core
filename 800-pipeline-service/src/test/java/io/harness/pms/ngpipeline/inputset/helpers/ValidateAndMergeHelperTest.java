@@ -72,7 +72,7 @@ public class ValidateAndMergeHelperTest extends PipelineServiceTestBase {
   @Owner(developers = NAMAN)
   @Category(UnitTests.class)
   public void testValidateInputSet() {
-    doReturn(true).when(gitSyncSdkService).isGitSyncEnabled(accountId, orgId, projectId);
+    doReturn(false).when(gitSyncSdkService).isGitSyncEnabled(accountId, orgId, projectId);
     String pipelineFile = "pipeline-extensive.yml";
     String pipelineYaml = readFile(pipelineFile);
     PipelineEntity pipelineEntity = PipelineEntity.builder().yaml(pipelineYaml).build();
@@ -276,7 +276,7 @@ public class ValidateAndMergeHelperTest extends PipelineServiceTestBase {
   @Owner(developers = NAMAN)
   @Category(UnitTests.class)
   public void testMergeInputSetForInvalidInputSets() {
-    doReturn(true).when(gitSyncSdkService).isGitSyncEnabled(accountId, orgId, projectId);
+    doReturn(false).when(gitSyncSdkService).isGitSyncEnabled(accountId, orgId, projectId);
     String pipelineYaml = "pipeline:\n"
         + "  stages:\n"
         + "  - stage:\n"
