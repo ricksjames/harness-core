@@ -28,7 +28,6 @@ import io.harness.pms.pipeline.service.PipelineMetadataService;
 import io.harness.rule.Owner;
 import io.harness.springdata.TransactionHelper;
 
-import java.io.IOException;
 import java.util.Optional;
 import java.util.function.Supplier;
 import lombok.Data;
@@ -82,7 +81,7 @@ public class PMSPipelineRepositoryCustomImplTest extends CategoryTest {
   String filePath = "./harness/filepath.yaml";
 
   @Before
-  public void setUp() throws IOException {
+  public void setUp() {
     MockitoAnnotations.initMocks(this);
     pipelineRepository = new PMSPipelineRepositoryCustomImpl(mongoTemplate, gitAwarePersistence, transactionHelper,
         pipelineMetadataService, gitAwareEntityHelper, outboxService);

@@ -65,6 +65,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.domain.Page;
@@ -76,6 +78,7 @@ import org.springframework.data.mongodb.core.query.Update;
 
 @Singleton
 @Slf4j
+@AllArgsConstructor(access = AccessLevel.PACKAGE, onConstructor = @__({ @Inject }))
 @OwnedBy(PIPELINE)
 public class PMSPipelineServiceImpl implements PMSPipelineService {
   @Inject private PMSPipelineRepository pmsPipelineRepository;
@@ -135,6 +138,10 @@ public class PMSPipelineServiceImpl implements PMSPipelineService {
       String accountId, String orgIdentifier, String projectIdentifier, String identifier, boolean deleted) {
     Optional<PipelineEntity> optionalPipelineEntity =
         getWithoutPerformingValidations(accountId, orgIdentifier, projectIdentifier, identifier, deleted);
+    if (!optionalPipelineEntity.isPresent()) {
+      throw new EntityNotFoundException(
+          PipelineCRUDErrorResponse.errorMessageForPipelineNotFound(orgIdentifier, projectIdentifier, identifier));
+    }
     PipelineEntity pipelineEntity = optionalPipelineEntity.get();
     if (pipelineEntity.getStoreType() == null || pipelineEntity.getStoreType() == StoreType.INLINE) {
       return optionalPipelineEntity;
