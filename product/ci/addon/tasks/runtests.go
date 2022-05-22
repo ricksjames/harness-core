@@ -10,8 +10,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -274,6 +276,8 @@ func (r *runTestsTask) getCmd(ctx context.Context, outputVarFile string) (string
 			switch r.buildTool {
 			case "dotnet":
 				runner = csharp.NewDotnetRunner(r.log, r.fs, r.cmdContextFactory)
+			case "nunitconsole":
+				runner = csharp.NewNunitConsoleRunner(r.log, r.fs, r.cmdContextFactory)
 			default:
 				return "", fmt.Errorf("build tool: %s is not supported for csharp", r.buildTool)
 			}
@@ -316,6 +320,18 @@ func (r *runTestsTask) execute(ctx context.Context, retryCount int32) (map[strin
 	ctx, cancel := context.WithTimeout(ctx, time.Second*time.Duration(r.timeoutSecs))
 	defer cancel()
 
+	// Install agent artifacts if not present
+	_, err := r.installAgents(ctx, "/tmp", r.language, runtime.GOOS, runtime.GOARCH, r.buildTool)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create the config file required for instrumentation
+	//iniFilePath, err := createConfigFile(runner, config.Packages, config.TestAnnotations, workspace, tmpFilePath, fs, log, useYaml)
+	if err != nil {
+		return nil, err
+	}
+
 	outputFile := filepath.Join(r.tmpFilePath, fmt.Sprintf("%s%s", r.id, outputEnvSuffix))
 	cmdToExecute, err := r.getCmd(ctx, outputFile)
 	if err != nil {
@@ -356,4 +372,75 @@ func (r *runTestsTask) execute(ctx context.Context, retryCount int32) (map[strin
 		"elapsed_time_ms", utils.TimeSince(start),
 	)
 	return stepOutput, nil
+}
+
+// installAgents checks if the required artifacts are installed for the language
+// and if not, installs them. It returns back the directory where all the agents are installed.
+func (r *runTestsTask) installAgents(ctx context.Context, baseDir, language, os, arch, framework string) (string, error) {
+
+	c, err := external.GetTiHTTPClient()
+	r.log.Infow("getting TI agent artifact download links")
+	links, err := c.DownloadLink(ctx, language, os, arch, framework, "5.0")
+	if err != nil {
+		r.log.Errorw("could not fetch download links for artifact download")
+		return "", err
+	}
+
+	var installDir string // directory where all the agents are installed
+
+	// Install the Artifacts
+	for idx, l := range links {
+		absPath := filepath.Join(baseDir, l.RelPath)
+		if idx == 0 {
+			installDir = filepath.Dir(absPath)
+		} else if filepath.Dir(absPath) != installDir {
+			return "", fmt.Errorf("artifacts don't have the same relative path: link %s and installDir %s", l, installDir)
+		}
+		// TODO: (Vistaar) Add check for whether the path exists here. This can be implemented
+		// once we have a proper release process for agent artifacts.
+		err := downloadFile(ctx, absPath, l.URL, r.fs)
+		if err != nil {
+			r.log.Errorw("could not download %s to path %s\n", l.URL, installDir)
+			return "", err
+		}
+	}
+
+	return installDir, nil
+}
+func downloadFile(ctx context.Context, path, url string, fs filesystem.FileSystem) error {
+	// Create the nested directory if it doesn't exist
+	dir := filepath.Dir(path)
+	if err := fs.MkdirAll(dir, os.ModePerm); err != nil {
+		return fmt.Errorf("could not create nested directory: %s", err)
+	}
+	// Create the file
+	out, err := fs.Create(path)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	// Get the data
+	req, err := http.NewRequestWithContext(ctx, "GET", url, http.NoBody)
+	if err != nil {
+		return err
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	// Check server response
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("bad status: %s", resp.Status)
+	}
+
+	// Writer the body to file
+	_, err = io.Copy(out, resp.Body)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
