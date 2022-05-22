@@ -256,6 +256,9 @@ public class PMSPipelineRepositoryCustomImpl implements PMSPipelineRepositoryCus
     Update updateOperations = PMSPipelineFilterHelper.getUpdateOperations(pipelineToUpdate);
     PipelineEntity updatedPipelineEntity = mongoTemplate.findAndModify(
         query, updateOperations, new FindAndModifyOptions().returnNew(true), PipelineEntity.class);
+    if (updatedPipelineEntity == null) {
+      return null;
+    }
     if (updatedPipelineEntity.getStoreType() == null) {
       // onboarding old entities as INLINE
       Update updateOperationsForOnboardingToInline = PMSPipelineFilterHelper.getUpdateOperationsForOnboardingToInline();
