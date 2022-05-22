@@ -15,6 +15,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.harness.CategoryTest;
 import io.harness.category.element.UnitTests;
+import io.harness.gitaware.helper.GitAwareContextHelper;
+import io.harness.gitsync.beans.StoreType;
+import io.harness.gitsync.scm.beans.ScmGitMetaData;
+import io.harness.gitsync.sdk.EntityGitDetails;
+import io.harness.gitsync.sdk.EntityValidityDetails;
 import io.harness.ng.core.common.beans.NGTag;
 import io.harness.ng.core.mapper.TagMapper;
 import io.harness.pms.inputset.InputSetErrorWrapperDTOPMS;
@@ -28,6 +33,7 @@ import com.google.common.io.Resources;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -184,6 +190,46 @@ public class PMSInputSetElementMapperTest extends CategoryTest {
     assertThat(inputSetResponseDTOPMS1.getName()).isEqualTo("thisName");
     assertThat(inputSetResponseDTOPMS1.getDescription()).isEqualTo("this is an overlay input set");
     assertThat(inputSetResponseDTOPMS1.getTags()).isEqualTo(tags);
+  }
+
+  @Test
+  @Owner(developers = NAMAN)
+  @Category(UnitTests.class)
+  public void testToInputSetResponseDTOPMSWithErrors() {
+    GitAwareContextHelper.updateScmGitMetaData(
+        ScmGitMetaData.builder().branchName("brName").repoName("repoName").build());
+    InputSetEntity entity =
+        PMSInputSetElementMapper
+            .toInputSetEntity(ACCOUNT_ID, ORG_IDENTIFIER, PROJ_IDENTIFIER, PIPELINE_IDENTIFIER, inputSetYaml)
+            .withStoreType(StoreType.REMOTE);
+    InputSetErrorWrapperDTOPMS dummyErrorResponse =
+        InputSetErrorWrapperDTOPMS.builder().uuidToErrorResponseMap(Collections.singletonMap("fqn", null)).build();
+    InputSetResponseDTOPMS inputSetResponseDTO =
+        PMSInputSetElementMapper.toInputSetResponseDTOPMSWithErrors(entity, dummyErrorResponse);
+    assertThat(inputSetResponseDTO.isErrorResponse()).isTrue();
+    assertThat(inputSetResponseDTO.getInputSetErrorWrapper()).isEqualTo(dummyErrorResponse);
+
+    assertThat(inputSetResponseDTO.getAccountId()).isEqualTo(ACCOUNT_ID);
+    assertThat(inputSetResponseDTO.getOrgIdentifier()).isEqualTo(ORG_IDENTIFIER);
+    assertThat(inputSetResponseDTO.getProjectIdentifier()).isEqualTo(PROJ_IDENTIFIER);
+    assertThat(inputSetResponseDTO.getPipelineIdentifier()).isEqualTo(PIPELINE_IDENTIFIER);
+
+    Map<String, String> tags = new LinkedHashMap<>();
+    tags.put("company", "harness");
+    tags.put("kind", "normal");
+    assertThat(inputSetResponseDTO.getIdentifier()).isEqualTo("input1");
+    assertThat(inputSetResponseDTO.getName()).isEqualTo("this name");
+    assertThat(inputSetResponseDTO.getDescription()).isEqualTo("this has a description too");
+    assertThat(inputSetResponseDTO.getTags()).isEqualTo(tags);
+
+    EntityValidityDetails entityValidityDetails = inputSetResponseDTO.getEntityValidityDetails();
+    assertThat(entityValidityDetails.isValid()).isFalse();
+    assertThat(entityValidityDetails.getInvalidYaml()).isEqualTo(inputSetYaml);
+
+    EntityGitDetails gitDetails = inputSetResponseDTO.getGitDetails();
+    assertThat(gitDetails.getRepoName()).isEqualTo("repoName");
+    assertThat(gitDetails.getRepoIdentifier()).isNull();
+    assertThat(gitDetails.getBranch()).isEqualTo("brName");
   }
 
   @Test
