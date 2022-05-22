@@ -28,6 +28,7 @@ import io.harness.exception.EntityNotFoundException;
 import io.harness.exception.InvalidRequestException;
 import io.harness.exception.ngexception.beans.yamlschema.YamlSchemaErrorWrapperDTO;
 import io.harness.git.model.ChangeType;
+import io.harness.gitaware.helper.GitAwareContextHelper;
 import io.harness.gitsync.interceptor.GitEntityCreateInfoDTO;
 import io.harness.gitsync.interceptor.GitEntityDeleteInfoDTO;
 import io.harness.gitsync.interceptor.GitEntityFindInfoDTO;
@@ -312,12 +313,14 @@ public class PipelineResource implements YamlSchemaResource {
               .yamlPipeline(pe.getYaml())
               .governanceMetadata(pe.getGovernanceMetadata())
               .entityValidityDetails(EntityValidityDetails.builder().valid(false).invalidYaml(pe.getYaml()).build())
+              .gitDetails(GitAwareContextHelper.getEntityGitDetailsFromScmGitMetadata())
               .build());
     } catch (InvalidYamlException e) {
       return ResponseDTO.newResponse(
           PMSPipelineResponseDTO.builder()
               .yamlPipeline(e.getYaml())
               .entityValidityDetails(EntityValidityDetails.builder().valid(false).invalidYaml(e.getYaml()).build())
+              .gitDetails(GitAwareContextHelper.getEntityGitDetailsFromScmGitMetadata())
               .yamlSchemaErrorWrapper((YamlSchemaErrorWrapperDTO) e.getMetadata())
               .build());
     }
