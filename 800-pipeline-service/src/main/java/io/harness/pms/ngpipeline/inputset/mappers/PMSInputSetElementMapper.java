@@ -97,11 +97,13 @@ public class PMSInputSetElementMapper {
         .build();
   }
 
-  public InputSetResponseDTOPMS toInputSetResponseDTOPMS(InputSetEntity entity) {
-    EntityGitDetails entityGitDetails = entity.getStoreType() == null
-        ? EntityGitDetailsMapper.mapEntityGitDetails(entity)
+  public EntityGitDetails getEntityGitDetails(InputSetEntity entity) {
+    return entity.getStoreType() == null            ? EntityGitDetailsMapper.mapEntityGitDetails(entity)
         : entity.getStoreType() == StoreType.REMOTE ? GitAwareContextHelper.getEntityGitDetailsFromScmGitMetadata()
                                                     : null;
+  }
+
+  public InputSetResponseDTOPMS toInputSetResponseDTOPMS(InputSetEntity entity) {
     return InputSetResponseDTOPMS.builder()
         .accountId(entity.getAccountId())
         .orgIdentifier(entity.getOrgIdentifier())
@@ -113,7 +115,7 @@ public class PMSInputSetElementMapper {
         .description(entity.getDescription())
         .tags(TagMapper.convertToMap(entity.getTags()))
         .version(entity.getVersion())
-        .gitDetails(entityGitDetails)
+        .gitDetails(getEntityGitDetails(entity))
         .isOutdated(entity.getIsInvalid())
         .entityValidityDetails(entity.isEntityInvalid()
                 ? EntityValidityDetails.builder().valid(false).invalidYaml(entity.getYaml()).build()
@@ -129,10 +131,6 @@ public class PMSInputSetElementMapper {
 
   public OverlayInputSetResponseDTOPMS toOverlayInputSetResponseDTOPMS(
       InputSetEntity entity, boolean isError, Map<String, String> invalidReferences) {
-    EntityGitDetails entityGitDetails = entity.getStoreType() == null
-        ? EntityGitDetailsMapper.mapEntityGitDetails(entity)
-        : entity.getStoreType() == StoreType.REMOTE ? GitAwareContextHelper.getEntityGitDetailsFromScmGitMetadata()
-                                                    : null;
     return OverlayInputSetResponseDTOPMS.builder()
         .accountId(entity.getAccountId())
         .orgIdentifier(entity.getOrgIdentifier())
@@ -147,7 +145,7 @@ public class PMSInputSetElementMapper {
         .version(entity.getVersion())
         .isErrorResponse(isError)
         .invalidInputSetReferences(invalidReferences)
-        .gitDetails(entityGitDetails)
+        .gitDetails(getEntityGitDetails(entity))
         .isOutdated(entity.getIsInvalid())
         .entityValidityDetails(entity.isEntityInvalid()
                 ? EntityValidityDetails.builder().valid(false).invalidYaml(entity.getYaml()).build()
