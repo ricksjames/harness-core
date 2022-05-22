@@ -73,7 +73,6 @@ public class PMSInputSetServiceImplTest extends PipelineServiceTestBase {
 
   String INPUT_SET_IDENTIFIER = "identifier";
   String NAME = "identifier";
-  String YAML_GIT_CONFIG_REF = "git_config_ref";
   String YAML;
 
   InputSetEntity inputSetEntity;
