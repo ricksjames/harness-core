@@ -144,6 +144,7 @@ public class ScmFacilitatorServiceImpl implements ScmFacilitatorService {
         .fileContent(fileContent.getContent())
         .blobId(fileContent.getBlobId())
         .commitId(fileContent.getCommitId())
+        .branchName(branchName)
         .build();
   }
 

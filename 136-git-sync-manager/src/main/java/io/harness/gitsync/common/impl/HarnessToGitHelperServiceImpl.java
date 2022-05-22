@@ -52,7 +52,6 @@ import io.harness.gitsync.common.dtos.ScmCreateFileRequestDTO;
 import io.harness.gitsync.common.dtos.ScmCreatePRRequestDTO;
 import io.harness.gitsync.common.dtos.ScmCreatePRResponseDTO;
 import io.harness.gitsync.common.dtos.ScmGetFileByBranchRequestDTO;
-import io.harness.gitsync.common.dtos.ScmGetFileRequestDTO;
 import io.harness.gitsync.common.dtos.ScmGetFileResponseDTO;
 import io.harness.gitsync.common.dtos.ScmUpdateFileRequestDTO;
 import io.harness.gitsync.common.helper.GitFilePathHelper;
@@ -515,7 +514,7 @@ public class HarnessToGitHelperServiceImpl implements HarnessToGitHelperService 
         .setFileContent(scmGetFileResponseDTO.getFileContent())
         .setGitMetaData(GitMetaData.newBuilder()
                             .setRepoName(getFileRequest.getRepoName())
-                            .setBranchName(getFileRequest.getBranchName())
+                            .setBranchName(scmGetFileResponseDTO.getBranchName())
                             .setCommitId(scmGetFileResponseDTO.getCommitId())
                             .setBlobId(scmGetFileResponseDTO.getBlobId())
                             .setFilePath(getFileRequest.getFilePath())
