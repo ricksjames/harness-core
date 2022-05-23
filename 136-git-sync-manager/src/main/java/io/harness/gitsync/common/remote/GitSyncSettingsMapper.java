@@ -40,8 +40,6 @@ public class GitSyncSettingsMapper {
     Map<String, String> settings = new HashMap<>();
     settings.put(IS_EXECUTE_ON_DELEGATE,
         (gitSyncSettingsDTO.isExecuteOnDelegate()) ? String.valueOf(true) : String.valueOf(false));
-    settings.put(IS_GIT_SIMPLIFICATION_ENABLED,
-        (gitSyncSettingsDTO.isGitSimplificationEnabled()) ? String.valueOf(true) : String.valueOf(false));
     return GitSyncSettings.builder()
         .accountIdentifier(gitSyncSettingsDTO.getAccountIdentifier())
         .orgIdentifier(gitSyncSettingsDTO.getOrgIdentifier())
