@@ -50,6 +50,8 @@ public class PreAggregatedTableSchema {
   public static final DbColumn awsAvailabilityZone;
   public static final DbColumn awsUsageAccountId;
   public static final DbColumn azureSubscriptionGuid;
+  public static final DbColumn azureResourceGroup;
+  public static final DbColumn azureMeterCategory;
   public static final DbColumn awsInstanceType;
   public static final DbColumn awsUsageType;
   public static final DbColumn startTime;
@@ -87,5 +89,7 @@ public class PreAggregatedTableSchema {
     gcpSkuDescription = table.addColumn("gcpSkuDescription");
 
     azureSubscriptionGuid = table.addColumn("azureSubscriptionGuid");
+    azureResourceGroup = table.addColumn("azureResourceGroup");
+    azureMeterCategory = table.addColumn("azureMeterCategory");
   }
 }

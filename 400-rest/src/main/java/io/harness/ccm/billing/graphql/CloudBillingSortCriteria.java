@@ -77,6 +77,12 @@ public class CloudBillingSortCriteria {
       case azureSubscriptionGuid:
         orderIdentifier = PreAggregateConstants.azureSubscriptionGuid;
         break;
+      case azureResourceGroup:
+        orderIdentifier = PreAggregateConstants.azureResourceGroup;
+        break;
+      case azureMeterCategory:
+        orderIdentifier = PreAggregateConstants.azureMeterCategory;
+        break;
       default:
         break;
     }

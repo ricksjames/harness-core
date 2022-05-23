@@ -34,7 +34,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.springframework.batch.core.StepExecution;
 
-public class AnomalyDetectionAzureSubscriptionReader extends AnomalyDetectionCloudReaderNG {
+public class AnomalyDetectionAzureMeterCategoryReader extends AnomalyDetectionCloudReaderNG {
   private static final String AZURE_SUBSCRIPTION_ID = "azureSubscriptionGuid";
   private static final String START_TIME = "startTime";
   private static final String COST = "cost";
@@ -66,7 +66,7 @@ public class AnomalyDetectionAzureSubscriptionReader extends AnomalyDetectionClo
                              .trainEnd(endTime.minus(1, ChronoUnit.DAYS))
                              .testStart(endTime.minus(1, ChronoUnit.DAYS))
                              .testEnd(endTime)
-                             .entityType(EntityType.AZURE_SUBSCRIPTION)
+                             .entityType(EntityType.AZURE_METER_CATEGORY)
                              .cloudQueryMetaData(queryMetaData)
                              .timeGranularity(TimeGranularity.DAILY)
                              .build();
@@ -93,6 +93,14 @@ public class AnomalyDetectionAzureSubscriptionReader extends AnomalyDetectionClo
     subscriptionGroupBy.setEntityGroupBy(CloudEntityGroupBy.azureSubscriptionGuid);
     groupByList.add(subscriptionGroupBy);
 
+    CloudBillingGroupBy azureResourceGroupBy = new CloudBillingGroupBy();
+    azureResourceGroupBy.setEntityGroupBy(CloudEntityGroupBy.azureResourceGroup);
+    groupByList.add(azureResourceGroupBy);
+
+    CloudBillingGroupBy azureMeterCategoryGroupBy = new CloudBillingGroupBy();
+    azureMeterCategoryGroupBy.setEntityGroupBy(CloudEntityGroupBy.azureMeterCategory);
+    groupByList.add(azureMeterCategoryGroupBy);
+
     CloudBillingGroupBy startTime = new CloudBillingGroupBy();
     startTime.setTimeTruncGroupby(TimeTruncGroupby.builder().entity(PreAggregatedTableSchema.startTime).build());
     groupByList.add(startTime);
@@ -107,6 +115,16 @@ public class AnomalyDetectionAzureSubscriptionReader extends AnomalyDetectionClo
     // sort Critera
     sortCriteriaList.add(CloudBillingSortCriteria.builder()
                              .sortType(CloudSortType.azureSubscriptionGuid)
+                             .sortOrder(QLSortOrder.ASCENDING)
+                             .build());
+
+    sortCriteriaList.add(CloudBillingSortCriteria.builder()
+                             .sortType(CloudSortType.azureResourceGroup)
+                             .sortOrder(QLSortOrder.ASCENDING)
+                             .build());
+
+    sortCriteriaList.add(CloudBillingSortCriteria.builder()
+                             .sortType(CloudSortType.azureMeterCategory)
                              .sortOrder(QLSortOrder.ASCENDING)
                              .build());
 

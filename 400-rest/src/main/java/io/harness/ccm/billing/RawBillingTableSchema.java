@@ -60,6 +60,8 @@ public class RawBillingTableSchema {
   public static final DbColumn awsRegion;
   public static final DbColumn awsStartTime;
   public static final DbColumn azureSubscriptionGuid;
+  public static final DbColumn azureResourceGroup;
+  public static final DbColumn azureMeterCategory;
 
   static {
     spec = new DbSpec();
@@ -97,6 +99,8 @@ public class RawBillingTableSchema {
     awsUsageType = table.addColumn("usagetype");
 
     azureSubscriptionGuid = table.addColumn("azureSubscriptionGuid");
+    azureResourceGroup = table.addColumn("azureResourceGroup");
+    azureMeterCategory = table.addColumn("azureMeterCategory");
 
     labels = table.addColumn("labels");
     tags = table.addColumn("tags");

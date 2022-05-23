@@ -27,5 +27,7 @@ public enum CloudSortType {
   awsLinkedAccount,
   awsUsageType,
   azureSubscriptionGuid,
+  azureResourceGroup,
+  azureMeterCategory,
   awsInstanceType;
 }
