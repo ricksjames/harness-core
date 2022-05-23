@@ -8,6 +8,7 @@
 package io.harness.event.service.impl;
 
 import io.harness.ccm.commons.entities.events.PublishedMessage;
+import io.harness.ccm.commons.entities.events.PublishedMessage.PublishedMessageKeys;
 import io.harness.event.app.EventServiceConfig;
 import io.harness.event.service.intfc.EventBatchQueryFnFactory;
 import io.harness.event.service.intfc.EventDataBulkWriteService;
@@ -38,19 +39,20 @@ public class EventDataBulkWriteServiceImpl implements EventDataBulkWriteService 
 
   private final EventBatchQueryFnFactory<PublishedMessage> publishedMessageUpsertQueryFn =
       (bulkWriteOperation, publishedMessage) -> {
-    final BasicDBObject publishedMessageBasicDBObject = new BasicDBObject()
-                                                            .append("accountId", publishedMessage.getAccountId())
-                                                            .append("_id", publishedMessage.getUuid())
-                                                            .append("createdAt", Instant.now().toEpochMilli())
-                                                            .append("validUntil", publishedMessage.getValidUntil())
-                                                            .append("occurredAt", publishedMessage.getOccurredAt())
-                                                            .append("type", publishedMessage.getType())
-                                                            .append("data", publishedMessage.getData())
-                                                            .append("category", publishedMessage.getCategory())
-                                                            .append("attributes", publishedMessage.getAttributes());
+    final BasicDBObject publishedMessageBasicDBObject =
+        new BasicDBObject()
+            .append("_id", publishedMessage.getUuid())
+            .append(PublishedMessageKeys.accountId, publishedMessage.getAccountId())
+            .append(PublishedMessageKeys.createdAt, Instant.now().toEpochMilli())
+            .append(PublishedMessageKeys.validUntil, publishedMessage.getValidUntil())
+            .append(PublishedMessageKeys.occurredAt, publishedMessage.getOccurredAt())
+            .append(PublishedMessageKeys.type, publishedMessage.getType())
+            .append(PublishedMessageKeys.data, publishedMessage.getData())
+            .append(PublishedMessageKeys.category, publishedMessage.getCategory())
+            .append(PublishedMessageKeys.attributes, publishedMessage.getAttributes());
 
-    final BasicDBObject filter = new BasicDBObject(
-        ImmutableMap.of("accountId", publishedMessage.getAccountId(), "_id", publishedMessage.getUuid()));
+    final BasicDBObject filter = new BasicDBObject(ImmutableMap.of(
+        PublishedMessageKeys.accountId, publishedMessage.getAccountId(), "_id", publishedMessage.getUuid()));
 
     bulkWriteOperation.find(filter).upsert().update(new BasicDBObject("$set", publishedMessageBasicDBObject));
   };
@@ -85,9 +87,11 @@ public class EventDataBulkWriteServiceImpl implements EventDataBulkWriteService 
   }
 
   private BulkWriteResult bulkWriteExecutor(final BulkWriteOperation bulkWriteOperation) {
+    BulkWriteResult result;
     for (int i = 1; i < 5; i++) {
       try {
-        return bulkWriteOperation.execute();
+        result = bulkWriteOperation.execute();
+        log.info("BulkWriteExecutor result: {}", result.toString());
       } catch (final IllegalArgumentException ex) {
         log.error("Exception occurred with bulkWriteExecutor", ex);
         throw ex;
@@ -95,7 +99,7 @@ public class EventDataBulkWriteServiceImpl implements EventDataBulkWriteService 
         log.warn("Exception occurred with bulkWriteExecutor, retry:{}", i, ex);
       }
     }
-    final BulkWriteResult result = bulkWriteOperation.execute();
+    result = bulkWriteOperation.execute();
     log.info(
         "BulkWriteExecutor result [acknowledged:{}, insertedCount:{}, matchedCount:{}, modifiedCount:{}, removedCount:{}]",
         result.isAcknowledged(), result.getInsertedCount(), result.getMatchedCount(), result.getModifiedCount(),
