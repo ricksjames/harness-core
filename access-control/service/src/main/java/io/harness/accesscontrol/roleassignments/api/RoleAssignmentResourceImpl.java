@@ -19,6 +19,7 @@ import static io.harness.accesscontrol.resources.resourcegroups.HarnessResourceG
 import static io.harness.accesscontrol.resources.resourcegroups.HarnessResourceGroupConstants.DEFAULT_PROJECT_LEVEL_RESOURCE_GROUP_IDENTIFIER;
 import static io.harness.accesscontrol.roleassignments.api.RoleAssignmentDTO.MODEL_NAME;
 import static io.harness.accesscontrol.roleassignments.api.RoleAssignmentDTOMapper.fromDTO;
+import static io.harness.accesscontrol.roleassignments.api.RoleAssignmentDTOMapper.fromDTOIncludingChildScopes;
 import static io.harness.accesscontrol.roleassignments.api.RoleAssignmentDTOMapper.toDTO;
 import static io.harness.accesscontrol.scopes.harness.ScopeMapper.fromParams;
 import static io.harness.accesscontrol.scopes.harness.ScopeMapper.toParams;
@@ -203,6 +204,23 @@ public class RoleAssignmentResourceImpl implements RoleAssignmentResource {
   }
 
   @Override
+  public ResponseDTO<List<RoleAssignmentResponseDTO>> getAllIncludingChildScopes(
+      HarnessScopeParams harnessScopeParams, RoleAssignmentFilterDTO roleAssignmentFilterDTO) {
+    Scope scope = fromParams(harnessScopeParams);
+    RoleAssignmentFilter roleAssignmentFilter = fromDTOIncludingChildScopes(scope.toString(), roleAssignmentFilterDTO);
+
+    PageRequest pageRequest = PageRequest.builder().pageSize(1000).build();
+    List<RoleAssignment> roleAssignments = roleAssignmentService.list(pageRequest, roleAssignmentFilter).getContent();
+    return ResponseDTO.newResponse(roleAssignments.stream()
+                                       .filter(roleAssignment
+                                           -> checkViewPermission(toParams(scopeService.buildScopeFromScopeIdentifier(
+                                                                      roleAssignment.getScopeIdentifier())),
+                                               roleAssignment.getPrincipalType()))
+                                       .map(roleAssignmentDTOMapper::toResponseDTO)
+                                       .collect(Collectors.toList()));
+  }
+
+  @Override
   public ResponseDTO<RoleAssignmentAggregateResponseDTO> getAggregated(
       HarnessScopeParams harnessScopeParams, RoleAssignmentFilterDTO roleAssignmentFilter) {
     Scope scope = fromParams(harnessScopeParams);
@@ -260,11 +278,13 @@ public class RoleAssignmentResourceImpl implements RoleAssignmentResource {
 
   private RoleAssignment buildRoleAssignmentWithPrincipalScopeLevel(RoleAssignment roleAssignment, Scope scope) {
     String principalScopeLevel = null;
-    // remove this when custom principal scope level supported
-    if (USER_GROUP.equals(roleAssignment.getPrincipalType())) {
+    if (USER_GROUP.equals(roleAssignment.getPrincipalType()) && !isEmpty(roleAssignment.getPrincipalScopeLevel())) {
+      principalScopeLevel = roleAssignment.getPrincipalScopeLevel();
+    }
+    if (USER_GROUP.equals(roleAssignment.getPrincipalType()) && isEmpty(roleAssignment.getPrincipalScopeLevel())) {
       principalScopeLevel = roleAssignment.getScopeLevel();
     }
-    if (SERVICE_ACCOUNT.equals(roleAssignment.getPrincipalType())) {
+    if (SERVICE_ACCOUNT.equals(roleAssignment.getPrincipalType()) && isEmpty(roleAssignment.getPrincipalScopeLevel())) {
       principalScopeLevel = getServiceAccountScopeLevel(roleAssignment.getPrincipalIdentifier(), scope);
     }
     return RoleAssignment.builder()
@@ -285,7 +305,12 @@ public class RoleAssignmentResourceImpl implements RoleAssignmentResource {
 
   private String getServiceAccountScopeLevel(@NotNull String serviceAccountIdentifier, @NotNull Scope scope) {
     HarnessScopeParams scopeParams = ScopeMapper.toParams(scope);
-    harnessServiceAccountService.sync(serviceAccountIdentifier, scope);
+    Scope serviceAccountScope = scope;
+    while (serviceAccountScope != null) {
+      harnessServiceAccountService.sync(serviceAccountIdentifier, scope);
+      serviceAccountScope = serviceAccountScope.getParentScope();
+    }
+
     Scope accountScope = ScopeMapper.fromParams(
         HarnessScopeParams.builder().accountIdentifier(scopeParams.getAccountIdentifier()).build());
     if (serviceAccountService.get(serviceAccountIdentifier, accountScope.toString()).isPresent()) {
@@ -319,8 +344,6 @@ public class RoleAssignmentResourceImpl implements RoleAssignmentResource {
           String.format("Principal scope level cannot be %s for %s scoped role assignment.",
               principalDTO.getScopeLevel(), scopeLevel.toString()));
     }
-    // remove this after the migration
-    throw new InvalidRequestException("Custom principal scope level is not supported right now.");
   }
 
   private static boolean isValidParentScopeLevel(ScopeLevel parentScopeLevel, ScopeLevel scopeLevel) {

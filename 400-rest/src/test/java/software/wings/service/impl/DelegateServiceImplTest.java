@@ -11,6 +11,7 @@ import static io.harness.data.structure.EmptyPredicate.isNotEmpty;
 import static io.harness.data.structure.UUIDGenerator.generateUuid;
 import static io.harness.delegate.beans.TaskData.DEFAULT_ASYNC_CALL_TIMEOUT;
 import static io.harness.rule.OwnerRule.ADWAIT;
+import static io.harness.rule.OwnerRule.ANUPAM;
 import static io.harness.rule.OwnerRule.ARPIT;
 import static io.harness.rule.OwnerRule.BOJAN;
 import static io.harness.rule.OwnerRule.BRETT;
@@ -47,6 +48,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import io.harness.agent.sdk.HarnessAlwaysRun;
 import io.harness.annotations.dev.HarnessModule;
 import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
@@ -60,6 +62,7 @@ import io.harness.delegate.NoEligibleDelegatesInAccountException;
 import io.harness.delegate.beans.Delegate;
 import io.harness.delegate.beans.Delegate.DelegateBuilder;
 import io.harness.delegate.beans.Delegate.DelegateKeys;
+import io.harness.delegate.beans.DelegateConfiguration;
 import io.harness.delegate.beans.DelegateEntityOwner;
 import io.harness.delegate.beans.DelegateGroup;
 import io.harness.delegate.beans.DelegateInitializationDetails;
@@ -109,6 +112,7 @@ import software.wings.beans.Account;
 import software.wings.beans.CEDelegateStatus;
 import software.wings.beans.DelegateConnection;
 import software.wings.beans.DelegateConnection.DelegateConnectionKeys;
+import software.wings.beans.HttpStateExecutionResponse;
 import software.wings.beans.KmsConfig;
 import software.wings.beans.TaskType;
 import software.wings.beans.VaultConfig;
@@ -120,7 +124,6 @@ import software.wings.service.intfc.AssignDelegateService;
 import software.wings.service.intfc.DelegateProfileService;
 import software.wings.service.intfc.EmailNotificationService;
 import software.wings.service.intfc.SettingsService;
-import software.wings.sm.states.HttpState.HttpStateExecutionResponse;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
@@ -128,6 +131,7 @@ import com.google.inject.Inject;
 import io.serializer.HObjectMapper;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -164,6 +168,7 @@ public class DelegateServiceImplTest extends WingsBaseTest {
   private static final String SECRET_URL = "http://google.com/?q=${secretManager.obtain(\"test\", 1234)}";
 
   private static final String VERSION = "1.0.0";
+  private static final String TARGET_VERSION = "1.0.1";
   private static final String TEST_DELEGATE_PROFILE_ID = generateUuid();
   private static final long TEST_PROFILE_EXECUTION_TIME = System.currentTimeMillis();
 
@@ -229,6 +234,7 @@ public class DelegateServiceImplTest extends WingsBaseTest {
   @Test
   @Owner(developers = BRETT)
   @Category(UnitTests.class)
+  @HarnessAlwaysRun
   public void shouldExecuteTask() {
     Delegate delegate = createDelegateBuilder().build();
     persistence.save(delegate);
@@ -725,6 +731,7 @@ public class DelegateServiceImplTest extends WingsBaseTest {
 
     delegateIds.add(delegateId2);
 
+    when(accountService.getAccountPrimaryDelegateVersion(any())).thenReturn(versionInfoManager.getFullVersion());
     List<String> connectedDelegates = delegateService.getConnectedDelegates(ACCOUNT_ID, delegateIds);
 
     assertThat(connectedDelegates.size()).isEqualTo(1);
@@ -1342,6 +1349,81 @@ public class DelegateServiceImplTest extends WingsBaseTest {
   public void shouldValidateDelegateProfileIdEmpty() {
     setUpDelegatesForInitializationTest();
     delegateService.validateDelegateProfileId(ACCOUNT_ID, null);
+  }
+
+  @Test
+  @Owner(developers = ANUPAM)
+  @Category(UnitTests.class)
+  public void testGetConnectedRatioWithPrimary() {
+    String delegateId = generateUuid();
+
+    DelegateConnection delegateConnection = DelegateConnection.builder()
+                                                .accountId(ACCOUNT_ID)
+                                                .delegateId(delegateId)
+                                                .version(VERSION)
+                                                .disconnected(false)
+                                                .lastHeartbeat(System.currentTimeMillis())
+                                                .build();
+
+    persistence.save(delegateConnection);
+
+    DelegateConfiguration delegateConfiguration =
+        DelegateConfiguration.builder().delegateVersions(Arrays.asList(VERSION)).build();
+    when(accountService.getDelegateConfiguration(ACCOUNT_ID)).thenReturn(delegateConfiguration);
+
+    Double ratio = delegateService.getConnectedRatioWithPrimary(VERSION, ACCOUNT_ID);
+    assertThat(ratio).isEqualTo(1.0);
+  }
+
+  @Test
+  @Owner(developers = ANUPAM)
+  @Category(UnitTests.class)
+  public void testGetConnectedRatioWithPrimaryWithNoAccountID() {
+    String delegateId = generateUuid();
+
+    DelegateConnection delegateConnection = DelegateConnection.builder()
+                                                .accountId(Account.GLOBAL_ACCOUNT_ID)
+                                                .delegateId(delegateId)
+                                                .version(VERSION)
+                                                .disconnected(false)
+                                                .lastHeartbeat(System.currentTimeMillis())
+                                                .build();
+
+    persistence.save(delegateConnection);
+
+    DelegateConfiguration delegateConfiguration =
+        DelegateConfiguration.builder().delegateVersions(Arrays.asList(VERSION)).build();
+    when(accountService.getDelegateConfiguration(Account.GLOBAL_ACCOUNT_ID)).thenReturn(delegateConfiguration);
+
+    Double ratio = delegateService.getConnectedRatioWithPrimary(VERSION, null);
+    assertThat(ratio).isEqualTo(1.0);
+  }
+
+  @Test
+  @Owner(developers = ANUPAM)
+  @Category(UnitTests.class)
+  public void testGetConnectedDelegatesRatio() {
+    DelegateConnection delegateConnection1 = DelegateConnection.builder()
+                                                 .accountId(ACCOUNT_ID)
+                                                 .delegateId(generateUuid())
+                                                 .version(VERSION)
+                                                 .disconnected(false)
+                                                 .lastHeartbeat(System.currentTimeMillis())
+                                                 .build();
+
+    DelegateConnection delegateConnection2 = DelegateConnection.builder()
+                                                 .accountId(ACCOUNT_ID)
+                                                 .delegateId(generateUuid())
+                                                 .version(VERSION)
+                                                 .disconnected(true)
+                                                 .lastHeartbeat(System.currentTimeMillis())
+                                                 .build();
+
+    persistence.save(delegateConnection1);
+    persistence.save(delegateConnection2);
+
+    Double ratio = delegateService.getConnectedDelegatesRatio(VERSION, ACCOUNT_ID);
+    assertThat(ratio).isEqualTo(0.5);
   }
 
   private List<String> setUpDelegatesForInitializationTest() {

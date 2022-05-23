@@ -185,6 +185,20 @@ import com.google.common.io.Resources;
 import com.google.common.util.concurrent.TimeLimiter;
 import com.google.common.util.concurrent.UncheckedTimeoutException;
 import com.google.inject.Inject;
+import io.fabric8.istio.api.networking.v1alpha3.Destination;
+import io.fabric8.istio.api.networking.v1alpha3.DestinationBuilder;
+import io.fabric8.istio.api.networking.v1alpha3.HTTPRoute;
+import io.fabric8.istio.api.networking.v1alpha3.HTTPRouteBuilder;
+import io.fabric8.istio.api.networking.v1alpha3.HTTPRouteDestination;
+import io.fabric8.istio.api.networking.v1alpha3.HTTPRouteDestinationBuilder;
+import io.fabric8.istio.api.networking.v1alpha3.PortSelectorBuilder;
+import io.fabric8.istio.api.networking.v1alpha3.Subset;
+import io.fabric8.istio.api.networking.v1alpha3.TCPRoute;
+import io.fabric8.istio.api.networking.v1alpha3.TLSRoute;
+import io.fabric8.istio.api.networking.v1alpha3.VirtualService;
+import io.fabric8.istio.api.networking.v1alpha3.VirtualServiceBuilder;
+import io.fabric8.istio.api.networking.v1alpha3.VirtualServiceSpec;
+import io.fabric8.istio.api.networking.v1alpha3.VirtualServiceSpecBuilder;
 import io.fabric8.kubernetes.api.model.ContainerStatusBuilder;
 import io.fabric8.kubernetes.api.model.ObjectMetaBuilder;
 import io.fabric8.kubernetes.api.model.Pod;
@@ -236,21 +250,6 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import junitparams.JUnitParamsRunner;
 import lombok.extern.slf4j.Slf4j;
-import me.snowdrop.istio.api.networking.v1alpha3.Destination;
-import me.snowdrop.istio.api.networking.v1alpha3.DestinationBuilder;
-import me.snowdrop.istio.api.networking.v1alpha3.DestinationWeight;
-import me.snowdrop.istio.api.networking.v1alpha3.DestinationWeightBuilder;
-import me.snowdrop.istio.api.networking.v1alpha3.HTTPRoute;
-import me.snowdrop.istio.api.networking.v1alpha3.HTTPRouteBuilder;
-import me.snowdrop.istio.api.networking.v1alpha3.NumberPort;
-import me.snowdrop.istio.api.networking.v1alpha3.PortSelectorBuilder;
-import me.snowdrop.istio.api.networking.v1alpha3.Subset;
-import me.snowdrop.istio.api.networking.v1alpha3.TCPRoute;
-import me.snowdrop.istio.api.networking.v1alpha3.TLSRoute;
-import me.snowdrop.istio.api.networking.v1alpha3.VirtualService;
-import me.snowdrop.istio.api.networking.v1alpha3.VirtualServiceBuilder;
-import me.snowdrop.istio.api.networking.v1alpha3.VirtualServiceSpec;
-import me.snowdrop.istio.api.networking.v1alpha3.VirtualServiceSpecBuilder;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.TrueFileFilter;
 import org.jetbrains.annotations.NotNull;
@@ -551,14 +550,18 @@ public class K8sTaskHelperBaseTest extends CategoryTest {
         + "36\t\tComplete\tconfig change";
 
     ProcessResult processResult = new ProcessResult(0, new ProcessOutput(output.getBytes()));
-    doReturn(processResult).when(spyK8sTaskHelperBase).executeCommandUsingUtils(anyString(), any(), any(), anyString());
+    doReturn(processResult)
+        .when(spyK8sTaskHelperBase)
+        .executeCommandUsingUtils(anyString(), any(), any(), anyString(), any());
 
     String latestRevision =
         spyK8sTaskHelperBase.getLatestRevision(client, resource.getResourceId(), k8sDelegateTaskParams);
     assertThat(latestRevision).isEqualTo("36");
 
     processResult = new ProcessResult(1, new ProcessOutput("".getBytes()));
-    doReturn(processResult).when(spyK8sTaskHelperBase).executeCommandUsingUtils(anyString(), any(), any(), anyString());
+    doReturn(processResult)
+        .when(spyK8sTaskHelperBase)
+        .executeCommandUsingUtils(anyString(), any(), any(), anyString(), any());
 
     latestRevision = spyK8sTaskHelperBase.getLatestRevision(client, resource.getResourceId(), k8sDelegateTaskParams);
     assertThat(latestRevision).isEqualTo("");
@@ -1031,7 +1034,7 @@ public class K8sTaskHelperBaseTest extends CategoryTest {
                      + "139\t\tComplete\tconfig change\n"
                      + "140\t\tComplete\tconfig change\n"))
         .when(spyK8sTaskHelperBase)
-        .executeCommandUsingUtils(any(K8sDelegateTaskParams.class), any(), any(), any());
+        .executeCommandUsingUtils(any(K8sDelegateTaskParams.class), any(), any(), any(), any());
     String latestRevision;
     latestRevision = spyK8sTaskHelperBase.getLatestRevision(Kubectl.client("kubectl", "kubeconfig"),
         K8sTestHelper.deploymentConfig().getResourceId(),
@@ -1047,8 +1050,8 @@ public class K8sTaskHelperBaseTest extends CategoryTest {
                                           .kubeconfigPath("kubeconfig")
                                           .workingDirectory("./working-dir")
                                           .build()),
-            any(), any(),
-            eq("oc --kubeconfig=kubeconfig rollout history DeploymentConfig/test-dc --namespace=default"));
+            any(), any(), eq("oc --kubeconfig=kubeconfig rollout history DeploymentConfig/test-dc --namespace=default"),
+            any());
     assertThat(latestRevision).isEqualTo("140");
   }
 
@@ -1178,14 +1181,16 @@ public class K8sTaskHelperBaseTest extends CategoryTest {
                                                       .build();
 
     ProcessResult processResult = new ProcessResult(0, new ProcessOutput("".getBytes()));
-    doReturn(processResult).when(spyK8sTaskHelperBase).executeCommandUsingUtils(any(String.class), any(), any(), any());
+    doReturn(processResult)
+        .when(spyK8sTaskHelperBase)
+        .executeCommandUsingUtils(any(String.class), any(), any(), any(), any());
 
     final String expectedCommand =
         "oc --kubeconfig=config-path rollout status DeploymentConfig/name --namespace=namespace --watch=true";
     final boolean result =
         spyK8sTaskHelperBase.doStatusCheck(client, resourceId, k8sDelegateTaskParams, executionLogCallback);
 
-    verify(spyK8sTaskHelperBase).executeCommandUsingUtils(eq("."), any(), any(), eq(expectedCommand));
+    verify(spyK8sTaskHelperBase).executeCommandUsingUtils(eq("."), any(), any(), eq(expectedCommand), any());
 
     assertThat(result).isEqualTo(true);
   }
@@ -1211,7 +1216,7 @@ public class K8sTaskHelperBaseTest extends CategoryTest {
     ProcessResult processResult = new ProcessResult(0, new ProcessOutput("".getBytes()));
     doReturn(processResult)
         .when(spyK8sTaskHelperBase)
-        .executeCommandUsingUtils(any(K8sDelegateTaskParams.class), any(), any(), any());
+        .executeCommandUsingUtils(any(K8sDelegateTaskParams.class), any(), any(), any(), any());
 
     List<KubernetesResourceId> resourceIds = new ArrayList<>();
     resourceIds.add(resourceId);
@@ -1220,7 +1225,8 @@ public class K8sTaskHelperBaseTest extends CategoryTest {
         client, resourceIds, k8sDelegateTaskParams, "name", executionLogCallback, false);
     verify(spyK8sTaskHelperBase)
         .executeCommandUsingUtils(eq(k8sDelegateTaskParams), any(), any(),
-            eq("oc --kubeconfig=config-path rollout status DeploymentConfig/name --namespace=namespace --watch=true"));
+            eq("oc --kubeconfig=config-path rollout status DeploymentConfig/name --namespace=namespace --watch=true"),
+            any());
 
     assertThat(result).isEqualTo(false);
   }
@@ -1244,7 +1250,7 @@ public class K8sTaskHelperBaseTest extends CategoryTest {
     ProcessResult processResult = new ProcessResult(1, new ProcessOutput("Something went wrong".getBytes()));
     doReturn(processResult)
         .when(spyK8sTaskHelperBase)
-        .executeCommandUsingUtils(any(K8sDelegateTaskParams.class), any(), any(), any());
+        .executeCommandUsingUtils(any(K8sDelegateTaskParams.class), any(), any(), any(), any());
 
     assertThatThrownBy(()
                            -> spyK8sTaskHelperBase.doStatusCheckForAllResources(client, singletonList(deploymentConfig),
@@ -1277,7 +1283,7 @@ public class K8sTaskHelperBaseTest extends CategoryTest {
     ProcessResult processResult = new ProcessResult(1, new ProcessOutput("Something went wrong".getBytes()));
     doReturn(processResult)
         .when(spyK8sTaskHelperBase)
-        .executeCommandUsingUtils(any(K8sDelegateTaskParams.class), any(), any(), any());
+        .executeCommandUsingUtils(any(K8sDelegateTaskParams.class), any(), any(), any(), any());
 
     assertThatThrownBy(()
                            -> spyK8sTaskHelperBase.doStatusCheckForAllResources(client, singletonList(deploymentConfig),
@@ -1311,7 +1317,7 @@ public class K8sTaskHelperBaseTest extends CategoryTest {
     ProcessResult processResult = new ProcessResult(0, new ProcessOutput("".getBytes()));
     doReturn(processResult)
         .when(spyK8sTaskHelperBase)
-        .executeCommandUsingUtils(any(K8sDelegateTaskParams.class), any(), any(), any());
+        .executeCommandUsingUtils(any(K8sDelegateTaskParams.class), any(), any(), any(), any());
 
     List<KubernetesResourceId> resourceIds = new ArrayList<>();
     resourceIds.add(resourceId);
@@ -1321,7 +1327,8 @@ public class K8sTaskHelperBaseTest extends CategoryTest {
 
     verify(spyK8sTaskHelperBase)
         .executeCommandUsingUtils(eq(k8sDelegateTaskParams), any(), any(),
-            eq("oc --kubeconfig=config-path rollout status DeploymentConfig/name --namespace=namespace --watch=true"));
+            eq("oc --kubeconfig=config-path rollout status DeploymentConfig/name --namespace=namespace --watch=true"),
+            any());
 
     assertThat(result).isEqualTo(false);
   }
@@ -1333,17 +1340,11 @@ public class K8sTaskHelperBaseTest extends CategoryTest {
     when(delegateLocalConfigService.replacePlaceholdersWithLocalConfig(anyString()))
         .thenAnswer(invocationOnMock -> invocationOnMock.getArgumentAt(0, String.class));
     final String workingDirectory = ".";
-    K8sDelegateTaskParams k8sDelegateTaskParams = K8sDelegateTaskParams.builder()
-                                                      .workingDirectory(workingDirectory)
-                                                      .ocPath("oc")
-                                                      .kubectlPath("kubectl")
-                                                      .kubeconfigPath("config-path")
-                                                      .build();
 
     ProcessResult processResult = new ProcessResult(0, new ProcessOutput("".getBytes()));
     doReturn(processResult)
         .when(spyK8sTaskHelperBase)
-        .executeCommandUsingUtils(any(K8sDelegateTaskParams.class), any(), any(), any());
+        .executeCommandUsingUtils(any(K8sDelegateTaskParams.class), any(), any(), any(), any());
 
     final List<FileData> manifestFiles = prepareSomeCorrectManifestFiles();
 
@@ -1392,7 +1393,7 @@ public class K8sTaskHelperBaseTest extends CategoryTest {
     ProcessResult processResult = new ProcessResult(0, new ProcessOutput("".getBytes()));
     doReturn(processResult)
         .when(spyK8sTaskHelperBase)
-        .executeCommandUsingUtils(any(K8sDelegateTaskParams.class), any(), any(), any());
+        .executeCommandUsingUtils(any(K8sDelegateTaskParams.class), any(), any(), any(), any());
 
     final List<FileData> manifestFiles = prepareSomeCorrectManifestFiles();
     final List<KubernetesResource> resources =
@@ -1611,9 +1612,9 @@ public class K8sTaskHelperBaseTest extends CategoryTest {
             IstioDestinationWeight.builder().destination("host: test\nsubset: default").weight("50").build());
 
     k8sTaskHelperBase.updateVirtualServiceWithDestinationWeights(destinationWeights, service, executionLogCallback);
-    List<DestinationWeight> routes = service.getSpec().getHttp().get(0).getRoute();
-    assertThat(routes.stream().map(DestinationWeight::getWeight)).containsExactly(10, 40, 50);
-    assertThat(routes.stream().map(DestinationWeight::getDestination).map(Destination::getSubset))
+    List<HTTPRouteDestination> routes = service.getSpec().getHttp().get(0).getRoute();
+    assertThat(routes.stream().map(HTTPRouteDestination::getWeight)).containsExactly(10, 40, 50);
+    assertThat(routes.stream().map(HTTPRouteDestination::getDestination).map(Destination::getSubset))
         .containsExactly(HarnessLabelValues.trackCanary, HarnessLabelValues.trackStable, "default");
   }
 
@@ -1689,9 +1690,9 @@ public class K8sTaskHelperBaseTest extends CategoryTest {
     doReturn(asList(service1)).when(resource).get();
     VirtualService result = k8sTaskHelperBase.updateVirtualServiceManifestFilesWithRoutesForCanary(
         resources, KubernetesConfig.builder().build(), executionLogCallback);
-    List<DestinationWeight> routes = result.getSpec().getHttp().get(0).getRoute();
-    assertThat(routes.stream().map(DestinationWeight::getWeight)).containsExactly(100, 0);
-    assertThat(routes.stream().map(DestinationWeight::getDestination).map(Destination::getSubset))
+    List<HTTPRouteDestination> routes = result.getSpec().getHttp().get(0).getRoute();
+    assertThat(routes.stream().map(HTTPRouteDestination::getWeight)).containsExactly(100, 0);
+    assertThat(routes.stream().map(HTTPRouteDestination::getDestination).map(Destination::getSubset))
         .containsExactly(HarnessLabelValues.trackStable, HarnessLabelValues.trackCanary);
   }
 
@@ -1701,15 +1702,13 @@ public class K8sTaskHelperBaseTest extends CategoryTest {
             .stream()
             .map(entry
                 -> new HTTPRouteBuilder()
-                       .withRoute(
-                           new DestinationWeightBuilder()
-                               .withDestination(
-                                   new DestinationBuilder()
-                                       .withHost(entry.getKey())
-                                       .withPort(
-                                           new PortSelectorBuilder().withPort(new NumberPort(entry.getValue())).build())
-                                       .build())
-                               .build())
+                       .withRoute(new HTTPRouteDestinationBuilder()
+                                      .withDestination(
+                                          new DestinationBuilder()
+                                              .withHost(entry.getKey())
+                                              .withPort(new PortSelectorBuilder().withNumber(entry.getValue()).build())
+                                              .build())
+                                      .build())
                        .build())
             .collect(Collectors.toList());
 

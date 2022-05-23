@@ -401,6 +401,9 @@ scopeAccessCheckEnabled: true
 
 hostname: ${HOSTNAME:-localhost}
 
+signupTargetEnv: "CI PR Target"
+delegateStatusEndpoint: "34.123.209.41"
+
 basePathPrefix: ${BASE_PATH_PREFIX:-""}
 
 enforcementClientConfiguration:

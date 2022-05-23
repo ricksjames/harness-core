@@ -10,6 +10,8 @@ package io.harness.ng.core.template;
 import static io.harness.NGCommonEntityConstants.IDENTIFIER_KEY;
 import static io.harness.NGCommonEntityConstants.NAME_KEY;
 import static io.harness.annotations.dev.HarnessTeam.CDC;
+import static io.harness.ng.core.template.TemplateEntityConstants.MONITORED_SERVICE;
+import static io.harness.ng.core.template.TemplateEntityConstants.MONITORED_SERVICE_ROOT_FIELD;
 import static io.harness.ng.core.template.TemplateEntityConstants.PIPELINE;
 import static io.harness.ng.core.template.TemplateEntityConstants.PIPELINE_ROOT_FIELD;
 import static io.harness.ng.core.template.TemplateEntityConstants.STAGE;
@@ -31,7 +33,9 @@ import java.util.List;
 public enum TemplateEntityType {
   @JsonProperty(STEP) STEP_TEMPLATE(STEP, STEP_ROOT_FIELD, asList(IDENTIFIER_KEY, NAME_KEY)),
   @JsonProperty(STAGE) STAGE_TEMPLATE(STAGE, STAGE_ROOT_FIELD, asList(IDENTIFIER_KEY, NAME_KEY)),
-  @JsonProperty(PIPELINE) PIPELINE_TEMPLATE(PIPELINE, PIPELINE_ROOT_FIELD, asList(IDENTIFIER_KEY, NAME_KEY));
+  @JsonProperty(PIPELINE) PIPELINE_TEMPLATE(PIPELINE, PIPELINE_ROOT_FIELD, asList(IDENTIFIER_KEY, NAME_KEY)),
+  @JsonProperty(MONITORED_SERVICE)
+  MONITORED_SERVICE_TEMPLATE(MONITORED_SERVICE, MONITORED_SERVICE_ROOT_FIELD, asList(IDENTIFIER_KEY, NAME_KEY));
 
   private final String yamlType;
   private String rootYamlName;
@@ -43,7 +47,7 @@ public enum TemplateEntityType {
     this.yamlFieldKeys = yamlFieldKeys;
   }
 
-  @JsonCreator
+  @JsonCreator(mode = JsonCreator.Mode.DELEGATING)
   public static TemplateEntityType getTemplateType(@JsonProperty("type") String yamlType) {
     for (TemplateEntityType value : TemplateEntityType.values()) {
       if (value.yamlType.equalsIgnoreCase(yamlType)) {

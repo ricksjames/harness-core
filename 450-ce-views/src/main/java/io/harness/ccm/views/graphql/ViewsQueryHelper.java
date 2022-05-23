@@ -88,13 +88,15 @@ public class ViewsQueryHelper {
     }
 
     double totalCost = costData.getCost();
+
     long actualTimeDiffMillis =
-        (endInstant.plus(1, ChronoUnit.SECONDS).toEpochMilli()) - (costData.getMaxStartTime() / 1000);
+        (endInstant.plus(1, ChronoUnit.DAYS).toEpochMilli()) - (costData.getMaxStartTime() / 1000);
 
     long billingTimeDiffMillis = ONE_DAY_MILLIS;
     if (costData.getMaxStartTime() != costData.getMinStartTime()) {
       billingTimeDiffMillis = ((costData.getMaxStartTime() - costData.getMinStartTime()) / 1000) + ONE_DAY_MILLIS;
     }
+
     if (billingTimeDiffMillis < OBSERVATION_PERIOD) {
       return DEFAULT_DOUBLE_VALUE;
     }
@@ -311,6 +313,11 @@ public class ViewsQueryHelper {
   public Boolean isGroupByFieldPresent(List<QLCEViewGroupBy> groupByList, String fieldName) {
     return groupByList.stream().anyMatch(
         groupBy -> groupBy.getEntityGroupBy() != null && groupBy.getEntityGroupBy().getFieldName().equals(fieldName));
+  }
+
+  public Boolean isGroupByFieldIdPresent(List<QLCEViewGroupBy> groupByList, String fieldId) {
+    return groupByList.stream().anyMatch(
+        groupBy -> groupBy.getEntityGroupBy() != null && groupBy.getEntityGroupBy().getFieldId().equals(fieldId));
   }
 
   public List<QLCEViewGroupBy> removeGroupByNone(List<QLCEViewGroupBy> groupByList) {

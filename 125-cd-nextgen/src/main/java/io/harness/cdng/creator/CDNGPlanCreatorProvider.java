@@ -16,15 +16,20 @@ import io.harness.cdng.creator.plan.artifact.ArtifactsPlanCreator;
 import io.harness.cdng.creator.plan.artifact.PrimaryArtifactPlanCreator;
 import io.harness.cdng.creator.plan.artifact.SideCarArtifactPlanCreator;
 import io.harness.cdng.creator.plan.artifact.SideCarListPlanCreator;
+import io.harness.cdng.creator.plan.environment.EnvironmentPlanCreatorV2;
 import io.harness.cdng.creator.plan.execution.CDExecutionPMSPlanCreator;
 import io.harness.cdng.creator.plan.manifest.IndividualManifestPlanCreator;
 import io.harness.cdng.creator.plan.manifest.ManifestsPlanCreator;
 import io.harness.cdng.creator.plan.rollback.ExecutionStepsRollbackPMSPlanCreator;
+import io.harness.cdng.creator.plan.service.ServiceDefinitionPlanCreator;
 import io.harness.cdng.creator.plan.service.ServicePlanCreator;
 import io.harness.cdng.creator.plan.stage.DeploymentStagePMSPlanCreatorV2;
 import io.harness.cdng.creator.plan.steps.CDPMSStepFilterJsonCreator;
 import io.harness.cdng.creator.plan.steps.CDPMSStepFilterJsonCreatorV2;
 import io.harness.cdng.creator.plan.steps.CDPMSStepPlanCreator;
+import io.harness.cdng.creator.plan.steps.CloudformationCreateStackStepPlanCreator;
+import io.harness.cdng.creator.plan.steps.CloudformationDeleteStackStepPlanCreator;
+import io.harness.cdng.creator.plan.steps.CloudformationRollbackStackStepPlanCreator;
 import io.harness.cdng.creator.plan.steps.HelmDeployStepPlanCreatorV2;
 import io.harness.cdng.creator.plan.steps.HelmRollbackStepPlanCreatorV2;
 import io.harness.cdng.creator.plan.steps.K8sApplyStepPlanCreator;
@@ -40,13 +45,33 @@ import io.harness.cdng.creator.plan.steps.TerraformApplyStepPlanCreator;
 import io.harness.cdng.creator.plan.steps.TerraformDestroyStepPlanCreator;
 import io.harness.cdng.creator.plan.steps.TerraformPlanStepPlanCreator;
 import io.harness.cdng.creator.plan.steps.TerraformRollbackStepPlanCreator;
+import io.harness.cdng.creator.plan.steps.serverless.ServerlessAwsLambdaDeployStepPlanCreator;
+import io.harness.cdng.creator.plan.steps.serverless.ServerlessAwsLambdaRollbackStepPlanCreator;
 import io.harness.cdng.creator.variables.DeploymentStageVariableCreator;
-import io.harness.cdng.creator.variables.HelmStepVariableCreator;
-import io.harness.cdng.creator.variables.K8sStepVariableCreator;
-import io.harness.cdng.provision.terraform.variablecreator.TerraformStepsVariableCreator;
+import io.harness.cdng.creator.variables.HelmDeployStepVariableCreator;
+import io.harness.cdng.creator.variables.HelmRollbackStepVariableCreator;
+import io.harness.cdng.creator.variables.K8sApplyStepVariableCreator;
+import io.harness.cdng.creator.variables.K8sBGSwapServicesVariableCreator;
+import io.harness.cdng.creator.variables.K8sBlueGreenStepVariableCreator;
+import io.harness.cdng.creator.variables.K8sCanaryDeleteStepVariableCreator;
+import io.harness.cdng.creator.variables.K8sCanaryStepVariableCreator;
+import io.harness.cdng.creator.variables.K8sDeleteStepVariableCreator;
+import io.harness.cdng.creator.variables.K8sRollingRollbackStepVariableCreator;
+import io.harness.cdng.creator.variables.K8sRollingStepVariableCreator;
+import io.harness.cdng.creator.variables.K8sScaleStepVariableCreator;
+import io.harness.cdng.creator.variables.ServerlessAwsLambdaDeployStepVariableCreator;
+import io.harness.cdng.creator.variables.ServerlessAwsLambdaRollbackStepVariableCreator;
+import io.harness.cdng.provision.cloudformation.variablecreator.CloudformationCreateStepVariableCreator;
+import io.harness.cdng.provision.cloudformation.variablecreator.CloudformationDeleteStepVariableCreator;
+import io.harness.cdng.provision.cloudformation.variablecreator.CloudformationRollbackStepVariableCreator;
+import io.harness.cdng.provision.terraform.variablecreator.TerraformApplyStepVariableCreator;
+import io.harness.cdng.provision.terraform.variablecreator.TerraformDestroyStepVariableCreator;
+import io.harness.cdng.provision.terraform.variablecreator.TerraformPlanStepVariableCreator;
+import io.harness.cdng.provision.terraform.variablecreator.TerraformRollbackStepVariableCreator;
 import io.harness.enforcement.constants.FeatureRestrictionName;
 import io.harness.executions.steps.StepSpecTypeConstants;
 import io.harness.plancreator.stages.parallel.ParallelPlanCreator;
+import io.harness.plancreator.steps.SpecNodePlanCreator;
 import io.harness.plancreator.steps.StepGroupPMSPlanCreator;
 import io.harness.pms.contracts.steps.StepInfo;
 import io.harness.pms.contracts.steps.StepMetaData;
@@ -68,6 +93,9 @@ import java.util.List;
 @Singleton
 public class CDNGPlanCreatorProvider implements PipelineServiceInfoProvider {
   private static final String TERRAFORM_STEP_METADATA = "Terraform";
+  private static final List<String> CLOUDFORMATION_CATEGORY =
+      Arrays.asList("Kubernetes", "Provisioner", "Cloudformation");
+  private static final String CLOUDFORMATION_STEP_METADATA = "Cloudformation";
   private static final List<String> TERRAFORM_CATEGORY = Arrays.asList("Kubernetes", "Provisioner");
 
   @Inject InjectorUtils injectorUtils;
@@ -95,6 +123,8 @@ public class CDNGPlanCreatorProvider implements PipelineServiceInfoProvider {
     planCreators.add(new CDExecutionPMSPlanCreator());
     planCreators.add(new ExecutionStepsRollbackPMSPlanCreator());
     planCreators.add(new ServicePlanCreator());
+    planCreators.add(new ServiceDefinitionPlanCreator());
+    planCreators.add(new EnvironmentPlanCreatorV2());
     planCreators.add(new ArtifactsPlanCreator());
     planCreators.add(new PrimaryArtifactPlanCreator());
     planCreators.add(new SideCarListPlanCreator());
@@ -104,6 +134,12 @@ public class CDNGPlanCreatorProvider implements PipelineServiceInfoProvider {
     planCreators.add(new CDStepsPlanCreator());
     planCreators.add(new StepGroupPMSPlanCreator());
     planCreators.add(new ParallelPlanCreator());
+    planCreators.add(new ServerlessAwsLambdaDeployStepPlanCreator());
+    planCreators.add(new ServerlessAwsLambdaRollbackStepPlanCreator());
+    planCreators.add(new CloudformationCreateStackStepPlanCreator());
+    planCreators.add(new CloudformationDeleteStackStepPlanCreator());
+    planCreators.add(new CloudformationRollbackStackStepPlanCreator());
+    planCreators.add(new SpecNodePlanCreator());
     injectorUtils.injectMembers(planCreators);
     return planCreators;
   }
@@ -124,9 +160,26 @@ public class CDNGPlanCreatorProvider implements PipelineServiceInfoProvider {
     List<VariableCreator> variableCreators = new ArrayList<>();
     variableCreators.add(new DeploymentStageVariableCreator());
     variableCreators.add(new ExecutionVariableCreator());
-    variableCreators.add(new K8sStepVariableCreator());
-    variableCreators.add(new TerraformStepsVariableCreator());
-    variableCreators.add(new HelmStepVariableCreator());
+    variableCreators.add(new K8sApplyStepVariableCreator());
+    variableCreators.add(new K8sBGSwapServicesVariableCreator());
+    variableCreators.add(new K8sBlueGreenStepVariableCreator());
+    variableCreators.add(new K8sCanaryDeleteStepVariableCreator());
+    variableCreators.add(new K8sCanaryStepVariableCreator());
+    variableCreators.add(new K8sDeleteStepVariableCreator());
+    variableCreators.add(new K8sRollingRollbackStepVariableCreator());
+    variableCreators.add(new K8sRollingStepVariableCreator());
+    variableCreators.add(new K8sScaleStepVariableCreator());
+    variableCreators.add(new TerraformApplyStepVariableCreator());
+    variableCreators.add(new TerraformPlanStepVariableCreator());
+    variableCreators.add(new TerraformDestroyStepVariableCreator());
+    variableCreators.add(new TerraformRollbackStepVariableCreator());
+    variableCreators.add(new HelmDeployStepVariableCreator());
+    variableCreators.add(new HelmRollbackStepVariableCreator());
+    variableCreators.add(new ServerlessAwsLambdaDeployStepVariableCreator());
+    variableCreators.add(new ServerlessAwsLambdaRollbackStepVariableCreator());
+    variableCreators.add(new CloudformationCreateStepVariableCreator());
+    variableCreators.add(new CloudformationDeleteStepVariableCreator());
+    variableCreators.add(new CloudformationRollbackStepVariableCreator());
     return variableCreators;
   }
 
@@ -262,6 +315,54 @@ public class CDNGPlanCreatorProvider implements PipelineServiceInfoProvider {
             .setFeatureFlag(FeatureName.NG_NATIVE_HELM.name())
             .build();
 
+    StepInfo serverlessDeploy =
+        StepInfo.newBuilder()
+            .setName("Serverless Lambda Deploy")
+            .setType(StepSpecTypeConstants.SERVERLESS_AWS_LAMBDA_DEPLOY)
+            .setStepMetaData(
+                StepMetaData.newBuilder().addCategory("ServerlessAwsLambda").setFolderPath("Serverless Lambda").build())
+            .setFeatureFlag(FeatureName.SERVERLESS_SUPPORT.name())
+            .build();
+
+    StepInfo serverlessRollback =
+        StepInfo.newBuilder()
+            .setName("Serverless Lambda Rollback")
+            .setType(StepSpecTypeConstants.SERVERLESS_AWS_LAMBDA_ROLLBACK)
+            .setStepMetaData(
+                StepMetaData.newBuilder().addCategory("ServerlessAwsLambda").setFolderPath("Serverless Lambda").build())
+            .setFeatureFlag(FeatureName.SERVERLESS_SUPPORT.name())
+            .build();
+
+    StepInfo createStack = StepInfo.newBuilder()
+                               .setName("Cloudformation create stack")
+                               .setType(StepSpecTypeConstants.CLOUDFORMATION_CREATE_STACK)
+                               .setFeatureRestrictionName(FeatureRestrictionName.CREATE_STACK.name())
+                               .setStepMetaData(StepMetaData.newBuilder()
+                                                    .addAllCategory(CLOUDFORMATION_CATEGORY)
+                                                    .addFolderPaths(CLOUDFORMATION_STEP_METADATA)
+                                                    .build())
+                               .build();
+
+    StepInfo deleteStack = StepInfo.newBuilder()
+                               .setName("Cloudformation delete stack")
+                               .setType(StepSpecTypeConstants.CLOUDFORMATION_DELETE_STACK)
+                               .setFeatureRestrictionName(FeatureRestrictionName.DELETE_STACK.name())
+                               .setStepMetaData(StepMetaData.newBuilder()
+                                                    .addAllCategory(CLOUDFORMATION_CATEGORY)
+                                                    .addFolderPaths(CLOUDFORMATION_STEP_METADATA)
+                                                    .build())
+                               .build();
+
+    StepInfo rollbackStack = StepInfo.newBuilder()
+                                 .setName("Cloudformation rollback stack")
+                                 .setType(StepSpecTypeConstants.CLOUDFORMATION_ROLLBACK_STACK)
+                                 .setFeatureRestrictionName(FeatureRestrictionName.ROLLBACK_STACK.name())
+                                 .setStepMetaData(StepMetaData.newBuilder()
+                                                      .addAllCategory(CLOUDFORMATION_CATEGORY)
+                                                      .addFolderPaths(CLOUDFORMATION_STEP_METADATA)
+                                                      .build())
+                                 .build();
+
     List<StepInfo> stepInfos = new ArrayList<>();
 
     stepInfos.add(k8sRolling);
@@ -279,6 +380,11 @@ public class CDNGPlanCreatorProvider implements PipelineServiceInfoProvider {
     stepInfos.add(terraformDestroy);
     stepInfos.add(helmDeploy);
     stepInfos.add(helmRollback);
+    stepInfos.add(serverlessDeploy);
+    stepInfos.add(serverlessRollback);
+    stepInfos.add(createStack);
+    stepInfos.add(deleteStack);
+    stepInfos.add(rollbackStack);
     return stepInfos;
   }
 }

@@ -49,6 +49,7 @@ import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.when;
 
 import io.harness.annotations.dev.BreakDependencyOn;
@@ -119,8 +120,10 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.Builder;
 import lombok.Value;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.assertj.core.util.Lists;
+import org.assertj.core.util.Sets;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -596,7 +599,6 @@ public class AssignDelegateServiceImplTest extends WingsBaseTest {
                      .delegate(Delegate.builder()
                                    .accountId(accountId)
                                    .uuid(generateUuid())
-                                   .delegateProfileId(generateUuid())
                                    .supportedTaskTypes(Arrays.asList(TaskType.HTTP.name()))
                                    .ng(true)
                                    .build())
@@ -631,6 +633,12 @@ public class AssignDelegateServiceImplTest extends WingsBaseTest {
                                             .build();
 
       persistence.save(delegateProfile);
+
+      DelegateProfile returnDelegateProfile =
+          StringUtils.isEmpty(test.getDelegate().getDelegateProfileId()) ? null : delegateProfile;
+      when(delegateCache.getDelegateProfile(
+               test.getDelegate().getAccountId(), test.getDelegate().getDelegateProfileId()))
+          .thenReturn(returnDelegateProfile);
 
       assertThat(assignDelegateService.canAssign(test.getDelegate().getUuid(), test.getTask()))
           .isEqualTo(test.isAssignable());
@@ -835,7 +843,7 @@ public class AssignDelegateServiceImplTest extends WingsBaseTest {
     for (TagTestData test : tests) {
       Delegate delegate = delegateBuilder.tags(test.getDelegateTags()).build();
       when(delegateCache.get("ACCOUNT_ID", "DELEGATE_ID", false)).thenReturn(delegate);
-      when(delegateService.retrieveDelegateSelectors(delegate))
+      when(delegateService.retrieveDelegateSelectors(delegate, true))
           .thenReturn(delegate.getTags() == null ? new HashSet<>() : new HashSet<>(test.getDelegateTags()));
 
       DelegateTask delegateTask = delegateTaskBuilder.executionCapabilities(test.getExecutionCapabilities()).build();
@@ -849,7 +857,7 @@ public class AssignDelegateServiceImplTest extends WingsBaseTest {
     for (TagTestData test : tests) {
       Delegate delegate = delegateBuilder.tags(test.getDelegateTags()).build();
       when(delegateCache.get("ACCOUNT_ID", "DELEGATE_ID", false)).thenReturn(delegate);
-      when(delegateService.retrieveDelegateSelectors(delegate))
+      when(delegateService.retrieveDelegateSelectors(delegate, true))
           .thenReturn(delegate.getTags() == null ? new HashSet<>() : new HashSet<>(test.getDelegateTags()));
 
       DelegateTask delegateTask = delegateTaskBuilder.executionCapabilities(test.getExecutionCapabilities()).build();
@@ -870,7 +878,7 @@ public class AssignDelegateServiceImplTest extends WingsBaseTest {
   @Owner(developers = GEORGE)
   @Category(UnitTests.class)
   public void assignByNames() {
-    when(delegateService.retrieveDelegateSelectors(any(Delegate.class)))
+    when(delegateService.retrieveDelegateSelectors(any(Delegate.class), eq(true)))
         .thenReturn(emptySet())
         .thenReturn(new HashSet<>(asList("A")))
         .thenReturn(new HashSet<>(asList("a", "b")));
@@ -1999,6 +2007,132 @@ public class AssignDelegateServiceImplTest extends WingsBaseTest {
 
     assertThat(assignDelegateService.getEligibleDelegatesToExecuteTask(task)).isNotEmpty();
     assertThat(assignDelegateService.getEligibleDelegatesToExecuteTask(task)).contains(delegate.getUuid());
+  }
+
+  @Test
+  @Owner(developers = JENNY)
+  @Category(UnitTests.class)
+  public void testAssignSelectorsNonMatching() throws ExecutionException {
+    Delegate delegate = createNGDelegate();
+    delegate.setTags(Arrays.asList("sel1"));
+    persistence.save(delegate);
+
+    when(featureFlagService.isEnabled(any(), anyString())).thenReturn(true);
+
+    Set<String> selectors1 = Stream.of("sel1").collect(Collectors.toSet());
+    Set<String> selectors2 = Stream.of("sel2").collect(Collectors.toSet());
+
+    SelectorCapability selectorCapability1 =
+        SelectorCapability.builder().selectors(selectors1).selectorOrigin("stage").build();
+    SelectorCapability selectorCapability2 =
+        SelectorCapability.builder().selectors(selectors2).selectorOrigin("pipeline").build();
+
+    List<ExecutionCapability> executionCapabilityList = asList(selectorCapability1, selectorCapability2);
+
+    assertThat(assignDelegateService.canAssignSelectors(delegate, executionCapabilityList)).isFalse();
+  }
+
+  @Test
+  @Owner(developers = JENNY)
+  @Category(UnitTests.class)
+  public void testAssignSelectorsMatching() throws ExecutionException {
+    Delegate delegate = createNGDelegate();
+    delegate.setTags(Arrays.asList("sel1", "sel2"));
+    persistence.save(delegate);
+
+    when(featureFlagService.isEnabled(any(), anyString())).thenReturn(true);
+
+    Set<String> selectors1 = Stream.of("sel1").collect(Collectors.toSet());
+    Set<String> selectors2 = Stream.of("sel2").collect(Collectors.toSet());
+
+    SelectorCapability selectorCapability1 =
+        SelectorCapability.builder().selectors(selectors1).selectorOrigin("stage").build();
+    SelectorCapability selectorCapability2 =
+        SelectorCapability.builder().selectors(selectors2).selectorOrigin("pipeline").build();
+
+    List<ExecutionCapability> executionCapabilityList = asList(selectorCapability1, selectorCapability2);
+
+    when(delegateService.retrieveDelegateSelectors(delegate, true)).thenReturn(Sets.newHashSet(delegate.getTags()));
+
+    assertThat(assignDelegateService.canAssignSelectors(delegate, executionCapabilityList)).isTrue();
+  }
+
+  @Test
+  @Owner(developers = JENNY)
+  @Category(UnitTests.class)
+  public void testAssignSelectorsWithEmptySelectorOrigin() throws ExecutionException {
+    Delegate delegate = createNGDelegate();
+    delegate.setTags(Arrays.asList("sel1"));
+    persistence.save(delegate);
+
+    when(featureFlagService.isEnabled(any(), anyString())).thenReturn(true);
+
+    Set<String> selectors1 = Stream.of("sel1").collect(Collectors.toSet());
+    Set<String> selectors2 = Stream.of("sel2").collect(Collectors.toSet());
+
+    SelectorCapability selectorCapability1 =
+        SelectorCapability.builder().selectors(selectors1).selectorOrigin("stage").build();
+    SelectorCapability selectorCapability2 = SelectorCapability.builder().selectors(selectors2).build();
+    List<ExecutionCapability> executionCapabilityList = asList(selectorCapability1, selectorCapability2);
+
+    when(delegateService.retrieveDelegateSelectors(delegate, true)).thenReturn(Sets.newHashSet(delegate.getTags()));
+
+    assertThat(assignDelegateService.canAssignSelectors(delegate, executionCapabilityList)).isTrue();
+  }
+
+  @Test
+  @Owner(developers = JENNY)
+  @Category(UnitTests.class)
+  public void testAssignSelectorsWithOnlyConnectorSelector() throws ExecutionException {
+    Delegate delegate = createNGDelegate();
+    delegate.setTags(Arrays.asList("sel1"));
+    persistence.save(delegate);
+
+    when(featureFlagService.isEnabled(any(), anyString())).thenReturn(true);
+
+    Set<String> selectors1 = Stream.of("sel1").collect(Collectors.toSet());
+
+    SelectorCapability selectorCapability1 =
+        SelectorCapability.builder().selectors(selectors1).selectorOrigin("connector").build();
+    List<ExecutionCapability> executionCapabilityList = asList(selectorCapability1);
+
+    when(delegateService.retrieveDelegateSelectors(delegate, true)).thenReturn(Sets.newHashSet(delegate.getTags()));
+
+    assertThat(assignDelegateService.canAssignSelectors(delegate, executionCapabilityList)).isTrue();
+  }
+
+  @Test
+  @Owner(developers = JENNY)
+  @Category(UnitTests.class)
+  public void testConnectorSelectorIgnoredWithSelectorsAtAllLevel() throws ExecutionException {
+    Delegate delegate = createNGDelegate();
+    delegate.setTags(Arrays.asList("sel1", "sel2", "sel3", "sel4", "sel41", "sel5"));
+    persistence.save(delegate);
+
+    when(featureFlagService.isEnabled(any(), anyString())).thenReturn(true);
+
+    Set<String> selectors_step = Stream.of("sel1").collect(Collectors.toSet());
+    Set<String> selectors_step_group = Stream.of("sel2").collect(Collectors.toSet());
+    Set<String> selectors_stage = Stream.of("sel3").collect(Collectors.toSet());
+    Set<String> selectors_pipeline = Stream.of("sel4", "sel41").collect(Collectors.toSet());
+    Set<String> selectors_connector = Stream.of("sel5").collect(Collectors.toSet());
+
+    SelectorCapability selectorCapability_step =
+        SelectorCapability.builder().selectors(selectors_step).selectorOrigin("step").build();
+    SelectorCapability selectorCapability_step_group =
+        SelectorCapability.builder().selectors(selectors_step_group).selectorOrigin("stepGroup").build();
+    SelectorCapability selectorCapability_stage =
+        SelectorCapability.builder().selectors(selectors_stage).selectorOrigin("stage").build();
+    SelectorCapability selectorCapability_pipeline =
+        SelectorCapability.builder().selectors(selectors_pipeline).selectorOrigin("pipeline").build();
+    SelectorCapability selectorCapability_connector =
+        SelectorCapability.builder().selectors(selectors_connector).selectorOrigin("connector").build();
+    List<ExecutionCapability> executionCapabilityList = asList(selectorCapability_step, selectorCapability_step_group,
+        selectorCapability_stage, selectorCapability_pipeline, selectorCapability_connector);
+
+    when(delegateService.retrieveDelegateSelectors(delegate, true)).thenReturn(Sets.newHashSet(delegate.getTags()));
+
+    assertThat(assignDelegateService.canAssignSelectors(delegate, executionCapabilityList)).isTrue();
   }
 
   private DelegateTask constructDelegateTask(boolean async, Set<String> validatingTaskIds, DelegateTask.Status status) {

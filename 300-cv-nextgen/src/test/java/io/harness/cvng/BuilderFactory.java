@@ -108,6 +108,16 @@ import io.harness.cvng.dashboard.entities.HeatMap;
 import io.harness.cvng.dashboard.entities.HeatMap.HeatMapBuilder;
 import io.harness.cvng.dashboard.entities.HeatMap.HeatMapResolution;
 import io.harness.cvng.dashboard.entities.HeatMap.HeatMapRisk;
+import io.harness.cvng.notification.beans.ErrorBudgetRemainingPercentageConditionSpec;
+import io.harness.cvng.notification.beans.HealthScoreConditionSpec;
+import io.harness.cvng.notification.beans.NotificationRuleCondition;
+import io.harness.cvng.notification.beans.NotificationRuleConditionType;
+import io.harness.cvng.notification.beans.NotificationRuleDTO;
+import io.harness.cvng.notification.beans.NotificationRuleDTO.NotificationRuleDTOBuilder;
+import io.harness.cvng.notification.beans.NotificationRuleType;
+import io.harness.cvng.notification.channelDetails.CVNGEmailChannelSpec;
+import io.harness.cvng.notification.channelDetails.CVNGNotificationChannel;
+import io.harness.cvng.notification.channelDetails.CVNGNotificationChannelType;
 import io.harness.cvng.servicelevelobjective.beans.ErrorBudgetRisk;
 import io.harness.cvng.servicelevelobjective.beans.SLIMetricType;
 import io.harness.cvng.servicelevelobjective.beans.SLIMissingDataType;
@@ -136,6 +146,7 @@ import io.harness.cvng.servicelevelobjective.entities.SLOHealthIndicator.SLOHeal
 import io.harness.cvng.servicelevelobjective.entities.ServiceLevelObjective;
 import io.harness.cvng.servicelevelobjective.entities.ServiceLevelObjective.RollingSLOTarget;
 import io.harness.cvng.servicelevelobjective.entities.ServiceLevelObjective.ServiceLevelObjectiveBuilder;
+import io.harness.cvng.verificationjob.entities.CanaryBlueGreenVerificationJob.CanaryBlueGreenVerificationJobBuilder;
 import io.harness.cvng.verificationjob.entities.CanaryVerificationJob;
 import io.harness.cvng.verificationjob.entities.TestVerificationJob;
 import io.harness.cvng.verificationjob.entities.VerificationJob;
@@ -331,19 +342,18 @@ public class BuilderFactory {
         .accountId(context.getAccountId())
         .orgIdentifier(context.getOrgIdentifier())
         .projectIdentifier(context.getProjectIdentifier())
-        .serviceIdentifier(context.getServiceIdentifier())
-        .envIdentifier(context.getEnvIdentifier())
         .monitoredServiceIdentifier(context.getMonitoredServiceIdentifier())
-        .identifier(generateUuid())
+        .identifier(context.getMonitoredServiceIdentifier() + "/" + generateUuid())
         .monitoringSourceName(generateUuid())
         .metricPack(
             MetricPack.builder().identifier(CVNextGenConstants.CUSTOM_PACK_IDENTIFIER).dataCollectionDsl("dsl").build())
         .metricInfos(
             Arrays.asList(AppDynamicsCVConfig.MetricInfo.builder().identifier("identifier").metricName("name").build()))
         .applicationName(generateUuid())
-        .tierName(generateUuid())
+        .tierName("tier-name")
         .connectorIdentifier("AppDynamics Connector")
         .category(CVMonitoringCategory.PERFORMANCE)
+        .enabled(true)
         .productName(generateUuid());
   }
 
@@ -352,8 +362,6 @@ public class BuilderFactory {
         .accountId(context.getAccountId())
         .orgIdentifier(context.getOrgIdentifier())
         .projectIdentifier(context.getProjectIdentifier())
-        .serviceIdentifier(context.getServiceIdentifier())
-        .envIdentifier(context.getEnvIdentifier())
         .monitoredServiceIdentifier(context.getMonitoredServiceIdentifier())
         .queryName(randomAlphabetic(10))
         .query(randomAlphabetic(10))
@@ -371,8 +379,6 @@ public class BuilderFactory {
         .accountId(context.getAccountId())
         .orgIdentifier(context.getOrgIdentifier())
         .projectIdentifier(context.getProjectIdentifier())
-        .serviceIdentifier(context.getServiceIdentifier())
-        .envIdentifier(context.getEnvIdentifier())
         .monitoredServiceIdentifier(context.getMonitoredServiceIdentifier())
         .queryName(randomAlphabetic(10))
         .query(randomAlphabetic(10))
@@ -389,19 +395,19 @@ public class BuilderFactory {
         .accountId(context.getAccountId())
         .orgIdentifier(context.getOrgIdentifier())
         .projectIdentifier(context.getProjectIdentifier())
-        .serviceIdentifier(context.getServiceIdentifier())
-        .envIdentifier(context.getEnvIdentifier())
+        .monitoredServiceIdentifier(context.getMonitoredServiceIdentifier())
+        .identifier(context.getMonitoredServiceIdentifier() + "/" + generateUuid())
         .monitoredServiceIdentifier(context.getMonitoredServiceIdentifier());
   }
 
   public DynatraceCVConfigBuilder dynatraceCVConfigBuilder() {
     return DynatraceCVConfig.builder()
+        .groupName("group")
         .accountId(context.getAccountId())
         .orgIdentifier(context.getOrgIdentifier())
         .projectIdentifier(context.getProjectIdentifier())
-        .serviceIdentifier(context.getServiceIdentifier())
         .connectorIdentifier("DynatraceConnector")
-        .envIdentifier(context.getEnvIdentifier())
+        .identifier(context.getMonitoredServiceIdentifier() + "/healthSourceIdentifier")
         .monitoredServiceIdentifier(context.getMonitoredServiceIdentifier());
   }
 
@@ -410,9 +416,9 @@ public class BuilderFactory {
         .accountId(context.getAccountId())
         .orgIdentifier(context.getOrgIdentifier())
         .projectIdentifier(context.getProjectIdentifier())
-        .serviceIdentifier(context.getServiceIdentifier())
-        .envIdentifier(context.getEnvIdentifier())
+        .monitoredServiceIdentifier(context.getMonitoredServiceIdentifier())
         .connectorIdentifier("connectorRef")
+        .identifier(context.getMonitoredServiceIdentifier() + "/" + generateUuid())
         .category(CVMonitoringCategory.PERFORMANCE);
   }
 
@@ -430,6 +436,7 @@ public class BuilderFactory {
         .monitoringSourceName(generateUuid())
         .connectorIdentifier("Error Tracking Connector")
         .category(CVMonitoringCategory.ERRORS)
+        .identifier(context.getMonitoredServiceIdentifier() + "/" + generateUuid())
         .productName(generateUuid());
   }
 
@@ -438,11 +445,10 @@ public class BuilderFactory {
         .accountId(context.getAccountId())
         .orgIdentifier(context.getOrgIdentifier())
         .projectIdentifier(context.getProjectIdentifier())
-        .serviceIdentifier(context.getServiceIdentifier())
         .monitoredServiceIdentifier(context.getMonitoredServiceIdentifier())
-        .envIdentifier(context.getEnvIdentifier())
         .connectorIdentifier("connectorRef")
         .dashboardName("dashboardName")
+        .identifier(context.getMonitoredServiceIdentifier() + "/" + generateUuid())
         .category(CVMonitoringCategory.PERFORMANCE);
   }
 
@@ -451,12 +457,11 @@ public class BuilderFactory {
         .accountId(context.getAccountId())
         .orgIdentifier(context.getOrgIdentifier())
         .projectIdentifier(context.getProjectIdentifier())
-        .serviceIdentifier(context.getServiceIdentifier())
-        .envIdentifier(context.getEnvIdentifier())
         .monitoredServiceIdentifier(context.getMonitoredServiceIdentifier())
         .connectorIdentifier("connectorRef")
         .dashboardId("dashboardId")
         .dashboardName("dashboardName")
+        .identifier(context.getMonitoredServiceIdentifier() + "/" + generateUuid())
         .category(CVMonitoringCategory.PERFORMANCE);
   }
 
@@ -465,17 +470,17 @@ public class BuilderFactory {
         .accountId(context.getAccountId())
         .orgIdentifier(context.getOrgIdentifier())
         .projectIdentifier(context.getProjectIdentifier())
-        .serviceIdentifier(context.getServiceIdentifier())
         .serviceInstanceIdentifier(randomAlphabetic(10))
-        .envIdentifier(context.getEnvIdentifier())
+        .createdAt(clock.millis())
         .monitoredServiceIdentifier(context.getMonitoredServiceIdentifier())
         .queryName(randomAlphabetic(10))
         .query(randomAlphabetic(10))
         .serviceInstanceIdentifier(randomAlphabetic(10))
-        .identifier(generateUuid())
+        .identifier(context.getMonitoredServiceIdentifier() + "/healthSourceIdentifier")
         .monitoringSourceName(generateUuid())
         .connectorIdentifier("Splunk Connector")
         .category(CVMonitoringCategory.ERRORS)
+        .enabled(true)
         .productName(generateUuid());
   }
 
@@ -853,6 +858,7 @@ public class BuilderFactory {
                     .spec(RollingSLOTargetSpec.builder().periodLength("30d").build())
                     .build())
         .serviceLevelIndicators(Collections.singletonList(getServiceLevelIndicatorDTOBuilder()))
+        .notificationRuleRefs(Collections.emptyList())
         .healthSourceRef("healthSourceIdentifier")
         .monitoredServiceRef(context.serviceIdentifier + "_" + context.getEnvIdentifier())
         .userJourneyRef("userJourney");
@@ -862,6 +868,9 @@ public class BuilderFactory {
     return SLOErrorBudgetResetDTO.builder()
         .serviceLevelObjectiveIdentifier("slo")
         .errorBudgetIncrementPercentage(10.0)
+        .errorBudgetIncrementMinutes(10)
+        .remainingErrorBudgetAtReset(100)
+        .errorBudgetAtReset(100)
         .reason("reason");
   }
 
@@ -969,12 +978,12 @@ public class BuilderFactory {
     testVerificationJob.setAccountId(context.getAccountId());
     testVerificationJob.setIdentifier("identifier");
     testVerificationJob.setJobName(generateUuid());
-    testVerificationJob.setMonitoringSources(Arrays.asList("monitoringIdentifier"));
     testVerificationJob.setSensitivity(Sensitivity.MEDIUM);
     testVerificationJob.setServiceIdentifier(context.getServiceIdentifier(), false);
     testVerificationJob.setEnvIdentifier(context.getEnvIdentifier(), false);
     testVerificationJob.setBaselineVerificationJobInstanceId(generateUuid());
     testVerificationJob.setDuration(Duration.ofMinutes(5));
+    testVerificationJob.setMonitoredServiceIdentifier(context.getMonitoredServiceIdentifier());
     testVerificationJob.setProjectIdentifier(context.getProjectIdentifier());
     testVerificationJob.setOrgIdentifier(context.getOrgIdentifier());
     return testVerificationJob;
@@ -995,6 +1004,19 @@ public class BuilderFactory {
     return canaryVerificationJob;
   }
 
+  public CanaryBlueGreenVerificationJobBuilder canaryVerificationJobBuilder() {
+    return CanaryVerificationJob.builder()
+        .accountId(context.getAccountId())
+        .orgIdentifier(context.getOrgIdentifier())
+        .projectIdentifier(context.getProjectIdentifier())
+        .identifier("identifier")
+        .monitoredServiceIdentifier(context.getMonitoredServiceIdentifier())
+        .serviceIdentifier(VerificationJob.RuntimeParameter.builder().value(context.getServiceIdentifier()).build())
+        .envIdentifier(VerificationJob.RuntimeParameter.builder().value(context.getEnvIdentifier()).build())
+        .monitoringSources(Collections.singletonList(context.getMonitoredServiceIdentifier() + "/" + generateUuid()))
+        .sensitivity(VerificationJob.RuntimeParameter.builder().value("High").build())
+        .duration(VerificationJob.RuntimeParameter.builder().value("10m").build());
+  }
   public static class BuilderFactoryBuilder {
     public BuilderFactory build() {
       BuilderFactory builder = unsafeBuild();
@@ -1078,5 +1100,36 @@ public class BuilderFactory {
         .endTime(endTime.toEpochMilli())
         .createdAt(createdAt)
         .traceableType(TraceableType.VERIFICATION_TASK);
+  }
+
+  public NotificationRuleDTOBuilder getNotificationRuleDTOBuilder(NotificationRuleType type) {
+    return NotificationRuleDTO.builder()
+        .name("rule")
+        .identifier("rule")
+        .orgIdentifier(context.getOrgIdentifier())
+        .projectIdentifier(context.getProjectIdentifier())
+        .type(type)
+        .conditions(getNotificationRuleConditions(type))
+        .notificationMethod(CVNGNotificationChannel.builder()
+                                .type(CVNGNotificationChannelType.EMAIL)
+                                .spec(CVNGEmailChannelSpec.builder()
+                                          .recipients(Arrays.asList("test@harness.io"))
+                                          .userGroups(Arrays.asList("testUserGroup"))
+                                          .build())
+                                .build());
+  }
+
+  private List<NotificationRuleCondition> getNotificationRuleConditions(NotificationRuleType type) {
+    if (type.equals(NotificationRuleType.SLO)) {
+      return Arrays.asList(NotificationRuleCondition.builder()
+                               .type(NotificationRuleConditionType.ERROR_BUDGET_REMAINING_PERCENTAGE)
+                               .spec(ErrorBudgetRemainingPercentageConditionSpec.builder().threshold(10.0).build())
+                               .build());
+    } else {
+      return Arrays.asList(NotificationRuleCondition.builder()
+                               .type(NotificationRuleConditionType.HEALTH_SCORE)
+                               .spec(HealthScoreConditionSpec.builder().threshold(20.0).period("10m").build())
+                               .build());
+    }
   }
 }

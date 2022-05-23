@@ -237,6 +237,7 @@ import static software.wings.utils.WingsTestConstants.APP_ID;
 import static software.wings.utils.WingsTestConstants.ARTIFACT_ID;
 import static software.wings.utils.WingsTestConstants.ARTIFACT_STREAM_ID;
 import static software.wings.utils.WingsTestConstants.ARTIFACT_STREAM_ID_ARTIFACTORY;
+import static software.wings.utils.WingsTestConstants.BUILD_NO;
 import static software.wings.utils.WingsTestConstants.COMPUTE_PROVIDER_ID;
 import static software.wings.utils.WingsTestConstants.ENV_ID;
 import static software.wings.utils.WingsTestConstants.ENV_ID_CHANGED;
@@ -288,6 +289,7 @@ import static org.mockito.Mockito.when;
 import io.harness.annotations.dev.HarnessModule;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.annotations.dev.TargetModule;
+import io.harness.beans.ArtifactMetadata;
 import io.harness.beans.ExecutionStatus;
 import io.harness.beans.FeatureName;
 import io.harness.beans.OrchestrationWorkflowType;
@@ -352,8 +354,11 @@ import software.wings.beans.WorkflowCategoryStepsMeta;
 import software.wings.beans.WorkflowExecution;
 import software.wings.beans.WorkflowPhase;
 import software.wings.beans.artifact.Artifact;
+import software.wings.beans.artifact.ArtifactInput;
 import software.wings.beans.artifact.ArtifactStream;
+import software.wings.beans.artifact.ArtifactStreamSummary;
 import software.wings.beans.artifact.ArtifactStreamType;
+import software.wings.beans.artifact.ArtifactSummary;
 import software.wings.beans.artifact.ArtifactoryArtifactStream;
 import software.wings.beans.artifact.DockerArtifactStream;
 import software.wings.beans.artifact.NexusArtifactStream;
@@ -425,7 +430,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.inject.Inject;
 import io.fabric8.kubernetes.api.KubernetesHelper;
-import io.fabric8.kubernetes.api.model.HorizontalPodAutoscaler;
+import io.fabric8.kubernetes.api.model.autoscaling.v1.HorizontalPodAutoscaler;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -1813,7 +1818,7 @@ public class WorkflowServiceTest extends WingsBaseTest {
     Workflow workflow3 = workflowService.readWorkflow(workflow1.getAppId(), workflow1.getUuid());
     assertThat(workflow3).isNotNull().hasFieldOrPropertyWithValue("envId", ENV_ID_CHANGED);
     OrchestrationWorkflow orchestrationWorkflow = workflow3.getOrchestrationWorkflow();
-    assertThat(orchestrationWorkflow.isValid()).isTrue();
+    assertThat(orchestrationWorkflow.isValid()).isFalse();
 
     List<WorkflowPhase> workflowPhases =
         ((CanaryOrchestrationWorkflow) workflow3.getOrchestrationWorkflow()).getWorkflowPhases();
@@ -1821,7 +1826,7 @@ public class WorkflowServiceTest extends WingsBaseTest {
 
     WorkflowPhase workflowPhase = workflowPhases.get(0);
     assertThat(workflowPhase).isNotNull().hasFieldOrPropertyWithValue("name", PHASE_NAME_PREFIX + 1);
-    assertThat(workflowPhase.getInfraDefinitionId()).isEqualTo(INFRA_DEFINITION_ID);
+    assertThat(workflowPhase.getInfraDefinitionId()).isNull();
   }
 
   @Test
@@ -5203,7 +5208,7 @@ public class WorkflowServiceTest extends WingsBaseTest {
     executionArgs.setArtifacts(asList(anArtifact()
                                           .withUuid("art1")
                                           .withArtifactStreamId(ARTIFACT_STREAM_ID)
-                                          .withMetadata(Collections.singletonMap("buildNo", "1"))
+                                          .withMetadata(new ArtifactMetadata(Collections.singletonMap("buildNo", "1")))
                                           .build(),
         anArtifact().withUuid("art2").build(), anArtifact().withUuid("art3").build()));
     WorkflowExecution workflowExecution = WorkflowExecution.builder().executionArgs(executionArgs).build();
@@ -5406,5 +5411,45 @@ public class WorkflowServiceTest extends WingsBaseTest {
         (BasicOrchestrationWorkflow) workflow2.getOrchestrationWorkflow();
     assertThat(orchestrationWorkflow.getFailureStrategies()).isEmpty();
     assertThat(orchestrationWorkflow.getNotificationRules()).isEmpty();
+  }
+
+  @Test
+  @Owner(developers = INDER)
+  @Category(UnitTests.class)
+  public void shouldAddArtifactInputToArtifactVariables() {
+    ArtifactVariable artifactVariable1 =
+        ArtifactVariable.builder()
+            .artifactStreamSummaries(singletonList(
+                ArtifactStreamSummary.builder()
+                    .defaultArtifact(
+                        ArtifactSummary.builder().buildNo(BUILD_NO).artifactStreamId(ARTIFACT_STREAM_ID).build())
+                    .build()))
+            .build();
+    ArtifactVariable artifactVariable2 =
+        ArtifactVariable.builder().name("docker").entityType(SERVICE).entityId(SERVICE_ID).build();
+
+    ArtifactVariable wfExecutionArtifactVariable =
+        ArtifactVariable.builder()
+            .name("docker")
+            .entityType(SERVICE)
+            .entityId(SERVICE_ID)
+            .artifactInput(
+                ArtifactInput.builder().buildNo(BUILD_NO + "1").artifactStreamId(ARTIFACT_STREAM_ID + "1").build())
+            .build();
+
+    WorkflowExecution workflowExecution =
+        WorkflowExecution.builder()
+            .executionArgs(ExecutionArgs.builder().artifactVariables(asList(wfExecutionArtifactVariable)).build())
+            .build();
+
+    WorkflowServiceImpl workflowServiceImpl = (WorkflowServiceImpl) workflowService;
+    workflowServiceImpl.addArtifactInputToArtifactVariables(
+        asList(artifactVariable1, artifactVariable2), workflowExecution);
+    assertThat(artifactVariable1.getArtifactInput()).isNotNull();
+    assertThat(artifactVariable1.getArtifactInput())
+        .isEqualTo(ArtifactInput.builder().buildNo(BUILD_NO).artifactStreamId(ARTIFACT_STREAM_ID).build());
+    assertThat(artifactVariable2.getArtifactInput()).isNotNull();
+    assertThat(artifactVariable2.getArtifactInput())
+        .isEqualTo(ArtifactInput.builder().buildNo(BUILD_NO + "1").artifactStreamId(ARTIFACT_STREAM_ID + "1").build());
   }
 }

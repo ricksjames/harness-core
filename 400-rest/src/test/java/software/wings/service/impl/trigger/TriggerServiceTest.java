@@ -15,6 +15,7 @@ import static io.harness.beans.WorkflowType.ORCHESTRATION;
 import static io.harness.beans.WorkflowType.PIPELINE;
 import static io.harness.rule.OwnerRule.AADITI;
 import static io.harness.rule.OwnerRule.AGORODETKI;
+import static io.harness.rule.OwnerRule.ATHARVA;
 import static io.harness.rule.OwnerRule.DEEPAK_PUTHRAYA;
 import static io.harness.rule.OwnerRule.HARSH;
 import static io.harness.rule.OwnerRule.HINGER;
@@ -117,6 +118,7 @@ import static org.mockito.Mockito.when;
 import io.harness.annotations.dev.HarnessModule;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.annotations.dev.TargetModule;
+import io.harness.beans.ArtifactMetadata;
 import io.harness.beans.EncryptedData;
 import io.harness.beans.EncryptedDataParent;
 import io.harness.beans.FeatureName;
@@ -136,7 +138,6 @@ import io.harness.rule.Owner;
 
 import software.wings.WingsBaseTest;
 import software.wings.beans.Application;
-import software.wings.beans.Base;
 import software.wings.beans.CanaryOrchestrationWorkflow;
 import software.wings.beans.ExecutionArgs;
 import software.wings.beans.GitConfig;
@@ -525,6 +526,28 @@ public class TriggerServiceTest extends WingsBaseTest {
         .contains(PIPELINE_SOURCE, LAST_DEPLOYED);
 
     verify(pipelineService, times(2)).readPipeline(APP_ID, PIPELINE_ID, true);
+  }
+
+  @Test
+  @Owner(developers = ATHARVA)
+  @Category(UnitTests.class)
+  public void shouldValidateWorkflowVariables() {
+    Map<String, String> workflowVariables = new HashMap<>();
+    workflowVariables.put("var1", "val1");
+    workflowVariables.put("var2", "val2");
+    Variable var1 = new Variable();
+    var1.setName("var1");
+    var1.setAllowedList(asList("val1", "val3"));
+    Variable var2 = new Variable();
+    var2.setName("var2");
+    var2.setAllowedList(asList("val4", "val5"));
+    List<Variable> allowedValues = new ArrayList<>();
+    allowedValues.add(var1);
+    allowedValues.add(var2);
+    assertThatThrownBy(() -> triggerService.validateWorkflowVariable(workflowVariables, allowedValues))
+        .isInstanceOf(InvalidRequestException.class)
+        .hasMessage(
+            "Trigger rejected because passed workflow variable value val2 was not present in allowed values list [val4,val5]");
   }
 
   @Test(expected = InvalidRequestException.class)
@@ -1023,7 +1046,7 @@ public class TriggerServiceTest extends WingsBaseTest {
                             .withAppId(APP_ID)
                             .withUuid(ARTIFACT_ID)
                             .withArtifactStreamId(ARTIFACT_STREAM_ID)
-                            .withMetadata(ImmutableMap.of("buildNo", ARTIFACT_FILTER))
+                            .withMetadata(new ArtifactMetadata(ImmutableMap.of("buildNo", ARTIFACT_FILTER)))
                             .build();
     when(workflowExecutionService.triggerEnvExecution(
              anyString(), anyString(), any(ExecutionArgs.class), any(Trigger.class)))
@@ -1045,7 +1068,7 @@ public class TriggerServiceTest extends WingsBaseTest {
                             .withAppId(APP_ID)
                             .withUuid(ARTIFACT_ID)
                             .withArtifactStreamId(ARTIFACT_STREAM_ID)
-                            .withMetadata(ImmutableMap.of("buildNo", ARTIFACT_FILTER))
+                            .withMetadata(new ArtifactMetadata(ImmutableMap.of("buildNo", ARTIFACT_FILTER)))
                             .build();
     when(workflowExecutionService.triggerEnvExecution(
              anyString(), anyString(), any(ExecutionArgs.class), any(Trigger.class)))
@@ -1066,7 +1089,7 @@ public class TriggerServiceTest extends WingsBaseTest {
                             .withAppId(APP_ID)
                             .withUuid(ARTIFACT_ID)
                             .withArtifactStreamId(ARTIFACT_STREAM_ID)
-                            .withMetadata(ImmutableMap.of("buildNo", ARTIFACT_FILTER))
+                            .withMetadata(new ArtifactMetadata(ImmutableMap.of("buildNo", ARTIFACT_FILTER)))
                             .build();
     when(workflowExecutionService.triggerEnvExecution(
              anyString(), anyString(), any(ExecutionArgs.class), any(Trigger.class)))
@@ -1088,7 +1111,7 @@ public class TriggerServiceTest extends WingsBaseTest {
                             .withAppId(APP_ID)
                             .withUuid(ARTIFACT_ID)
                             .withArtifactStreamId(ARTIFACT_STREAM_ID)
-                            .withMetadata(ImmutableMap.of("buildNo", ARTIFACT_FILTER))
+                            .withMetadata(new ArtifactMetadata(ImmutableMap.of("buildNo", ARTIFACT_FILTER)))
                             .withArtifactFiles(singletonList(
                                 anArtifactFile().withAppId(APP_ID).withFileUuid(FILE_ID).withName(FILE_NAME).build()))
                             .build();
@@ -1110,7 +1133,7 @@ public class TriggerServiceTest extends WingsBaseTest {
                             .withAppId(APP_ID)
                             .withUuid(ARTIFACT_ID)
                             .withArtifactStreamId(ARTIFACT_STREAM_ID)
-                            .withMetadata(ImmutableMap.of("buildNo", ARTIFACT_FILTER))
+                            .withMetadata(new ArtifactMetadata(ImmutableMap.of("buildNo", ARTIFACT_FILTER)))
                             .withArtifactFiles(singletonList(
                                 anArtifactFile().withAppId(APP_ID).withFileUuid(FILE_ID).withName(FILE_NAME).build()))
                             .build();
@@ -1139,7 +1162,7 @@ public class TriggerServiceTest extends WingsBaseTest {
                             .withAppId(APP_ID)
                             .withUuid(ARTIFACT_ID)
                             .withArtifactStreamId(ARTIFACT_STREAM_ID)
-                            .withMetadata(ImmutableMap.of("buildNo", ARTIFACT_FILTER))
+                            .withMetadata(new ArtifactMetadata(ImmutableMap.of("buildNo", ARTIFACT_FILTER)))
                             .build();
     ArtifactTriggerCondition artifactTriggerCondition =
         (ArtifactTriggerCondition) artifactConditionTrigger.getCondition();
@@ -1166,7 +1189,7 @@ public class TriggerServiceTest extends WingsBaseTest {
                             .withAppId(APP_ID)
                             .withUuid(ARTIFACT_ID)
                             .withArtifactStreamId(ARTIFACT_STREAM_ID)
-                            .withMetadata(ImmutableMap.of("buildNo", "release2345"))
+                            .withMetadata(new ArtifactMetadata(ImmutableMap.of("buildNo", "release2345")))
                             .build();
     ArtifactTriggerCondition artifactTriggerCondition =
         (ArtifactTriggerCondition) artifactConditionTrigger.getCondition();
@@ -1193,7 +1216,7 @@ public class TriggerServiceTest extends WingsBaseTest {
                             .withAppId(APP_ID)
                             .withUuid(ARTIFACT_ID)
                             .withArtifactStreamId(ARTIFACT_STREAM_ID)
-                            .withMetadata(ImmutableMap.of("buildNo", "@33release23"))
+                            .withMetadata(new ArtifactMetadata(ImmutableMap.of("buildNo", "@33release23")))
                             .build();
     ArtifactTriggerCondition artifactTriggerCondition =
         (ArtifactTriggerCondition) artifactConditionTrigger.getCondition();
@@ -1220,13 +1243,13 @@ public class TriggerServiceTest extends WingsBaseTest {
                             .withAppId(APP_ID)
                             .withUuid(ARTIFACT_ID)
                             .withArtifactStreamId(ARTIFACT_STREAM_ID)
-                            .withMetadata(ImmutableMap.of("buildNo", "@33release23"))
+                            .withMetadata(new ArtifactMetadata(ImmutableMap.of("buildNo", "@33release23")))
                             .build();
     Artifact artifact2 = anArtifact()
                              .withAppId(APP_ID)
                              .withUuid(ARTIFACT_ID)
                              .withArtifactStreamId(ARTIFACT_STREAM_ID)
-                             .withMetadata(ImmutableMap.of("buildNo", "@34release23"))
+                             .withMetadata(new ArtifactMetadata(ImmutableMap.of("buildNo", "@34release23")))
                              .build();
 
     ArtifactTriggerCondition artifactTriggerCondition =
@@ -1254,13 +1277,13 @@ public class TriggerServiceTest extends WingsBaseTest {
                             .withAppId(APP_ID)
                             .withUuid(ARTIFACT_ID)
                             .withArtifactStreamId(ARTIFACT_STREAM_ID)
-                            .withMetadata(ImmutableMap.of("buildNo", "release23"))
+                            .withMetadata(new ArtifactMetadata(ImmutableMap.of("buildNo", "release23")))
                             .build();
     Artifact artifact2 = anArtifact()
                              .withAppId(APP_ID)
                              .withUuid(ARTIFACT_ID)
                              .withArtifactStreamId(ARTIFACT_STREAM_ID)
-                             .withMetadata(ImmutableMap.of("buildNo", "release456"))
+                             .withMetadata(new ArtifactMetadata(ImmutableMap.of("buildNo", "release456")))
                              .build();
     ArtifactTriggerCondition artifactTriggerCondition =
         (ArtifactTriggerCondition) artifactConditionTrigger.getCondition();
@@ -1287,13 +1310,13 @@ public class TriggerServiceTest extends WingsBaseTest {
                             .withAppId(APP_ID)
                             .withUuid(ARTIFACT_ID)
                             .withArtifactStreamId(ARTIFACT_STREAM_ID)
-                            .withMetadata(ImmutableMap.of("buildNo", "release23"))
+                            .withMetadata(new ArtifactMetadata(ImmutableMap.of("buildNo", "release23")))
                             .build();
     Artifact artifact2 = anArtifact()
                              .withAppId(APP_ID)
                              .withUuid(ARTIFACT_ID)
                              .withArtifactStreamId(ARTIFACT_STREAM_ID)
-                             .withMetadata(ImmutableMap.of("buildNo", "release456"))
+                             .withMetadata(new ArtifactMetadata(ImmutableMap.of("buildNo", "release456")))
                              .build();
     ArtifactTriggerCondition artifactTriggerCondition =
         (ArtifactTriggerCondition) artifactConditionTrigger.getCondition();
@@ -1331,13 +1354,13 @@ public class TriggerServiceTest extends WingsBaseTest {
                             .withAppId(APP_ID)
                             .withUuid(ARTIFACT_ID)
                             .withArtifactStreamId(ARTIFACT_STREAM_ID)
-                            .withMetadata(ImmutableMap.of("buildNo", "@33release23"))
+                            .withMetadata(new ArtifactMetadata(ImmutableMap.of("buildNo", "@33release23")))
                             .build();
     Artifact artifact2 = anArtifact()
                              .withAppId(APP_ID)
                              .withUuid(UUIDGenerator.generateUuid())
                              .withArtifactStreamId(ARTIFACT_STREAM_ID)
-                             .withMetadata(ImmutableMap.of("buildNo", "release456"))
+                             .withMetadata(new ArtifactMetadata(ImmutableMap.of("buildNo", "release456")))
                              .build();
 
     ArtifactTriggerCondition artifactTriggerCondition =
@@ -1365,13 +1388,13 @@ public class TriggerServiceTest extends WingsBaseTest {
                             .withAppId(APP_ID)
                             .withUuid(ARTIFACT_ID)
                             .withArtifactStreamId(ARTIFACT_STREAM_ID)
-                            .withMetadata(ImmutableMap.of("buildNo", "@33release23"))
+                            .withMetadata(new ArtifactMetadata(ImmutableMap.of("buildNo", "@33release23")))
                             .build();
     Artifact artifact2 = anArtifact()
                              .withAppId(APP_ID)
                              .withUuid(UUIDGenerator.generateUuid())
                              .withArtifactStreamId(ARTIFACT_STREAM_ID)
-                             .withMetadata(ImmutableMap.of("buildNo", "release456"))
+                             .withMetadata(new ArtifactMetadata(ImmutableMap.of("buildNo", "release456")))
                              .build();
 
     ArtifactTriggerCondition artifactTriggerCondition =
@@ -1399,7 +1422,7 @@ public class TriggerServiceTest extends WingsBaseTest {
                             .withAppId(APP_ID)
                             .withUuid(ARTIFACT_ID)
                             .withArtifactStreamId(ARTIFACT_STREAM_ID)
-                            .withMetadata(ImmutableMap.of("buildNo", ARTIFACT_FILTER))
+                            .withMetadata(new ArtifactMetadata(ImmutableMap.of("buildNo", ARTIFACT_FILTER)))
                             .build();
     when(workflowExecutionService.triggerEnvExecution(
              anyString(), anyString(), any(ExecutionArgs.class), any(Trigger.class)))
@@ -1456,7 +1479,7 @@ public class TriggerServiceTest extends WingsBaseTest {
         .withAppId(APP_ID)
         .withUuid(artifactId)
         .withArtifactStreamId(ARTIFACT_STREAM_ID)
-        .withMetadata(ImmutableMap.of("buildNo", ARTIFACT_FILTER))
+        .withMetadata(new ArtifactMetadata(ImmutableMap.of("buildNo", ARTIFACT_FILTER)))
         .build();
   }
 
@@ -1465,7 +1488,7 @@ public class TriggerServiceTest extends WingsBaseTest {
         .withAppId(APP_ID)
         .withUuid(artifactId)
         .withArtifactStreamId(artifactStreamId)
-        .withMetadata(ImmutableMap.of("buildNo", ARTIFACT_FILTER))
+        .withMetadata(new ArtifactMetadata(ImmutableMap.of("buildNo", ARTIFACT_FILTER)))
         .build();
   }
 
@@ -3689,7 +3712,7 @@ public class TriggerServiceTest extends WingsBaseTest {
                                    .stream()
                                    .flatMap(executionArgs -> executionArgs.getArtifacts().stream())
                                    .collect(Collectors.toList());
-    assertThat(artifacts.stream().map(Base::getUuid).collect(Collectors.toList()))
+    assertThat(artifacts.stream().map(Artifact::getUuid).collect(Collectors.toList()))
         .containsExactlyInAnyOrder(ARTIFACT_ID, ARTIFACT_ID + 2);
   }
 

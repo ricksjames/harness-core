@@ -8,6 +8,7 @@
 package io.harness.ccm.views.service.impl;
 
 import static io.harness.annotations.dev.HarnessTeam.CE;
+import static io.harness.ccm.commons.constants.ViewFieldConstants.AWS_ACCOUNT_FIELD;
 import static io.harness.ccm.commons.utils.BigQueryHelper.UNIFIED_TABLE;
 import static io.harness.ccm.views.entities.ViewFieldIdentifier.CLUSTER;
 import static io.harness.ccm.views.graphql.QLCEViewTimeFilterOperator.AFTER;
@@ -46,11 +47,13 @@ import io.harness.ccm.views.graphql.QLCEViewTimeFilterOperator;
 import io.harness.ccm.views.graphql.QLCEViewTrendInfo;
 import io.harness.ccm.views.graphql.ViewCostData;
 import io.harness.ccm.views.graphql.ViewsQueryHelper;
+import io.harness.ccm.views.helper.AwsAccountFieldHelper;
 import io.harness.ccm.views.helper.ViewFilterBuilderHelper;
 import io.harness.ccm.views.helper.ViewTimeRangeHelper;
 import io.harness.ccm.views.service.CEViewService;
 import io.harness.ccm.views.service.ViewCustomFieldService;
 import io.harness.ccm.views.service.ViewsBillingService;
+import io.harness.ccm.views.utils.CEViewPreferenceUtils;
 import io.harness.exception.InvalidRequestException;
 
 import com.google.cloud.bigquery.BigQuery;
@@ -83,7 +86,8 @@ public class CEViewServiceImpl implements CEViewService {
   @Inject private BigQueryService bigQueryService;
 
   private static final String VIEW_NAME_DUPLICATE_EXCEPTION = "View with given name already exists";
-  private static final String VIEW_LIMIT_REACHED_EXCEPTION = "Maximum allowed custom views limit(100) has been reached";
+  private static final String VIEW_LIMIT_REACHED_EXCEPTION =
+      "Maximum allowed custom views limit(1000) has been reached";
   private static final String DEFAULT_AZURE_VIEW_NAME = "Azure";
   private static final String DEFAULT_AZURE_FIELD_ID = "azureSubscriptionGuid";
   private static final String DEFAULT_AZURE_FIELD_NAME = "Subscription id";
@@ -100,7 +104,7 @@ public class CEViewServiceImpl implements CEViewService {
   private static final String DEFAULT_CLUSTER_FIELD_ID = "clusterName";
   private static final String DEFAULT_CLUSTER_FIELD_NAME = "Cluster Name";
 
-  private static final int VIEW_COUNT = 250;
+  private static final int VIEW_COUNT = 1000;
   @Override
   public CEView save(CEView ceView) {
     validateView(ceView);
@@ -111,6 +115,7 @@ public class CEViewServiceImpl implements CEViewService {
     }
     ceView.setUuid(null);
     ceViewDao.save(ceView);
+    // For now, we are not returning AWS account Name in case of AWS Account rules
     return ceView;
   }
 
@@ -217,20 +222,25 @@ public class CEViewServiceImpl implements CEViewService {
     if (ceView.getViewRules() != null) {
       for (ViewRule rule : ceView.getViewRules()) {
         for (ViewCondition condition : rule.getViewConditions()) {
-          if (((ViewIdCondition) condition).getViewField().getIdentifier() == CLUSTER) {
+          ViewIdCondition viewIdCondition = (ViewIdCondition) condition;
+          if (viewIdCondition.getViewField().getIdentifier() == CLUSTER) {
             viewFieldIdentifierSet.add(CLUSTER);
           }
-          if (((ViewIdCondition) condition).getViewField().getIdentifier() == ViewFieldIdentifier.AWS) {
+          if (viewIdCondition.getViewField().getIdentifier() == ViewFieldIdentifier.AWS) {
             viewFieldIdentifierSet.add(ViewFieldIdentifier.AWS);
+            if (AWS_ACCOUNT_FIELD.equals(viewIdCondition.getViewField().getFieldName())) {
+              viewIdCondition.setValues(
+                  AwsAccountFieldHelper.removeAwsAccountNameFromValues(viewIdCondition.getValues()));
+            }
           }
-          if (((ViewIdCondition) condition).getViewField().getIdentifier() == ViewFieldIdentifier.GCP) {
+          if (viewIdCondition.getViewField().getIdentifier() == ViewFieldIdentifier.GCP) {
             viewFieldIdentifierSet.add(ViewFieldIdentifier.GCP);
           }
-          if (((ViewIdCondition) condition).getViewField().getIdentifier() == ViewFieldIdentifier.AZURE) {
+          if (viewIdCondition.getViewField().getIdentifier() == ViewFieldIdentifier.AZURE) {
             viewFieldIdentifierSet.add(ViewFieldIdentifier.AZURE);
           }
-          if (((ViewIdCondition) condition).getViewField().getIdentifier() == ViewFieldIdentifier.CUSTOM) {
-            String viewId = ((ViewIdCondition) condition).getViewField().getFieldId();
+          if (viewIdCondition.getViewField().getIdentifier() == ViewFieldIdentifier.CUSTOM) {
+            String viewId = viewIdCondition.getViewField().getFieldId();
             List<ViewField> customFieldViewFields = viewCustomFieldService.get(viewId).getViewFields();
             for (ViewField field : customFieldViewFields) {
               viewFieldIdentifierSet.add(field.getIdentifier());
@@ -241,9 +251,8 @@ public class CEViewServiceImpl implements CEViewService {
       }
     }
 
-    List<ViewFieldIdentifier> viewFieldIdentifierList = new ArrayList<>();
-    viewFieldIdentifierList.addAll(viewFieldIdentifierSet);
-    ceView.setDataSources(viewFieldIdentifierList);
+    ceView.setDataSources(new ArrayList<>(viewFieldIdentifierSet));
+    ceView.setViewPreferences(CEViewPreferenceUtils.getCEViewPreferences(ceView));
   }
 
   @Override
@@ -258,6 +267,7 @@ public class CEViewServiceImpl implements CEViewService {
   @Override
   public CEView update(CEView ceView) {
     modifyCEViewAndSetDefaults(ceView);
+    // For now, we are not returning AWS account Name in case of AWS Account rules
     return ceViewDao.update(ceView);
   }
 
@@ -328,6 +338,7 @@ public class CEViewServiceImpl implements CEViewService {
                                               .build())
                                  .timeRange(view.getViewTimeRange().getViewTimeRangeType())
                                  .dataSources(view.getDataSources())
+                                 .viewPreferences(view.getViewPreferences())
                                  .isReportScheduledConfigured(!reportSchedules.isEmpty())
                                  .build());
     }

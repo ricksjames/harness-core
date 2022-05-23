@@ -89,7 +89,6 @@ import software.wings.service.intfc.InfrastructureMappingService;
 import software.wings.service.intfc.LogService;
 import software.wings.service.intfc.ServiceResourceService;
 import software.wings.service.intfc.SettingsService;
-import software.wings.service.intfc.WorkflowExecutionService;
 import software.wings.service.intfc.security.SecretManager;
 import software.wings.service.intfc.sweepingoutput.SweepingOutputInquiry;
 import software.wings.service.intfc.sweepingoutput.SweepingOutputInquiry.SweepingOutputInquiryBuilder;
@@ -98,6 +97,7 @@ import software.wings.sm.ExecutionContext;
 import software.wings.sm.ExecutionContextImpl;
 import software.wings.sm.ExecutionResponse;
 import software.wings.sm.WorkflowStandardParams;
+import software.wings.sm.WorkflowStandardParamsExtensionService;
 import software.wings.sm.states.spotinst.SpotInstStateHelper;
 
 import com.google.common.collect.ImmutableMap;
@@ -121,9 +121,9 @@ public class AwsAmiServiceSetupTest extends WingsBaseTest {
   @Mock private SpotInstStateHelper mockSpotinstStateHelper;
   @Mock private SweepingOutputService mockSweepingOutputService;
   @Mock private AwsAmiServiceStateHelper mockAwsAmiServiceStateHelper;
-  @Mock private WorkflowExecutionService workflowExecutionService;
   @Mock private AwsStateHelper awsStateHelper;
   @Mock private FeatureFlagService mockFeatureFlagService;
+  @Mock private WorkflowStandardParamsExtensionService workflowStandardParamsExtensionService;
 
   @InjectMocks private AwsAmiServiceSetup state = new AwsAmiServiceSetup("stateName");
 
@@ -158,9 +158,9 @@ public class AwsAmiServiceSetupTest extends WingsBaseTest {
     Artifact artifact = anArtifact().withRevision(revision).build();
     doReturn(artifact).when(mockContext).getDefaultArtifactForService(anyString());
     Application application = anApplication().uuid(APP_ID).name(APP_NAME).accountId(ACCOUNT_ID).build();
-    doReturn(application).when(mockParams).getApp();
+    doReturn(application).when(workflowStandardParamsExtensionService).getApp(mockParams);
     Environment environment = anEnvironment().uuid(ENV_ID).name(ENV_NAME).build();
-    doReturn(environment).when(mockParams).getEnv();
+    doReturn(environment).when(workflowStandardParamsExtensionService).getEnv(mockParams);
     Service service = Service.builder().uuid(SERVICE_ID).name(SERVICE_NAME).build();
     doReturn(service).when(mockServiceResourceService).getWithDetails(anyString(), anyString());
     String classicLb = "classicLb";
@@ -291,7 +291,8 @@ public class AwsAmiServiceSetupTest extends WingsBaseTest {
                                                       .desiredInstances(1)
                                                       .build();
     ExecutionResponse response = state.handleAsyncResponse(mockContext, ImmutableMap.of(ACTIVITY_ID, delegateResponse));
-    verify(mockSweepingOutputService, times(2)).save(any());
+    verify(mockSweepingOutputService, times(1)).save(any());
+    verify(awsStateHelper).populateAmiVariables(any(), any());
     assertThat(response).isNotNull();
     assertThat(response.getNotifyElements()).isNotNull();
     assertThat(response.getNotifyElements().size()).isEqualTo(0);

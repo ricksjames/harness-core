@@ -45,6 +45,7 @@ import io.harness.annotations.dev.OwnedBy;
 import io.harness.ccm.views.businessMapping.entities.BusinessMapping;
 import io.harness.ccm.views.businessMapping.entities.CostTarget;
 import io.harness.ccm.views.businessMapping.entities.SharedCost;
+import io.harness.ccm.views.businessMapping.entities.UnallocatedCostStrategy;
 import io.harness.ccm.views.businessMapping.service.intf.BusinessMappingService;
 import io.harness.ccm.views.dao.ViewCustomFieldDao;
 import io.harness.ccm.views.entities.ViewCondition;
@@ -80,6 +81,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
@@ -998,16 +1000,21 @@ public class ViewsQueryBuilder {
   }
 
   private QLCEViewFilterOperator mapViewIdOperatorToQLCEViewFilterOperator(ViewIdOperator operator) {
+    QLCEViewFilterOperator qlCEViewFilterOperator = null;
     if (operator.equals(ViewIdOperator.IN)) {
-      return QLCEViewFilterOperator.IN;
+      qlCEViewFilterOperator = QLCEViewFilterOperator.IN;
     } else if (operator.equals(ViewIdOperator.NOT_IN)) {
-      return QLCEViewFilterOperator.NOT_IN;
+      qlCEViewFilterOperator = QLCEViewFilterOperator.NOT_IN;
     } else if (operator.equals(ViewIdOperator.NOT_NULL)) {
-      return QLCEViewFilterOperator.NOT_NULL;
+      qlCEViewFilterOperator = QLCEViewFilterOperator.NOT_NULL;
     } else if (operator.equals(ViewIdOperator.NULL)) {
-      return QLCEViewFilterOperator.NULL;
+      qlCEViewFilterOperator = QLCEViewFilterOperator.NULL;
+    } else if (operator.equals(ViewIdOperator.EQUALS)) {
+      qlCEViewFilterOperator = QLCEViewFilterOperator.EQUALS;
+    } else if (operator.equals(ViewIdOperator.LIKE)) {
+      qlCEViewFilterOperator = QLCEViewFilterOperator.LIKE;
     }
-    return null;
+    return qlCEViewFilterOperator;
   }
 
   public QLCEViewTimeGroupType mapViewTimeGranularityToQLCEViewTimeGroupType(ViewTimeGranularity timeGranularity) {
@@ -1191,7 +1198,12 @@ public class ViewsQueryBuilder {
     for (CostTarget costTarget : businessMapping.getCostTargets()) {
       caseStatement.addWhen(getConsolidatedRuleCondition(costTarget.getRules()), costTarget.getName());
     }
-    caseStatement.addElse(ViewFieldUtils.getBusinessMappingUnallocatedCostDefaultName());
+    if (Objects.nonNull(businessMapping.getUnallocatedCost())
+        && businessMapping.getUnallocatedCost().getStrategy() == UnallocatedCostStrategy.DISPLAY_NAME) {
+      caseStatement.addElse(businessMapping.getUnallocatedCost().getLabel());
+    } else {
+      caseStatement.addElse(ViewFieldUtils.getBusinessMappingUnallocatedCostDefaultName());
+    }
     return new CustomSql(caseStatement);
   }
 
