@@ -5,23 +5,19 @@
  * https://polyformproject.org/wp-content/uploads/2020/05/PolyForm-Free-Trial-1.0.0.txt.
  */
 
-package io.harness.gitsync.common.scmerrorhandling.handlers.bitbucket;
-
-import static io.harness.annotations.dev.HarnessTeam.PL;
-import static io.harness.gitsync.common.scmerrorhandling.handlers.bitbucket.ScmErrorExplanations.INVALID_CONNECTOR_CREDS;
-import static io.harness.gitsync.common.scmerrorhandling.handlers.bitbucket.ScmErrorHints.INVALID_CREDENTIALS;
-import static io.harness.gitsync.common.scmerrorhandling.handlers.bitbucket.ScmErrorHints.REPO_NOT_FOUND;
+package io.harness.gitsync.common.scmerrorhandling.handlers.bitbucketserver;
 
 import io.harness.annotations.dev.OwnedBy;
-import io.harness.exception.NestedExceptionUtils;
-import io.harness.exception.ScmBadRequestException;
-import io.harness.exception.ScmUnauthorizedException;
-import io.harness.exception.ScmUnexpectedException;
-import io.harness.exception.WingsException;
+import io.harness.exception.*;
 import io.harness.gitsync.common.scmerrorhandling.handlers.ScmApiErrorHandler;
 
+import static io.harness.annotations.dev.HarnessTeam.PL;
+import static io.harness.gitsync.common.scmerrorhandling.handlers.bitbucketcloud.ScmErrorExplanations.INVALID_CONNECTOR_CREDS;
+import static io.harness.gitsync.common.scmerrorhandling.handlers.bitbucketcloud.ScmErrorHints.INVALID_CREDENTIALS;
+import static io.harness.gitsync.common.scmerrorhandling.handlers.bitbucketcloud.ScmErrorHints.REPO_NOT_FOUND;
+
 @OwnedBy(PL)
-public class BitbucketCreateFileScmApiErrorHandler implements ScmApiErrorHandler {
+public class BitbucketServerCreateFileScmApiErrorHandler implements ScmApiErrorHandler {
   public static final String CREATE_FILE_REQUEST_FAILURE = "The requested file couldn't be created in Bitbucket. ";
 
   @Override

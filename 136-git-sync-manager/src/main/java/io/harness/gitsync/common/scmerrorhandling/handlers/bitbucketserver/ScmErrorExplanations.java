@@ -5,13 +5,12 @@
  * https://polyformproject.org/wp-content/uploads/2020/05/PolyForm-Free-Trial-1.0.0.txt.
  */
 
-package io.harness.gitsync.common.scmerrorhandling.handlers.bitbucket;
-
-import static io.harness.annotations.dev.HarnessTeam.PL;
+package io.harness.gitsync.common.scmerrorhandling.handlers.bitbucketserver;
 
 import io.harness.annotations.dev.OwnedBy;
-
 import lombok.experimental.UtilityClass;
+
+import static io.harness.annotations.dev.HarnessTeam.PL;
 
 @UtilityClass
 @OwnedBy(PL)

@@ -5,11 +5,9 @@
  * https://polyformproject.org/wp-content/uploads/2020/05/PolyForm-Free-Trial-1.0.0.txt.
  */
 
-package io.harness.gitsync.common.scmerrorhandling.handlers.bitbucket;
+package io.harness.gitsync.common.scmerrorhandling.handlers.bitbucketcloud;
 
 import static io.harness.annotations.dev.HarnessTeam.PL;
-import static io.harness.gitsync.common.scmerrorhandling.handlers.bitbucket.ScmErrorHints.INVALID_CREDENTIALS;
-import static io.harness.gitsync.common.scmerrorhandling.handlers.bitbucket.ScmErrorHints.REPO_NOT_FOUND;
 
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.exception.NestedExceptionUtils;
@@ -31,11 +29,11 @@ public class BitbucketCreatePullRequestScmApiErrorHandler implements ScmApiError
         throw new ScmBadRequestException(errorMessage);
       case 401:
       case 403:
-        throw NestedExceptionUtils.hintWithExplanationException(INVALID_CREDENTIALS,
+        throw NestedExceptionUtils.hintWithExplanationException(ScmErrorHints.INVALID_CREDENTIALS,
             CREATE_PULL_REQUEST_FAILURE + ScmErrorExplanations.INVALID_CONNECTOR_CREDS,
             new ScmUnauthorizedException(errorMessage));
       case 404:
-        throw NestedExceptionUtils.hintWithExplanationException(REPO_NOT_FOUND,
+        throw NestedExceptionUtils.hintWithExplanationException(ScmErrorHints.REPO_NOT_FOUND,
             CREATE_PULL_REQUEST_FAILURE + ScmErrorExplanations.REPO_NOT_FOUND,
             new ScmBadRequestException(errorMessage));
       default:

@@ -5,23 +5,18 @@
  * https://polyformproject.org/wp-content/uploads/2020/05/PolyForm-Free-Trial-1.0.0.txt.
  */
 
-package io.harness.gitsync.common.scmerrorhandling.handlers.bitbucket;
-
-import static io.harness.annotations.dev.HarnessTeam.PL;
-import static io.harness.gitsync.common.scmerrorhandling.handlers.bitbucket.ScmErrorHints.FILE_NOT_FOUND;
-import static io.harness.gitsync.common.scmerrorhandling.handlers.bitbucket.ScmErrorHints.INVALID_CREDENTIALS;
+package io.harness.gitsync.common.scmerrorhandling.handlers.bitbucketserver;
 
 import io.harness.annotations.dev.OwnedBy;
-import io.harness.exception.NestedExceptionUtils;
-import io.harness.exception.SCMExceptionErrorMessages;
-import io.harness.exception.ScmBadRequestException;
-import io.harness.exception.ScmUnauthorizedException;
-import io.harness.exception.ScmUnexpectedException;
-import io.harness.exception.WingsException;
+import io.harness.exception.*;
 import io.harness.gitsync.common.scmerrorhandling.handlers.ScmApiErrorHandler;
 
+import static io.harness.annotations.dev.HarnessTeam.PL;
+import static io.harness.gitsync.common.scmerrorhandling.handlers.bitbucketcloud.ScmErrorHints.FILE_NOT_FOUND;
+import static io.harness.gitsync.common.scmerrorhandling.handlers.bitbucketcloud.ScmErrorHints.INVALID_CREDENTIALS;
+
 @OwnedBy(PL)
-public class BitbucketGetFileScmApiErrorHandler implements ScmApiErrorHandler {
+public class BitbucketServerGetFileScmApiErrorHandler implements ScmApiErrorHandler {
   public static final String GET_FILE_REQUEST_FAILURE = "The requested file could not be fetched from Bitbucket. ";
 
   @Override
