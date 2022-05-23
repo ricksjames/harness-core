@@ -7,6 +7,7 @@
 
 package io.harness.ccm.service.intf;
 
+import io.harness.ccm.commons.entities.CCMFilter;
 import io.harness.ccm.commons.entities.anomaly.AnomalyData;
 import io.harness.ccm.commons.entities.anomaly.AnomalyFeedbackDTO;
 import io.harness.ccm.commons.entities.anomaly.AnomalyQueryDTO;
@@ -22,6 +23,8 @@ import lombok.NonNull;
 
 public interface AnomalyService {
   List<AnomalyData> listAnomalies(@NonNull String accountIdentifier, AnomalyQueryDTO anomalyQuery);
+  List<AnomalyData> listAnomalies(
+          @NonNull String accountIdentifier, AnomalyQueryDTO anomalyQuery, @NonNull List<CCMFilter> ruleFilters);
   List<FilterStatsDTO> getAnomalyFilterStats(@NonNull String accountIdentifier, List<String> anomalyColumnsList);
   List<PerspectiveAnomalyData> listPerspectiveAnomalies(
       @NonNull String accountIdentifier, String perspectiveId, PerspectiveQueryDTO perspectiveQuery);
