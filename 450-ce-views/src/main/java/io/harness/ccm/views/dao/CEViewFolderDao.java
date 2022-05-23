@@ -82,6 +82,26 @@ public class CEViewFolderDao {
         .get();
   }
 
+  public CEViewFolder getSampleFolder(String accountId) {
+    return hPersistence.createQuery(CEViewFolder.class)
+        .field(CEViewFolderKeys.accountId)
+        .equal(accountId)
+        .field(CEViewFolderKeys.viewType)
+        .equal(ViewType.SAMPLE)
+        .get();
+  }
+
+  public String createDefaultOrSampleFolder(String accountId, ViewType viewType) {
+    CEViewFolder ceViewFolder = CEViewFolder.builder()
+        .accountId(accountId)
+        .name((viewType.equals(ViewType.DEFAULT)) ? "Default Folder": "Out of the box Folder")
+        .pinned(true)
+        .viewType(viewType)
+        .description((viewType.equals(ViewType.DEFAULT)) ? "Contains all the custom perspective not belonging to any folder": "Contains all the perspectives created by Harness")
+        .build();
+    return hPersistence.save(ceViewFolder);
+  }
+
   public CEViewFolder updateFolder(String accountId, CEViewFolder ceViewFolder) {
     Query<CEViewFolder> query = hPersistence.createQuery(CEViewFolder.class)
         .field(CEViewFolderKeys.accountId)

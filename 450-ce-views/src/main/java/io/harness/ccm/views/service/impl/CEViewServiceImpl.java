@@ -20,23 +20,10 @@ import io.harness.ccm.budget.utils.BudgetUtils;
 import io.harness.ccm.commons.utils.BigQueryHelper;
 import io.harness.ccm.views.dao.CEReportScheduleDao;
 import io.harness.ccm.views.dao.CEViewDao;
+import io.harness.ccm.views.dao.CEViewFolderDao;
 import io.harness.ccm.views.dto.DefaultViewIdDto;
 import io.harness.ccm.views.dto.ViewTimeRangeDto;
-import io.harness.ccm.views.entities.CEReportSchedule;
-import io.harness.ccm.views.entities.CEView;
-import io.harness.ccm.views.entities.ViewChartType;
-import io.harness.ccm.views.entities.ViewCondition;
-import io.harness.ccm.views.entities.ViewField;
-import io.harness.ccm.views.entities.ViewFieldIdentifier;
-import io.harness.ccm.views.entities.ViewIdCondition;
-import io.harness.ccm.views.entities.ViewIdOperator;
-import io.harness.ccm.views.entities.ViewRule;
-import io.harness.ccm.views.entities.ViewState;
-import io.harness.ccm.views.entities.ViewTimeGranularity;
-import io.harness.ccm.views.entities.ViewTimeRange;
-import io.harness.ccm.views.entities.ViewTimeRangeType;
-import io.harness.ccm.views.entities.ViewType;
-import io.harness.ccm.views.entities.ViewVisualization;
+import io.harness.ccm.views.entities.*;
 import io.harness.ccm.views.graphql.QLCEView;
 import io.harness.ccm.views.graphql.QLCEViewAggregateOperation;
 import io.harness.ccm.views.graphql.QLCEViewAggregation;
@@ -69,12 +56,14 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
+import org.jooq.tools.StringUtils;
 
 @Slf4j
 @Singleton
 @OwnedBy(CE)
 public class CEViewServiceImpl implements CEViewService {
   @Inject private CEViewDao ceViewDao;
+  @Inject private CEViewFolderDao ceViewFolderDao;
   @Inject private CEReportScheduleDao ceReportScheduleDao;
   @Inject private ViewsBillingService viewsBillingService;
   @Inject private ViewCustomFieldService viewCustomFieldService;
@@ -111,6 +100,16 @@ public class CEViewServiceImpl implements CEViewService {
       ceView.setViewState(ViewState.COMPLETED);
     } else {
       ceView.setViewState(ViewState.DRAFT);
+    }
+    if (StringUtils.isEmpty(ceView.getFolderId())) {
+      String defaultFolderId;
+      CEViewFolder defaultFolder = ceViewFolderDao.getDefaultFolder(ceView.getAccountId());
+      if (defaultFolder == null) {
+        defaultFolderId = ceViewFolderDao.createDefaultOrSampleFolder(ceView.getAccountId(), ViewType.DEFAULT);
+      } else {
+        defaultFolderId = defaultFolder.getUuid();
+      }
+      ceView.setFolderId(defaultFolderId);
     }
     ceView.setUuid(null);
     ceViewDao.save(ceView);
@@ -391,6 +390,7 @@ public class CEViewServiceImpl implements CEViewService {
         .viewVersion("v1")
         .viewType(ViewType.DEFAULT)
         .viewState(ViewState.COMPLETED)
+        .folderId(ceViewFolderDao.getSampleFolder(accountId).getUuid())
         .build();
   }
 

@@ -54,6 +54,16 @@ public class CEViewFolderServiceImpl implements CEViewFolderService {
   }
 
   @Override
+  public void createDefaultFolders(String accountId) {
+    if (ceViewFolderDao.getDefaultFolder(accountId) == null) {
+      ceViewFolderDao.createDefaultOrSampleFolder(accountId, ViewType.DEFAULT);
+    }
+    if (ceViewFolderDao.getSampleFolder(accountId) == null) {
+      ceViewFolderDao.createDefaultOrSampleFolder(accountId, ViewType.SAMPLE);
+    }
+  }
+
+  @Override
   public CEViewFolder updateFolder(String accountId, CEViewFolder ceViewFolder) {
     return ceViewFolderDao.updateFolder(accountId, ceViewFolder);
   }
