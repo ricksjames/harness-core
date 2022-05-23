@@ -40,7 +40,7 @@ public class EventDataBulkWriteServiceImpl implements EventDataBulkWriteService 
       (bulkWriteOperation, publishedMessage) -> {
     final BasicDBObject publishedMessageBasicDBObject = new BasicDBObject()
                                                             .append("accountId", publishedMessage.getAccountId())
-                                                            .append("uuid", publishedMessage.getUuid())
+                                                            .append("_id", publishedMessage.getUuid())
                                                             .append("createdAt", Instant.now().toEpochMilli())
                                                             .append("validUntil", publishedMessage.getValidUntil())
                                                             .append("occurredAt", publishedMessage.getOccurredAt())
@@ -50,7 +50,7 @@ public class EventDataBulkWriteServiceImpl implements EventDataBulkWriteService 
                                                             .append("attributes", publishedMessage.getAttributes());
 
     final BasicDBObject filter = new BasicDBObject(
-        ImmutableMap.of("accountId", publishedMessage.getAccountId(), "uuid", publishedMessage.getUuid()));
+        ImmutableMap.of("accountId", publishedMessage.getAccountId(), "_id", publishedMessage.getUuid()));
 
     bulkWriteOperation.find(filter).upsert().update(new BasicDBObject("$set", publishedMessageBasicDBObject));
   };
@@ -63,7 +63,6 @@ public class EventDataBulkWriteServiceImpl implements EventDataBulkWriteService 
   private <T> boolean batchQueryExecutor(
       final List<T> itemsList, final EventBatchQueryFnFactory<T> eventBatchQueryFnFactory, final Class clazz) {
     final int bulkWriteLimit = eventServiceConfig.getBatchQueryConfig().getQueryBatchSize();
-    log.info("bulkWriteLimit: {}", bulkWriteLimit);
 
     for (final List<T> itemsListPartitioned : Lists.partition(itemsList, bulkWriteLimit)) {
       final BulkWriteOperation bulkWriteOperation =
@@ -86,13 +85,9 @@ public class EventDataBulkWriteServiceImpl implements EventDataBulkWriteService 
   }
 
   private BulkWriteResult bulkWriteExecutor(final BulkWriteOperation bulkWriteOperation) {
-    BulkWriteResult result;
     for (int i = 1; i < 5; i++) {
       try {
-        log.info("bulkWriteOperation: {}", bulkWriteOperation);
-        result = bulkWriteOperation.execute();
-        log.info("BulkWriteExecutor result: {}", result.toString());
-        return result;
+        return bulkWriteOperation.execute();
       } catch (final IllegalArgumentException ex) {
         log.error("Exception occurred with bulkWriteExecutor", ex);
         throw ex;
@@ -100,7 +95,7 @@ public class EventDataBulkWriteServiceImpl implements EventDataBulkWriteService 
         log.warn("Exception occurred with bulkWriteExecutor, retry:{}", i, ex);
       }
     }
-    result = bulkWriteOperation.execute();
+    final BulkWriteResult result = bulkWriteOperation.execute();
     log.info(
         "BulkWriteExecutor result [acknowledged:{}, insertedCount:{}, matchedCount:{}, modifiedCount:{}, removedCount:{}]",
         result.isAcknowledged(), result.getInsertedCount(), result.getMatchedCount(), result.getModifiedCount(),
