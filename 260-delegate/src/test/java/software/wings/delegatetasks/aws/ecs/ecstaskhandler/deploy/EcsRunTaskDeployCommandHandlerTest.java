@@ -18,7 +18,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyObject;
-import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
@@ -92,7 +91,7 @@ public class EcsRunTaskDeployCommandHandlerTest extends WingsBaseTest {
   @Category(UnitTests.class)
   public void testExecuteTaskInternalWithNoSteadyStateCheck() {
     ExecutionLogCallback mockCallback = mock(ExecutionLogCallback.class);
-    doNothing().when(mockCallback).saveExecutionLog(anyString());
+    doNothing().when(mockCallback).saveExecutionLog(any());
 
     EcsRunTaskDeployResponse ecsRunTaskDeployResponse = EcsRunTaskDeployResponse.builder()
                                                             .commandExecutionStatus(CommandExecutionStatus.SUCCESS)
@@ -107,7 +106,7 @@ public class EcsRunTaskDeployCommandHandlerTest extends WingsBaseTest {
     registeredRunTaskDefinition.setTaskDefinitionArn("taskArn1");
     doReturn(registeredRunTaskDefinition)
         .when(mockEcsDeployCommandTaskHelper)
-        .registerRunTaskDefinition(any(), any(), any(), anyString(), any(), any());
+        .registerRunTaskDefinition(any(), any(), any(), any(), any(), any());
 
     EcsRunTaskDeployRequest ecsCommandRequest = EcsRunTaskDeployRequest.builder()
                                                     .accountId(ACCOUNT_ID)
@@ -138,10 +137,10 @@ public class EcsRunTaskDeployCommandHandlerTest extends WingsBaseTest {
         ecsRunTaskDeployCommandHandler.executeTaskInternal(ecsCommandRequest, null, mockCallback);
 
     ArgumentCaptor<RunTaskRequest> captor = ArgumentCaptor.forClass(RunTaskRequest.class);
-    verify(mockEcsDeployCommandTaskHelper).triggerRunTask(anyString(), any(), any(), captor.capture());
+    verify(mockEcsDeployCommandTaskHelper).triggerRunTask(any(), any(), any(), captor.capture());
 
     verify(mockEcsDeployCommandTaskHelper, times(0))
-        .getTasksFromTaskArn(any(), anyString(), anyString(), any(), any(), any());
+        .getTasksFromTaskArn(any(), any(), any(), any(), any(), any());
 
     RunTaskRequest triggeredRunTaskRequest = captor.getValue();
     assertThat(triggeredRunTaskRequest.getTaskDefinition()).isEqualTo("taskArn1");
@@ -158,7 +157,7 @@ public class EcsRunTaskDeployCommandHandlerTest extends WingsBaseTest {
   @Category(UnitTests.class)
   public void testExecuteTaskInternalWithSteadyStateCheck() {
     ExecutionLogCallback mockCallback = mock(ExecutionLogCallback.class);
-    doNothing().when(mockCallback).saveExecutionLog(anyString());
+    doNothing().when(mockCallback).saveExecutionLog(any());
 
     EcsRunTaskDeployResponse ecsRunTaskDeployResponse = EcsRunTaskDeployResponse.builder()
                                                             .commandExecutionStatus(CommandExecutionStatus.SUCCESS)
@@ -173,7 +172,7 @@ public class EcsRunTaskDeployCommandHandlerTest extends WingsBaseTest {
     registeredRunTaskDefinition.setTaskDefinitionArn("taskArn1");
     doReturn(registeredRunTaskDefinition)
         .when(mockEcsDeployCommandTaskHelper)
-        .registerRunTaskDefinition(any(), any(), any(), anyString(), any(), any());
+        .registerRunTaskDefinition(any(), any(), any(), any(), any(), any());
 
     EcsRunTaskDeployRequest ecsCommandRequest = EcsRunTaskDeployRequest.builder()
                                                     .accountId(ACCOUNT_ID)
@@ -207,16 +206,16 @@ public class EcsRunTaskDeployCommandHandlerTest extends WingsBaseTest {
     doReturn(singletonList(taskWithStatusStopped))
         .doReturn(singletonList(task))
         .when(mockEcsDeployCommandTaskHelper)
-        .getTasksFromTaskArn(eq(awsConfig), anyString(), anyString(), eq(singletonList("taskArn1")), any(), any());
+        .getTasksFromTaskArn(eq(awsConfig), any(), any(), eq(singletonList("taskArn1")), any(), any());
 
     EcsCommandExecutionResponse response =
         ecsRunTaskDeployCommandHandler.executeTaskInternal(ecsCommandRequest, null, mockCallback);
 
     ArgumentCaptor<RunTaskRequest> captor = ArgumentCaptor.forClass(RunTaskRequest.class);
-    verify(mockEcsDeployCommandTaskHelper, times(1)).triggerRunTask(anyString(), any(), any(), captor.capture());
+    verify(mockEcsDeployCommandTaskHelper, times(1)).triggerRunTask(any(), any(), any(), captor.capture());
 
     verify(mockEcsDeployCommandTaskHelper, times(2))
-        .getTasksFromTaskArn(any(), anyString(), anyString(), any(), any(), any());
+        .getTasksFromTaskArn(any(), any(), any(), any(), any(), any());
 
     RunTaskRequest triggeredRunTaskRequest = captor.getValue();
     assertThat(triggeredRunTaskRequest.getTaskDefinition()).isEqualTo("taskArn1");
@@ -231,7 +230,7 @@ public class EcsRunTaskDeployCommandHandlerTest extends WingsBaseTest {
     doReturn(singletonList(taskWithStatusStopped))
         .doReturn(singletonList(task))
         .when(mockEcsDeployCommandTaskHelper)
-        .getTasksFromTaskArn(eq(awsConfig), anyString(), anyString(), eq(singletonList("taskArn1")), any(), any());
+        .getTasksFromTaskArn(eq(awsConfig), any(), any(), eq(singletonList("taskArn1")), any(), any());
 
     Container container = new Container();
     container.setLastStatus("STOPPED");
@@ -246,7 +245,7 @@ public class EcsRunTaskDeployCommandHandlerTest extends WingsBaseTest {
     doReturn(singletonList(taskWithStatusStopped))
         .doReturn(singletonList(task))
         .when(mockEcsDeployCommandTaskHelper)
-        .getTasksFromTaskArn(eq(awsConfig), anyString(), anyString(), eq(singletonList("taskArn1")), any(), any());
+        .getTasksFromTaskArn(eq(awsConfig), any(), any(), eq(singletonList("taskArn1")), any(), any());
 
     container = new Container();
     container.setLastStatus("STOPPED");
@@ -261,7 +260,7 @@ public class EcsRunTaskDeployCommandHandlerTest extends WingsBaseTest {
     doReturn(singletonList(taskWithStatusStopped))
         .doReturn(singletonList(task))
         .when(mockEcsDeployCommandTaskHelper)
-        .getTasksFromTaskArn(eq(awsConfig), anyString(), anyString(), eq(singletonList("taskArn1")), any(), any());
+        .getTasksFromTaskArn(eq(awsConfig), any(), any(), eq(singletonList("taskArn1")), any(), any());
 
     container = new Container();
     container.setLastStatus("STOPPED");
@@ -278,7 +277,7 @@ public class EcsRunTaskDeployCommandHandlerTest extends WingsBaseTest {
   @Category(UnitTests.class)
   public void testExecuteTaskInternalWithSteadyStateCheckNonZeroExitCodeContainers() {
     ExecutionLogCallback mockCallback = mock(ExecutionLogCallback.class);
-    doNothing().when(mockCallback).saveExecutionLog(anyString());
+    doNothing().when(mockCallback).saveExecutionLog(any());
 
     EcsRunTaskDeployResponse ecsRunTaskDeployResponse = EcsRunTaskDeployResponse.builder()
                                                             .commandExecutionStatus(CommandExecutionStatus.SUCCESS)
@@ -293,7 +292,7 @@ public class EcsRunTaskDeployCommandHandlerTest extends WingsBaseTest {
     registeredRunTaskDefinition.setTaskDefinitionArn("taskArn1");
     doReturn(registeredRunTaskDefinition)
         .when(mockEcsDeployCommandTaskHelper)
-        .registerRunTaskDefinition(any(), any(), any(), anyString(), any(), any());
+        .registerRunTaskDefinition(any(), any(), any(), any(), any(), any());
 
     EcsRunTaskDeployRequest ecsCommandRequest = EcsRunTaskDeployRequest.builder()
                                                     .accountId(ACCOUNT_ID)
@@ -336,16 +335,16 @@ public class EcsRunTaskDeployCommandHandlerTest extends WingsBaseTest {
     doReturn(singletonList(taskWithStatusStopped))
         .doReturn(singletonList(task))
         .when(mockEcsDeployCommandTaskHelper)
-        .getTasksFromTaskArn(eq(awsConfig), anyString(), anyString(), eq(singletonList("taskArn1")), any(), any());
+        .getTasksFromTaskArn(eq(awsConfig), any(), any(), eq(singletonList("taskArn1")), any(), any());
 
     EcsCommandExecutionResponse response =
         ecsRunTaskDeployCommandHandler.executeTaskInternal(ecsCommandRequest, null, mockCallback);
 
     ArgumentCaptor<RunTaskRequest> captor = ArgumentCaptor.forClass(RunTaskRequest.class);
-    verify(mockEcsDeployCommandTaskHelper, times(1)).triggerRunTask(anyString(), any(), any(), captor.capture());
+    verify(mockEcsDeployCommandTaskHelper, times(1)).triggerRunTask(any(), any(), any(), captor.capture());
 
     verify(mockEcsDeployCommandTaskHelper, times(2))
-        .getTasksFromTaskArn(any(), anyString(), anyString(), any(), any(), any());
+        .getTasksFromTaskArn(any(), any(), any(), any(), any(), any());
 
     RunTaskRequest triggeredRunTaskRequest = captor.getValue();
     assertThat(triggeredRunTaskRequest.getTaskDefinition()).isEqualTo("taskArn1");

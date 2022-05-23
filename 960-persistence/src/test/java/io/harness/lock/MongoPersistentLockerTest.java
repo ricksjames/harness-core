@@ -55,7 +55,7 @@ public class MongoPersistentLockerTest extends PersistenceTestBase {
   @Test
   @Owner(developers = GEORGE)
   @Category(UnitTests.class)
-  @RealMongo
+//  @RealMongo
   public void testAcquireLockDoLock() {
     Duration timeout = ofMillis(1000);
 
@@ -80,7 +80,7 @@ public class MongoPersistentLockerTest extends PersistenceTestBase {
   @Test
   @Owner(developers = GEORGE)
   @Category(UnitTests.class)
-  @RealMongo
+//  @RealMongo
   public void testAcquireLockDoNotRunTheBody() {
     DistributedLock distributedLock = mock(DistributedLock.class);
     when(distributedLock.tryLock()).thenReturn(false);
@@ -103,7 +103,7 @@ public class MongoPersistentLockerTest extends PersistenceTestBase {
   @Test
   @Owner(developers = GEORGE)
   @Category(UnitTests.class)
-  @RealMongo
+//  @RealMongo
   public void testTryAcquireLockDoNotThrowException() {
     DistributedLock distributedLock = mock(DistributedLock.class);
     when(distributedLock.tryLock()).thenReturn(false);
@@ -125,7 +125,7 @@ public class MongoPersistentLockerTest extends PersistenceTestBase {
   @Test
   @Owner(developers = GEORGE)
   @Category(UnitTests.class)
-  @RealMongo
+//  @RealMongo
   public void testAcquireLockNonLockedAtRelease() throws IllegalAccessException {
     Duration timeout = ofMillis(1000);
 
@@ -151,7 +151,7 @@ public class MongoPersistentLockerTest extends PersistenceTestBase {
   @Test
   @Owner(developers = GEORGE)
   @Category(UnitTests.class)
-  @RealMongo
+//  @RealMongo
   public void testAcquireLockLogging() throws IllegalAccessException {
     DistributedLock distributedLock = mock(DistributedLock.class);
     when(distributedLock.tryLock()).thenReturn(false);
@@ -171,7 +171,7 @@ public class MongoPersistentLockerTest extends PersistenceTestBase {
   @Test
   @Owner(developers = GEORGE)
   @Category(UnitTests.class)
-  @RealMongo
+//  @RealMongo
   public void testAcquireTimeout() throws InterruptedException {
     assumeThat("We can have timeout logic").isEqualTo("true");
     Duration timeout = ofMillis(1);

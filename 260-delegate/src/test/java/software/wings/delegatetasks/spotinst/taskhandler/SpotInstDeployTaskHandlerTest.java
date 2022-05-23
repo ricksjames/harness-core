@@ -18,7 +18,6 @@ import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
-import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -73,12 +72,12 @@ public class SpotInstDeployTaskHandlerTest extends WingsBaseTest {
   public void testScaleElastigroup() throws Exception {
     doNothing()
         .when(deployTaskHandler)
-        .updateElastiGroupAndWait(anyString(), anyString(), any(), anyInt(), any(), anyString(), anyString());
+        .updateElastiGroupAndWait(any(), any(), any(), anyInt(), any(), any(), any());
     ElastiGroup group = ElastiGroup.builder().build();
     deployTaskHandler.scaleElastigroup(
         group, "TOKEN", "ACCOUNT_ID", 5, SpotInstDeployTaskParameters.builder().build(), "SCALE", "WAIT");
     verify(deployTaskHandler)
-        .updateElastiGroupAndWait(anyString(), anyString(), any(), anyInt(), any(), anyString(), anyString());
+        .updateElastiGroupAndWait(any(), any(), any(), anyInt(), any(), any(), any());
   }
 
   @Test
@@ -86,17 +85,17 @@ public class SpotInstDeployTaskHandlerTest extends WingsBaseTest {
   @Category(UnitTests.class)
   public void testScaleElastiGroupCapacityUpdate() throws Exception {
     ExecutionLogCallback mockCallback = mock(ExecutionLogCallback.class);
-    doReturn(mockCallback).when(deployTaskHandler).getLogCallBack(any(), anyString());
-    doNothing().when(mockCallback).saveExecutionLog(anyString());
-    doNothing().when(mockCallback).saveExecutionLog(anyString(), any(), any());
+    doReturn(mockCallback).when(deployTaskHandler).getLogCallBack(any(), any());
+    doNothing().when(mockCallback).saveExecutionLog(any());
+    doNothing().when(mockCallback).saveExecutionLog(any(), any(), any());
 
     doReturn(Optional.of(ElastiGroup.builder().capacity(ElastiGroupCapacity.builder().build()).build()))
         .when(mockSpotInstHelperServiceDelegate)
-        .getElastiGroupById(anyString(), anyString(), anyString());
+        .getElastiGroupById(any(), any(), any());
 
     doNothing()
         .when(mockSpotInstHelperServiceDelegate)
-        .updateElastiGroupCapacity(anyString(), anyString(), anyString(), any());
+        .updateElastiGroupCapacity(any(), any(), any(), any());
 
     ElastiGroup elastiGroup1 = ElastiGroup.builder()
                                    .id("Id")
@@ -163,10 +162,10 @@ public class SpotInstDeployTaskHandlerTest extends WingsBaseTest {
   @Owner(developers = SATYAM)
   @Category(UnitTests.class)
   public void testScaleElastigroupNull() throws Exception {
-    doNothing().when(deployTaskHandler).createAndFinishEmptyExecutionLog(any(), anyString(), anyString());
+    doNothing().when(deployTaskHandler).createAndFinishEmptyExecutionLog(any(), any(), any());
     deployTaskHandler.scaleElastigroup(
         null, "TOKEN", "ACCOUNT_ID", 5, SpotInstDeployTaskParameters.builder().build(), "SCALE", "WAIT");
-    verify(deployTaskHandler, times(2)).createAndFinishEmptyExecutionLog(any(), anyString(), anyString());
+    verify(deployTaskHandler, times(2)).createAndFinishEmptyExecutionLog(any(), any(), any());
   }
 
   @Test
@@ -185,11 +184,11 @@ public class SpotInstDeployTaskHandlerTest extends WingsBaseTest {
                                      .build();
     doNothing()
         .when(deployTaskHandler)
-        .scaleElastigroup(any(), anyString(), anyString(), anyInt(), any(), anyString(), anyString());
+        .scaleElastigroup(any(), any(), any(), anyInt(), any(), any(), any());
     doReturn(singletonList(new Instance().withInstanceId("id-new")))
         .doReturn(singletonList(new Instance().withInstanceId("id-old")))
         .when(deployTaskHandler)
-        .getAllEc2InstancesOfElastiGroup(any(), anyString(), anyString(), anyString(), anyString());
+        .getAllEc2InstancesOfElastiGroup(any(), any(), any(), any(), any());
     SpotInstDeployTaskParameters parameters = SpotInstDeployTaskParameters.builder()
                                                   .newElastiGroupWithUpdatedCapacity(newElastigroup)
                                                   .oldElastiGroupWithUpdatedCapacity(oldElastigroup)
@@ -226,11 +225,11 @@ public class SpotInstDeployTaskHandlerTest extends WingsBaseTest {
                                      .build();
     doNothing()
         .when(deployTaskHandler)
-        .scaleElastigroup(any(), anyString(), anyString(), anyInt(), any(), anyString(), anyString());
+        .scaleElastigroup(any(), any(), any(), anyInt(), any(), any(), any());
     doReturn(singletonList(new Instance().withInstanceId("id-new")))
         .doReturn(singletonList(new Instance().withInstanceId("id-old")))
         .when(deployTaskHandler)
-        .getAllEc2InstancesOfElastiGroup(any(), anyString(), anyString(), anyString(), anyString());
+        .getAllEc2InstancesOfElastiGroup(any(), any(), any(), any(), any());
     SpotInstDeployTaskParameters parameters = SpotInstDeployTaskParameters.builder()
                                                   .newElastiGroupWithUpdatedCapacity(newElastigroup)
                                                   .oldElastiGroupWithUpdatedCapacity(oldElastigroup)
@@ -267,10 +266,10 @@ public class SpotInstDeployTaskHandlerTest extends WingsBaseTest {
                                      .build();
     doNothing()
         .when(deployTaskHandler)
-        .scaleElastigroup(any(), anyString(), anyString(), anyInt(), any(), anyString(), anyString());
+        .scaleElastigroup(any(), any(), any(), anyInt(), any(), any(), any());
     doReturn(singletonList(new Instance().withInstanceId("id-old")))
         .when(deployTaskHandler)
-        .getAllEc2InstancesOfElastiGroup(any(), anyString(), anyString(), anyString(), anyString());
+        .getAllEc2InstancesOfElastiGroup(any(), any(), any(), any(), any());
     SpotInstDeployTaskParameters parameters = SpotInstDeployTaskParameters.builder()
                                                   .newElastiGroupWithUpdatedCapacity(newElastigroup)
                                                   .oldElastiGroupWithUpdatedCapacity(oldElastigroup)
@@ -279,9 +278,9 @@ public class SpotInstDeployTaskHandlerTest extends WingsBaseTest {
                                                   .rollback(true)
                                                   .build();
     ExecutionLogCallback mockCallback = mock(ExecutionLogCallback.class);
-    doNothing().when(mockCallback).saveExecutionLog(anyString());
-    doNothing().when(mockCallback).saveExecutionLog(anyString(), any(), any());
-    doReturn(mockCallback).when(deployTaskHandler).getLogCallBack(any(), anyString());
+    doNothing().when(mockCallback).saveExecutionLog(any());
+    doNothing().when(mockCallback).saveExecutionLog(any(), any(), any());
+    doReturn(mockCallback).when(deployTaskHandler).getLogCallBack(any(), any());
     SpotInstTaskExecutionResponse response = deployTaskHandler.executeTaskInternal(parameters,
         SpotInstConfig.builder().spotInstAccountId("SPOTINST_ACCOUNT_ID").spotInstToken(new char[] {'a', 'b'}).build(),
         AwsConfig.builder().build());
@@ -292,6 +291,6 @@ public class SpotInstDeployTaskHandlerTest extends WingsBaseTest {
     SpotInstDeployTaskResponse deployTaskResponse = (SpotInstDeployTaskResponse) spotInstTaskResponse;
     assertThat(deployTaskResponse.getEc2InstancesAdded().size()).isEqualTo(0);
     assertThat(deployTaskResponse.getEc2InstancesExisting().size()).isEqualTo(1);
-    verify(mockSpotInstHelperServiceDelegate).deleteElastiGroup(anyString(), anyString(), anyString());
+    verify(mockSpotInstHelperServiceDelegate).deleteElastiGroup(any(), any(), any());
   }
 }
