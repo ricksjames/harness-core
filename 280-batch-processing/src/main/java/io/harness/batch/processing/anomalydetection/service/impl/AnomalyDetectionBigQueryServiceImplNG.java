@@ -221,6 +221,14 @@ public class AnomalyDetectionBigQueryServiceImplNG {
             currentTimeSeries.setAzureSubscription(
                 row.get(PreAggregatedTableSchema.azureSubscriptionGuid.getColumnNameSQL()).getStringValue());
             break;
+          case azureResourceGroup:
+            currentTimeSeries.setAzureResourceGroup(
+                row.get(PreAggregatedTableSchema.azureResourceGroup.getColumnNameSQL()).getStringValue());
+            break;
+          case azureMeterCategory:
+            currentTimeSeries.setAzureMeterCategory(
+                row.get(PreAggregatedTableSchema.azureMeterCategory.getColumnNameSQL()).getStringValue());
+            break;
           default:
             log.error("Not valid entity type : {} ", type);
             throw new InvalidArgumentsException("Invalid Entity encountered");
