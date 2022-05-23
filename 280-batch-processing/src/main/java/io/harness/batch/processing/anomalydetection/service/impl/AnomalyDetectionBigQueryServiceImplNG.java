@@ -14,7 +14,6 @@ import io.harness.batch.processing.anomalydetection.helpers.TimeSeriesUtils;
 import io.harness.batch.processing.config.BatchMainConfig;
 import io.harness.ccm.bigQuery.BigQueryService;
 import io.harness.ccm.billing.graphql.CloudBillingGroupBy;
-import io.harness.ccm.billing.graphql.CloudBillingSortCriteria;
 import io.harness.ccm.billing.graphql.CloudEntityGroupBy;
 import io.harness.ccm.billing.preaggregated.PreAggregatedTableSchema;
 import io.harness.exception.InvalidArgumentsException;
@@ -61,8 +60,6 @@ public class AnomalyDetectionBigQueryServiceImplNG {
       return hashCodes;
     }
 
-    List<CloudBillingSortCriteria> sortCriteriaList = timeSeriesMetaData.getCloudQueryMetaData().getSortCriteriaList();
-    log.info("Sort list {}", sortCriteriaList);
     String queryStatement = timeSeriesMetaData.getCloudQueryMetaData().getMetaDataQuery();
     queryStatement = queryStatement.replace("<Project>.<DataSet>.<TableName>",
         cloudBillingHelper.getCloudProviderTableName(config.getBillingDataPipelineConfig().getGcpProjectId(),
