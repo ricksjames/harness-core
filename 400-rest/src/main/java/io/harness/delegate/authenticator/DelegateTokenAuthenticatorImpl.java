@@ -104,8 +104,7 @@ public class DelegateTokenAuthenticatorImpl implements DelegateTokenAuthenticato
       return;
     }
 
-    // TODO: ARPIT change this debug log before merging pr
-    log.info(
+    log.debug(
         "Not able to validate DelegateJWT from cache. Falling back to older method of validating from delegate token cache.");
 
     DelegateToken delegateTokenFromCache = delegateTokenCacheHelper.getDelegateToken(delegateId);

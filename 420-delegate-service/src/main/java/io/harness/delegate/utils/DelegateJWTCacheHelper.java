@@ -3,8 +3,10 @@ package io.harness.delegate.utils;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import java.util.concurrent.TimeUnit;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
 
+@Slf4j
 public class DelegateJWTCacheHelper {
   // cache is for storing serialised JWT directly (since agent will be sending the same jwt for 25 mins)
   // cache key is md5 hash of JWT
@@ -20,6 +22,7 @@ public class DelegateJWTCacheHelper {
     String cacheKey = getCacheKey(JWTString);
     String JWTStringFromCache = delegateJWTCache.getIfPresent(cacheKey);
     if (JWTString.equals(JWTStringFromCache)) {
+      log.info("Arpit: paas JWT {}   ", JWTString, new Exception());
       return true;
     }
 
@@ -27,6 +30,8 @@ public class DelegateJWTCacheHelper {
     if (JWTStringFromCache != null) {
       delegateJWTCache.invalidate(cacheKey);
     }
+    log.info("Arpit: fail JWT {}   ", JWTString, new Exception());
+
     return false;
   }
 
