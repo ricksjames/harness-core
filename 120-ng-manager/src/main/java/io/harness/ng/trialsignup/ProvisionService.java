@@ -35,6 +35,7 @@ import io.harness.delegate.beans.connector.k8Connector.KubernetesCredentialDTO;
 import io.harness.delegate.beans.connector.k8Connector.KubernetesCredentialType;
 import io.harness.exception.InvalidArgumentsException;
 import io.harness.exception.UnexpectedException;
+import io.harness.gitsync.common.helper.GitSyncConnectorHelper;
 import io.harness.network.Http;
 import io.harness.ng.NextGenConfiguration;
 import io.harness.ng.core.api.SecretCrudService;
@@ -73,9 +74,9 @@ public class ProvisionService {
   @Inject SecretCrudService ngSecretService;
   @Inject DelegateNgManagerCgManagerClient delegateTokenNgClient;
   @Inject NextGenConfiguration configuration;
-  @Inject @Named(CONNECTOR_DECORATOR_SERVICE) private ConnectorService connectorService;
+  @Inject @Named("connectorDecoratorService") private ConnectorService connectorService;
   @Inject private ScmClient scmClient;
-  //  @Inject private GitSyncConnectorHelper gitSyncConnectorHelper;
+  @Inject private GitSyncConnectorHelper gitSyncConnectorHelper;
 
   private static final String K8S_CONNECTOR_NAME = "Harness Kubernetes Cluster";
   private static final String K8S_CONNECTOR_DESC =
