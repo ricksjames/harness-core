@@ -7,6 +7,10 @@
 
 package io.harness.batch.processing.config;
 
+import com.mongodb.MongoClient;
+import com.mongodb.MongoClientOptions;
+import com.mongodb.MongoClientURI;
+import com.mongodb.ReadPreference;
 import io.harness.cf.AbstractCfModule;
 import io.harness.cf.CfClientConfig;
 import io.harness.cf.CfMigrationConfig;
@@ -15,6 +19,7 @@ import io.harness.delegate.beans.DelegateSyncTaskResponse;
 import io.harness.delegate.beans.DelegateTaskProgressResponse;
 import io.harness.ff.FeatureFlagConfig;
 import io.harness.govern.ProviderModule;
+import io.harness.notification.module.NotificationClientModule;
 import io.harness.serializer.PersistenceRegistrars;
 
 import com.google.common.collect.ImmutableMap;
@@ -24,13 +29,17 @@ import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+
 import lombok.extern.slf4j.Slf4j;
 import org.mongodb.morphia.converters.TypeConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.guice.annotation.EnableGuiceModules;
+import org.springframework.data.mongodb.core.MongoTemplate;
+
 
 @Slf4j
 @Configuration
@@ -102,4 +111,14 @@ public class BatchPortalConfiguration {
       }
     };
   }
+
+//  @Bean(name = "notification-channel")
+//  public MongoTemplate mongoTemplate() throws Exception {
+//    return null;
+//  }
+
+//  @Bean
+//  public NotificationClientModule notificationClientModule(BatchMainConfig batchMainConfig){
+//    return new NotificationClientModule(batchMainConfig.getNotificationClientConfiguration());
+//  }
 }

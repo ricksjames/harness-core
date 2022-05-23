@@ -10,6 +10,13 @@ package io.harness.batch.processing.config;
 import static io.harness.AuthorizationServiceHeader.BATCH_PROCESSING;
 import static io.harness.AuthorizationServiceHeader.MANAGER;
 
+import com.google.inject.AbstractModule;
+import com.google.inject.Provides;
+import com.google.inject.Scopes;
+import com.google.inject.Singleton;
+import com.google.inject.matcher.Matchers;
+import com.google.inject.name.Named;
+
 import io.harness.annotations.retry.MethodExecutionHelper;
 import io.harness.annotations.retry.RetryOnException;
 import io.harness.annotations.retry.RetryOnExceptionInterceptor;
@@ -64,6 +71,8 @@ import io.harness.lock.noop.PersistentNoopLocker;
 import io.harness.metrics.modules.MetricsModule;
 import io.harness.metrics.service.api.MetricsPublisher;
 import io.harness.mongo.MongoConfig;
+import io.harness.notification.NotificationChannelPersistenceConfig;
+import io.harness.notification.module.NotificationClientModule;
 import io.harness.persistence.HPersistence;
 import io.harness.pricing.client.CloudInfoPricingClientModule;
 import io.harness.remote.client.ClientMode;
@@ -73,7 +82,10 @@ import io.harness.telemetry.TelemetryConfiguration;
 import io.harness.telemetry.segment.SegmentConfiguration;
 import io.harness.threading.ExecutorModule;
 import io.harness.time.TimeModule;
-
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.guice.module.BeanFactoryProvider;
+import org.springframework.guice.module.SpringModule;
 import software.wings.dl.WingsMongoPersistence;
 import software.wings.dl.WingsPersistence;
 import software.wings.service.impl.ce.CeAccountExpirationCheckerImpl;
@@ -86,14 +98,7 @@ import software.wings.service.intfc.instance.DeploymentService;
 import software.wings.service.intfc.security.EncryptedSettingAttributes;
 import software.wings.service.intfc.security.SecretManager;
 
-import com.google.inject.AbstractModule;
-import com.google.inject.Provides;
-import com.google.inject.Scopes;
-import com.google.inject.Singleton;
-import com.google.inject.matcher.Matchers;
-import com.google.inject.name.Named;
 import java.util.concurrent.Executors;
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class BatchProcessingModule extends AbstractModule {
@@ -168,6 +173,9 @@ public class BatchProcessingModule extends AbstractModule {
 
     bindRetryOnExceptionInterceptor();
     bind(AWSOrganizationHelperService.class).to(AWSOrganizationHelperServiceImpl.class);
+
+    install(new SpringModule(BeanFactoryProvider.from(NotificationChannelPersistenceConfig.class)));
+    install(new NotificationClientModule(batchMainConfig.getNotificationClientConfiguration()));
   }
 
   private void bindPricingServices() {
@@ -207,5 +215,11 @@ public class BatchProcessingModule extends AbstractModule {
   @Singleton
   MongoConfig mongoConfig(BatchMainConfig batchMainConfig) {
     return batchMainConfig.getHarnessMongo();
+  }
+
+  @Provides
+  @Singleton
+  public NotificationClientModule notificationClient(BatchMainConfig batchMainConfig) {
+    return new NotificationClientModule(batchMainConfig.getNotificationClientConfiguration());
   }
 }
