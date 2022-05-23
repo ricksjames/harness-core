@@ -144,10 +144,10 @@ public class PerspectiveFolderResource {
   @Path("{folderId}/perspectives")
   @Timed
   @ExceptionMetered
-  @ApiOperation(value = "Get All perspectives in a folder", nickname = "getAllPerspectives")
+  @ApiOperation(value = "Get All perspectives in a folder", nickname = "getAllFolderPerspectives")
   @LogAccountIdentifier
   @Produces(MediaType.APPLICATION_JSON)
-  @Operation(operationId = "getAllPerspectives",
+  @Operation(operationId = "getAllFolderPerspectives",
       description = "Return details of all the Perspectives for the given account ID and folder",
       summary = "Return details of all the Perspectives",
       responses =
