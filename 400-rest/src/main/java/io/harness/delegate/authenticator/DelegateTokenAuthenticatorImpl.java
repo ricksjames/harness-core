@@ -26,6 +26,7 @@ import io.harness.context.GlobalContext;
 import io.harness.delegate.beans.DelegateToken;
 import io.harness.delegate.beans.DelegateToken.DelegateTokenKeys;
 import io.harness.delegate.beans.DelegateTokenStatus;
+import io.harness.delegate.utils.DelegateJWTCacheHelper;
 import io.harness.delegate.utils.DelegateTokenCacheHelper;
 import io.harness.exception.InvalidRequestException;
 import io.harness.exception.InvalidTokenException;
@@ -72,6 +73,7 @@ import org.mongodb.morphia.query.Query;
 public class DelegateTokenAuthenticatorImpl implements DelegateTokenAuthenticator {
   @Inject private HPersistence persistence;
   @Inject private DelegateTokenCacheHelper delegateTokenCacheHelper;
+  @Inject private DelegateJWTCacheHelper delegateJWTCacheHelper;
 
   private final LoadingCache<String, String> keyCache =
       Caffeine.newBuilder()
@@ -81,6 +83,9 @@ public class DelegateTokenAuthenticatorImpl implements DelegateTokenAuthenticato
               -> Optional.ofNullable(persistence.get(Account.class, accountId))
                      .map(Account::getAccountKey)
                      .orElse(null));
+
+  // TODO: ARPIT clean this class to validate from JWTCache only and remove older delegate token cache method after 3-4
+  // weeks.
 
   // we should set global context data only for rest calls, because we unset the global context thread only for rest
   // calls.
@@ -93,6 +98,16 @@ public class DelegateTokenAuthenticatorImpl implements DelegateTokenAuthenticato
     } catch (ParseException e) {
       throw new InvalidTokenException("Invalid delegate token format", USER_ADMIN);
     }
+
+    // first validate it from DelegateJWTCache
+    if (delegateJWTCacheHelper.validateDelegateJWTString(tokenString)) {
+      return;
+    }
+
+    // TODO: ARPIT change this debug log before merging pr
+    log.info(
+        "Not able to validate DelegateJWT from cache. Falling back to older method of validating from delegate token cache.");
+
     DelegateToken delegateTokenFromCache = delegateTokenCacheHelper.getDelegateToken(delegateId);
     boolean decryptedWithTokenFromCache =
         decryptWithTokenFromCache(encryptedJWT, delegateTokenFromCache, shouldSetTokenNameInGlobalContext);
@@ -136,10 +151,20 @@ public class DelegateTokenAuthenticatorImpl implements DelegateTokenAuthenticato
     } catch (Exception ex) {
       throw new InvalidRequestException("Unauthorized", ex, EXPIRED_TOKEN, null);
     }
+
+    delegateJWTCacheHelper.setDelegateJWTCache(tokenString);
   }
 
   @Override
   public void validateDelegateAuth2Token(String accountId, String tokenString) {
+    // first validate it from DelegateJWTCache
+    if (delegateJWTCacheHelper.validateDelegateJWTString(tokenString)) {
+      return;
+    }
+
+    log.debug(
+        "Not able to validate DelegateJWT from cache. Falling back to older method of validating from delegate token cache.");
+
     // First try to validate token with accountKey.
     if (validateDelegateAuth2TokenWithAccountKey(accountId, tokenString)) {
       return;
