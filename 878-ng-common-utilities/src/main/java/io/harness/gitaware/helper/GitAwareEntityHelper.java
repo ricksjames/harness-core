@@ -148,7 +148,7 @@ public class GitAwareEntityHelper {
                                                           .commitMessage(commitMsg)
                                                           .baseBranch(baseBranch)
                                                           .oldFileSha(gitEntityInfo.getLastObjectId())
-                                                          .oldCommitId(gitEntityInfo.getResolvedConflictCommitId())
+                                                          .oldCommitId(gitEntityInfo.getCommitId())
                                                           .build();
 
     return scmGitSyncHelper.updateFile(scope, scmUpdateFileGitRequest, Collections.emptyMap());
