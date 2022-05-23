@@ -102,7 +102,6 @@ public class HarnessToGitPushInfoGrpcService extends HarnessToGitPushInfoService
       setPrincipal(request.getScopeIdentifiers().getAccountIdentifier(), request.getPrincipal());
       getFileResponse = harnessToGitHelperService.getFileByBranch(request);
       log.info("Git Sync Service getFile ops response : {}", getFileResponse);
-      log.info("Git Sync Service getFile ops response : {}", getFileResponse);
     } catch (Exception ex) {
       log.error("Faced exception during getFile GIT call", ex);
       final String errorMessage = ExceptionUtils.getMessage(ex);
