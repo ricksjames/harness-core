@@ -42,13 +42,15 @@ public class CEViewDao {
     UpdateOperations<CEView> updateOperations = hPersistence.createUpdateOperations(CEView.class)
                                                     .set(CEViewKeys.viewVersion, ceView.getViewVersion())
                                                     .set(CEViewKeys.name, ceView.getName())
-                                                    .set(CEViewKeys.folderId, ceView.getFolderId())
                                                     .set(CEViewKeys.viewTimeRange, ceView.getViewTimeRange())
                                                     .set(CEViewKeys.viewRules, ceView.getViewRules())
                                                     .set(CEViewKeys.viewVisualization, ceView.getViewVisualization())
                                                     .set(CEViewKeys.viewType, ceView.getViewType())
                                                     .set(CEViewKeys.viewState, ViewState.COMPLETED)
                                                     .set(CEViewKeys.dataSources, ceView.getDataSources());
+    if (ceView.getFolderId() != null) {
+      updateOperations = updateOperations.set(CEViewKeys.folderId, ceView.getFolderId());
+    }
     hPersistence.update(query, updateOperations);
     return (CEView) query.asList().get(0);
   }
