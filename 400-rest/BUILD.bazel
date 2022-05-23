@@ -1392,6 +1392,7 @@ java_library(
         "@maven//:xml_apis_xml_apis",
         "@maven//:xml_resolver_xml_resolver",
         "@maven//:xpp3_xpp3",
+        "@maven//:javax_javaee_api",
     ],
 )
 
@@ -2767,6 +2768,7 @@ java_library(
         "@maven//:xml_apis_xml_apis",
         "@maven//:xml_resolver_xml_resolver",
         "@maven//:xpp3_xpp3",
+        "@maven//:javax_javaee_api",
     ],
 )
 
