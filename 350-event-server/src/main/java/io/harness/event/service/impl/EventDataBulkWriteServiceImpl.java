@@ -54,7 +54,7 @@ public class EventDataBulkWriteServiceImpl implements EventDataBulkWriteService 
     final BasicDBObject filter = new BasicDBObject(ImmutableMap.of(
         PublishedMessageKeys.accountId, publishedMessage.getAccountId(), "_id", publishedMessage.getUuid()));
 
-    bulkWriteOperation.find(filter).upsert().update(new BasicDBObject("$set", publishedMessageBasicDBObject));
+    bulkWriteOperation.find(filter).upsert().update(new BasicDBObject("$setOnInsert", publishedMessageBasicDBObject));
   };
 
   @Override
