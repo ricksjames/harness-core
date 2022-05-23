@@ -1917,6 +1917,7 @@ public class DelegateServiceImpl implements DelegateService {
         false);
 
     File yaml = File.createTempFile(HARNESS_DELEGATE_VALUES_YAML, YAML);
+    System.out.println("Calling old helm values API, path of file " + yaml.getAbsolutePath());
     saveProcessedTemplate(params, yaml, "delegate-helm-values.yaml.ftl");
     delegateTelemetryPublisher.sendTelemetryTrackEvents(accountId, HELM_DELEGATE, false, DELEGATE_CREATED_EVENT);
     return yaml;
@@ -3919,6 +3920,7 @@ public class DelegateServiceImpl implements DelegateService {
           true);
 
       File yaml = File.createTempFile(HARNESS_DELEGATE, YAML);
+      System.out.println("Anupam calling API to generate k8 yaml path " + yaml.getAbsolutePath());
       String templateName = obtainK8sTemplateNameFromConfig(delegateSetupDetails.getK8sConfigDetails(), accountId);
       saveProcessedTemplate(scriptParams, yaml, templateName);
       yaml = new File(yaml.getAbsolutePath());
@@ -3996,8 +3998,11 @@ public class DelegateServiceImpl implements DelegateService {
             .build(),
         true);
 
+    System.out.println("Anupam Param map is built, creating file next");
     File yaml = File.createTempFile(HARNESS_NG_DELEGATE, YAML);
+    System.out.println("Anupam file created " + yaml.getAbsolutePath());
     saveProcessedTemplate(scriptParams, yaml, "delegate-ng-helm-values.yaml.ftl");
+    System.out.println("Anupam file processed  " + yaml.toString());
     delegateTelemetryPublisher.sendTelemetryTrackEvents(accountId, HELM_DELEGATE, true, DELEGATE_CREATED_EVENT);
     return yaml;
   }
