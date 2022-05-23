@@ -26,7 +26,6 @@ java_library(
         "@maven//:io_opencensus_opencensus_exporter_stats_stackdriver",
         "@maven//:io_prometheus_simpleclient_httpserver",
         "@maven//:org_apache_logging_log4j_log4j_api",
-        "@maven//:org_codehaus_groovy_groovy",
     ],
 )
 
