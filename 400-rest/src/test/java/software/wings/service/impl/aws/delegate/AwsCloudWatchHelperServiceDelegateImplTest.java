@@ -74,7 +74,7 @@ public class AwsCloudWatchHelperServiceDelegateImplTest extends CategoryTest {
     final AmazonCloudWatchClient amazonCloudWatchClientMock = mock(AmazonCloudWatchClient.class);
     doReturn(amazonCloudWatchClientMock)
         .when(awsCloudWatchHelperServiceDelegate)
-        .getAwsCloudWatchClient(any(), any(AwsConfig.class));
+        .getAwsCloudWatchClient(any(), any());
     doNothing().when(mockTracker).trackCloudWatchCall(any());
 
     final GetMetricStatisticsResult getMetricStatisticsResult = new GetMetricStatisticsResult();
@@ -103,7 +103,7 @@ public class AwsCloudWatchHelperServiceDelegateImplTest extends CategoryTest {
     final AmazonCloudWatchClient amazonCloudWatchClientMock = mock(AmazonCloudWatchClient.class);
     doReturn(amazonCloudWatchClientMock)
         .when(awsCloudWatchHelperServiceDelegate)
-        .getAwsCloudWatchClient(any(), any(AwsConfig.class));
+        .getAwsCloudWatchClient(any(), any());
     doNothing().when(mockTracker).trackCloudWatchCall(any());
 
     doThrow(new AmazonServiceException(""))
@@ -183,7 +183,7 @@ public class AwsCloudWatchHelperServiceDelegateImplTest extends CategoryTest {
     final AmazonCloudWatchClient amazonCloudWatchClientMock = mock(AmazonCloudWatchClient.class);
     doReturn(amazonCloudWatchClientMock)
         .when(awsCloudWatchHelperServiceDelegate)
-        .getAwsCloudWatchClient(any(), any(AwsConfig.class));
+        .getAwsCloudWatchClient(any(), any());
 
     final AwsCloudWatchMetricDataRequest awsCloudWatchMetricDataRequest =
         AwsCloudWatchMetricDataRequest.builder().build();
