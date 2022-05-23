@@ -103,7 +103,7 @@ public class PerspectiveFolderResource {
     ceViewFolder.setPinned(false);
     ceViewFolder.setViewType(ViewType.CUSTOMER);
     ceViewFolder = ceViewFolderService.save(ceViewFolder);
-    if (!createPerspectiveFolderDTO.getPerspectiveIds().isEmpty()) {
+    if (createPerspectiveFolderDTO.getPerspectiveIds() != null && !createPerspectiveFolderDTO.getPerspectiveIds().isEmpty()) {
       ceViewFolderService.moveMultipleCEViews(accountId, createPerspectiveFolderDTO.getPerspectiveIds(), ceViewFolder.getUuid());
     }
     return ResponseDTO.newResponse(ceViewFolder);
