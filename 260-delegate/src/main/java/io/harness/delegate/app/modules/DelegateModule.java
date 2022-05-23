@@ -1268,8 +1268,8 @@ public class DelegateModule extends AbstractModule {
         .to(ServerlessAwsLambdaRollbackCommandTaskHandler.class);
 
     // Ssh and WinRM task handlers
-      MapBinder<String, CommandHandler> commandUnitHandlers =
-              MapBinder.newMapBinder(binder(), String.class, CommandHandler.class);
+    MapBinder<String, CommandHandler> commandUnitHandlers =
+        MapBinder.newMapBinder(binder(), String.class, CommandHandler.class);
     commandUnitHandlers.addBinding(NGCommandUnitType.INIT).to(SshInitCommandHandler.class);
     commandUnitHandlers.addBinding(NGCommandUnitType.SCRIPT).to(SshScriptCommandHandler.class);
     commandUnitHandlers.addBinding(NGCommandUnitType.COPY).to(SshCopyCommandHandler.class);
