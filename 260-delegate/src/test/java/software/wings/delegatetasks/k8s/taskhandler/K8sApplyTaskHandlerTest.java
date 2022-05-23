@@ -24,6 +24,7 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.EMPTY_LIST;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyLong;
@@ -108,7 +109,7 @@ public class K8sApplyTaskHandlerTest extends WingsBaseTest {
     K8sDelegateTaskParams delegateTaskParams = K8sDelegateTaskParams.builder().build();
     ExecutionLogCallback executionLogCallback = new ExecutionLogCallback();
 
-    when(containerDeploymentDelegateHelper.getKubernetesConfig(any(K8sClusterConfig.class), eq(false)))
+    when(containerDeploymentDelegateHelper.getKubernetesConfig(nullable(K8sClusterConfig.class), eq(false)))
         .thenReturn(KubernetesConfig.builder().build());
     when(k8sTaskHelper.renderTemplateForGivenFiles(
              any(), any(), any(), any(), any(), any(), any(), any(), any(), anyBoolean()))
@@ -120,7 +121,8 @@ public class K8sApplyTaskHandlerTest extends WingsBaseTest {
     verify(k8sTaskHelperBase, times(0)).dryRunManifests(any(), any(), any(), any(), anyBoolean());
     verify(k8sTaskHelper, times(1))
         .getResourcesFromManifests(any(), any(), any(), any(), any(), any(), any(), any(), any(), anyBoolean());
-    verify(containerDeploymentDelegateHelper, times(1)).getKubernetesConfig(any(K8sClusterConfig.class), eq(false));
+    verify(containerDeploymentDelegateHelper, times(1))
+        .getKubernetesConfig(nullable(K8sClusterConfig.class), eq(false));
   }
 
   @Test
@@ -132,7 +134,7 @@ public class K8sApplyTaskHandlerTest extends WingsBaseTest {
     K8sDelegateTaskParams delegateTaskParams = K8sDelegateTaskParams.builder().build();
     ExecutionLogCallback executionLogCallback = new ExecutionLogCallback();
 
-    when(containerDeploymentDelegateHelper.getKubernetesConfig(any(K8sClusterConfig.class), eq(false)))
+    when(containerDeploymentDelegateHelper.getKubernetesConfig(nullable(K8sClusterConfig.class), eq(false)))
         .thenReturn(KubernetesConfig.builder().build());
     when(k8sTaskHelper.renderTemplateForGivenFiles(
              any(), any(), any(), any(), any(), any(), any(), any(), any(), anyBoolean()))
@@ -144,7 +146,8 @@ public class K8sApplyTaskHandlerTest extends WingsBaseTest {
     verify(k8sTaskHelperBase, times(1)).dryRunManifests(any(), any(), any(), any(), anyBoolean());
     verify(k8sTaskHelper, times(1))
         .getResourcesFromManifests(any(), any(), any(), any(), any(), any(), any(), any(), any(), anyBoolean());
-    verify(containerDeploymentDelegateHelper, times(1)).getKubernetesConfig(any(K8sClusterConfig.class), eq(false));
+    verify(containerDeploymentDelegateHelper, times(1))
+        .getKubernetesConfig(nullable(K8sClusterConfig.class), eq(false));
   }
 
   @Test
@@ -193,31 +196,31 @@ public class K8sApplyTaskHandlerTest extends WingsBaseTest {
   public void readAllFilesSpecifiedInApply() throws Exception {
     doReturn(KubernetesConfig.builder().build())
         .when(containerDeploymentDelegateHelper)
-        .getKubernetesConfig(any(K8sClusterConfig.class), eq(false));
+        .getKubernetesConfig(nullable(K8sClusterConfig.class), eq(false));
 
     k8sApplyTaskHandler.init(K8sApplyTaskParameters.builder().skipRendering(true).filePaths("a,b,c").build(),
         K8sDelegateTaskParams.builder().build(), Mockito.mock(ExecutionLogCallback.class));
 
     verify(k8sTaskHelper, times(1))
-        .getResourcesFromManifests(any(K8sDelegateTaskParams.class), any(K8sDelegateManifestConfig.class), any(),
-            eq(asList("a", "b", "c")), any(), any(), any(), any(ExecutionLogCallback.class),
-            any(K8sTaskParameters.class), eq(true));
+        .getResourcesFromManifests(nullable(K8sDelegateTaskParams.class), nullable(K8sDelegateManifestConfig.class),
+            any(), eq(asList("a", "b", "c")), nullable(List.class), nullable(String.class), nullable(String.class),
+            any(ExecutionLogCallback.class), any(K8sTaskParameters.class), eq(true));
 
     k8sApplyTaskHandler.init(K8sApplyTaskParameters.builder().filePaths("a").build(),
         K8sDelegateTaskParams.builder().build(), Mockito.mock(ExecutionLogCallback.class));
 
     verify(k8sTaskHelper, times(1))
-        .getResourcesFromManifests(any(K8sDelegateTaskParams.class), any(K8sDelegateManifestConfig.class), any(),
-            eq(asList("a")), any(), any(), any(), any(ExecutionLogCallback.class),
-            any(K8sTaskParameters.class), anyBoolean());
+        .getResourcesFromManifests(nullable(K8sDelegateTaskParams.class), nullable(K8sDelegateManifestConfig.class),
+            any(), eq(asList("a")), nullable(List.class), nullable(String.class), nullable(String.class),
+            any(ExecutionLogCallback.class), any(K8sTaskParameters.class), anyBoolean());
 
     k8sApplyTaskHandler.init(K8sApplyTaskParameters.builder().filePaths("b ,").build(),
         K8sDelegateTaskParams.builder().build(), Mockito.mock(ExecutionLogCallback.class));
 
     verify(k8sTaskHelper, times(1))
-        .getResourcesFromManifests(any(K8sDelegateTaskParams.class), any(K8sDelegateManifestConfig.class), any(),
-            eq(asList("b")), any(), any(), any(), any(ExecutionLogCallback.class),
-            any(K8sTaskParameters.class), anyBoolean());
+        .getResourcesFromManifests(nullable(K8sDelegateTaskParams.class), nullable(K8sDelegateManifestConfig.class),
+            any(), eq(asList("b")), nullable(List.class), nullable(String.class), nullable(String.class),
+            any(ExecutionLogCallback.class), any(K8sTaskParameters.class), anyBoolean());
   }
 
   @Test
@@ -230,9 +233,9 @@ public class K8sApplyTaskHandlerTest extends WingsBaseTest {
 
     doReturn(asList(ManifestFile.builder().build()))
         .when(k8sTaskHelper)
-        .renderTemplateForGivenFiles(any(K8sDelegateTaskParams.class), any(K8sDelegateManifestConfig.class),
-            any(), eq(asList("a", "b", "c")), any(), any(), any(),
-            any(ExecutionLogCallback.class), any(K8sTaskParameters.class), anyBoolean());
+        .renderTemplateForGivenFiles(any(K8sDelegateTaskParams.class), any(K8sDelegateManifestConfig.class), any(),
+            eq(asList("a", "b", "c")), any(), any(), any(), any(ExecutionLogCallback.class),
+            any(K8sTaskParameters.class), anyBoolean());
 
     doThrow(new KubernetesYamlException("reason"))
         .when(k8sTaskHelperBase)
@@ -253,9 +256,9 @@ public class K8sApplyTaskHandlerTest extends WingsBaseTest {
     doReturn(true)
         .when(k8sTaskHelper)
         .fetchManifestFilesAndWriteToDirectory(
-            any(K8sDelegateManifestConfig.class), any(), any(ExecutionLogCallback.class), anyLong());
-    doReturn(false).when(handler).init(
-        any(K8sApplyTaskParameters.class), any(K8sDelegateTaskParams.class), any(ExecutionLogCallback.class));
+            nullable(K8sDelegateManifestConfig.class), any(), nullable(ExecutionLogCallback.class), anyLong());
+    doReturn(false).when(handler).init(nullable(K8sApplyTaskParameters.class), nullable(K8sDelegateTaskParams.class),
+        nullable(ExecutionLogCallback.class));
 
     final K8sTaskExecutionResponse response =
         handler.executeTaskInternal(K8sApplyTaskParameters.builder().build(), K8sDelegateTaskParams.builder().build());
@@ -282,9 +285,9 @@ public class K8sApplyTaskHandlerTest extends WingsBaseTest {
     doReturn(true)
         .when(k8sTaskHelper)
         .fetchManifestFilesAndWriteToDirectory(
-            any(K8sDelegateManifestConfig.class), any(), any(ExecutionLogCallback.class), anyLong());
-    doReturn(true).when(handler).init(
-        any(K8sApplyTaskParameters.class), any(K8sDelegateTaskParams.class), any(ExecutionLogCallback.class));
+            nullable(K8sDelegateManifestConfig.class), any(), nullable(ExecutionLogCallback.class), anyLong());
+    doReturn(true).when(handler).init(nullable(K8sApplyTaskParameters.class), nullable(K8sDelegateTaskParams.class),
+        nullable(ExecutionLogCallback.class));
 
     final K8sTaskExecutionResponse response = handler.executeTaskInternal(
         K8sApplyTaskParameters.builder().exportManifests(true).build(), K8sDelegateTaskParams.builder().build());
@@ -451,8 +454,8 @@ public class K8sApplyTaskHandlerTest extends WingsBaseTest {
         .prepare(any(ExecutionLogCallback.class), anyBoolean(), any(K8sApplyHandlerConfig.class));
     doReturn(false)
         .when(k8sTaskHelperBase)
-        .applyManifests(any(Kubectl.class), any(), any(K8sDelegateTaskParams.class),
-            any(ExecutionLogCallback.class), anyBoolean());
+        .applyManifests(
+            any(Kubectl.class), any(), any(K8sDelegateTaskParams.class), any(ExecutionLogCallback.class), anyBoolean());
 
     final K8sTaskExecutionResponse response =
         k8sApplyTaskHandler.executeTask(K8sApplyTaskParameters.builder().releaseName("release-name").build(),
@@ -470,12 +473,12 @@ public class K8sApplyTaskHandlerTest extends WingsBaseTest {
 
     doReturn(true)
         .when(k8sTaskHelperBase)
-        .doStatusCheckForAllResources(any(Kubectl.class), any(), any(K8sDelegateTaskParams.class), any(),
-            any(ExecutionLogCallback.class), anyBoolean(), eq(false));
+        .doStatusCheckForAllResources(nullable(Kubectl.class), any(), nullable(K8sDelegateTaskParams.class), any(),
+            nullable(ExecutionLogCallback.class), anyBoolean(), eq(false));
     doReturn(true)
         .when(k8sTaskHelperBase)
-        .doStatusCheckForAllCustomResources(any(Kubectl.class), any(), any(K8sDelegateTaskParams.class),
-            any(ExecutionLogCallback.class), anyBoolean(), anyLong(), eq(false));
+        .doStatusCheckForAllCustomResources(nullable(Kubectl.class), any(), nullable(K8sDelegateTaskParams.class),
+            nullable(ExecutionLogCallback.class), anyBoolean(), anyLong(), eq(false));
 
     K8sApplyHandlerConfig k8sApplyHandlerConfig = new K8sApplyHandlerConfig();
     k8sApplyHandlerConfig.setWorkloads(
@@ -493,8 +496,8 @@ public class K8sApplyTaskHandlerTest extends WingsBaseTest {
         false, "default", K8sDelegateTaskParams.builder().build(), 100000, null, k8sApplyHandlerConfig);
 
     verify(k8sTaskHelperBase, times(1))
-        .doStatusCheckForAllResources(any(Kubectl.class), captor.capture(), any(K8sDelegateTaskParams.class),
-            any(), any(ExecutionLogCallback.class), anyBoolean(), eq(false));
+        .doStatusCheckForAllResources(nullable(Kubectl.class), captor.capture(), any(K8sDelegateTaskParams.class),
+            any(), nullable(ExecutionLogCallback.class), anyBoolean(), eq(false));
 
     @SuppressWarnings("unchecked")
     final List<KubernetesResourceId> capturedResources = (List<KubernetesResourceId>) captor.getValue();
@@ -509,12 +512,14 @@ public class K8sApplyTaskHandlerTest extends WingsBaseTest {
     K8sApplyBaseHandler baseHandler = spy(k8sApplyBaseHandler);
     doReturn(true)
         .when(k8sTaskHelperBase)
-        .doStatusCheckForAllResources(any(Kubectl.class), any(), any(K8sDelegateTaskParams.class), any(),
-            any(ExecutionLogCallback.class), anyBoolean(), eq(false));
+        .doStatusCheckForAllResources(nullable(Kubectl.class), nullable(List.class),
+            nullable(K8sDelegateTaskParams.class), any(), nullable(ExecutionLogCallback.class), anyBoolean(),
+            eq(false));
     doReturn(true)
         .when(k8sTaskHelperBase)
-        .doStatusCheckForAllCustomResources(any(Kubectl.class), any(), any(K8sDelegateTaskParams.class),
-            any(ExecutionLogCallback.class), eq(true), anyLong(), eq(false));
+        .doStatusCheckForAllCustomResources(nullable(Kubectl.class), nullable(List.class),
+            nullable(K8sDelegateTaskParams.class), nullable(ExecutionLogCallback.class), eq(true), anyLong(),
+            eq(false));
 
     K8sApplyHandlerConfig k8sApplyHandlerConfig = new K8sApplyHandlerConfig();
     k8sApplyHandlerConfig.setWorkloads(
@@ -538,8 +543,8 @@ public class K8sApplyTaskHandlerTest extends WingsBaseTest {
         false, "default", K8sDelegateTaskParams.builder().build(), 100000, null, k8sApplyHandlerConfig);
 
     verify(k8sTaskHelperBase, times(1))
-        .doStatusCheckForAllCustomResources(any(Kubectl.class), captor.capture(), any(K8sDelegateTaskParams.class),
-            any(ExecutionLogCallback.class), eq(true), anyLong(), eq(false));
+        .doStatusCheckForAllCustomResources(nullable(Kubectl.class), captor.capture(), any(K8sDelegateTaskParams.class),
+            nullable(ExecutionLogCallback.class), eq(true), anyLong(), eq(false));
 
     @SuppressWarnings("unchecked")
     final List<KubernetesResourceId> capturedResources = (List<KubernetesResourceId>) captor.getValue();
@@ -584,8 +589,9 @@ public class K8sApplyTaskHandlerTest extends WingsBaseTest {
 
     ArgumentCaptor<List> captor = ArgumentCaptor.forClass(List.class);
     verify(k8sTaskHelperBase, times(1))
-        .doStatusCheckForAllCustomResources(any(Kubectl.class), captor.capture(), any(K8sDelegateTaskParams.class),
-            any(ExecutionLogCallback.class), eq(true), anyLong(), eq(false));
+        .doStatusCheckForAllCustomResources(nullable(Kubectl.class), captor.capture(),
+            nullable(K8sDelegateTaskParams.class), nullable(ExecutionLogCallback.class), eq(true), anyLong(),
+            eq(false));
 
     @SuppressWarnings("unchecked")
     final List<KubernetesResourceId> capturedResources = (List<KubernetesResourceId>) captor.getValue();
@@ -600,20 +606,20 @@ public class K8sApplyTaskHandlerTest extends WingsBaseTest {
     doReturn(true)
         .when(k8sTaskHelper)
         .fetchManifestFilesAndWriteToDirectory(
-            any(K8sDelegateManifestConfig.class), any(), any(ExecutionLogCallback.class), anyLong());
-    doReturn(true).when(handler).init(
-        any(K8sApplyTaskParameters.class), any(K8sDelegateTaskParams.class), any(ExecutionLogCallback.class));
+            nullable(K8sDelegateManifestConfig.class), any(), nullable(ExecutionLogCallback.class), anyLong());
+    doReturn(true).when(handler).init(nullable(K8sApplyTaskParameters.class), nullable(K8sDelegateTaskParams.class),
+        nullable(ExecutionLogCallback.class));
     doReturn(true)
         .when(mockedK8sApplyBaseHandler)
-        .prepare(any(ExecutionLogCallback.class), anyBoolean(), any(K8sApplyHandlerConfig.class));
+        .prepare(nullable(ExecutionLogCallback.class), anyBoolean(), nullable(K8sApplyHandlerConfig.class));
     doReturn(true)
         .when(k8sTaskHelperBase)
-        .applyManifests(any(Kubectl.class), any(), any(K8sDelegateTaskParams.class),
-            any(ExecutionLogCallback.class), anyBoolean());
+        .applyManifests(nullable(Kubectl.class), any(), nullable(K8sDelegateTaskParams.class),
+            nullable(ExecutionLogCallback.class), anyBoolean());
     doReturn(true)
         .when(mockedK8sApplyBaseHandler)
-        .steadyStateCheck(anyBoolean(), any(), any(K8sDelegateTaskParams.class), anyLong(),
-            any(ExecutionLogCallback.class), any(K8sApplyHandlerConfig.class));
+        .steadyStateCheck(anyBoolean(), any(), nullable(K8sDelegateTaskParams.class), anyLong(),
+            nullable(ExecutionLogCallback.class), nullable(K8sApplyHandlerConfig.class));
 
     final K8sTaskExecutionResponse response =
         handler.executeTask(K8sApplyTaskParameters.builder()
