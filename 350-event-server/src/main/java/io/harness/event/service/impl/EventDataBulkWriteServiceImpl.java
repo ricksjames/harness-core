@@ -70,7 +70,6 @@ public class EventDataBulkWriteServiceImpl implements EventDataBulkWriteService 
           hPersistence.getCollection(clazz).initializeUnorderedBulkOperation();
       for (final T singleItem : itemsListPartitioned) {
         try {
-          log.info("singleItem: {}", singleItem);
           eventBatchQueryFnFactory.addQueryFor(bulkWriteOperation, singleItem);
         } catch (final Exception ex) {
           log.error("Error updating {}:[{}]", clazz.getSimpleName(), singleItem.toString(), ex);
@@ -95,6 +94,7 @@ public class EventDataBulkWriteServiceImpl implements EventDataBulkWriteService 
         log.info("BulkWriteExecutor result: {}", result.toString());
         return result;
       } catch (final IllegalArgumentException ex) {
+        log.error("Exception occurred with bulkWriteExecutor", ex);
         throw ex;
       } catch (final Exception ex) {
         log.warn("Exception occurred with bulkWriteExecutor, retry:{}", i, ex);
