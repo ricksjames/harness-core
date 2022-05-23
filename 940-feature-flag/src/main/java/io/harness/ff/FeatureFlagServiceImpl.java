@@ -18,6 +18,7 @@ import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 
+import io.harness.account.services.AccountService;
 import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.beans.FeatureFlag;
@@ -29,6 +30,7 @@ import io.harness.cf.client.api.CfClient;
 import io.harness.cf.client.dto.Target;
 import io.harness.configuration.DeployMode;
 import io.harness.exception.InvalidRequestException;
+import io.harness.ng.core.dto.AccountDTO;
 import io.harness.persistence.HPersistence;
 import io.harness.persistence.PersistentEntity;
 import io.harness.serializer.JsonUtils;
@@ -64,15 +66,18 @@ public class FeatureFlagServiceImpl implements FeatureFlagService {
   @Inject(optional = true) @Nullable private long lastEpoch;
   private final Map<FeatureName, FeatureFlag> cache;
   private final CfMigrationService cfMigrationService;
+  private final AccountService accountService;
   private final CfMigrationConfig cfMigrationConfig;
   private final Provider<CfClient> cfClient;
   private final FeatureFlagConfig featureFlagConfig;
 
   @Inject
   public FeatureFlagServiceImpl(HPersistence hPersistence, CfMigrationService cfMigrationService,
-      CfMigrationConfig cfMigrationConfig, Provider<CfClient> cfClient, FeatureFlagConfig featureFlagConfig) {
+      AccountService accountService, CfMigrationConfig cfMigrationConfig, Provider<CfClient> cfClient,
+      FeatureFlagConfig featureFlagConfig) {
     this.persistence = hPersistence;
     this.cfMigrationService = cfMigrationService;
+    this.accountService = accountService;
     this.cfMigrationConfig = cfMigrationConfig;
     this.cfClient = cfClient;
     this.featureFlagConfig = featureFlagConfig;
@@ -223,7 +228,8 @@ public class FeatureFlagServiceImpl implements FeatureFlagService {
        */
       accountId = FeatureFlagConstants.STATIC_ACCOUNT_ID;
     }
-    Target target = Target.builder().identifier(accountId).name(accountId).build();
+    AccountDTO accountDTO = accountService.getAccount(accountId);
+    Target target = Target.builder().identifier(accountId).name(accountDTO.getName()).build();
     return cfClient.get().boolVariation(featureName.name(), target, false);
   }
 
