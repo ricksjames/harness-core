@@ -15,6 +15,7 @@ import io.harness.ccm.views.entities.ViewType;
 import io.harness.persistence.HPersistence;
 import lombok.extern.slf4j.Slf4j;
 import org.mongodb.morphia.query.Query;
+import org.mongodb.morphia.query.Sort;
 import org.mongodb.morphia.query.UpdateOperations;
 
 import java.util.List;
@@ -54,6 +55,19 @@ public class CEViewFolderDao {
     return hPersistence.createQuery(CEViewFolder.class)
         .field(CEViewFolderKeys.accountId)
         .equal(accountId)
+        .order(Sort.ascending(CEViewFolderKeys.name))
+        .offset(((int) pageNo - 1) * FOLDERS_PER_PAGE)
+        .limit(FOLDERS_PER_PAGE)
+        .asList();
+  }
+
+  public List<CEViewFolder> getFolders(String accountId, List<String> folderIds, long pageNo) {
+    return hPersistence.createQuery(CEViewFolder.class)
+        .field(CEViewFolderKeys.accountId)
+        .equal(accountId)
+        .field(CEViewFolderKeys.uuid)
+        .in(folderIds)
+        .order(Sort.ascending(CEViewFolderKeys.name))
         .offset(((int) pageNo - 1) * FOLDERS_PER_PAGE)
         .limit(FOLDERS_PER_PAGE)
         .asList();
@@ -66,17 +80,6 @@ public class CEViewFolderDao {
         .field(CEViewFolderKeys.viewType)
         .equal(ViewType.DEFAULT)
         .get();
-  }
-
-  public List<CEViewFolder> getFolders(String accountId, List<String> folderIds, long pageNo) {
-    return hPersistence.createQuery(CEViewFolder.class)
-        .field(CEViewFolderKeys.accountId)
-        .equal(accountId)
-        .field(CEViewFolderKeys.uuid)
-        .in(folderIds)
-        .offset(((int) pageNo - 1) * FOLDERS_PER_PAGE)
-        .limit(FOLDERS_PER_PAGE)
-        .asList();
   }
 
   public CEViewFolder updateFolder(String accountId, CEViewFolder ceViewFolder) {

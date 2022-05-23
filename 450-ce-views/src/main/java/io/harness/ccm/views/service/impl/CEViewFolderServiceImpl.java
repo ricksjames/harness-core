@@ -54,11 +54,6 @@ public class CEViewFolderServiceImpl implements CEViewFolderService {
   }
 
   @Override
-  public List<CEView> getPerspectivesForFolder(String accountId, String folderId) {
-    return ceViewDao.findByAccountIdAndFolderId(accountId, folderId);
-  }
-
-  @Override
   public CEViewFolder updateFolder(String accountId, CEViewFolder ceViewFolder) {
     return ceViewFolderDao.updateFolder(accountId, ceViewFolder);
   }

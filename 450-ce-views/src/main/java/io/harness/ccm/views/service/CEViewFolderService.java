@@ -18,7 +18,6 @@ public interface CEViewFolderService {
   long numberOfFolders(String accountId, List<String> folderIds);
   List<CEViewFolder> getFolders(String accountId, long pageNo);
   List<CEViewFolder> getFolders(String accountId, List<String> folderIds, long pageNo);
-  List<CEView> getPerspectivesForFolder(String accountId, String folderId);
   CEViewFolder updateFolder(String accountId, CEViewFolder ceViewFolder);
   List<CEView> moveMultipleCEViews(String accountId, List<String> ceViewIds, String toFolderId);
   boolean delete(String accountId, String uuid);
