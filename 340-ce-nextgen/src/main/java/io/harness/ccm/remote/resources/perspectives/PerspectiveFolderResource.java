@@ -14,6 +14,7 @@ import io.harness.NGCommonEntityConstants;
 import io.harness.accesscontrol.AccountIdentifier;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.ccm.utils.LogAccountIdentifier;
+import io.harness.ccm.views.dto.CreatePerspectiveFolderDTO;
 import io.harness.ccm.views.dto.ViewFolderQueryDTO;
 import io.harness.ccm.views.entities.CEView;
 import io.harness.ccm.views.entities.CEViewFolder;
@@ -96,11 +97,14 @@ public class PerspectiveFolderResource {
   create(@Parameter(required = true, description = ACCOUNT_PARAM_MESSAGE) @QueryParam(
              NGCommonEntityConstants.ACCOUNT_KEY) @AccountIdentifier @NotNull @Valid String accountId,
       @RequestBody(
-          required = true, description = "Request body containing Perspective's CEViewFolder object") @Valid CEViewFolder ceViewFolder) {
+          required = true, description = "Request body containing Perspective's CEViewFolder object") @Valid CreatePerspectiveFolderDTO createPerspectiveFolderDTO) {
+    CEViewFolder ceViewFolder = createPerspectiveFolderDTO.getCeViewFolder();
     ceViewFolder.setAccountId(accountId);
     ceViewFolder.setPinned(false);
     ceViewFolder.setViewType(ViewType.CUSTOMER);
-    return ResponseDTO.newResponse(ceViewFolderService.save(ceViewFolder));
+    ceViewFolder = ceViewFolderService.save(ceViewFolder);
+    ceViewFolderService.moveMultipleCEViews(accountId, createPerspectiveFolderDTO.getPerspectiveIds(), ceViewFolder.getUuid());
+    return ResponseDTO.newResponse(ceViewFolder);
   }
 
   @POST
