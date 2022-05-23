@@ -71,6 +71,7 @@ public class EventDataBulkWriteServiceImpl implements EventDataBulkWriteService 
           hPersistence.getCollection(clazz).initializeUnorderedBulkOperation();
       for (final T singleItem : itemsListPartitioned) {
         try {
+          log.info("singleItem: {}", singleItem);
           eventBatchQueryFnFactory.addQueryFor(bulkWriteOperation, singleItem);
         } catch (final Exception ex) {
           log.error("Error updating {}:[{}]", clazz.getSimpleName(), singleItem.toString(), ex);
