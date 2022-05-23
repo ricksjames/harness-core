@@ -8,6 +8,7 @@
 package io.harness.gitsync.common.remote;
 
 import static io.harness.gitsync.common.beans.GitSyncSettings.IS_EXECUTE_ON_DELEGATE;
+import static io.harness.gitsync.common.beans.GitSyncSettings.IS_GIT_SIMPLIFICATION_ENABLED;
 
 import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
@@ -30,6 +31,8 @@ public class GitSyncSettingsMapper {
         .orgIdentifier(gitSyncSettings.getOrgIdentifier())
         .projectIdentifier(gitSyncSettings.getProjectIdentifier())
         .executeOnDelegate(gitSyncSettings.getSettings().get(IS_EXECUTE_ON_DELEGATE).equals(String.valueOf(true)))
+        .isGitSimplificationEnabled(
+            gitSyncSettings.getSettings().get(IS_GIT_SIMPLIFICATION_ENABLED).equals(String.valueOf(true)))
         .build();
   }
 
@@ -37,6 +40,8 @@ public class GitSyncSettingsMapper {
     Map<String, String> settings = new HashMap<>();
     settings.put(IS_EXECUTE_ON_DELEGATE,
         (gitSyncSettingsDTO.isExecuteOnDelegate()) ? String.valueOf(true) : String.valueOf(false));
+    settings.put(IS_GIT_SIMPLIFICATION_ENABLED,
+        (gitSyncSettingsDTO.isGitSimplificationEnabled()) ? String.valueOf(true) : String.valueOf(false));
     return GitSyncSettings.builder()
         .accountIdentifier(gitSyncSettingsDTO.getAccountIdentifier())
         .orgIdentifier(gitSyncSettingsDTO.getOrgIdentifier())
