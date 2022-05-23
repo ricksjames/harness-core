@@ -26,6 +26,7 @@ import io.harness.ccm.commons.beans.recommendation.RecommendationOverviewStats;
 import io.harness.ccm.graphql.core.recommendation.RecommendationService;
 import io.harness.ccm.graphql.dto.recommendation.FilterStatsDTO;
 import io.harness.ccm.graphql.dto.recommendation.K8sRecommendationFilterDTO;
+import io.harness.ccm.graphql.dto.recommendation.RecommendationDetailsDTO;
 import io.harness.ccm.graphql.dto.recommendation.RecommendationItemDTO;
 import io.harness.ccm.graphql.dto.recommendation.RecommendationsDTO;
 import io.harness.ccm.graphql.utils.GraphQLUtils;
@@ -97,8 +98,7 @@ public class RecommendationsOverviewQueryV2 {
                               .clusterName(item.getClusterName())
                               .namespace(item.getNamespace())
                               .resourceType(item.getResourceType())
-                              .recommendationDetails(detailsQuery.recommendationDetails(
-                                  item, OffsetDateTime.now().minusDays(7), OffsetDateTime.now(), env))
+                              .recommendationDetails(getRecommendationDetails(item, env))
                               .monthlyCost(item.getMonthlyCost())
                               .monthlySaving(item.getMonthlySaving())
                               .build())
@@ -306,5 +306,15 @@ public class RecommendationsOverviewQueryV2 {
     return CE_RECOMMENDATIONS.RESOURCETYPE.notEqual(RESOURCE_TYPE_WORKLOAD)
         .or(CE_RECOMMENDATIONS.RESOURCETYPE.eq(RESOURCE_TYPE_WORKLOAD)
                 .and(CE_RECOMMENDATIONS.NAMESPACE.notIn("harness-delegate", "harness-delegate-ng")));
+  }
+
+  private RecommendationDetailsDTO getRecommendationDetails(
+      RecommendationItemDTO item, final ResolutionEnvironment env) {
+    try {
+      return detailsQuery.recommendationDetails(item, OffsetDateTime.now().minusDays(7), OffsetDateTime.now(), env);
+    } catch (Exception e) {
+      log.error("Exception while fetching data: {}", e);
+    }
+    return null;
   }
 }
