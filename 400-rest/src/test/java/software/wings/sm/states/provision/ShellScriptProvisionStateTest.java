@@ -27,7 +27,6 @@ import static software.wings.utils.WingsTestConstants.WORKFLOW_NAME;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
@@ -120,8 +119,8 @@ public class ShellScriptProvisionStateTest extends WingsBaseTest {
     state.setProvisionerId(PROVISIONER_ID);
     doReturn(logCallback)
         .when(infrastructureProvisionerService)
-        .getManagerExecutionCallback(eq(APP_ID), eq(ACTIVITY_ID), anyString());
-    doNothing().when(stateExecutionService).appendDelegateTaskDetails(anyString(), any());
+        .getManagerExecutionCallback(eq(APP_ID), eq(ACTIVITY_ID), any());
+    doNothing().when(stateExecutionService).appendDelegateTaskDetails(any(), any());
   }
 
   @Test
@@ -162,7 +161,7 @@ public class ShellScriptProvisionStateTest extends WingsBaseTest {
     when(activityService.save(any())).thenReturn(mock(Activity.class));
     when(executionContext.getApp()).thenReturn(mock(Application.class));
     when(executionContext.getEnv()).thenReturn(mock(Environment.class));
-    when(infrastructureProvisionerService.getShellScriptProvisioner(anyString(), anyString()))
+    when(infrastructureProvisionerService.getShellScriptProvisioner(any(), any()))
         .thenReturn(mock(ShellScriptInfrastructureProvisioner.class));
     when(executionContext.getWorkflowExecutionId()).thenReturn("workflow-execution-id");
     state.execute(executionContext);
@@ -298,9 +297,9 @@ public class ShellScriptProvisionStateTest extends WingsBaseTest {
     when(activityService.save(any())).thenReturn(mock(Activity.class));
     when(executionContext.getApp()).thenReturn(mock(Application.class));
     when(executionContext.getEnv()).thenReturn(mock(Environment.class));
-    when(infrastructureProvisionerService.getShellScriptProvisioner(anyString(), anyString()))
+    when(infrastructureProvisionerService.getShellScriptProvisioner(any(), any()))
         .thenReturn(mock(ShellScriptInfrastructureProvisioner.class));
-    when(executionContext.renderExpression(anyString())).thenReturn(runTimeValueAbc);
+    when(executionContext.renderExpression(any())).thenReturn(runTimeValueAbc);
     state.execute(executionContext);
 
     verify(delegateService).queueTask(delegateTaskArgumentCaptor.capture());
@@ -408,7 +407,7 @@ public class ShellScriptProvisionStateTest extends WingsBaseTest {
     doReturn(existingSweepingOutput).when(sweepingOutputService).find(any());
     doReturn(true)
         .when(featureFlagService)
-        .isEnabled(eq(FeatureName.SAVE_SHELL_SCRIPT_PROVISION_OUTPUTS_TO_SWEEPING_OUTPUT), anyString());
+        .isEnabled(eq(FeatureName.SAVE_SHELL_SCRIPT_PROVISION_OUTPUTS_TO_SWEEPING_OUTPUT), any());
     doReturn(SweepingOutputInquiry.builder()).when(executionContext).prepareSweepingOutputInquiryBuilder();
     doReturn(outputElement).when(executionContext).getContextElement(ContextElementType.SHELL_SCRIPT_PROVISION);
     doReturn(APP_ID).when(executionContext).getAppId();

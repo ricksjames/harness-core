@@ -21,7 +21,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyListOf;
-import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
@@ -158,12 +157,12 @@ public class AzureWebAppSlotSetupTest extends WingsBaseTest {
 
     doReturn(Collections.singletonList(EncryptedDataDetail.builder().build()))
         .when(secretManager)
-        .getEncryptionDetails(any(), anyString(), anyString());
+        .getEncryptionDetails(any(), any(), any());
     doReturn(EncryptedData.builder().uuid("encrypted-data-uuid").build())
         .when(secretManager)
-        .getSecretMappedToAppByName(anyString(), anyString(), anyString(), anyString());
+        .getSecretMappedToAppByName(any(), any(), any(), any());
     doReturn("service-template-id").when(serviceTemplateHelper).fetchServiceTemplateId(any());
-    doNothing().when(stateExecutionService).appendDelegateTaskDetails(anyString(), any());
+    doNothing().when(stateExecutionService).appendDelegateTaskDetails(any(), any());
     doReturn(appId).when(context).getAppId();
 
     state.setSlotSteadyStateTimeout("10");
@@ -180,7 +179,7 @@ public class AzureWebAppSlotSetupTest extends WingsBaseTest {
 
     verifyStateExecutionData(activityId, appServiceName, slotName, result);
     assertThat(state.skipMessage()).isNotNull();
-    verify(stateExecutionService).appendDelegateTaskDetails(anyString(), any());
+    verify(stateExecutionService).appendDelegateTaskDetails(any(), any());
   }
 
   @Test
@@ -212,12 +211,12 @@ public class AzureWebAppSlotSetupTest extends WingsBaseTest {
         .getAppServiceConfigurationManifests(eq(context));
     doReturn(Collections.singletonList(EncryptedDataDetail.builder().build()))
         .when(secretManager)
-        .getEncryptionDetails(any(), anyString(), anyString());
+        .getEncryptionDetails(any(), any(), any());
     doReturn(EncryptedData.builder().uuid("encrypted-data-uuid").build())
         .when(secretManager)
-        .getSecretMappedToAppByName(anyString(), anyString(), anyString(), anyString());
+        .getSecretMappedToAppByName(any(), any(), any(), any());
     doReturn("service-template-id").when(serviceTemplateHelper).fetchServiceTemplateId(any());
-    doNothing().when(stateExecutionService).appendDelegateTaskDetails(anyString(), any());
+    doNothing().when(stateExecutionService).appendDelegateTaskDetails(any(), any());
     doReturn(appId).when(context).getAppId();
 
     ExecutionResponse result = state.execute(context);
@@ -230,7 +229,7 @@ public class AzureWebAppSlotSetupTest extends WingsBaseTest {
 
     verifyStateExecutionData(activityId, null, null, result);
     assertThat(state.skipMessage()).isNotNull();
-    verify(stateExecutionService).appendDelegateTaskDetails(anyString(), any());
+    verify(stateExecutionService).appendDelegateTaskDetails(any(), any());
   }
 
   private AzureAppServiceStateData getAzureAppServiceStateData(
@@ -301,7 +300,7 @@ public class AzureWebAppSlotSetupTest extends WingsBaseTest {
     Activity activity = Activity.builder().uuid(ACTIVITY_ID).build();
     doReturn(activity)
         .when(azureVMSSStateHelper)
-        .createAndSaveActivity(any(), any(), anyString(), anyString(), any(), anyListOf(CommandUnit.class));
+        .createAndSaveActivity(any(), any(), any(), any(), any(), anyListOf(CommandUnit.class));
     doReturn(managerExecutionLogCallback).when(azureVMSSStateHelper).getExecutionLogCallback(activity);
     AzureAppServiceStateData appServiceStateData = getAzureAppServiceStateData(app, env, service, artifact);
     doReturn(appServiceStateData)
@@ -428,7 +427,7 @@ public class AzureWebAppSlotSetupTest extends WingsBaseTest {
 
     doReturn(activity)
         .when(azureVMSSStateHelper)
-        .createAndSaveActivity(any(), any(), anyString(), anyString(), any(), anyListOf(CommandUnit.class));
+        .createAndSaveActivity(any(), any(), any(), any(), any(), anyListOf(CommandUnit.class));
     doReturn(managerExecutionLogCallback).when(azureVMSSStateHelper).getExecutionLogCallback(activity);
     doAnswer(invocation -> { throw new Exception(); })
         .when(azureVMSSStateHelper)
@@ -442,7 +441,7 @@ public class AzureWebAppSlotSetupTest extends WingsBaseTest {
   @Category(UnitTests.class)
   public void testSlotSetupHandleAsyncResponseSuccess() {
     ExecutionContextImpl context = mock(ExecutionContextImpl.class);
-    doNothing().when(azureVMSSStateHelper).updateActivityStatus(anyString(), anyString(), any());
+    doNothing().when(azureVMSSStateHelper).updateActivityStatus(any(), any(), any());
     doReturn(SUCCESS).when(azureVMSSStateHelper).getAppServiceExecutionStatus(any());
 
     List<AzureAppDeploymentData> azureAppDeploymentData = getAzureAppDeploymentData();
@@ -478,7 +477,7 @@ public class AzureWebAppSlotSetupTest extends WingsBaseTest {
   @Category(UnitTests.class)
   public void testSlotSetupHandleAsyncResponseSuccessWithEmptyInstance() {
     ExecutionContextImpl context = mock(ExecutionContextImpl.class);
-    doNothing().when(azureVMSSStateHelper).updateActivityStatus(anyString(), anyString(), any());
+    doNothing().when(azureVMSSStateHelper).updateActivityStatus(any(), any(), any());
     doReturn(SUCCESS).when(azureVMSSStateHelper).getAppServiceExecutionStatus(any());
 
     AzureWebAppInfrastructureMapping azureWebAppInfrastructureMapping = getAzureWebAppInfraMapping();
@@ -507,7 +506,7 @@ public class AzureWebAppSlotSetupTest extends WingsBaseTest {
   @Category(UnitTests.class)
   public void testSlotSetupHandleAsyncResponseFailure() {
     ExecutionContextImpl context = mock(ExecutionContextImpl.class);
-    doNothing().when(azureVMSSStateHelper).updateActivityStatus(anyString(), anyString(), any());
+    doNothing().when(azureVMSSStateHelper).updateActivityStatus(any(), any(), any());
     doReturn(FAILED).when(azureVMSSStateHelper).getAppServiceExecutionStatus(any());
     doReturn(getStateExecutionData()).when(context).getStateExecutionData();
     ArgumentCaptor<AzureAppServiceSlotSetupContextElement> contextElementArgumentCaptor =
@@ -525,7 +524,7 @@ public class AzureWebAppSlotSetupTest extends WingsBaseTest {
   @Category(UnitTests.class)
   public void testSlotSetupHandleAsyncResponseFailureDueToNullResponse() {
     ExecutionContextImpl context = mock(ExecutionContextImpl.class);
-    doNothing().when(azureVMSSStateHelper).updateActivityStatus(anyString(), anyString(), any());
+    doNothing().when(azureVMSSStateHelper).updateActivityStatus(any(), any(), any());
     doReturn(FAILED).when(azureVMSSStateHelper).getAppServiceExecutionStatus(any());
     doReturn(getStateExecutionData()).when(context).getStateExecutionData();
 

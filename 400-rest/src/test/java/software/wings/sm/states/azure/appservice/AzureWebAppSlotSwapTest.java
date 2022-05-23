@@ -16,8 +16,6 @@ import static software.wings.sm.states.azure.appservices.AzureAppServiceSlotSetu
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyListOf;
-import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
@@ -246,22 +244,22 @@ public class AzureWebAppSlotSwapTest extends WingsBaseTest {
     if (failActivityCreation) {
       doAnswer(invocation -> { throw new Exception(); })
           .when(azureVMSSStateHelper)
-          .createAndSaveActivity(any(), any(), anyString(), anyString(), any(), anyListOf(CommandUnit.class));
+          .createAndSaveActivity(any(), any(), any(), any(), any(), any());
     } else {
       doReturn(activity)
           .when(azureVMSSStateHelper)
-          .createAndSaveActivity(any(), any(), anyString(), anyString(), any(), anyListOf(CommandUnit.class));
+          .createAndSaveActivity(any(), any(), any(), any(), any(), any());
     }
 
     doReturn(managerExecutionLogCallback).when(azureVMSSStateHelper).getExecutionLogCallback(activity);
     doReturn(appServiceStateData)
         .when(azureVMSSStateHelper)
-        .populateAzureAppServiceData(eq(mockContext), any(Artifact.class));
+        .populateAzureAppServiceData(eq(mockContext), any());
     doReturn("service-template-id").when(serviceTemplateHelper).fetchServiceTemplateId(any());
     doReturn(delegateResult).when(delegateService).queueTask(any());
-    doNothing().when(stateExecutionService).appendDelegateTaskDetails(anyString(), any());
+    doNothing().when(stateExecutionService).appendDelegateTaskDetails(any(), any());
 
-    when(mockContext.renderExpression(anyString())).thenAnswer((Answer<String>) invocation -> {
+    when(mockContext.renderExpression(any())).thenAnswer((Answer<String>) invocation -> {
       Object[] args = invocation.getArguments();
       return (String) args[0];
     });

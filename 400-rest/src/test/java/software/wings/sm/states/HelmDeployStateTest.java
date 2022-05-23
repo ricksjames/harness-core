@@ -520,7 +520,7 @@ public class HelmDeployStateTest extends CategoryTest {
     verify(delegateService).executeTask(any());
     verify(gitConfigHelperService, times(1)).renderGitConfig(any(), any());
     verify(gitFileConfigHelperService, times(1)).renderGitFileConfig(any(), any());
-    verify(stateExecutionService, times(2)).appendDelegateTaskDetails(anyString(), any(DelegateTaskDetails.class));
+    verify(stateExecutionService, times(2)).appendDelegateTaskDetails(any(), any(DelegateTaskDetails.class));
   }
 
   @Test
@@ -654,7 +654,7 @@ public class HelmDeployStateTest extends CategoryTest {
     assertThat(helmDeployStateExecutionData.getChartName()).isEqualTo(null);
     assertThat(helmDeployStateExecutionData.getChartRepositoryUrl()).isEqualTo(null);
     verify(delegateService).queueTask(any());
-    verify(gitConfigHelperService).convertToRepoGitConfig(any(GitConfig.class), anyString());
+    verify(gitConfigHelperService).convertToRepoGitConfig(any(GitConfig.class), any());
   }
 
   @Test
@@ -2021,7 +2021,7 @@ public class HelmDeployStateTest extends CategoryTest {
     spyDeployState.handleAsyncResponse(context, responseDataMap);
 
     verify(spyDeployState, times(1))
-        .executeHelmTask(any(ExecutionContext.class), anyString(), eq(appManifestMap), anyMap());
+        .executeHelmTask(any(ExecutionContext.class), any(), eq(appManifestMap), anyMap());
     assertThat(stateExecutionData.getValuesFiles()).isEqualTo(valuesMap);
     assertThat(stateExecutionData.getZippedManifestFileId()).isEqualTo("fileId");
 

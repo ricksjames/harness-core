@@ -348,7 +348,7 @@ public class AwsAmiHelperServiceDelegateImplTest extends WingsBaseTest {
         new BlockDeviceMapping().withDeviceName("name0"), new BlockDeviceMapping().withDeviceName("name1"));
     doReturn(ImmutableSet.of("name1"))
         .when(mockAwsEc2HelperServiceDelegate)
-        .listBlockDeviceNamesOfAmi(any(), anyList(), anyString(), anyString());
+        .listBlockDeviceNamesOfAmi(any(), any(), any(), any());
     List<BlockDeviceMapping> result = awsAmiHelperServiceDelegate.getBlockDeviceMappings(
         AwsConfig.builder().build(), emptyList(), "us-east-1", baseLC);
     assertThat(result).isNotNull();
@@ -862,8 +862,8 @@ public class AwsAmiHelperServiceDelegateImplTest extends WingsBaseTest {
             .build();
     doAnswer(invocation -> { throw new Exception(); })
         .when(awsAmiHelperServiceDelegate)
-        .resizeAsgs(anyString(), any(), anyList(), anyString(), anyInt(), anyList(), any(), anyBoolean(), anyInt(),
-            anyInt(), anyInt(), any(), anyList(), anyList(), anyBoolean(), anyList(), anyInt(), anyBoolean(), any(),
+        .resizeAsgs(any(), any(), any(), any(), any(), any(), any(), anyBoolean(), any(),
+            anyInt(), anyInt(), any(), any(), any(), anyBoolean(), any(), anyInt(), anyBoolean(), any(),
             anyBoolean());
     AwsAmiServiceDeployResponse awsAmiServiceDeployResponse =
         awsAmiHelperServiceDelegate.deployAmiServiceTrafficShift(trafficShiftAlbDeployRequest);
@@ -977,7 +977,7 @@ public class AwsAmiHelperServiceDelegateImplTest extends WingsBaseTest {
     doAnswer(invocation -> { throw new Exception(); })
         .when(mockAwsElbHelperServiceDelegate)
         .updateRulesForAlbTrafficShift(
-            eq(awsConfig), eq(REGION), eq(emptyList()), anyList(), anyObject(), anyInt(), anyString());
+            eq(awsConfig), eq(REGION), eq(emptyList()), anyList(), anyObject(), anyInt(), any());
     awsAmiSwitchRoutesResponse = awsAmiHelperServiceDelegate.switchAmiRoutesTrafficShift(trafficShiftAlbSetupRequest);
     assertThat(awsAmiSwitchRoutesResponse.getExecutionStatus()).isEqualTo(FAILED);
   }
