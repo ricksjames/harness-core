@@ -244,9 +244,9 @@ public class K8sTrafficSplitTaskHandlerTest extends WingsBaseTest {
 
     when(containerDeploymentDelegateHelper.getKubernetesConfig(any(K8sClusterConfig.class), anyBoolean()))
         .thenReturn(KubernetesConfig.builder().build());
-    when(k8sTaskHelperBase.getReleaseHistoryDataFromConfigMap(any(KubernetesConfig.class), anyString()))
+    when(k8sTaskHelperBase.getReleaseHistoryDataFromConfigMap(nullable(KubernetesConfig.class), any()))
         .thenReturn(releaseHistory.getAsYaml());
-    when(kubernetesContainerService.getFabric8IstioVirtualService(any(KubernetesConfig.class), anyString()))
+    when(kubernetesContainerService.getFabric8IstioVirtualService(nullable(KubernetesConfig.class), any()))
         .thenReturn(null);
 
     boolean status = k8sTrafficSplitTaskHandler.init(k8sTrafficSplitTaskParams, executionLogCallback);
