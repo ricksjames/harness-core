@@ -15,7 +15,6 @@ import io.harness.gitsync.branching.EntityGitBranchMetadata;
 import io.harness.gitsync.persistance.GitSyncableEntity;
 import io.harness.morphia.MorphiaRegistrar;
 import io.harness.morphia.MorphiaRegistrarHelperPut;
-import io.harness.persistence.gitaware.GitAware;
 
 import java.util.Set;
 
