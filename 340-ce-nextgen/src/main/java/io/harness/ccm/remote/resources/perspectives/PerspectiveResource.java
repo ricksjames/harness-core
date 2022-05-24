@@ -49,7 +49,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
-import java.util.Map;
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.Consumes;
@@ -290,7 +289,7 @@ public class PerspectiveResource {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(description = "Returns a List of Perspectives",
             content = { @Content(mediaType = MediaType.APPLICATION_JSON) })
       })
-  public ResponseDTO<Map<String,List<QLCEView>>>
+  public ResponseDTO<List<QLCEView>>
   getAll(@Parameter(required = true, description = ACCOUNT_PARAM_MESSAGE) @QueryParam(
       NGCommonEntityConstants.ACCOUNT_KEY) @AccountIdentifier @NotNull @Valid String accountId) {
     return ResponseDTO.newResponse(ceViewService.getAllViews(accountId, true));

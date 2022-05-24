@@ -10,14 +10,12 @@ package io.harness.ccm.graphql.dto.perspectives;
 import io.harness.ccm.views.graphql.QLCEView;
 
 import java.util.List;
-import java.util.Map;
-
 import lombok.Builder;
 import lombok.Value;
 
 @Value
 @Builder
 public class PerspectiveData {
-  Map<String, List<QLCEView>> sampleViews;
-  Map<String, List<QLCEView>> customerViews;
+  List<QLCEView> sampleViews;
+  List<QLCEView> customerViews;
 }

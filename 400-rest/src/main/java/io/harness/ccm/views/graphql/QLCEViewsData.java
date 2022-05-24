@@ -17,8 +17,6 @@ import software.wings.security.PermissionAttribute;
 import software.wings.security.annotations.Scope;
 
 import java.util.List;
-import java.util.Map;
-
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Value;
@@ -31,6 +29,6 @@ import lombok.experimental.FieldDefaults;
 @OwnedBy(CE)
 @TargetModule(HarnessModule._375_CE_GRAPHQL)
 public class QLCEViewsData {
-  Map<String,List<QLCEView>> sampleViews;
-  Map<String,List<QLCEView>> customerViews;
+  List<QLCEView> sampleViews;
+  List<QLCEView> customerViews;
 }
