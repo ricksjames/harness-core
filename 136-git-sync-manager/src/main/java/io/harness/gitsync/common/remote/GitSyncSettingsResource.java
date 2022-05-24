@@ -172,6 +172,6 @@ public class GitSyncSettingsResource {
         Resource.of(ResourceTypes.PROJECT, projectIdentifier), EDIT_PROJECT_PERMISSION);
 
     return ResponseDTO.newResponse(
-        gitSyncSettingsService.enableGitSimplification(accountIdentifier, orgIdentifier, projectIdentifier));
+        gitSyncSettingsService.getGitSimplificationStatus(accountIdentifier, orgIdentifier, projectIdentifier));
   }
 }
