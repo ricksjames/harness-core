@@ -4,6 +4,7 @@ import static io.harness.annotations.dev.HarnessTeam.PIPELINE;
 
 import io.harness.annotation.RecasterAlias;
 import io.harness.annotations.dev.OwnedBy;
+import io.harness.pms.yaml.YamlNode;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import java.util.Map;
@@ -22,6 +23,7 @@ public class ExcludeConfig {
 
   @JsonCreator(mode = JsonCreator.Mode.DELEGATING)
   public ExcludeConfig(Map<String, String> axisValue) {
+    axisValue.remove(YamlNode.UUID_FIELD_NAME);
     this.exclude = axisValue;
   }
 }
