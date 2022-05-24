@@ -10,6 +10,7 @@ package software.wings.service.impl;
 import static io.harness.annotations.dev.HarnessTeam.DEL;
 import static io.harness.beans.FeatureName.DELEGATE_ENABLE_DYNAMIC_HANDLING_OF_REQUEST;
 import static io.harness.beans.FeatureName.JDK11_DELEGATE;
+import static io.harness.beans.FeatureName.JDK11_WATCHER;
 import static io.harness.beans.FeatureName.REDUCE_DELEGATE_MEMORY_SIZE;
 import static io.harness.beans.FeatureName.USE_IMMUTABLE_DELEGATE;
 import static io.harness.configuration.DeployVariant.DEPLOY_VERSION;
@@ -1346,7 +1347,7 @@ public class DelegateServiceImpl implements DelegateService {
                   delegateVersionService.getUpgraderImageTag(
                       templateParameters.getAccountId(), templateParameters.getDelegateType()))
               .put("accountId", templateParameters.getAccountId())
-              .put("delegateToken", accountSecret != null ? accountSecret : EMPTY)
+              .put("delegateToken", accountSecret)
               .put("base64Secret", base64Secret)
               .put("hexkey", hexkey)
               .put(UPGRADE_VERSION, latestVersion)
@@ -1424,6 +1425,9 @@ public class DelegateServiceImpl implements DelegateService {
       params.put(JRE_DIRECTORY, jreConfig.getJreDirectory());
       params.put(JRE_MAC_DIRECTORY, jreConfig.getJreMacDirectory());
       params.put(JRE_TAR_PATH, jreConfig.getJreTarPath());
+      params.put("isJdk11Delegate", String.valueOf(featureFlagService.isEnabledReloadCache(JDK11_DELEGATE, templateParameters.getAccountId())));
+      params.put("isJdk11Watcher", String.valueOf(featureFlagService.isEnabledReloadCache(JDK11_WATCHER, templateParameters.getAccountId())));
+
       if (jreConfig.getAlpnJarPath() != null) {
         params.put(ALPN_JAR_PATH, jreConfig.getAlpnJarPath());
       }
@@ -1558,7 +1562,8 @@ public class DelegateServiceImpl implements DelegateService {
    * @return
    */
   private JreConfig getJreConfig(final String accountId, final boolean isWatcher) {
-    final boolean enabled = featureFlagService.isEnabledReloadCache(JDK11_DELEGATE, accountId) && !isWatcher;
+    final boolean enabled = (featureFlagService.isEnabledReloadCache(JDK11_DELEGATE, accountId) && !isWatcher)
+        || (featureFlagService.isEnabledReloadCache(JDK11_WATCHER, accountId) && isWatcher);
     final String jreVersion = enabled ? mainConfiguration.getMigrateToJre() : mainConfiguration.getCurrentJre();
     JreConfig jreConfig = mainConfiguration.getJreConfigs().get(jreVersion);
     final CdnConfig cdnConfig = mainConfiguration.getCdnConfig();
