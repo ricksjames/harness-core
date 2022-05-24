@@ -54,13 +54,13 @@ public class EventDataBulkWriteServiceImpl implements EventDataBulkWriteService 
     final BasicDBObject setPublishedMessageBasicDBObject =
         new BasicDBObject().append(PublishedMessageKeys.validUntil, publishedMessage.getValidUntil());
 
-    final Map<String, BasicDBObject> operations = ImmutableMap.of(
+    final Map<String, BasicDBObject> updateOptions = ImmutableMap.of(
         "$set", setPublishedMessageBasicDBObject, "$setOnInsert", setOnInsertPublishedMessageBasicDBObject);
 
     final BasicDBObject filter = new BasicDBObject(ImmutableMap.of(
         PublishedMessageKeys.accountId, publishedMessage.getAccountId(), "_id", publishedMessage.getUuid()));
 
-    bulkWriteOperation.find(filter).upsert().update(new BasicDBObject(operations));
+    bulkWriteOperation.find(filter).upsert().update(new BasicDBObject(updateOptions));
   };
 
   @Override
@@ -90,8 +90,8 @@ public class EventDataBulkWriteServiceImpl implements EventDataBulkWriteService 
       log.info("batchQueryExecutor, bulkWriteOperation count: {}", count);
       sum += count;
       final BulkWriteResult result = bulkWriteExecutor(bulkWriteOperation);
-      log.info("batchQueryExecutor, bulkWriteOperation (ins + mod) count: {}",
-          result.getInsertedCount() + result.getModifiedCount());
+      log.info("batchQueryExecutor, bulkWriteOperation (ins + mod + upsert) count: {}",
+          result.getInsertedCount() + result.getModifiedCount() + result.getUpserts().size());
 
       if (!result.isAcknowledged()) {
         return false;
