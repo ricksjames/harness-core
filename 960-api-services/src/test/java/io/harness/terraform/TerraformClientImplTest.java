@@ -98,8 +98,10 @@ public class TerraformClientImplTest extends CategoryTest {
         "terraform init -input=false -backend-config=%s", terraformInitCommandRequest.getTfBackendConfigsFilePath());
     doReturn(cliResponse)
         .when(cliHelper)
-        .executeCliCommand(eq(format("echo \"no\" | %s", command)), eq(DEFAULT_TERRAFORM_COMMAND_TIMEOUT),
-            eq(Collections.emptyMap()), eq(SCRIPT_FILES_DIRECTORY), eq(logCallback), eq(command), any());
+        .executeCliCommand(
+            eq(format("960-api-services/src/test/java/io/harness/terraform/TerraformClientImplTest.java%s", command)),
+            eq(DEFAULT_TERRAFORM_COMMAND_TIMEOUT), eq(Collections.emptyMap()), eq(SCRIPT_FILES_DIRECTORY),
+            eq(logCallback), eq(command), any());
 
     CliResponse actualResponse = terraformClientImpl.init(terraformInitCommandRequest,
         DEFAULT_TERRAFORM_COMMAND_TIMEOUT, Collections.emptyMap(), SCRIPT_FILES_DIRECTORY, logCallback);
