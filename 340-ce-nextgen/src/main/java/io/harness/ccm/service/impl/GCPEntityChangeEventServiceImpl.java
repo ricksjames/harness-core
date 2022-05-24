@@ -64,7 +64,8 @@ public class GCPEntityChangeEventServiceImpl implements GCPEntityChangeEventServ
     }
     log.info("GcpCloudCostConnectorDTO: {}", gcpCloudCostConnectorDTO);
     // todo: remove below log
-    log.info("CREATE action event processed for id: {}, accountId: {}", identifier, accountIdentifier);
+    log.info("CREATE action event processed successfully for id: {}, accountId: {}. {}", identifier, accountIdentifier,
+        entityChangeDTO);
     return true;
   }
 
@@ -84,7 +85,8 @@ public class GCPEntityChangeEventServiceImpl implements GCPEntityChangeEventServ
           bigQueryService.getCredentials(GOOGLE_CREDENTIALS_PATH));
     }
     // todo: remove below log
-    log.info("UPDATE action event processed for id: {}, accountId: {}", identifier, accountIdentifier);
+    log.info("CREATE action event processed successfully for id: {}, accountId: {}. {}", identifier, accountIdentifier,
+        entityChangeDTO);
     return true;
   }
 
@@ -98,7 +100,8 @@ public class GCPEntityChangeEventServiceImpl implements GCPEntityChangeEventServ
         configuration.getGcpConfig().getGcpGcpConnectorCrudPubSubTopic(),
         bigQueryService.getCredentials(GOOGLE_CREDENTIALS_PATH));
     // todo: remove below log
-    log.info("DELETE action event processed for id: {}, accountId: {}", identifier, accountIdentifier);
+    log.info("CREATE action event processed successfully for id: {}, accountId: {}. {}", identifier, accountIdentifier,
+        entityChangeDTO);
     return true;
   }
 

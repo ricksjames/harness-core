@@ -21,8 +21,7 @@ from util import create_dataset, TABLE_NAME_FORMAT, if_tbl_exists, print_, creat
 {
     "accountId": "kmpySmUISimoRrJL6NL73w",
     "serviceAccount": "harness-ce-harness-kmpys@ccm-play.iam.gserviceaccount.com",
-    "projectId": "ccm-play",
-    "projectNumber": "199539700734"
+    "projectId": "ccm-play"
 }
 """
 
@@ -119,7 +118,7 @@ def get_status(instance):
         return status
 
 
-def get_data_to_insert(instance, zone, region, project_id, project_number):
+def get_data_to_insert(instance, zone, region, project_id):
     return {
         "instanceId": instance.get('id'),
         "name": instance.get('name'),
@@ -128,7 +127,6 @@ def get_data_to_insert(instance, zone, region, project_id, project_number):
         "region": region,
         "machineType": instance.get('machineType').split('/')[-1],
         "projectId": project_id,
-        "projectNumber": project_number,
         "status": get_status(instance),
         "canIpForward": instance.get('canIpForward'),
         "selfLink": instance.get('selfLink'),
@@ -138,12 +136,13 @@ def get_data_to_insert(instance, zone, region, project_id, project_number):
         "labels": get_labels(instance),
         "disks": get_disks(instance),
         "lastStartTimestamp": instance.get('lastStartTimestamp'),
-        "lastUpdatedAt": str(datetime.utcnow()),
-        "projectNumberPartition": int(project_number) % 10000
+        "lastUpdatedAt": str(datetime.utcnow())
     }
 
 
 def insert_data_in_table(client, rows, table_name):
+    # todo: remove below log
+    print(f"Inserting {len(rows)} rows in {table_name}")
     job_config = bigquery.LoadJobConfig(
         write_disposition=bigquery.WriteDisposition.WRITE_TRUNCATE,
         source_format=bigquery.SourceFormat.NEWLINE_DELIMITED_JSON,
@@ -177,11 +176,11 @@ def main(event, context):
 
     # Setting table names for main and temp tables
     gcp_instance_inventory_table_ref = dataset.table("gcpInstanceInventory")
-    gcp_instance_inventory_temp_table_ref = dataset.table("gcpInstanceInventory_%s" % jsonData["projectNumber"])
+    gcp_instance_inventory_temp_table_ref = dataset.table("gcpInstanceInventory_%s" % jsonData["projectId"])
     gcp_instance_inventory_table_name = TABLE_NAME_FORMAT % (
         jsonData["projectName"], jsonData["accountIdBQ"], "gcpInstanceInventory")
     gcp_instance_inventory_temp_table_name = TABLE_NAME_FORMAT % (
-        jsonData["projectName"], jsonData["accountIdBQ"], "gcpInstanceInventory_%s" % jsonData["projectNumber"])
+        jsonData["projectName"], jsonData["accountIdBQ"], "gcpInstanceInventory_%s" % jsonData["projectId"])
 
     # Creating tables if they don't exist
     if not if_tbl_exists(client, gcp_instance_inventory_table_ref):
@@ -202,7 +201,15 @@ def main(event, context):
             response = request.execute()
             if 'items' in response:
                 for instance in response['items']:
-                    data.append(get_data_to_insert(instance, zone, STATIC_ZONES_MAPPING[zone], jsonData["projectId"], jsonData["projectNumber"]))
-            request = service.instances().list_next(previous_request=request, previous_response=response)
+                    data.append(get_data_to_insert(instance, zone, STATIC_ZONES_MAPPING[zone], jsonData["projectId"]))
+                    # todo: remove below log
+                    print("Adding an instance")
+                    print(instance.get('id'))
+                    print(instance.get('name'))
+                    print(zone)
+                    print(get_status(instance))
+                    print("Instance was added successfully.")
+
+        request = service.instances().list_next(previous_request=request, previous_response=response)
 
     insert_data_in_table(client, data, gcp_instance_inventory_temp_table_name)

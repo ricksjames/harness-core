@@ -44,7 +44,7 @@ def main(event, context):
 def upsert_job(job):
     try:
         sc_client.update_job(job=job)
-        print("Job updated.")
+        print("Job %s updated." % name)
     except Exception as e:
         print(e)
         response = sc_client.create_job(
@@ -97,6 +97,8 @@ def manage_inventory_data_scheduler_job(event, inventory_type):
     elif event["action"] == "delete":
         print("Deleting %s" % name)
         delete_job(name)
+    # todo: remove below log
+    print("created a scheduler-job named %s successfully." % name)
 
 
 def manage_inventory_data_load_scheduler_job(event, inventory_type):
@@ -123,3 +125,5 @@ def manage_inventory_data_load_scheduler_job(event, inventory_type):
     elif event["action"] == "delete":
         print("Deleting %s" % name)
         delete_job(name)
+    # todo: remove below log
+    print("created a scheduler-job named %s successfully." % name)
