@@ -7,6 +7,7 @@
 
 package software.wings.security;
 
+import static com.auth0.jwt.JWT.decode;
 import static io.harness.AuthorizationServiceHeader.DEFAULT;
 import static io.harness.annotations.dev.HarnessTeam.PL;
 import static io.harness.data.structure.EmptyPredicate.isEmpty;
@@ -27,6 +28,7 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.commons.lang3.StringUtils.startsWith;
 import static org.apache.commons.lang3.StringUtils.substringAfter;
 
+import com.auth0.jwt.JWT;
 import io.harness.annotations.dev.HarnessModule;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.annotations.dev.TargetModule;
@@ -414,8 +416,15 @@ public class AuthenticationFilter implements ContainerRequestFilter {
     try (AccountLogContext ignore = new AccountLogContext(accountId, OVERRIDE_ERROR)) {
       String authHeader = containerRequestContext.getHeaderString(HttpHeaders.AUTHORIZATION);
       if (authHeader != null && authHeader.contains("Delegate")) {
-        authService.validateDelegateToken(
-            accountId, substringAfter(containerRequestContext.getHeaderString(HttpHeaders.AUTHORIZATION), "Delegate "));
+        final String jwtToken = substringAfter(containerRequestContext.getHeaderString(HttpHeaders.AUTHORIZATION), "Delegate ");
+        java.util.Base64.Decoder decoder = java.util.Base64.getUrlDecoder();
+        String header = new String(decoder.decode(jwtToken.split("\\.")[0]));
+        if (header.contains("HS256")) {
+          authService.validateDelegateToken(accountId, jwtToken);
+        } else {
+          final String delegateId = containerRequestContext.getHeaderString("delegateId");
+          authService.validateDelegateToken(accountId, jwtToken, delegateId,true);
+        }
       } else {
         throw new IllegalStateException("Invalid authentication header:" + authHeader);
       }
