@@ -17,7 +17,6 @@ import io.harness.annotations.dev.TargetModule;
 import io.harness.delegate.beans.executioncapability.ExecutionCapability;
 import io.harness.delegate.beans.executioncapability.ExecutionCapabilityDemander;
 import io.harness.delegate.beans.executioncapability.SelectorCapability;
-import io.harness.delegate.capability.EncryptedDataDetailsCapabilityHelper;
 import io.harness.delegate.task.ActivityAccess;
 import io.harness.delegate.task.TaskParameters;
 import io.harness.expression.Expression;
@@ -71,9 +70,6 @@ public class GitFetchFilesTaskParams
           GitFetchFilesConfig gitFetchFileConfig = entry.getValue();
           executionCapabilities.addAll(
               CapabilityHelper.generateExecutionCapabilitiesForGit(gitFetchFileConfig.getGitConfig()));
-          executionCapabilities.addAll(
-              EncryptedDataDetailsCapabilityHelper.fetchExecutionCapabilitiesForEncryptedDataDetails(
-                  gitFetchFileConfig.getEncryptedDataDetails(), maskingEvaluator));
         }
       } else {
         for (Map.Entry<String, GitFetchFilesConfig> entry : gitFetchFilesConfigMap.entrySet()) {
@@ -88,9 +84,6 @@ public class GitFetchFilesTaskParams
             executionCapabilities.add(
                 SelectorCapability.builder().selectors(new HashSet<>(gitConfig.getDelegateSelectors())).build());
           }
-          executionCapabilities.addAll(
-              EncryptedDataDetailsCapabilityHelper.fetchExecutionCapabilitiesForEncryptedDataDetails(
-                  gitFetchFileConfig.getEncryptedDataDetails(), maskingEvaluator));
         }
       }
     }
