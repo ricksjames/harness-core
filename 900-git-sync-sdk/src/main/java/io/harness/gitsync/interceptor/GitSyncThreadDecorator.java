@@ -80,6 +80,7 @@ public class GitSyncThreadDecorator implements ContainerRequestFilter, Container
                                          .resolvedConflictCommitId(resolvedConflictCommitId)
                                          .connectorRef(connectorRef)
                                          .storeType(StoreType.getFromStringOrNull(storeType))
+                                         .repoName(repoName)
                                          .lastCommitId(lastCommitId)
                                          .build();
     if (!GlobalContextManager.isAvailable()) {
