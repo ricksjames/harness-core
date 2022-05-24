@@ -161,7 +161,7 @@ public class PerspectiveFolderResource {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(description = "Returns a List of Perspectives",
             content = { @Content(mediaType = MediaType.APPLICATION_JSON) })
       })
-  public ResponseDTO<List<QLCEView>>
+  public ResponseDTO<Map<String,List<QLCEView>>>
   getPerspectives(@Parameter(required = true, description = ACCOUNT_PARAM_MESSAGE) @QueryParam(
       NGCommonEntityConstants.ACCOUNT_KEY) @AccountIdentifier @NotNull @Valid String accountId,
                   @Parameter(required = true, description = "Unique identifier for folder") @PathParam("folderId") String folderId) {

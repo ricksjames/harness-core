@@ -47,13 +47,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.tools.StringUtils;
@@ -300,30 +294,43 @@ public class CEViewServiceImpl implements CEViewService {
   }
 
   @Override
-  public List<QLCEView> getAllViews(String accountId, boolean includeDefault) {
+  public Map<String, List<QLCEView>> getAllViews(String accountId, boolean includeDefault) {
     List<CEView> viewList = ceViewDao.findByAccountId(accountId);
     if (!includeDefault) {
       viewList = viewList.stream()
                      .filter(view -> ImmutableSet.of(ViewType.SAMPLE, ViewType.CUSTOMER).contains(view.getViewType()))
                      .collect(Collectors.toList());
     }
-    return getQLCEViewsFromCEViews(viewList);
+    return getFolderMapFromCEViews(viewList);
   }
 
   @Override
-  public List<QLCEView> getAllViews(String accountId, String folderId, boolean includeDefault) {
+  public Map<String, List<QLCEView>> getAllViews(String accountId, String folderId, boolean includeDefault) {
     List<CEView> viewList = ceViewDao.findByAccountIdAndFolderId(accountId, folderId);
     if (!includeDefault) {
       viewList = viewList.stream()
           .filter(view -> ImmutableSet.of(ViewType.SAMPLE, ViewType.CUSTOMER).contains(view.getViewType()))
           .collect(Collectors.toList());
     }
-    return getQLCEViewsFromCEViews(viewList);
+    return getFolderMapFromCEViews(viewList);
   }
 
-  private List<QLCEView> getQLCEViewsFromCEViews(List<CEView> viewList) {
-    List<QLCEView> graphQLViewObjList = new ArrayList<>();
-    for (CEView view : viewList) {
+  private Map<String, List<QLCEView>> getFolderMapFromCEViews(List<CEView> viewList) {
+    Map<String, List<QLCEView>> folderPerspectiveMap = new HashMap<>();
+    for (CEView ceView: viewList) {
+      String folderId = "NA";
+      if (!StringUtils.isEmpty(ceView.getFolderId())) {
+        folderId = ceView.getFolderId();
+      }
+      if (!folderPerspectiveMap.containsKey(folderId)) {
+        folderPerspectiveMap.put(folderId, new ArrayList<>());
+      }
+      folderPerspectiveMap.get(folderId).add(getQLCEViewFromCEView(ceView));
+    }
+    return folderPerspectiveMap;
+  }
+
+  private QLCEView getQLCEViewFromCEView(CEView view) {
       List<CEReportSchedule> reportSchedules =
           ceReportScheduleDao.getReportSettingByView(view.getUuid(), view.getAccountId());
       ViewChartType vChartType = null;
@@ -332,7 +339,7 @@ public class CEViewServiceImpl implements CEViewService {
         vChartType = view.getViewVisualization().getChartType();
       }
       ViewField groupBy = view.getViewVisualization().getGroupBy();
-      graphQLViewObjList.add(QLCEView.builder()
+      return QLCEView.builder()
           .id(view.getUuid())
           .name(view.getName())
           .totalCost(view.getTotalCost())
@@ -351,9 +358,7 @@ public class CEViewServiceImpl implements CEViewService {
           .timeRange(view.getViewTimeRange().getViewTimeRangeType())
           .dataSources(view.getDataSources())
           .isReportScheduledConfigured(!reportSchedules.isEmpty())
-          .build());
-    }
-    return graphQLViewObjList;
+          .build();
   }
 
   @Override
