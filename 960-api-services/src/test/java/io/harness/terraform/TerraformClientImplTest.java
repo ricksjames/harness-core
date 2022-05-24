@@ -46,7 +46,6 @@ import io.harness.rule.Owner;
 import io.harness.terraform.beans.TerraformVersion;
 import io.harness.terraform.request.TerraformApplyCommandRequest;
 import io.harness.terraform.request.TerraformDestroyCommandRequest;
-import io.harness.terraform.request.TerraformExecuteStepRequest;
 import io.harness.terraform.request.TerraformInitCommandRequest;
 import io.harness.terraform.request.TerraformPlanCommandRequest;
 import io.harness.terraform.request.TerraformRefreshCommandRequest;
