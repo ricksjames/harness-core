@@ -89,7 +89,12 @@ public class EventPublisherServerImpl extends EventPublisherGrpc.EventPublisherI
 
       if (isNotEmpty(withoutCategory)) {
         try {
+          long startTime = System.currentTimeMillis();
+          log.info("upsertPublishedMessages, startTime: {}", startTime);
           eventDataBulkWriteService.upsertPublishedMessages(withoutCategory);
+          long endTime = System.currentTimeMillis();
+          log.info("upsertPublishedMessages, endTime: {}", endTime);
+          log.info("upsertPublishedMessages, Total time: {}", endTime - startTime);
         } catch (Exception e) {
           log.warn("Encountered error while persisting messages", e);
           responseObserver.onError(Status.INTERNAL.withCause(e).asException());

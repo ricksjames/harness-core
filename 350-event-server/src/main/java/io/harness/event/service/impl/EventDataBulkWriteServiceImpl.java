@@ -40,7 +40,7 @@ public class EventDataBulkWriteServiceImpl implements EventDataBulkWriteService 
 
   private final EventBatchQueryFnFactory<PublishedMessage> publishedMessageUpsertQueryFn =
       (bulkWriteOperation, publishedMessage) -> {
-    final BasicDBObject insertPublishedMessageBasicDBObject =
+    final BasicDBObject setOnInsertPublishedMessageBasicDBObject =
         new BasicDBObject()
             .append("_id", publishedMessage.getUuid())
             .append(PublishedMessageKeys.accountId, publishedMessage.getAccountId())
@@ -51,11 +51,11 @@ public class EventDataBulkWriteServiceImpl implements EventDataBulkWriteService 
             .append(PublishedMessageKeys.category, publishedMessage.getCategory())
             .append(PublishedMessageKeys.attributes, publishedMessage.getAttributes());
 
-    final BasicDBObject updatePublishedMessageBasicDBObject =
+    final BasicDBObject setPublishedMessageBasicDBObject =
         new BasicDBObject().append(PublishedMessageKeys.validUntil, publishedMessage.getValidUntil());
 
     final Map<String, BasicDBObject> operations = ImmutableMap.of(
-        "$set", updatePublishedMessageBasicDBObject, "$setOnInsert", insertPublishedMessageBasicDBObject);
+        "$set", setPublishedMessageBasicDBObject, "$setOnInsert", setOnInsertPublishedMessageBasicDBObject);
 
     final BasicDBObject filter = new BasicDBObject(ImmutableMap.of(
         PublishedMessageKeys.accountId, publishedMessage.getAccountId(), "_id", publishedMessage.getUuid()));
@@ -65,6 +65,7 @@ public class EventDataBulkWriteServiceImpl implements EventDataBulkWriteService 
 
   @Override
   public boolean upsertPublishedMessages(final List<PublishedMessage> publishedMessages) {
+    log.info("upsertPublishedMessages, publishedMessages count: {}", publishedMessages.size());
     return batchQueryExecutor(publishedMessages, publishedMessageUpsertQueryFn, PublishedMessage.class);
   }
 
@@ -72,23 +73,31 @@ public class EventDataBulkWriteServiceImpl implements EventDataBulkWriteService 
       final List<T> itemsList, final EventBatchQueryFnFactory<T> eventBatchQueryFnFactory, final Class clazz) {
     final int bulkWriteLimit = eventServiceConfig.getBatchQueryConfig().getQueryBatchSize();
 
+    int sum = 0;
     for (final List<T> itemsListPartitioned : Lists.partition(itemsList, bulkWriteLimit)) {
       final BulkWriteOperation bulkWriteOperation =
           hPersistence.getCollection(clazz).initializeUnorderedBulkOperation();
+      int count = 0;
       for (final T singleItem : itemsListPartitioned) {
         try {
           log.info("singleItem: {}", singleItem);
           eventBatchQueryFnFactory.addQueryFor(bulkWriteOperation, singleItem);
+          count++;
         } catch (final Exception ex) {
           log.error("Error updating {}:[{}]", clazz.getSimpleName(), singleItem.toString(), ex);
         }
       }
+      log.info("batchQueryExecutor, bulkWriteOperation count: {}", count);
+      sum += count;
       final BulkWriteResult result = bulkWriteExecutor(bulkWriteOperation);
+      log.info("batchQueryExecutor, bulkWriteOperation (ins + mod) count: {}",
+          result.getInsertedCount() + result.getModifiedCount());
 
       if (!result.isAcknowledged()) {
         return false;
       }
     }
+    log.info("batchQueryExecutor, bulkWriteOperation sum: {}", sum);
 
     return true;
   }
