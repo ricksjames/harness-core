@@ -89,7 +89,12 @@ public class EventPublisherServerImpl extends EventPublisherGrpc.EventPublisherI
 
       if (isNotEmpty(withoutCategory)) {
         try {
+          long startTime = System.currentTimeMillis();
           hPersistence.saveIgnoringDuplicateKeys(withoutCategory);
+          long endTime = System.currentTimeMillis();
+          log.info("saveIgnoringDuplicateKeys, startTime: {}", startTime);
+          log.info("saveIgnoringDuplicateKeys, endTime: {}", endTime);
+          log.info("saveIgnoringDuplicateKeys, totalTime: {}", endTime - startTime);
         } catch (Exception e) {
           log.warn("Encountered error while persisting messages", e);
           responseObserver.onError(Status.INTERNAL.withCause(e).asException());
