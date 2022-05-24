@@ -16,8 +16,8 @@ public interface CEViewFolderService {
   CEViewFolder save(CEViewFolder ceViewFolder);
   long numberOfFolders(String accountId);
   long numberOfFolders(String accountId, List<String> folderIds);
-  List<CEViewFolder> getFolders(String accountId, long pageNo);
-  List<CEViewFolder> getFolders(String accountId, List<String> folderIds, long pageNo);
+  List<CEViewFolder> getFolders(String accountId);
+  List<CEViewFolder> getFolders(String accountId, List<String> folderIds);
   void createDefaultFolders(String accountId);
   CEViewFolder updateFolder(String accountId, CEViewFolder ceViewFolder);
   List<CEView> moveMultipleCEViews(String accountId, List<String> ceViewIds, String toFolderId);

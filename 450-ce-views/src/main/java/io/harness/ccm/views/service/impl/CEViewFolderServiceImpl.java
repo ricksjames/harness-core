@@ -44,13 +44,13 @@ public class CEViewFolderServiceImpl implements CEViewFolderService {
   }
 
   @Override
-  public List<CEViewFolder> getFolders(String accountId, long pageNo) {
-    return ceViewFolderDao.getFolders(accountId, pageNo);
+  public List<CEViewFolder> getFolders(String accountId) {
+    return ceViewFolderDao.getFolders(accountId);
   }
 
   @Override
-  public List<CEViewFolder> getFolders(String accountId, List<String> folderIds, long pageNo) {
-    return ceViewFolderDao.getFolders(accountId, folderIds, pageNo);
+  public List<CEViewFolder> getFolders(String accountId, List<String> folderIds) {
+    return ceViewFolderDao.getFolders(accountId, folderIds);
   }
 
   @Override

@@ -25,8 +25,6 @@ import java.util.List;
 public class CEViewFolderDao {
   @Inject private HPersistence hPersistence;
 
-  private static final int FOLDERS_PER_PAGE = 1;
-
   public CEViewFolder save(CEViewFolder ceViewFolder) {
     String id = hPersistence.save(ceViewFolder);
     return hPersistence.createQuery(CEViewFolder.class)
@@ -51,25 +49,21 @@ public class CEViewFolderDao {
         .count();
   }
 
-  public List<CEViewFolder> getFolders(String accountId, long pageNo) {
+  public List<CEViewFolder> getFolders(String accountId) {
     return hPersistence.createQuery(CEViewFolder.class)
         .field(CEViewFolderKeys.accountId)
         .equal(accountId)
         .order(Sort.ascending(CEViewFolderKeys.name))
-        .offset(((int) pageNo - 1) * FOLDERS_PER_PAGE)
-        .limit(FOLDERS_PER_PAGE)
         .asList();
   }
 
-  public List<CEViewFolder> getFolders(String accountId, List<String> folderIds, long pageNo) {
+  public List<CEViewFolder> getFolders(String accountId, List<String> folderIds) {
     return hPersistence.createQuery(CEViewFolder.class)
         .field(CEViewFolderKeys.accountId)
         .equal(accountId)
         .field(CEViewFolderKeys.uuid)
         .in(folderIds)
         .order(Sort.ascending(CEViewFolderKeys.name))
-        .offset(((int) pageNo - 1) * FOLDERS_PER_PAGE)
-        .limit(FOLDERS_PER_PAGE)
         .asList();
   }
 

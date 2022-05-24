@@ -15,7 +15,6 @@ import io.harness.accesscontrol.AccountIdentifier;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.ccm.utils.LogAccountIdentifier;
 import io.harness.ccm.views.dto.CreatePerspectiveFolderDTO;
-import io.harness.ccm.views.dto.ViewFolderQueryDTO;
 import io.harness.ccm.views.entities.CEView;
 import io.harness.ccm.views.entities.CEViewFolder;
 import io.harness.ccm.views.entities.ViewType;
@@ -109,7 +108,7 @@ public class PerspectiveFolderResource {
     return ResponseDTO.newResponse(ceViewFolder);
   }
 
-  @POST
+  @GET
   @Path("search")
   @Timed
   @ExceptionMetered
@@ -128,23 +127,10 @@ public class PerspectiveFolderResource {
       })
   public ResponseDTO<List<CEViewFolder>>
   getFolders(@Parameter(required = true, description = ACCOUNT_PARAM_MESSAGE) @QueryParam(
-      NGCommonEntityConstants.ACCOUNT_KEY) @AccountIdentifier @NotNull @Valid String accountId,
-             @RequestBody(required = true, description = "Request body containing accountId and folderIds") @Valid ViewFolderQueryDTO query) {
-    long totalFolders;
+      NGCommonEntityConstants.ACCOUNT_KEY) @AccountIdentifier @NotNull @Valid String accountId) {
     List<CEViewFolder> ceViewFolders;
-    if (Collections.isEmpty(query.getFolderIds())) {
-      totalFolders = ceViewFolderService.numberOfFolders(accountId);
-      ceViewFolders = ceViewFolderService.getFolders(accountId, query.getPageNo());
-    } else {
-      totalFolders = ceViewFolderService.numberOfFolders(accountId, query.getFolderIds());
-      ceViewFolders = ceViewFolderService.getFolders(accountId, query.getFolderIds(), query.getPageNo());
-    }
-    Map<String, Long> metadata = new HashMap<>();
-    metadata.put("totalFolders", totalFolders);
-    metadata.put("pageNo", query.getPageNo());
-    ResponseDTO<List<CEViewFolder>> response = ResponseDTO.newResponse(ceViewFolders);
-    response.setMetaData(metadata);
-    return response;
+    ceViewFolders = ceViewFolderService.getFolders(accountId);
+    return ResponseDTO.newResponse(ceViewFolders);
   }
 
   @GET
