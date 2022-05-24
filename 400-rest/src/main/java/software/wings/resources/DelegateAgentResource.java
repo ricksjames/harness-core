@@ -179,6 +179,14 @@ public class DelegateAgentResource {
   }
 
   @DelegateAuth
+  @GET
+  @Path("/arpit")
+  public RestResponse<String> arpitmethod(@QueryParam("accountId") String accountId) {
+    log.info("Arpit: method");
+    return new RestResponse<>("Arpit: okay");
+  }
+
+  @DelegateAuth
   @POST
   @Path("properties")
   @Timed

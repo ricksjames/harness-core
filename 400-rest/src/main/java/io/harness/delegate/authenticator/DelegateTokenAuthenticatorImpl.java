@@ -153,7 +153,7 @@ public class DelegateTokenAuthenticatorImpl implements DelegateTokenAuthenticato
       throw new InvalidRequestException("Unauthorized", ex, EXPIRED_TOKEN, null);
     }
 
-    delegateJWTCacheHelper.setDelegateJWTCache(delegateId, tokenHash);
+    delegateJWTCacheHelper.setDelegateJWTCache(tokenHash);
   }
 
   @Override
