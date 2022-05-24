@@ -16,6 +16,7 @@ import io.harness.annotation.RecasterAlias;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.plancreator.stages.PmsAbstractStageNode;
 import io.harness.plancreator.stages.stage.StageInfoConfig;
+import io.harness.plancreator.strategy.StrategyConfig;
 import io.harness.steps.StepSpecTypeConstants;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -37,6 +38,7 @@ import org.springframework.data.annotation.TypeAlias;
 @RecasterAlias("io.harness.steps.approval.stage.ApprovalStageNode")
 public class ApprovalStageNode extends PmsAbstractStageNode {
   @JsonProperty("type") @NotNull StepType type = StepType.Approval;
+  @JsonProperty("strategy") StrategyConfig strategy;
 
   @JsonProperty("spec")
   @JsonTypeInfo(use = NAME, property = "type", include = EXTERNAL_PROPERTY, visible = true)

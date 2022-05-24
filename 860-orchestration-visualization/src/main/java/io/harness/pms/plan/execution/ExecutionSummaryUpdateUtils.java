@@ -89,4 +89,21 @@ public class ExecutionSummaryUpdateUtils {
       }
     }
   }
+
+  public static void modifyGraphIfMatrixNode(Update update, NodeExecution nodeExecution) {
+    if (OrchestrationUtils.isPipelineNode(nodeExecution)) {
+      ExecutionStatus status = ExecutionStatus.getExecutionStatus(nodeExecution.getStatus());
+      update.set(PipelineExecutionSummaryEntity.PlanExecutionSummaryKeys.internalStatus, nodeExecution.getStatus());
+      update.set(PipelineExecutionSummaryEntity.PlanExecutionSummaryKeys.status, status);
+      if (nodeExecution.getEndTs() != null) {
+        update.set(PipelineExecutionSummaryEntity.PlanExecutionSummaryKeys.endTs, nodeExecution.getEndTs());
+      }
+      if (status == ExecutionStatus.FAILED) {
+        update.set(PipelineExecutionSummaryEntity.PlanExecutionSummaryKeys.executionErrorInfo,
+            ExecutionErrorInfo.builder().message(nodeExecution.getFailureInfo().getErrorMessage()).build());
+        update.set(PipelineExecutionSummaryEntity.PlanExecutionSummaryKeys.failureInfo,
+            FailureInfoDTOConverter.toFailureInfoDTO(nodeExecution.getFailureInfo()));
+      }
+    }
+  }
 }
