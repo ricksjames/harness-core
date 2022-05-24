@@ -107,7 +107,7 @@ public class AzureVMSSRollbackStateTest extends WingsBaseTest {
     assertThat(executionResponse.getStateExecutionData()).isInstanceOf(AzureVMSSDeployStateExecutionData.class);
     assertThat(((AzureVMSSDeployStateExecutionData) executionResponse.getStateExecutionData()).getActivityId())
         .isEqualTo("activityId");
-    verify(stateExecutionService).appendDelegateTaskDetails(anyString(), any());
+    verify(stateExecutionService).appendDelegateTaskDetails(any(), any());
   }
 
   @Test
