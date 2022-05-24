@@ -64,6 +64,7 @@ import javax.crypto.spec.SecretKeySpec;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.mongodb.morphia.query.Query;
 
 @Slf4j
@@ -99,8 +100,9 @@ public class DelegateTokenAuthenticatorImpl implements DelegateTokenAuthenticato
       throw new InvalidTokenException("Invalid delegate token format", USER_ADMIN);
     }
 
+    String tokenHash = DigestUtils.md5Hex(tokenString);
     // first validate it from DelegateJWTCache
-    if (delegateJWTCacheHelper.validateDelegateJWTString(tokenString)) {
+    if (delegateJWTCacheHelper.validateDelegateJWTString(delegateId, tokenString, tokenHash)) {
       return;
     }
 
@@ -151,19 +153,11 @@ public class DelegateTokenAuthenticatorImpl implements DelegateTokenAuthenticato
       throw new InvalidRequestException("Unauthorized", ex, EXPIRED_TOKEN, null);
     }
 
-    delegateJWTCacheHelper.setDelegateJWTCache(tokenString);
+    delegateJWTCacheHelper.setDelegateJWTCache(delegateId, tokenHash);
   }
 
   @Override
   public void validateDelegateAuth2Token(String accountId, String tokenString) {
-    // first validate it from DelegateJWTCache
-    if (delegateJWTCacheHelper.validateDelegateJWTString(tokenString)) {
-      return;
-    }
-
-    log.debug(
-        "Not able to validate DelegateJWT from cache. Falling back to older method of validating from delegate token cache.");
-
     // First try to validate token with accountKey.
     if (validateDelegateAuth2TokenWithAccountKey(accountId, tokenString)) {
       return;
