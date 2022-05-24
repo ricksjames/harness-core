@@ -25,10 +25,12 @@ import io.harness.cdng.infra.beans.K8sDirectInfrastructureOutcome;
 import io.harness.cdng.infra.beans.K8sGcpInfrastructureOutcome;
 import io.harness.cdng.infra.beans.PdcInfrastructureOutcome;
 import io.harness.cdng.infra.beans.ServerlessAwsLambdaInfrastructureOutcome;
+import io.harness.cdng.infra.beans.SshWinRmAzureInfrastructureOutcome;
 import io.harness.cdng.infra.yaml.K8SDirectInfrastructure;
 import io.harness.cdng.infra.yaml.K8sGcpInfrastructure;
 import io.harness.cdng.infra.yaml.PdcInfrastructure;
 import io.harness.cdng.infra.yaml.ServerlessAwsLambdaInfrastructure;
+import io.harness.cdng.infra.yaml.SshWinRmAzureInfrastructure;
 import io.harness.cdng.service.steps.ServiceStepOutcome;
 import io.harness.exception.InvalidArgumentsException;
 import io.harness.ng.core.environment.beans.EnvironmentType;
@@ -37,6 +39,7 @@ import io.harness.rule.Owner;
 import io.harness.steps.environment.EnvironmentOutcome;
 
 import java.util.Arrays;
+import java.util.Collections;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
@@ -201,7 +204,7 @@ public class InfrastructureMapperTest extends CategoryTest {
   public void testPdcInfrastructureWithConnectorToOutcome() {
     PdcInfrastructure infrastructure =
         PdcInfrastructure.builder()
-            .sshKeyRef(ParameterField.createValueField("ssh-key-ref"))
+            .credentialsRef(ParameterField.createValueField("ssh-key-ref"))
             .connectorRef(ParameterField.createValueField("connector-ref"))
             .hostFilters(ParameterField.createValueField(Arrays.asList("host1", "host2")))
             .build();
@@ -211,7 +214,7 @@ public class InfrastructureMapperTest extends CategoryTest {
 
     assertThat(infrastructureOutcome)
         .isEqualToIgnoringGivenFields(PdcInfrastructureOutcome.builder()
-                                          .sshKeyRef("ssh-key-ref")
+                                          .credentialsRef("ssh-key-ref")
                                           .connectorRef("connector-ref")
                                           .hostFilters(Arrays.asList("host1", "host2"))
                                           .environment(environment)
@@ -225,7 +228,7 @@ public class InfrastructureMapperTest extends CategoryTest {
   public void testPdcInfrastructureWithHostsToOutcome() {
     PdcInfrastructure infrastructure =
         PdcInfrastructure.builder()
-            .sshKeyRef(ParameterField.createValueField("ssh-key-ref"))
+            .credentialsRef(ParameterField.createValueField("ssh-key-ref"))
             .hosts(ParameterField.createValueField(Arrays.asList("host1", "host2", "host3")))
             .build();
 
@@ -234,7 +237,7 @@ public class InfrastructureMapperTest extends CategoryTest {
 
     assertThat(infrastructureOutcome)
         .isEqualToIgnoringGivenFields(PdcInfrastructureOutcome.builder()
-                                          .sshKeyRef("ssh-key-ref")
+                                          .credentialsRef("ssh-key-ref")
                                           .hosts(Arrays.asList("host1", "host2", "host3"))
                                           .environment(environment)
                                           .build(),
@@ -257,12 +260,72 @@ public class InfrastructureMapperTest extends CategoryTest {
   @Category(UnitTests.class)
   public void testPdcInfrastructureEmptyHostsAndConnector() {
     PdcInfrastructure emptySshKeyRef = PdcInfrastructure.builder()
-                                           .sshKeyRef(ParameterField.createValueField("ssh-key-ref"))
+                                           .credentialsRef(ParameterField.createValueField("ssh-key-ref"))
                                            .hosts(ParameterField.ofNull())
                                            .connectorRef(ParameterField.ofNull())
                                            .build();
 
     assertThatThrownBy(() -> InfrastructureMapper.toOutcome(emptySshKeyRef, environment, serviceOutcome))
+        .isInstanceOf(InvalidArgumentsException.class);
+  }
+
+  @Test
+  @Owner(developers = FILIP)
+  @Category(UnitTests.class)
+  public void testSshWinRmAzureInfrastructureToOutcome() {
+    SshWinRmAzureInfrastructure infrastructure =
+        SshWinRmAzureInfrastructure.builder()
+            .connectorRef(ParameterField.createValueField("connector-ref"))
+            .credentialsRef(ParameterField.createValueField("credentials-ref"))
+            .resourceGroup(ParameterField.createValueField("res-group"))
+            .subscriptionId(ParameterField.createValueField("sub-id"))
+            .tags(ParameterField.createValueField(Collections.singletonMap("tag", "val")))
+            .usePublicDns(ParameterField.createValueField(true))
+            .build();
+
+    InfrastructureOutcome infrastructureOutcome =
+        InfrastructureMapper.toOutcome(infrastructure, environment, serviceOutcome);
+
+    assertThat(infrastructureOutcome)
+        .isEqualToIgnoringGivenFields(SshWinRmAzureInfrastructureOutcome.builder()
+                                          .connectorRef("connector-ref")
+                                          .credentialsRef("credentials-ref")
+                                          .resourceGroup("res-group")
+                                          .subscriptionId("sub-id")
+                                          .tags(Collections.singletonMap("tag", "val"))
+                                          .usePublicDns(true)
+                                          .environment(environment)
+                                          .build(),
+            "infrastructureKey");
+  }
+
+  @Test
+  @Owner(developers = FILIP)
+  @Category(UnitTests.class)
+  public void testSshWinRmAzureInfrastructureEmptyCredentialsRefAndResourceGroup() {
+    SshWinRmAzureInfrastructure invalidInfra = SshWinRmAzureInfrastructure.builder()
+                                                   .credentialsRef(ParameterField.ofNull())
+                                                   .resourceGroup(ParameterField.ofNull())
+                                                   .connectorRef(ParameterField.createValueField("connector-ref"))
+                                                   .subscriptionId(ParameterField.createValueField("sub-id"))
+                                                   .build();
+
+    assertThatThrownBy(() -> InfrastructureMapper.toOutcome(invalidInfra, environment, serviceOutcome))
+        .isInstanceOf(InvalidArgumentsException.class);
+  }
+
+  @Test
+  @Owner(developers = FILIP)
+  @Category(UnitTests.class)
+  public void testSshWinRmAzureInfrastructureEmptySubscriptionIdAndConnectorId() {
+    SshWinRmAzureInfrastructure invalidInfra = SshWinRmAzureInfrastructure.builder()
+                                                   .subscriptionId(ParameterField.ofNull())
+                                                   .connectorRef(ParameterField.ofNull())
+                                                   .credentialsRef(ParameterField.createValueField("ssh-key-ref"))
+                                                   .resourceGroup(ParameterField.createValueField("resource-id"))
+                                                   .build();
+
+    assertThatThrownBy(() -> InfrastructureMapper.toOutcome(invalidInfra, environment, serviceOutcome))
         .isInstanceOf(InvalidArgumentsException.class);
   }
 }

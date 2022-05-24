@@ -21,12 +21,12 @@ import io.harness.cdng.infra.beans.InfrastructureOutcome;
 import io.harness.cdng.infra.beans.K8sDirectInfrastructureOutcome;
 import io.harness.cdng.infra.beans.K8sGcpInfrastructureOutcome;
 import io.harness.cdng.infra.yaml.Infrastructure;
-import io.harness.cdng.infra.yaml.InfrastructureKind;
 import io.harness.cdng.infra.yaml.K8SDirectInfrastructure;
 import io.harness.cdng.infra.yaml.K8sAzureInfrastructure;
 import io.harness.cdng.infra.yaml.K8sGcpInfrastructure;
 import io.harness.cdng.infra.yaml.PdcInfrastructure;
 import io.harness.cdng.infra.yaml.ServerlessAwsLambdaInfrastructure;
+import io.harness.cdng.infra.yaml.SshWinRmAzureInfrastructure;
 import io.harness.cdng.k8s.K8sStepHelper;
 import io.harness.cdng.service.steps.ServiceStepOutcome;
 import io.harness.cdng.stepsdependency.constants.OutcomeExpressionConstants;
@@ -53,6 +53,7 @@ import io.harness.logstreaming.LogStreamingStepClientFactory;
 import io.harness.logstreaming.NGLogCallback;
 import io.harness.ng.core.NGAccess;
 import io.harness.ng.core.environment.services.EnvironmentService;
+import io.harness.ng.core.infrastructure.InfrastructureKind;
 import io.harness.pms.contracts.ambiance.Ambiance;
 import io.harness.pms.contracts.execution.Status;
 import io.harness.pms.contracts.plan.ExecutionPrincipalInfo;
@@ -197,6 +198,13 @@ public class InfrastructureStep implements SyncExecutableWithRbac<Infrastructure
           connectorInfo.getConnectorType().name(), infrastructure.getConnectorReference().getValue(),
           ConnectorType.AZURE.name()));
     }
+
+    if (InfrastructureKind.SSH_WINRM_AZURE.equals(infrastructure.getKind())
+        && !(connectorInfo.getConnectorConfig() instanceof AzureConnectorDTO)) {
+      throw new InvalidRequestException(String.format("Invalid connector type [%s] for identifier: [%s], expected [%s]",
+          connectorInfo.getConnectorType().name(), infrastructure.getConnectorReference().getValue(),
+          ConnectorType.AZURE.name()));
+    }
   }
 
   private ConnectorInfoDTO validateAndGetConnector(ParameterField<String> connectorRef, Ambiance ambiance) {
@@ -248,9 +256,16 @@ public class InfrastructureStep implements SyncExecutableWithRbac<Infrastructure
             k8sAzureInfrastructure.getResourceGroup());
         break;
 
+      case InfrastructureKind.SSH_WINRM_AZURE:
+        SshWinRmAzureInfrastructure sshWinRmAzureInfrastructure = (SshWinRmAzureInfrastructure) infrastructure;
+        validateExpression(sshWinRmAzureInfrastructure.getConnectorRef(),
+            sshWinRmAzureInfrastructure.getSubscriptionId(), sshWinRmAzureInfrastructure.getResourceGroup(),
+            sshWinRmAzureInfrastructure.getCredentialsRef());
+        break;
+
       case InfrastructureKind.PDC:
         PdcInfrastructure pdcInfrastructure = (PdcInfrastructure) infrastructure;
-        validateExpression(pdcInfrastructure.getSshKeyRef());
+        validateExpression(pdcInfrastructure.getCredentialsRef());
         requireOne(pdcInfrastructure.getHosts(), pdcInfrastructure.getConnectorRef());
         break;
       default:

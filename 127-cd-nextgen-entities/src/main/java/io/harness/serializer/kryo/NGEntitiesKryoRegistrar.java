@@ -40,6 +40,7 @@ import io.harness.cdng.manifest.yaml.HelmChartManifestOutcome;
 import io.harness.cdng.manifest.yaml.HelmCommandFlagType;
 import io.harness.cdng.manifest.yaml.HelmManifestCommandFlag;
 import io.harness.cdng.manifest.yaml.HttpStoreConfig;
+import io.harness.cdng.manifest.yaml.InheritFromManifestStoreConfig;
 import io.harness.cdng.manifest.yaml.K8sManifestOutcome;
 import io.harness.cdng.manifest.yaml.KustomizeManifestOutcome;
 import io.harness.cdng.manifest.yaml.KustomizePatchesManifestOutcome;
@@ -59,12 +60,14 @@ import io.harness.cdng.manifest.yaml.kinds.KustomizeManifest;
 import io.harness.cdng.manifest.yaml.kinds.KustomizePatchesManifest;
 import io.harness.cdng.manifest.yaml.kinds.OpenshiftManifest;
 import io.harness.cdng.manifest.yaml.kinds.OpenshiftParamManifest;
+import io.harness.cdng.manifest.yaml.kinds.ServerlessAwsLambdaManifest;
 import io.harness.cdng.manifest.yaml.kinds.ValuesManifest;
 import io.harness.cdng.manifest.yaml.storeConfig.StoreConfig;
 import io.harness.cdng.manifest.yaml.storeConfig.StoreConfigType;
 import io.harness.cdng.manifest.yaml.storeConfig.StoreConfigWrapper;
 import io.harness.cdng.service.beans.KubernetesServiceSpec;
 import io.harness.cdng.service.beans.NativeHelmServiceSpec;
+import io.harness.cdng.service.beans.ServerlessAwsLambdaServiceSpec;
 import io.harness.cdng.service.beans.ServiceConfig;
 import io.harness.cdng.service.beans.ServiceConfigOutcome;
 import io.harness.cdng.service.beans.ServiceDefinition;
@@ -77,6 +80,7 @@ import io.harness.cdng.service.beans.StageOverridesConfig;
 import io.harness.cdng.service.beans.WinRmServiceSpec;
 import io.harness.cdng.variables.beans.NGVariableOverrideSetWrapper;
 import io.harness.cdng.variables.beans.NGVariableOverrideSets;
+import io.harness.ng.core.environment.beans.Environment;
 import io.harness.ng.core.service.entity.ServiceEntity;
 import io.harness.serializer.KryoRegistrar;
 
@@ -110,10 +114,12 @@ public class NGEntitiesKryoRegistrar implements KryoRegistrar {
     kryo.register(DockerArtifactOutcome.class, 8007);
     kryo.register(GcrArtifactOutcome.class, 390006);
     kryo.register(EcrArtifactOutcome.class, 390007);
-    kryo.register(ServerlessAwsLambdaManifestOutcome.class, 390008);
+    kryo.register(ServerlessAwsLambdaServiceSpec.class, 12576);
+    kryo.register(ServerlessAwsLambdaManifest.class, 12578);
     kryo.register(ServerlessAwsLambdaInfrastructureOutcome.class, 390009);
     kryo.register(ArtifactoryGenericArtifactOutcome.class, 390010);
     kryo.register(AcrArtifactOutcome.class, 390011);
+    kryo.register(ServerlessAwsLambdaManifestOutcome.class, 390012);
     kryo.register(ServiceConfigOutcome.class, 12508);
     kryo.register(ArtifactListConfig.class, 8009);
     kryo.register(ServiceConfig.class, 8010);
@@ -162,5 +168,7 @@ public class NGEntitiesKryoRegistrar implements KryoRegistrar {
     kryo.register(GitLabStore.class, 12528);
     kryo.register(BitbucketStore.class, 12529);
     kryo.register(GitStore.class, 8023);
+    kryo.register(Environment.class, 22003);
+    kryo.register(InheritFromManifestStoreConfig.class, 12565);
   }
 }
