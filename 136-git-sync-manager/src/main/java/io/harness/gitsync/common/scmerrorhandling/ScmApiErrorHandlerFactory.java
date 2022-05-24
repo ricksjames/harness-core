@@ -22,7 +22,14 @@ import io.harness.gitsync.common.scmerrorhandling.handlers.bitbucketcloud.Bitbuc
 import io.harness.gitsync.common.scmerrorhandling.handlers.bitbucketcloud.BitbucketListBranchesScmApiErrorHandler;
 import io.harness.gitsync.common.scmerrorhandling.handlers.bitbucketcloud.BitbucketListRepoScmApiErrorHandler;
 import io.harness.gitsync.common.scmerrorhandling.handlers.bitbucketcloud.BitbucketUpdateFileScmApiErrorHandler;
-import io.harness.gitsync.common.scmerrorhandling.handlers.bitbucketserver.*;
+import io.harness.gitsync.common.scmerrorhandling.handlers.bitbucketserver.BitbucketServerCreateBranchScmApiErrorHandler;
+import io.harness.gitsync.common.scmerrorhandling.handlers.bitbucketserver.BitbucketServerCreateFileScmApiErrorHandler;
+import io.harness.gitsync.common.scmerrorhandling.handlers.bitbucketserver.BitbucketServerCreatePullRequestScmApiErrorHandler;
+import io.harness.gitsync.common.scmerrorhandling.handlers.bitbucketserver.BitbucketServerGetDefaultBranchScmApiErrorHandler;
+import io.harness.gitsync.common.scmerrorhandling.handlers.bitbucketserver.BitbucketServerGetFileScmApiErrorHandler;
+import io.harness.gitsync.common.scmerrorhandling.handlers.bitbucketserver.BitbucketServerListBranchesScmApiErrorHandler;
+import io.harness.gitsync.common.scmerrorhandling.handlers.bitbucketserver.BitbucketServerListRepoScmApiErrorHandler;
+import io.harness.gitsync.common.scmerrorhandling.handlers.bitbucketserver.BitbucketServerUpdateFileScmApiErrorHandler;
 import io.harness.gitsync.common.scmerrorhandling.handlers.github.GithubCreateBranchScmApiErrorHandler;
 import io.harness.gitsync.common.scmerrorhandling.handlers.github.GithubCreateFileScmApiErrorHandler;
 import io.harness.gitsync.common.scmerrorhandling.handlers.github.GithubCreatePullRequestScmApiErrorHandler;

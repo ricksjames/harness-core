@@ -25,14 +25,7 @@ import io.harness.gitsync.common.scmerrorhandling.ScmApiErrorHandlingHelper;
 import io.harness.gitsync.common.service.ScmFacilitatorService;
 import io.harness.gitsync.common.service.ScmOrchestratorService;
 import io.harness.ng.beans.PageRequest;
-import io.harness.product.ci.scm.proto.CreateBranchResponse;
-import io.harness.product.ci.scm.proto.CreateFileResponse;
-import io.harness.product.ci.scm.proto.CreatePRResponse;
-import io.harness.product.ci.scm.proto.FileContent;
-import io.harness.product.ci.scm.proto.GetUserRepoResponse;
-import io.harness.product.ci.scm.proto.GetUserReposResponse;
-import io.harness.product.ci.scm.proto.ListBranchesWithDefaultResponse;
-import io.harness.product.ci.scm.proto.UpdateFileResponse;
+import io.harness.product.ci.scm.proto.*;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Inject;
