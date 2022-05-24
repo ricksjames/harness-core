@@ -23,6 +23,7 @@ import com.mongodb.BulkWriteOperation;
 import com.mongodb.BulkWriteResult;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 
 @Singleton
@@ -39,22 +40,27 @@ public class EventDataBulkWriteServiceImpl implements EventDataBulkWriteService 
 
   private final EventBatchQueryFnFactory<PublishedMessage> publishedMessageUpsertQueryFn =
       (bulkWriteOperation, publishedMessage) -> {
-    final BasicDBObject publishedMessageBasicDBObject =
+    final BasicDBObject insertPublishedMessageBasicDBObject =
         new BasicDBObject()
             .append("_id", publishedMessage.getUuid())
             .append(PublishedMessageKeys.accountId, publishedMessage.getAccountId())
             .append(PublishedMessageKeys.createdAt, Instant.now().toEpochMilli())
-            .append(PublishedMessageKeys.validUntil, publishedMessage.getValidUntil())
             .append(PublishedMessageKeys.occurredAt, publishedMessage.getOccurredAt())
             .append(PublishedMessageKeys.type, publishedMessage.getType())
             .append(PublishedMessageKeys.data, publishedMessage.getData())
             .append(PublishedMessageKeys.category, publishedMessage.getCategory())
             .append(PublishedMessageKeys.attributes, publishedMessage.getAttributes());
 
+    final BasicDBObject updatePublishedMessageBasicDBObject =
+        new BasicDBObject().append(PublishedMessageKeys.validUntil, publishedMessage.getValidUntil());
+
+    final Map<String, BasicDBObject> operations = ImmutableMap.of(
+        "$set", updatePublishedMessageBasicDBObject, "$setOnInsert", insertPublishedMessageBasicDBObject);
+
     final BasicDBObject filter = new BasicDBObject(ImmutableMap.of(
         PublishedMessageKeys.accountId, publishedMessage.getAccountId(), "_id", publishedMessage.getUuid()));
 
-    bulkWriteOperation.find(filter).upsert().update(new BasicDBObject("$setOnInsert", publishedMessageBasicDBObject));
+    bulkWriteOperation.find(filter).upsert().update(new BasicDBObject(operations));
   };
 
   @Override
