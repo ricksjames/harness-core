@@ -127,12 +127,12 @@ public class AwsCodeDeployInstanceSyncPerpetualTaskClientTest extends CategoryTe
   @Category(UnitTests.class)
   public void testGetValidationTask() {
     List<Filter> ec2Filters = singletonList(new Filter("instance-state", singletonList("running")));
-    doReturn(ec2Filters).when(awsUtils).getFilters(eq(DeploymentType.AWS_CODEDEPLOY), any(AwsInstanceFilter.class));
+    doReturn(ec2Filters).when(awsUtils).getFilters(eq(DeploymentType.AWS_CODEDEPLOY), any());
     DelegateTask validationTask = client.getValidationTask(getClientContext(), ACCOUNT_ID);
 
     verify(infraMappingService, times(1)).get(APP_ID, INFRA_MAPPING_ID);
     verify(settingsService, times(1)).get(COMPUTE_PROVIDER_SETTING_ID);
-    verify(secretManager, times(1)).getEncryptionDetails(any(EncryptableSetting.class));
+    verify(secretManager, times(1)).getEncryptionDetails(any());
 
     assertThat(validationTask.getAccountId()).isEqualTo(ACCOUNT_ID);
     assertThat(validationTask.getSetupAbstractions().get(Cd1SetupFields.APP_ID_FIELD)).isEqualTo(GLOBAL_APP_ID);
