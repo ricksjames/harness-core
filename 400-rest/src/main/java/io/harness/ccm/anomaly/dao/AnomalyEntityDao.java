@@ -196,13 +196,13 @@ public class AnomalyEntityDao {
             anomalyBuilder.gcpSKUDescription(resultSet.getString(field.getFieldName()));
             break;
           case AZURE_SUBSCRIPTION:
-            anomalyBuilder.gcpProduct(resultSet.getString(field.getFieldName()));
+            anomalyBuilder.azureSubscription(resultSet.getString(field.getFieldName()));
             break;
           case AZURE_RESOURCE_GROUP:
-            anomalyBuilder.gcpSKUDescription(resultSet.getString(field.getFieldName()));
+            anomalyBuilder.azureResourceGroup(resultSet.getString(field.getFieldName()));
             break;
           case AZURE_METER_CATEGORY:
-            anomalyBuilder.gcpSKUDescription(resultSet.getString(field.getFieldName()));
+            anomalyBuilder.azureMeterCategory(resultSet.getString(field.getFieldName()));
             break;
           case AWS_ACCOUNT:
             anomalyBuilder.awsAccount(resultSet.getString(field.getFieldName()));

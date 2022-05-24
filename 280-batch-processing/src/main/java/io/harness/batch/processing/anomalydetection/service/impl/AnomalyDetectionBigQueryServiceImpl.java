@@ -215,10 +215,6 @@ public class AnomalyDetectionBigQueryServiceImpl {
             currentTimeSeries.setAwsUsageType(
                 row.get(PreAggregatedTableSchema.awsUsageType.getColumnNameSQL()).getStringValue());
             break;
-          case azureSubscriptionGuid:
-            currentTimeSeries.setAzureSubscription(
-                row.get(PreAggregatedTableSchema.azureSubscriptionGuid.getColumnNameSQL()).getStringValue());
-            break;
           default:
             log.error("Not valid entity type : {} ", type);
             throw new InvalidArgumentsException("Invalid Entity encountered");

@@ -35,10 +35,6 @@ import java.util.List;
 import org.springframework.batch.core.StepExecution;
 
 public class AnomalyDetectionAzureMeterCategoryReader extends AnomalyDetectionCloudReaderNG {
-  private static final String AZURE_SUBSCRIPTION_ID = "azureSubscriptionGuid";
-  private static final String START_TIME = "startTime";
-  private static final String COST = "cost";
-
   @Override
   public void beforeStep(StepExecution stepExecution) {
     parameters = stepExecution.getJobExecution().getJobParameters();
