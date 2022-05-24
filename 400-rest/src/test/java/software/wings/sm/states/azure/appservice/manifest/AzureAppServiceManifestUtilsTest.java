@@ -97,7 +97,7 @@ public class AzureAppServiceManifestUtilsTest extends WingsBaseTest {
     ApplicationManifest serviceAppManifest = ApplicationManifest.builder().storeType(StoreType.Local).build();
     serviceAppManifest.setAppId("APP_ID");
     serviceAppManifest.setUuid("SERVICE_UUID");
-    doReturn(serviceAppManifest).when(applicationManifestService).getByServiceId(anyString(), anyString(), any());
+    doReturn(serviceAppManifest).when(applicationManifestService).getByServiceId(any(), any(), any());
 
     doReturn(ImmutableList.of(
                  ManifestFile.builder().fileName("appsettings").fileContent(appSettingsServiceAppManifest).build(),
