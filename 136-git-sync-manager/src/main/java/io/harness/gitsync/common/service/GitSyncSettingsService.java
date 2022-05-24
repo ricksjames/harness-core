@@ -25,4 +25,6 @@ public interface GitSyncSettingsService {
   void delete(String accountIdentifier, String orgIdentifier, String projectIdentifier);
 
   boolean enableGitSimplification(String accountIdentifier, String orgIdentifier, String projectIdentifier);
+
+  boolean getGitSimplificationStatus(String accountIdentifier, String orgIdentifier, String projectIdentifier);
 }
