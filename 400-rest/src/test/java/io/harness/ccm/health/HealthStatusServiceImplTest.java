@@ -19,6 +19,7 @@ import static software.wings.beans.SettingAttribute.Builder.aSettingAttribute;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
@@ -179,7 +180,7 @@ public class HealthStatusServiceImplTest extends WingsBaseTest {
             .message(nodesForbiddenMesage)
             .build();
 
-    when(ceExceptionRecordDao.getRecentException(eq(accountId), eq(clusterRecord.getUuid()), anyInt()))
+    when(ceExceptionRecordDao.getRecentException(eq(accountId), eq(clusterRecord.getUuid()), anyLong()))
         .thenReturn(ceExceptionRecord);
 
     final CEHealthStatus ceHealthStatus = healthStatusService.getHealthStatus(cloudProviderId);

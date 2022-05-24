@@ -19,7 +19,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
@@ -128,7 +127,7 @@ public class InfrastructureStepTest extends CategoryTest {
                              .entityValidityDetails(EntityValidityDetails.builder().valid(true).build())
                              .build()))
         .when(connectorService)
-        .get(anyString(), anyString(), anyString(), eq("gcp-sa"));
+        .get(any(), any(), any(), eq("gcp-sa"));
 
     Infrastructure infrastructureSpec = K8sGcpInfrastructure.builder()
                                             .connectorRef(ParameterField.createValueField("account.gcp-sa"))
@@ -372,20 +371,20 @@ public class InfrastructureStepTest extends CategoryTest {
             .credential(
                 GcpConnectorCredentialDTO.builder().gcpCredentialType(GcpCredentialType.INHERIT_FROM_DELEGATE).build())
             .build();
-    doReturn(Optional.empty()).when(connectorService).get(anyString(), anyString(), anyString(), eq("missing"));
+    doReturn(Optional.empty()).when(connectorService).get(any(), any(), any(), eq("missing"));
     doReturn(Optional.of(ConnectorResponseDTO.builder()
                              .entityValidityDetails(EntityValidityDetails.builder().valid(true).build())
                              .connector(ConnectorInfoDTO.builder().connectorConfig(gcpConnectorServiceAccount).build())
                              .build()))
         .when(connectorService)
-        .get(anyString(), anyString(), anyString(), eq("gcp-sa"));
+        .get(any(), any(), any(), eq("gcp-sa"));
     doReturn(
         Optional.of(ConnectorResponseDTO.builder()
                         .entityValidityDetails(EntityValidityDetails.builder().valid(true).build())
                         .connector(ConnectorInfoDTO.builder().connectorConfig(gcpConnectorInheritFromDelegate).build())
                         .build()))
         .when(connectorService)
-        .get(anyString(), anyString(), anyString(), eq("gcp-delegate"));
+        .get(any(), any(), any(), eq("gcp-delegate"));
 
     assertConnectorValidationMessage(
         K8sGcpInfrastructure.builder().connectorRef(ParameterField.createValueField("account.missing")).build(),

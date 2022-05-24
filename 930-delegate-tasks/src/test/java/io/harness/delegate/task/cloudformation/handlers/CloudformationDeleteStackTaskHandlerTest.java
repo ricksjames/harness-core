@@ -13,9 +13,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyLong;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 import static org.powermock.api.mockito.PowerMockito.doReturn;
 
 import io.harness.CategoryTest;
@@ -122,7 +120,9 @@ public class CloudformationDeleteStackTaskHandlerTest extends CategoryTest {
     Optional<Stack> stack =
         Optional.of(new Stack().withStackName("stackName").withRoleARN("roleARN").withStackId("id"));
     doReturn(stack).when(handler).getIfStackExists(any(), any(), any());
-    doThrow(TimeoutException.class).when(cloudformationBaseHelper).deleteStack(any(), any(), any(), any(), anyInt());
+    doAnswer(invocationOnMock -> { throw new TimeoutException(); })
+        .when(cloudformationBaseHelper)
+        .deleteStack(any(), any(), any(), any(), anyInt());
     CloudformationTaskNGResponse response =
         handler.executeTaskInternal(parameters, "delegate_id", "task_id", logCallback);
     assertThat(response.getCommandExecutionStatus()).isEqualTo(CommandExecutionStatus.FAILURE);
@@ -143,7 +143,7 @@ public class CloudformationDeleteStackTaskHandlerTest extends CategoryTest {
     Optional<Stack> stack =
         Optional.of(new Stack().withStackName("stackName").withRoleARN("roleARN").withStackId("id"));
     doReturn(stack).when(handler).getIfStackExists(any(), any(), any());
-    doThrow(TimeoutException.class)
+    doAnswer(invocationOnMock -> { throw new TimeoutException(); })
         .when(cloudformationBaseHelper)
         .waitForStackToBeDeleted(any(), any(), any(), any(), anyLong());
     CloudformationTaskNGResponse response =
