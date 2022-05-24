@@ -37,6 +37,8 @@ import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
@@ -45,6 +47,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Response;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.FileUtils;
 
 @Api("delegate-setup-ng")
 @Path("/delegate-setup-ng")
@@ -102,13 +105,16 @@ public class DelegateSetupNgResource {
           NGCommonEntityConstants.PROJECT_KEY) String projectIdentifier,
       @RequestBody(
           required = true, description = "Delegate setup details, containing data to populate yaml file values.")
-      DelegateSetupDetails delegateSetupDetails) {
+      DelegateSetupDetails delegateSetupDetails) throws IOException {
     accessControlClient.checkForAccessOrThrow(ResourceScope.of(accountIdentifier, orgIdentifier, projectIdentifier),
         Resource.of(DELEGATE_RESOURCE_TYPE, null), DELEGATE_EDIT_PERMISSION);
-    File delegateFile = RestClientUtils.getResponse(delegateNgManagerCgManagerClient.generateHelmValuesFile(
+    String yamlString = RestClientUtils.getResponse(delegateNgManagerCgManagerClient.generateHelmValuesFile(
         accountIdentifier, orgIdentifier, projectIdentifier, delegateSetupDetails));
 
-    return Response.ok(delegateFile)
+    // convert String to file and send as response
+    File yamlFile = File.createTempFile(HARNESS_DELEGATE_VALUES_YAML, YAML);
+    FileUtils.writeStringToFile(yamlFile, yamlString, StandardCharsets.UTF_8);
+    return Response.ok(yamlFile)
         .header(CONTENT_TRANSFER_ENCODING, BINARY)
         .type("text/plain; charset=UTF-8")
         .header(CONTENT_DISPOSITION, ATTACHMENT_FILENAME + HARNESS_DELEGATE_VALUES_YAML + YAML)

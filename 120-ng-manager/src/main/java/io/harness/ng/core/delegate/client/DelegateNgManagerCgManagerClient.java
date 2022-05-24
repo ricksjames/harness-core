@@ -20,7 +20,6 @@ import io.harness.delegate.beans.DelegateTokenStatus;
 import io.harness.delegate.utils.DelegateMtlsApiConstants;
 import io.harness.rest.RestResponse;
 
-import java.io.File;
 import java.util.List;
 import java.util.Optional;
 import javax.validation.constraints.NotNull;
@@ -154,7 +153,7 @@ public interface DelegateNgManagerCgManagerClient {
   //------------------------ NG Delegate Setup Apis -----------------------------------
 
   @POST(DELEGATE_SETUP_NG_API + "/delegate-helm-values-yaml")
-  Call<RestResponse<File>> generateHelmValuesFile(
+  Call<RestResponse<String>> generateHelmValuesFile(
       @Query(NGCommonEntityConstants.ACCOUNT_KEY) @NotNull String accountIdentifier,
       @Query(NGCommonEntityConstants.ORG_KEY) String orgIdentifier,
       @Query(NGCommonEntityConstants.PROJECT_KEY) String projectIdentifier,

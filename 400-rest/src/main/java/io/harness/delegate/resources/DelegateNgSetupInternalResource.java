@@ -29,6 +29,8 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.POST;
@@ -61,7 +63,7 @@ public class DelegateNgSetupInternalResource {
   @Timed
   @ExceptionMetered
   @InternalApi
-  public RestResponse<File> generateNgHelmValuesYaml(@Context HttpServletRequest request,
+  public RestResponse<String> generateNgHelmValuesYaml(@Context HttpServletRequest request,
       @Parameter(description = NGCommonEntityConstants.ACCOUNT_PARAM_MESSAGE) @QueryParam(
           NGCommonEntityConstants.ACCOUNT_KEY) @NotNull String accountIdentifier,
       @Parameter(description = NGCommonEntityConstants.ORG_PARAM_MESSAGE) @QueryParam(
@@ -73,7 +75,7 @@ public class DelegateNgSetupInternalResource {
       DelegateSetupDetails delegateSetupDetails) throws IOException {
     File delegateFile = delegateService.generateNgHelmValuesYaml(accountIdentifier, delegateSetupDetails,
         subdomainUrlHelper.getManagerUrl(request, accountIdentifier), getVerificationUrl(request));
-    return new RestResponse<>(delegateFile);
+    return new RestResponse<>(new String(Files.readAllBytes(Paths.get(delegateFile.getAbsolutePath()))));
   }
 
   private String getVerificationUrl(HttpServletRequest request) {
