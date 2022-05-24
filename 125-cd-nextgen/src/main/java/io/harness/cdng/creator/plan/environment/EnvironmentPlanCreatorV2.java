@@ -7,13 +7,18 @@
 
 package io.harness.cdng.creator.plan.environment;
 
+import com.google.inject.Inject;
+import com.google.protobuf.ByteString;
 import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.cdng.creator.plan.PlanCreatorConstants;
 import io.harness.cdng.creator.plan.environment.steps.EnvironmentStepV2;
+import io.harness.cdng.creator.plan.infrastructure.InfrastructurePmsPlanCreator;
 import io.harness.cdng.environment.steps.EnvironmentStepParameters;
 import io.harness.cdng.environment.yaml.EnvironmentPlanCreatorConfig;
+import io.harness.cdng.infra.yaml.InfrastructureDefinitionConfig;
 import io.harness.cdng.visitor.YamlTypes;
+import io.harness.exception.InvalidRequestException;
 import io.harness.ng.core.environment.beans.EnvironmentType;
 import io.harness.pms.contracts.advisers.AdviserObtainment;
 import io.harness.pms.contracts.advisers.AdviserType;
@@ -27,10 +32,11 @@ import io.harness.pms.sdk.core.plan.creation.beans.PlanCreationContext;
 import io.harness.pms.sdk.core.plan.creation.beans.PlanCreationResponse;
 import io.harness.pms.sdk.core.plan.creation.creators.ChildrenPlanCreator;
 import io.harness.pms.yaml.YAMLFieldNameConstants;
+import io.harness.pms.yaml.YamlField;
+import io.harness.pms.yaml.YamlUtils;
 import io.harness.serializer.KryoSerializer;
 
-import com.google.inject.Inject;
-import com.google.protobuf.ByteString;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -57,9 +63,40 @@ public class EnvironmentPlanCreatorV2 extends ChildrenPlanCreator<EnvironmentPla
   @Override
   public LinkedHashMap<String, PlanCreationResponse> createPlanForChildrenNodes(
       PlanCreationContext ctx, EnvironmentPlanCreatorConfig config) {
+    LinkedHashMap<String, PlanCreationResponse> planCreationResponseMap = new LinkedHashMap<>();
+
     boolean gitOpsEnabled = (boolean) kryoSerializer.asInflatedObject(
         ctx.getDependency().getMetadataMap().get(YAMLFieldNameConstants.GITOPS_ENABLED).toByteArray());
-    return null;
+
+    if (!gitOpsEnabled) {
+      // if gitOpsEnabled is false, add dependency for infrastructure
+      InfrastructureDefinitionConfig infrastructureDefinitionConfig =
+          config.getInfrastructureDefinitions().get(0).getInfrastructureDefinitionConfig();
+      YamlField infraField = ctx.getCurrentField().getNode().getField("infrastructureDefinitions");
+      YamlField infraDefinitionField = null;
+      try {
+        infraDefinitionField = YamlUtils.readTree(
+            config.getInfrastructureDefinitions().get(0).getInfrastructureDefinitionConfig().toString());
+
+        PlanNode infraSpecNode =
+            InfrastructurePmsPlanCreator.getInfraStepPlanNode(infrastructureDefinitionConfig.getSpec());
+        planCreationResponseMap.put(infraSpecNode.getUuid(),
+            PlanCreationResponse.builder().node(infraSpecNode.getUuid(), infraSpecNode).build());
+        String infraSectionNodeChildId = infraSpecNode.getUuid();
+
+        PlanNode infraDefPlanNode =
+            InfrastructurePmsPlanCreator.getInfraDefPlanNode(infraDefinitionField, infraSectionNodeChildId);
+        planCreationResponseMap.put(infraDefPlanNode.getUuid(),
+            PlanCreationResponse.builder().node(infraDefPlanNode.getUuid(), infraDefPlanNode).build());
+
+        planCreationResponseMap.putAll(InfrastructurePmsPlanCreator.createPlanForInfraSectionV2(
+            infraField.getNode(), infraDefPlanNode.getUuid(), infrastructureDefinitionConfig, kryoSerializer));
+
+      } catch (IOException e) {
+        throw new InvalidRequestException(String.format("Cannot convert to yaml field %s", e));
+      }
+    }
+    return planCreationResponseMap;
   }
 
   @Override

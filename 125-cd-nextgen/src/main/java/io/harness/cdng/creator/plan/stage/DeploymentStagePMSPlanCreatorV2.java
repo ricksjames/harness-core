@@ -7,8 +7,11 @@
 
 package io.harness.cdng.creator.plan.stage;
 
-import static io.harness.annotations.dev.HarnessTeam.CDC;
-
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
+import com.google.inject.Inject;
+import com.google.protobuf.ByteString;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.cdng.creator.plan.environment.EnvironmentPlanCreatorHelper;
 import io.harness.cdng.creator.plan.infrastructure.InfrastructurePmsPlanCreator;
@@ -50,12 +53,8 @@ import io.harness.pms.yaml.YamlUtils;
 import io.harness.serializer.KryoSerializer;
 import io.harness.when.utils.RunInfoUtils;
 import io.harness.yaml.core.failurestrategy.FailureStrategyConfig;
+import lombok.SneakyThrows;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMap;
-import com.google.inject.Inject;
-import com.google.protobuf.ByteString;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
@@ -63,7 +62,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import lombok.SneakyThrows;
+
+import static io.harness.annotations.dev.HarnessTeam.CDC;
 
 /**
  * Stage plan graph V1 -
@@ -180,17 +180,18 @@ public class DeploymentStagePMSPlanCreatorV2 extends AbstractStagePlanCreator<De
     YamlField infraField = specField.getNode().getField(YamlTypes.PIPELINE_INFRASTRUCTURE);
     EnvironmentYamlV2 environmentV2 = stageNode.getDeploymentStageConfig().getEnvironment();
 
-    if (infraField != null && environmentV2 != null) {
-      throw new InvalidRequestException("Infrastructure and Environment cannot be siblings of each other");
-    }
+    //    if (infraField != null && environmentV2 != null) {
+    //      throw new InvalidRequestException("Infrastructure and Environment cannot be siblings of each other");
+    //    }
 
     if (infraField == null && environmentV2 == null) {
       throw new InvalidRequestException("Infrastructure Or Environment section is missing");
     }
 
-    if (infraField != null) {
+    if (infraField == null) {
       // Adding infrastructure node
-      PlanNode infraStepNode = InfrastructurePmsPlanCreator.getInfraStepPlanNode(pipelineInfrastructure);
+      PlanNode infraStepNode = InfrastructurePmsPlanCreator.getInfraStepPlanNode(
+          pipelineInfrastructure.getInfrastructureDefinition().getSpec());
       planCreationResponseMap.put(
           infraStepNode.getUuid(), PlanCreationResponse.builder().node(infraStepNode.getUuid(), infraStepNode).build());
       String infraSectionNodeChildId = infraStepNode.getUuid();
