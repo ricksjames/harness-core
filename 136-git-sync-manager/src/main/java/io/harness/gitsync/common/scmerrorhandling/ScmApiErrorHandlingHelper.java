@@ -10,10 +10,8 @@ package io.harness.gitsync.common.scmerrorhandling;
 import static io.harness.annotations.dev.HarnessTeam.PL;
 
 import io.harness.annotations.dev.OwnedBy;
-import io.harness.delegate.beans.connector.ConnectorType;
 import io.harness.gitsync.common.beans.ScmApis;
 import io.harness.gitsync.common.dtos.RepoProviders;
-import io.harness.gitsync.common.helper.RepoProviderHelper;
 import io.harness.gitsync.common.scmerrorhandling.handlers.DefaultScmApiErrorHandler;
 import io.harness.gitsync.common.scmerrorhandling.handlers.ScmApiErrorHandler;
 
@@ -34,8 +32,8 @@ public class ScmApiErrorHandlingHelper {
   protected ScmApiErrorHandler getScmAPIErrorHandler(ScmApis scmApi, RepoProviders repoProvider) {
     ScmApiErrorHandler scmApiErrorHandler = ScmApiErrorHandlerFactory.getHandler(scmApi, repoProvider);
     if (scmApiErrorHandler == null) {
-      log.error(String.format("No scm API handler registered for API: %s, providerType: %s",
-          scmApi.toString(), repoProvider));
+      log.error(String.format(
+          "No scm API handler registered for API: %s, providerType: %s", scmApi.toString(), repoProvider));
       return new DefaultScmApiErrorHandler();
     }
     return scmApiErrorHandler;

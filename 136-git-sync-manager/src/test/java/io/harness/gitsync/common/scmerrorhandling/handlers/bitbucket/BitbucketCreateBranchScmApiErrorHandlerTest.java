@@ -29,8 +29,7 @@ import org.junit.experimental.categories.Category;
 import org.mockito.MockitoAnnotations;
 
 public class BitbucketCreateBranchScmApiErrorHandlerTest extends GitSyncTestBase {
-  @Inject
-  BitbucketCreateBranchScmApiErrorHandler bitbucketCreateBranchScmApiErrorHandler;
+  @Inject BitbucketCreateBranchScmApiErrorHandler bitbucketCreateBranchScmApiErrorHandler;
 
   private static final String errorMessage = "errorMessage";
 
