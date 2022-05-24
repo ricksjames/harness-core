@@ -64,7 +64,6 @@ public class EventDataBulkWriteServiceImpl implements EventDataBulkWriteService 
 
   @Override
   public boolean upsertPublishedMessages(final List<PublishedMessage> publishedMessages) {
-    log.info("upsertPublishedMessages, publishedMessages count: {}", publishedMessages.size());
     return batchQueryExecutor(publishedMessages, publishedMessageUpsertQueryFn, PublishedMessage.class);
   }
 
@@ -96,6 +95,7 @@ public class EventDataBulkWriteServiceImpl implements EventDataBulkWriteService 
         return false;
       }
     }
+    log.info("batchQueryExecutor, itemsList count: {}", itemsList.size());
     log.info("batchQueryExecutor, bulkWriteOperation sum: {}", sum);
 
     return true;
@@ -107,11 +107,12 @@ public class EventDataBulkWriteServiceImpl implements EventDataBulkWriteService 
       try {
         result = bulkWriteOperation.execute();
         log.info("BulkWriteExecutor result: {}", result.toString());
+        return result;
       } catch (final IllegalArgumentException ex) {
         log.error("Exception occurred with bulkWriteExecutor", ex);
         throw ex;
       } catch (final Exception ex) {
-        log.error("Exception occurred with bulkWriteExecutor, retry:{}", i, ex);
+        log.warn("Exception occurred with bulkWriteExecutor, retry:{}", i, ex);
       }
     }
     result = bulkWriteOperation.execute();
