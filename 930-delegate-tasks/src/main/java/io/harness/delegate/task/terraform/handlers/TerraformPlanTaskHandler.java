@@ -142,6 +142,7 @@ public class TerraformPlanTaskHandler extends TerraformAbstractTaskHandler {
               .planJsonLogOutputStream(planJsonLogOutputStream)
               .timeoutInMillis(taskParameters.getTimeoutInMillis())
               .isTfPlanDestroy(taskParameters.getTerraformCommand() == TerraformCommand.DESTROY)
+              .migrateBackEndConfigs(taskParameters.isMigrateBackEndConfigs())
               .build();
 
       CliResponse response = terraformBaseHelper.executeTerraformPlanStep(terraformExecuteStepRequest);

@@ -138,6 +138,7 @@ public class TerraformApplyTaskHandler extends TerraformAbstractTaskHandler {
               .logCallback(logCallback)
               .planJsonLogOutputStream(planJsonLogOutputStream)
               .timeoutInMillis(taskParameters.getTimeoutInMillis())
+              .migrateBackEndConfigs(taskParameters.isMigrateBackEndConfigs())
               .build();
 
       CliResponse response = terraformBaseHelper.executeTerraformApplyStep(terraformExecuteStepRequest);

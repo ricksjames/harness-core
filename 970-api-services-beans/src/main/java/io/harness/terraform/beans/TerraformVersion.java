@@ -38,6 +38,17 @@ public class TerraformVersion {
     return diff > 0;
   }
 
+  /**
+   * Check if the terraform binary major version is the same or bigger than the specified version.
+   *
+   * @param major the minimum version that we want to check
+   * @return true if the terraform binary major version is the same or bigger than the specified version, false
+   *     otherwise
+   */
+  public boolean maxVersion(int major) {
+    return this.major != null && this.major <= major;
+  }
+
   public static TerraformVersion create(String output) {
     Matcher match = TF_VERSION_REGEX.matcher(output);
     if (!match.find()) {

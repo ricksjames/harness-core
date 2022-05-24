@@ -50,6 +50,7 @@ import io.harness.rule.Owner;
 import io.harness.security.encryption.EncryptedDataDetail;
 import io.harness.security.encryption.EncryptedRecordData;
 import io.harness.security.encryption.SecretDecryptionService;
+import io.harness.terraform.request.TerraformExecuteStepRequest;
 
 import com.google.inject.Inject;
 import java.io.File;
@@ -64,6 +65,7 @@ import org.apache.commons.io.FileUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -102,7 +104,8 @@ public class TerraformDestroyTaskHandlerTest extends CategoryTest {
     when(gitClientHelper.getRepoDirectory(any())).thenReturn("sourceDir");
     File outputFile = new File("sourceDir/terraform-output.tfvars");
     FileUtils.touch(outputFile);
-    when(terraformBaseHelper.executeTerraformDestroyStep(any()))
+    ArgumentCaptor<TerraformExecuteStepRequest> captor = ArgumentCaptor.forClass(TerraformExecuteStepRequest.class);
+    when(terraformBaseHelper.executeTerraformDestroyStep(captor.capture()))
         .thenReturn(CliResponse.builder().commandExecutionStatus(CommandExecutionStatus.SUCCESS).build());
     TerraformTaskNGResponse response = terraformDestroyTaskHandler.executeTaskInternal(
         getTerraformTaskParameters(), "delegateId", "taskId", logCallback);
@@ -110,6 +113,7 @@ public class TerraformDestroyTaskHandlerTest extends CategoryTest {
     assertThat(response.getCommandExecutionStatus()).isEqualTo(CommandExecutionStatus.SUCCESS);
     Files.deleteIfExists(Paths.get(outputFile.getPath()));
     Files.deleteIfExists(Paths.get("sourceDir"));
+    assertThat(captor.getValue().isMigrateBackEndConfigs()).isTrue();
   }
 
   @Test
@@ -139,6 +143,7 @@ public class TerraformDestroyTaskHandlerTest extends CategoryTest {
   private TerraformTaskNGParameters getTerraformTaskParameters() {
     return TerraformTaskNGParameters.builder()
         .accountId("accountId")
+        .migrateBackEndConfigs(true)
         .taskType(TFTaskType.APPLY)
         .entityId("provisionerIdentifier")
         .encryptedTfPlan(encryptedPlanContent)

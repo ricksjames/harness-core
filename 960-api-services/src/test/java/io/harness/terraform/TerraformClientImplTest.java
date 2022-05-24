@@ -11,6 +11,7 @@ import static io.harness.annotations.dev.HarnessTeam.CDP;
 import static io.harness.provision.TerraformConstants.TERRAFORM_PLAN_FILE_OUTPUT_NAME;
 import static io.harness.rule.OwnerRule.ABOSII;
 import static io.harness.rule.OwnerRule.BOGDAN;
+import static io.harness.rule.OwnerRule.NGONZALEZ;
 import static io.harness.rule.OwnerRule.ROHITKARELIA;
 import static io.harness.terraform.TerraformConstants.DEFAULT_TERRAFORM_COMMAND_TIMEOUT;
 
@@ -24,6 +25,8 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.contains;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.powermock.api.mockito.PowerMockito.doReturn;
 
@@ -43,6 +46,7 @@ import io.harness.rule.Owner;
 import io.harness.terraform.beans.TerraformVersion;
 import io.harness.terraform.request.TerraformApplyCommandRequest;
 import io.harness.terraform.request.TerraformDestroyCommandRequest;
+import io.harness.terraform.request.TerraformExecuteStepRequest;
 import io.harness.terraform.request.TerraformInitCommandRequest;
 import io.harness.terraform.request.TerraformPlanCommandRequest;
 import io.harness.terraform.request.TerraformRefreshCommandRequest;
@@ -58,6 +62,7 @@ import org.junit.experimental.categories.Category;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.zeroturnaround.exec.stream.LogOutputStream;
 
@@ -67,7 +72,7 @@ public class TerraformClientImplTest extends CategoryTest {
   @Mock private LogCallback logCallback;
   @Mock private PlanJsonLogOutputStream planJsonLogOutputStream;
   @InjectMocks private TerraformClientImpl terraformClientImpl;
-
+  @InjectMocks TerraformClientImpl client = spy(new TerraformClientImpl());
   private static final String SCRIPT_FILES_DIRECTORY = "SCRIPT_FILES_DIRECTORY";
 
   @Before
@@ -100,6 +105,42 @@ public class TerraformClientImplTest extends CategoryTest {
         DEFAULT_TERRAFORM_COMMAND_TIMEOUT, Collections.emptyMap(), SCRIPT_FILES_DIRECTORY, logCallback);
 
     assertThat(actualResponse).isEqualTo(cliResponse);
+  }
+
+  @Test
+  @Owner(developers = NGONZALEZ)
+  @Category(UnitTests.class)
+  public void testInitCommandWithMigrateState() throws InterruptedException, TimeoutException, IOException {
+    CliResponse response = CliResponse.builder().commandExecutionStatus(CommandExecutionStatus.SUCCESS).build();
+    doReturn(response).when(cliHelper).executeCliCommand(anyString(), anyLong(), any(), anyString(), any());
+    TerraformVersion tv = TerraformVersion.builder().major(1).minor(1).patch(1).build();
+    Mockito.doReturn(tv).when(client).version(anyLong(), anyString());
+    ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
+    client.init(
+        TerraformInitCommandRequest.builder().tfBackendConfigsFilePath("foobar").migrateBackEndConfigs(true).build(),
+        10, null, "", logCallback);
+    verify(client, times(1))
+        .executeTerraformCLICommand(captor.capture(), anyLong(), any(), anyString(), any(), any(), any());
+
+    assertThat(captor.getValue()).contains("-migrate-state ");
+  }
+
+  @Test
+  @Owner(developers = NGONZALEZ)
+  @Category(UnitTests.class)
+  public void testInitCommandWithoutMigrateState() throws InterruptedException, TimeoutException, IOException {
+    CliResponse response = CliResponse.builder().commandExecutionStatus(CommandExecutionStatus.SUCCESS).build();
+    doReturn(response).when(cliHelper).executeCliCommand(anyString(), anyLong(), any(), anyString(), any());
+    TerraformVersion tv = TerraformVersion.builder().major(1).minor(1).patch(1).build();
+    Mockito.doReturn(tv).when(client).version(anyLong(), anyString());
+    ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
+    client.init(
+        TerraformInitCommandRequest.builder().tfBackendConfigsFilePath("foobar").migrateBackEndConfigs(false).build(),
+        10, null, "", logCallback);
+    verify(client, times(1))
+        .executeTerraformCLICommand(captor.capture(), anyLong(), any(), anyString(), any(), any(), any());
+
+    assertThat(captor.getValue()).doesNotContain("-migrate-state ");
   }
 
   @Test

@@ -127,6 +127,7 @@ public class TerraformStepDataGenerator {
         .configuration(TerraformStepConfigurationParameters.builder()
                            .type(TerraformStepConfigurationType.INLINE)
                            .spec(TerraformExecutionDataParameters.builder()
+                                     .migrateBackEndConfigs(true)
                                      .configFiles(configFilesWrapper)
                                      .varFiles(varFilesMap)
                                      .build())
@@ -208,6 +209,7 @@ public class TerraformStepDataGenerator {
                            .spec(TerraformExecutionDataParameters.builder()
                                      .configFiles(configFilesWrapper)
                                      .varFiles(varFilesMap)
+                                     .migrateBackEndConfigs(true)
                                      .build())
                            .build())
         .build();
@@ -349,6 +351,7 @@ public class TerraformStepDataGenerator {
                            .varFiles(varFilesMap)
                            .environmentVariables(ImmutableMap.of("KEY", ParameterField.createValueField("VAL")))
                            .backendConfig(terraformBackendConfig)
+                           .migrateBackEndConfigs(true)
                            .build())
         .build();
   }

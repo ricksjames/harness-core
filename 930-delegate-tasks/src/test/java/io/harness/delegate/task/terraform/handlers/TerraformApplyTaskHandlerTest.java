@@ -55,6 +55,7 @@ import io.harness.rule.Owner;
 import io.harness.security.encryption.EncryptedDataDetail;
 import io.harness.security.encryption.EncryptedRecordData;
 import io.harness.security.encryption.SecretDecryptionService;
+import io.harness.terraform.request.TerraformExecuteStepRequest;
 
 import com.google.inject.Inject;
 import java.io.File;
@@ -69,6 +70,7 @@ import org.apache.commons.io.FileUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -113,8 +115,9 @@ public class TerraformApplyTaskHandlerTest extends CategoryTest {
     FileIo.createDirectoryIfDoesNotExist("sourceDir");
     File outputFile = new File("sourceDir/terraform-output.tfvars");
     FileUtils.touch(outputFile);
+    ArgumentCaptor<TerraformExecuteStepRequest> captor = ArgumentCaptor.forClass(TerraformExecuteStepRequest.class);
 
-    when(terraformBaseHelper.executeTerraformApplyStep(any()))
+    when(terraformBaseHelper.executeTerraformApplyStep(captor.capture()))
         .thenReturn(CliResponse.builder().commandExecutionStatus(CommandExecutionStatus.SUCCESS).build());
     TerraformTaskNGResponse response = terraformApplyTaskHandler.executeTaskInternal(
         getTerraformTaskParameters(), "delegateId", "taskId", logCallback);
@@ -122,6 +125,7 @@ public class TerraformApplyTaskHandlerTest extends CategoryTest {
     assertThat(response.getCommandExecutionStatus()).isEqualTo(CommandExecutionStatus.SUCCESS);
     Files.deleteIfExists(Paths.get(outputFile.getPath()));
     Files.deleteIfExists(Paths.get("sourceDir"));
+    assertThat(captor.getValue().isMigrateBackEndConfigs()).isTrue();
   }
 
   @Test
@@ -154,6 +158,7 @@ public class TerraformApplyTaskHandlerTest extends CategoryTest {
         .taskType(TFTaskType.APPLY)
         .entityId("provisionerIdentifier")
         .encryptedTfPlan(encryptedPlanContent)
+        .migrateBackEndConfigs(true)
         .configFile(
             GitFetchFilesConfig.builder()
                 .gitStoreDelegateConfig(

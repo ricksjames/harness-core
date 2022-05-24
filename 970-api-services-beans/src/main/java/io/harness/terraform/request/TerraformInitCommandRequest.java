@@ -14,4 +14,5 @@ import lombok.Value;
 @Builder
 public class TerraformInitCommandRequest {
   String tfBackendConfigsFilePath;
+  boolean migrateBackEndConfigs;
 }

@@ -70,4 +70,5 @@ public class TerraformConfig implements PersistentEntity, CreatedAtAware {
   String workspace;
   List<String> targets;
   boolean useConnectorCredentials;
+  boolean migrateBackEndConfigs;
 }

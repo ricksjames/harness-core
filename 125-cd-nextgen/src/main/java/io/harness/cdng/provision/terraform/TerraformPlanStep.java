@@ -10,7 +10,9 @@ package io.harness.cdng.provision.terraform;
 import io.harness.EntityType;
 import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
+import io.harness.beans.FeatureName;
 import io.harness.beans.IdentifierRef;
+import io.harness.cdng.featureFlag.CDFeatureFlagHelper;
 import io.harness.common.ParameterFieldHelper;
 import io.harness.delegate.beans.TaskData;
 import io.harness.delegate.task.terraform.TFTaskType;
@@ -67,6 +69,7 @@ public class TerraformPlanStep extends TaskExecutableWithRollbackAndRbac<Terrafo
   @Inject private TerraformStepHelper helper;
   @Inject private PipelineRbacHelper pipelineRbacHelper;
   @Inject private StepHelper stepHelper;
+  @Inject private CDFeatureFlagHelper cdFeatureFlagHelper;
 
   @Override
   public Class<StepElementParameters> getStepParametersClass() {
@@ -118,6 +121,9 @@ public class TerraformPlanStep extends TaskExecutableWithRollbackAndRbac<Terrafo
     builder.accountId(accountId);
     String entityId = helper.generateFullIdentifier(
         ParameterFieldHelper.getParameterFieldValue(planStepParameters.getProvisionerIdentifier()), ambiance);
+    if (cdFeatureFlagHelper.isEnabled(AmbianceUtils.getAccountId(ambiance), FeatureName.TERRAFORM_MIGRATE_STATE)) {
+      builder.migrateBackEndConfigs(configuration.isMigrateBackEndConfigs());
+    }
     builder.taskType(TFTaskType.PLAN)
         .terraformCommandUnit(TerraformCommandUnit.Plan)
         .entityId(entityId)

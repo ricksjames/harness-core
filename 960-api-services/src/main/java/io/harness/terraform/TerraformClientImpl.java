@@ -69,6 +69,20 @@ public class TerraformClientImpl implements TerraformClient {
             ? EMPTY
             : format("-backend-config=%s", terraformInitCommandRequest.getTfBackendConfigsFilePath()));
 
+    // Migrate the backend configs to a new backend
+    if (terraformInitCommandRequest.isMigrateBackEndConfigs()) {
+      TerraformVersion tfv = version(timeoutInMillis, scriptDirectory);
+      if (tfv.maxVersion(1)) {
+        command += " -migrate-state -force-copy";
+      } else {
+        String messageFormat = "Migration state is not supported in v%d.%d.%d. Minimum version is v1.0.0.+ "
+            + "Skipping migration attempt";
+        String message = format(messageFormat, tfv.getMajor(), tfv.getMinor(), tfv.getPatch());
+        executionLogCallback.saveExecutionLog(
+            color("\n" + message + "\n", Yellow, Bold), WARN, CommandExecutionStatus.SKIPPED);
+      }
+    }
+
     /**
      * echo "no" is to prevent copying of state from local to remote by suppressing the
      * copy prompt. As of tf version 0.12.3
@@ -220,7 +234,7 @@ public class TerraformClientImpl implements TerraformClient {
   }
 
   @VisibleForTesting
-  CliResponse executeTerraformCLICommand(String command, long timeoutInMillis, Map<String, String> envVariables,
+  public CliResponse executeTerraformCLICommand(String command, long timeoutInMillis, Map<String, String> envVariables,
       String scriptDirectory, LogCallback executionLogCallBack, String loggingCommand, LogOutputStream logOutputStream)
       throws IOException, InterruptedException, TimeoutException, TerraformCommandExecutionException {
     if (!Files.exists(Paths.get(scriptDirectory))) {

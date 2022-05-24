@@ -46,4 +46,5 @@ public class TerraformExecuteStepRequest {
   long timeoutInMillis;
   boolean isTfPlanDestroy;
   String accountId;
+  @Builder.Default boolean migrateBackEndConfigs = false;
 }

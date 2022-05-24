@@ -22,6 +22,7 @@ import io.harness.CategoryTest;
 import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.beans.EnvironmentType;
+import io.harness.beans.FeatureName;
 import io.harness.category.element.UnitTests;
 import io.harness.cdng.featureFlag.CDFeatureFlagHelper;
 import io.harness.cdng.manifest.yaml.storeConfig.StoreConfigType;
@@ -54,6 +55,7 @@ import io.harness.plancreator.steps.common.StepElementParameters;
 import io.harness.pms.contracts.ambiance.Ambiance;
 import io.harness.pms.contracts.execution.Status;
 import io.harness.pms.contracts.execution.tasks.TaskRequest;
+import io.harness.pms.execution.utils.AmbianceUtils;
 import io.harness.pms.rbac.PipelineRbacHelper;
 import io.harness.pms.sdk.core.steps.io.StepInputPackage;
 import io.harness.pms.sdk.core.steps.io.StepResponse;
@@ -75,6 +77,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.powermock.api.mockito.PowerMockito;
@@ -233,6 +236,7 @@ public class TerraformPlanStepTest extends CategoryTest {
         (TerraformTaskNGParameters) taskDataArgumentCaptor.getValue().getParameters()[0];
     assertThat(taskParameters.getTaskType()).isEqualTo(TFTaskType.PLAN);
     assertThat(taskParameters.getPlanName()).isEqualTo("planName");
+    assertThat(taskParameters.isMigrateBackEndConfigs()).isFalse();
   }
 
   @Test
@@ -312,6 +316,7 @@ public class TerraformPlanStepTest extends CategoryTest {
         (TerraformTaskNGParameters) taskDataArgumentCaptor.getValue().getParameters()[0];
     assertThat(taskParameters.getTaskType()).isEqualTo(TFTaskType.PLAN);
     assertThat(taskParameters.getPlanName()).isEqualTo("planName");
+    assertThat(taskParameters.isMigrateBackEndConfigs()).isFalse();
   }
 
   @Test
@@ -400,5 +405,75 @@ public class TerraformPlanStepTest extends CategoryTest {
     } catch (InvalidRequestException invalidRequestException) {
       assertThat(invalidRequestException.getMessage()).isEqualTo(message);
     }
+  }
+
+  @Test
+  @Owner(developers = NGONZALEZ)
+  @Category(UnitTests.class)
+  public void testObtainTaskAfterRbacWithGithubStoreFFEnabled() {
+    Ambiance ambiance = getAmbiance();
+    TerraformStepDataGenerator.GitStoreConfig gitStoreConfigFiles =
+        TerraformStepDataGenerator.GitStoreConfig.builder()
+            .branch("master")
+            .fetchType(FetchType.BRANCH)
+            .folderPath(ParameterField.createValueField("Config/"))
+            .connectoref(ParameterField.createValueField("terraform"))
+            .build();
+    TerraformStepDataGenerator.GitStoreConfig gitStoreVarFiles =
+        TerraformStepDataGenerator.GitStoreConfig.builder()
+            .branch("master")
+            .fetchType(FetchType.BRANCH)
+            .folderPath(ParameterField.createValueField("VarFiles/"))
+            .connectoref(ParameterField.createValueField("terraform"))
+            .build();
+    TerraformPlanStepParameters planStepParameters =
+        TerraformStepDataGenerator.generateStepPlanFile(StoreConfigType.GITHUB, gitStoreConfigFiles, gitStoreVarFiles);
+
+    GitConfigDTO gitConfigDTO = GitConfigDTO.builder()
+                                    .gitAuthType(GitAuthType.HTTP)
+                                    .gitConnectionType(GitConnectionType.ACCOUNT)
+                                    .delegateSelectors(Collections.singleton("delegateName"))
+                                    .url("https://github.com/wings-software")
+                                    .branchName("master")
+                                    .build();
+    GitStoreDelegateConfig gitStoreDelegateConfig =
+        GitStoreDelegateConfig.builder().branch("master").connectorName("terraform").gitConfigDTO(gitConfigDTO).build();
+    GitFetchFilesConfig gitFetchFilesConfig = GitFetchFilesConfig.builder()
+                                                  .identifier("terraform")
+                                                  .gitStoreDelegateConfig(gitStoreDelegateConfig)
+                                                  .succeedIfFileNotFound(false)
+                                                  .build();
+
+    List<TerraformVarFileInfo> varFileInfo = new ArrayList<>();
+    StepElementParameters stepElementParameters = StepElementParameters.builder().spec(planStepParameters).build();
+    StepInputPackage stepInputPackage = StepInputPackage.builder().build();
+    doReturn("test-account/test-org/test-project/id").when(terraformStepHelper).generateFullIdentifier(any(), any());
+    doReturn("fileId").when(terraformStepHelper).getLatestFileId(any());
+    doReturn("planName").when(terraformStepHelper).getTerraformPlanName(any(), any());
+    doReturn(gitFetchFilesConfig).when(terraformStepHelper).getGitFetchFilesConfig(any(), any(), any());
+    doReturn(varFileInfo).when(terraformStepHelper).toTerraformVarFileInfo(any(), any());
+    doReturn(EnvironmentType.NON_PROD).when(stepHelper).getEnvironmentType(any());
+    Mockito.doReturn(true)
+        .when(cdFeatureFlagHelper)
+        .isEnabled(AmbianceUtils.getAccountId(ambiance), FeatureName.TERRAFORM_MIGRATE_STATE);
+    doReturn("back-content").when(terraformStepHelper).getBackendConfig(any());
+    doReturn(ImmutableMap.of("KEY", ParameterField.createValueField("VAL")))
+        .when(terraformStepHelper)
+        .getEnvironmentVariablesMap(any());
+    mockStatic(StepUtils.class);
+    PowerMockito.when(StepUtils.prepareCDTaskRequest(any(), any(), any(), any(), any(), any(), any()))
+        .thenReturn(TaskRequest.newBuilder().build());
+    ArgumentCaptor<TaskData> taskDataArgumentCaptor = ArgumentCaptor.forClass(TaskData.class);
+    TaskRequest taskRequest = terraformPlanStep.obtainTaskAfterRbac(ambiance, stepElementParameters, stepInputPackage);
+    assertThat(taskRequest).isNotNull();
+    PowerMockito.verifyStatic(StepUtils.class, times(1));
+    StepUtils.prepareCDTaskRequest(any(), taskDataArgumentCaptor.capture(), any(), any(), any(), any(), any());
+    assertThat(taskDataArgumentCaptor.getValue()).isNotNull();
+    assertThat(taskDataArgumentCaptor.getValue().getParameters()).isNotNull();
+    TerraformTaskNGParameters taskParameters =
+        (TerraformTaskNGParameters) taskDataArgumentCaptor.getValue().getParameters()[0];
+    assertThat(taskParameters.getTaskType()).isEqualTo(TFTaskType.PLAN);
+    assertThat(taskParameters.getPlanName()).isEqualTo("planName");
+    assertThat(taskParameters.isMigrateBackEndConfigs()).isTrue();
   }
 }

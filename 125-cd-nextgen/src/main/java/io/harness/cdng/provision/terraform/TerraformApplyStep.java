@@ -138,6 +138,10 @@ public class TerraformApplyStep extends TaskExecutableWithRollbackAndRbac<Terraf
     String provisionerIdentifier =
         ParameterFieldHelper.getParameterFieldValue(stepParameters.getProvisionerIdentifier());
     String entityId = helper.generateFullIdentifier(provisionerIdentifier, ambiance);
+    if (cdFeatureFlagHelper.isEnabled(AmbianceUtils.getAccountId(ambiance), FeatureName.TERRAFORM_MIGRATE_STATE)) {
+      builder.migrateBackEndConfigs(spec.isMigrateBackEndConfigs());
+    }
+
     builder.currentStateFileId(helper.getLatestFileId(entityId))
         .taskType(TFTaskType.APPLY)
         .terraformCommand(TerraformCommand.APPLY)
@@ -186,6 +190,9 @@ public class TerraformApplyStep extends TaskExecutableWithRollbackAndRbac<Terraf
     builder.entityId(entityId);
     builder.currentStateFileId(helper.getLatestFileId(entityId));
     TerraformInheritOutput inheritOutput = helper.getSavedInheritOutput(provisionerIdentifier, APPLY.name(), ambiance);
+    if (cdFeatureFlagHelper.isEnabled(AmbianceUtils.getAccountId(ambiance), FeatureName.TERRAFORM_MIGRATE_STATE)) {
+      builder.migrateBackEndConfigs(inheritOutput.isMigrateBackEndConfigs());
+    }
     builder.workspace(inheritOutput.getWorkspace())
         .configFile(helper.getGitFetchFilesConfig(
             inheritOutput.getConfigFiles(), ambiance, TerraformStepHelper.TF_CONFIG_FILES))

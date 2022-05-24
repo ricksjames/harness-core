@@ -70,6 +70,7 @@ public class TerraformTaskNGParameters
   EncryptionConfig encryptionConfig;
   EncryptedRecordData encryptedTfPlan;
   String planName;
+  boolean migrateBackEndConfigs;
 
   @Override
   public List<ExecutionCapability> fetchRequiredExecutionCapabilities(ExpressionEvaluator maskingEvaluator) {

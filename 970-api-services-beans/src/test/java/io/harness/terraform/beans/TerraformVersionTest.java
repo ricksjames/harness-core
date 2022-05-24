@@ -9,6 +9,7 @@ package io.harness.terraform.beans;
 
 import static io.harness.annotations.dev.HarnessTeam.CDP;
 import static io.harness.rule.OwnerRule.ABOSII;
+import static io.harness.rule.OwnerRule.NGONZALEZ;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -44,5 +45,24 @@ public class TerraformVersionTest extends CategoryTest {
     assertThat(version.minVersion(1, 1)).isTrue();
     assertThat(version.minVersion(1, 2)).isFalse();
     assertThat(version.minVersion(2, 1)).isFalse();
+  }
+
+  @Test
+  @Owner(developers = NGONZALEZ)
+  @Category(UnitTests.class)
+  public void testMaxVersion111() {
+    TerraformVersion version = TerraformVersion.create(1, 1, 1);
+    assertThat(version.maxVersion(1)).isTrue();
+    assertThat(version.maxVersion(0)).isFalse();
+    assertThat(version.maxVersion(2)).isTrue();
+  }
+  @Test
+  @Owner(developers = NGONZALEZ)
+  @Category(UnitTests.class)
+  public void testMaxVersion012() {
+    TerraformVersion version = TerraformVersion.create(0, 1, 2);
+    assertThat(version.maxVersion(1)).isTrue();
+    assertThat(version.maxVersion(0)).isTrue();
+    assertThat(version.maxVersion(2)).isTrue();
   }
 }

@@ -139,6 +139,9 @@ public class TerraformDestroyStep extends TaskExecutableWithRollbackAndRbac<Terr
     builder.accountId(accountId);
     String entityId = helper.generateFullIdentifier(
         ParameterFieldHelper.getParameterFieldValue(parameters.getProvisionerIdentifier()), ambiance);
+    if (cdFeatureFlagHelper.isEnabled(AmbianceUtils.getAccountId(ambiance), FeatureName.TERRAFORM_MIGRATE_STATE)) {
+      builder.migrateBackEndConfigs(spec.isMigrateBackEndConfigs());
+    }
     builder.currentStateFileId(helper.getLatestFileId(entityId))
         .taskType(TFTaskType.DESTROY)
         .terraformCommand(TerraformCommand.DESTROY)
@@ -186,6 +189,9 @@ public class TerraformDestroyStep extends TaskExecutableWithRollbackAndRbac<Terr
     builder.currentStateFileId(helper.getLatestFileId(entityId));
     TerraformInheritOutput inheritOutput =
         helper.getSavedInheritOutput(provisionerIdentifier, DESTROY.name(), ambiance);
+    if (cdFeatureFlagHelper.isEnabled(AmbianceUtils.getAccountId(ambiance), FeatureName.TERRAFORM_MIGRATE_STATE)) {
+      builder.migrateBackEndConfigs(inheritOutput.isMigrateBackEndConfigs());
+    }
     builder.workspace(inheritOutput.getWorkspace())
         .configFile(helper.getGitFetchFilesConfig(
             inheritOutput.getConfigFiles(), ambiance, TerraformStepHelper.TF_CONFIG_FILES))
@@ -230,6 +236,9 @@ public class TerraformDestroyStep extends TaskExecutableWithRollbackAndRbac<Terr
     builder.entityId(entityId);
     builder.currentStateFileId(helper.getLatestFileId(entityId));
     TerraformConfig terraformConfig = helper.getLastSuccessfulApplyConfig(parameters, ambiance);
+    if (cdFeatureFlagHelper.isEnabled(AmbianceUtils.getAccountId(ambiance), FeatureName.TERRAFORM_MIGRATE_STATE)) {
+      builder.migrateBackEndConfigs(terraformConfig.isMigrateBackEndConfigs());
+    }
     builder.workspace(terraformConfig.getWorkspace())
         .varFileInfos(helper.prepareTerraformVarFileInfo(terraformConfig.getVarFileConfigs(), ambiance))
         .backendConfig(terraformConfig.getBackendConfig())

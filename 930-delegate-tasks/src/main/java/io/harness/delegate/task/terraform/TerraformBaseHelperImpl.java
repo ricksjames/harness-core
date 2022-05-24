@@ -183,6 +183,7 @@ public class TerraformBaseHelperImpl implements TerraformBaseHelper {
     TerraformInitCommandRequest terraformInitCommandRequest =
         TerraformInitCommandRequest.builder()
             .tfBackendConfigsFilePath(terraformExecuteStepRequest.getTfBackendConfigsFile())
+            .migrateBackEndConfigs(terraformExecuteStepRequest.isMigrateBackEndConfigs())
             .build();
     terraformClient.init(terraformInitCommandRequest, terraformExecuteStepRequest.getTimeoutInMillis(),
         terraformExecuteStepRequest.getEnvVars(), terraformExecuteStepRequest.getScriptDirectory(),
@@ -288,6 +289,7 @@ public class TerraformBaseHelperImpl implements TerraformBaseHelper {
     TerraformInitCommandRequest terraformInitCommandRequest =
         TerraformInitCommandRequest.builder()
             .tfBackendConfigsFilePath(terraformExecuteStepRequest.getTfBackendConfigsFile())
+            .migrateBackEndConfigs(terraformExecuteStepRequest.isMigrateBackEndConfigs())
             .build();
     terraformClient.init(terraformInitCommandRequest, terraformExecuteStepRequest.getTimeoutInMillis(),
         terraformExecuteStepRequest.getEnvVars(), terraformExecuteStepRequest.getScriptDirectory(),
@@ -322,6 +324,7 @@ public class TerraformBaseHelperImpl implements TerraformBaseHelper {
     TerraformInitCommandRequest terraformInitCommandRequest =
         TerraformInitCommandRequest.builder()
             .tfBackendConfigsFilePath(terraformExecuteStepRequest.getTfBackendConfigsFile())
+            .migrateBackEndConfigs(terraformExecuteStepRequest.isMigrateBackEndConfigs())
             .build();
     terraformClient.init(terraformInitCommandRequest, terraformExecuteStepRequest.getTimeoutInMillis(),
         terraformExecuteStepRequest.getEnvVars(), terraformExecuteStepRequest.getScriptDirectory(),
