@@ -213,7 +213,7 @@ public class AzureVMSSDeployTaskHandlerTest extends WingsBaseTest {
 
     doAnswer(invocation -> { throw new Exception(); })
         .when(azureComputeClient)
-        .deleteVirtualMachineScaleSetById(eq(azureConfig), anyString(), anyString());
+        .deleteVirtualMachineScaleSetById(eq(azureConfig), any(), any());
 
     AzureVMSSTaskExecutionResponse azureVMSSTaskExecutionResponse =
         rollbackTaskHandler.executeTaskInternal(deployTaskParameters, azureConfig);
