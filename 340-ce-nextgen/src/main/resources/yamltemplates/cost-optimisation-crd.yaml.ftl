@@ -89,15 +89,6 @@ rules:
       - update
 
 ---
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: harness-autostopping-config
-data:
-  account_id: ${accountId}
-  connector_id: ${connectorIdentifier}
-
----
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
