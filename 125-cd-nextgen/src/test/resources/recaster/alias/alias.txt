@@ -122,6 +122,7 @@ io.harness.plancreator.flowcontrol.FlowControlConfig
 io.harness.steps.approval.step.jira.beans.KeyValuesCriteriaSpec
 io.harness.cdng.provision.terraform.InlineTerraformBackendConfigSpec
 io.harness.cdng.service.steps.ServiceConfigStepParameters
+io.harness.cdng.service.steps.ServiceSectionStepParameters
 io.harness.ngpipeline.artifact.bean.ArtifactsOutcome
 io.harness.cdng.instance.outcome.DeploymentInfoOutcome
 io.harness.cdng.tasks.manifestFetch.step.ManifestFetchParameters

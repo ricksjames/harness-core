@@ -14,6 +14,8 @@ import io.harness.cdng.service.beans.ServiceDefinition;
 import io.harness.exception.InvalidRequestException;
 import io.harness.ng.core.service.yaml.NGServiceV2InfoConfig;
 import io.harness.pms.sdk.core.steps.io.StepParameters;
+import io.harness.pms.yaml.ParameterField;
+import io.harness.pms.yaml.SkipAutoEvaluation;
 
 import java.util.Map;
 import lombok.Builder;
@@ -33,8 +35,9 @@ public class ServiceStepParametersV2 implements StepParameters {
   Map<String, String> tags;
   Boolean gitOpsEnabled;
 
-  // Should be resolved serviceDefinition (including merged runtime inputs)
-  ServiceDefinition serviceDefinition;
+  // Should be resolved serviceDefinition (including merged runtime inputs) but expression resolution should be skipped
+  // as manifests expressions may not be resolved.
+  @SkipAutoEvaluation ParameterField<ServiceDefinition> serviceDefinition;
 
   public static ServiceStepParametersV2 fromServiceV2InfoConfig(NGServiceV2InfoConfig serviceV2InfoConfig) {
     if (serviceV2InfoConfig == null) {
@@ -46,7 +49,7 @@ public class ServiceStepParametersV2 implements StepParameters {
         .tags(serviceV2InfoConfig.getTags())
         .gitOpsEnabled(serviceV2InfoConfig.getGitOpsEnabled())
         .description(serviceV2InfoConfig.getDescription())
-        .serviceDefinition(serviceV2InfoConfig.getServiceDefinition())
+        .serviceDefinition(ParameterField.createValueField(serviceV2InfoConfig.getServiceDefinition()))
         .build();
   }
 }
