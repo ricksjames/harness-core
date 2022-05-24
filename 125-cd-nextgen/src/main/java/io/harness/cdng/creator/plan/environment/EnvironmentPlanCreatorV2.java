@@ -7,8 +7,6 @@
 
 package io.harness.cdng.creator.plan.environment;
 
-import com.google.inject.Inject;
-import com.google.protobuf.ByteString;
 import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.cdng.creator.plan.PlanCreatorConstants;
@@ -18,7 +16,6 @@ import io.harness.cdng.environment.steps.EnvironmentStepParameters;
 import io.harness.cdng.environment.yaml.EnvironmentPlanCreatorConfig;
 import io.harness.cdng.infra.yaml.InfrastructureDefinitionConfig;
 import io.harness.cdng.visitor.YamlTypes;
-import io.harness.exception.InvalidRequestException;
 import io.harness.ng.core.environment.beans.EnvironmentType;
 import io.harness.pms.contracts.advisers.AdviserObtainment;
 import io.harness.pms.contracts.advisers.AdviserType;
@@ -33,10 +30,10 @@ import io.harness.pms.sdk.core.plan.creation.beans.PlanCreationResponse;
 import io.harness.pms.sdk.core.plan.creation.creators.ChildrenPlanCreator;
 import io.harness.pms.yaml.YAMLFieldNameConstants;
 import io.harness.pms.yaml.YamlField;
-import io.harness.pms.yaml.YamlUtils;
 import io.harness.serializer.KryoSerializer;
 
-import java.io.IOException;
+import com.google.inject.Inject;
+import com.google.protobuf.ByteString;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -74,21 +71,27 @@ public class EnvironmentPlanCreatorV2 extends ChildrenPlanCreator<EnvironmentPla
           config.getInfrastructureDefinitions().get(0).getInfrastructureDefinitionConfig();
       YamlField infraField = ctx.getCurrentField().getNode().getField("infrastructureDefinitions");
 
-      YamlField infraDefinitionField = ctx.getCurrentField().getNode().getField("infrastructureDefinitions").getNode().asArray().get(0).getField("infrastructureDefinition");
+      YamlField infraDefinitionField = ctx.getCurrentField()
+                                           .getNode()
+                                           .getField("infrastructureDefinitions")
+                                           .getNode()
+                                           .asArray()
+                                           .get(0)
+                                           .getField("infrastructureDefinition");
 
-        PlanNode infraSpecNode =
-            InfrastructurePmsPlanCreator.getInfraStepPlanNode(infrastructureDefinitionConfig.getSpec());
-        planCreationResponseMap.put(infraSpecNode.getUuid(),
-            PlanCreationResponse.builder().node(infraSpecNode.getUuid(), infraSpecNode).build());
-        String infraSectionNodeChildId = infraSpecNode.getUuid();
+      PlanNode infraSpecNode =
+          InfrastructurePmsPlanCreator.getInfraStepPlanNode(infrastructureDefinitionConfig.getSpec());
+      planCreationResponseMap.put(
+          infraSpecNode.getUuid(), PlanCreationResponse.builder().node(infraSpecNode.getUuid(), infraSpecNode).build());
+      String infraSectionNodeChildId = infraSpecNode.getUuid();
 
-        PlanNode infraDefPlanNode =
-            InfrastructurePmsPlanCreator.getInfraDefPlanNode(infraDefinitionField, infraSectionNodeChildId);
-        planCreationResponseMap.put(infraDefPlanNode.getUuid(),
-            PlanCreationResponse.builder().node(infraDefPlanNode.getUuid(), infraDefPlanNode).build());
+      PlanNode infraDefPlanNode =
+          InfrastructurePmsPlanCreator.getInfraDefPlanNode(infraDefinitionField, infraSectionNodeChildId);
+      planCreationResponseMap.put(infraDefPlanNode.getUuid(),
+          PlanCreationResponse.builder().node(infraDefPlanNode.getUuid(), infraDefPlanNode).build());
 
-        planCreationResponseMap.putAll(InfrastructurePmsPlanCreator.createPlanForInfraSectionV2(
-            infraField.getNode(), infraDefPlanNode.getUuid(), infrastructureDefinitionConfig, kryoSerializer));
+      planCreationResponseMap.putAll(InfrastructurePmsPlanCreator.createPlanForInfraSection(
+          infraField.getNode(), infraDefPlanNode.getUuid(), infrastructureDefinitionConfig, kryoSerializer));
     }
     return planCreationResponseMap;
   }

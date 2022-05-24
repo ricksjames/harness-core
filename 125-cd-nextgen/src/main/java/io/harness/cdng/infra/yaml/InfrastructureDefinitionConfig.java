@@ -16,6 +16,7 @@ import io.harness.beans.SwaggerConstants;
 import io.harness.data.validator.EntityIdentifier;
 import io.harness.data.validator.EntityName;
 import io.harness.ng.core.infrastructure.InfrastructureType;
+import io.harness.pms.sdk.core.steps.io.StepParameters;
 import io.harness.pms.yaml.ParameterField;
 import io.harness.validator.NGRegexValidatorConstants;
 
@@ -44,7 +45,7 @@ import org.springframework.data.annotation.TypeAlias;
 @JsonIgnoreProperties(ignoreUnknown = true)
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @TypeAlias("infrastructureDefinitionConfig")
-public class InfrastructureDefinitionConfig {
+public class InfrastructureDefinitionConfig implements StepParameters {
   @JsonProperty("__uuid")
   @Getter(onMethod_ = { @ApiModelProperty(hidden = true) })
   @ApiModelProperty(hidden = true)
