@@ -21,7 +21,7 @@ import io.harness.exception.HintException;
 import io.harness.exception.WingsException;
 import io.harness.gitsync.common.beans.ScmApis;
 import io.harness.gitsync.common.scmerrorhandling.handlers.ScmApiErrorHandler;
-import io.harness.gitsync.common.scmerrorhandling.handlers.bitbucket.BitbucketListRepoScmApiErrorHandler;
+import io.harness.gitsync.common.scmerrorhandling.handlers.bitbucketcloud.BitbucketListRepoScmApiErrorHandler;
 import io.harness.gitsync.common.scmerrorhandling.handlers.github.GithubListRepoScmApiErrorHandler;
 import io.harness.rule.Owner;
 

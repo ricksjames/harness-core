@@ -19,6 +19,7 @@ import io.harness.exception.ScmUnauthorizedException;
 import io.harness.exception.ScmUnexpectedException;
 import io.harness.exception.WingsException;
 import io.harness.gitsync.GitSyncTestBase;
+import io.harness.gitsync.common.scmerrorhandling.handlers.bitbucketcloud.BitbucketCreateBranchScmApiErrorHandler;
 import io.harness.rule.Owner;
 
 import com.google.inject.Inject;
@@ -28,7 +29,8 @@ import org.junit.experimental.categories.Category;
 import org.mockito.MockitoAnnotations;
 
 public class BitbucketCreateBranchScmApiErrorHandlerTest extends GitSyncTestBase {
-  @Inject BitbucketCreateBranchScmApiErrorHandler bitbucketCreateBranchScmApiErrorHandler;
+  @Inject
+  BitbucketCreateBranchScmApiErrorHandler bitbucketCreateBranchScmApiErrorHandler;
 
   private static final String errorMessage = "errorMessage";
 
