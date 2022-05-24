@@ -96,6 +96,7 @@ public class DeploymentStageConfig implements StageInfoConfig, Visitable {
     children.add(VisitableChild.builder().value(serviceConfig).fieldName("serviceConfig").build());
     children.add(VisitableChild.builder().value(service).fieldName("service").build());
     children.add(VisitableChild.builder().value(infrastructure).fieldName("infrastructure").build());
+    children.add(VisitableChild.builder().value(environment).fieldName("environment").build());
     return VisitableChildren.builder().visitableChildList(children).build();
   }
 }

@@ -47,8 +47,6 @@ public class NGServiceEntityMapper {
         .ngServiceV2InfoConfig(NGServiceV2InfoConfig.builder()
                                    .name(serviceEntity.getName())
                                    .identifier(serviceEntity.getIdentifier())
-                                   .orgIdentifier(serviceEntity.getOrgIdentifier())
-                                   .projectIdentifier(serviceEntity.getProjectIdentifier())
                                    .description(serviceEntity.getDescription())
                                    .tags(convertToMap(serviceEntity.getTags()))
                                    .serviceDefinition(sDef)
