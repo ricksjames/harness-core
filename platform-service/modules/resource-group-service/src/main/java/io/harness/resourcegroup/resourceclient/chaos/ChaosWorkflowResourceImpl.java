@@ -36,53 +36,53 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-@AllArgsConstructor(access = AccessLevel.PUBLIC, onConstructor = @__({ @Inject}))
+@AllArgsConstructor(access = AccessLevel.PUBLIC, onConstructor = @__({ @Inject }))
 @Slf4j
 public class ChaosWorkflowResourceImpl implements Resource {
-    @Override
-    public String getType(){
-        return "CHAOS_WORKFLOW";
-    }
+  @Override
+  public String getType() {
+    return "CHAOS_WORKFLOW";
+  }
 
-    @Override
-    public Set<ScopeLevel> getValidScopeLevels() {
-        return EnumSet.of(ScopeLevel.ACCOUNT, ScopeLevel.ORGANIZATION, ScopeLevel.PROJECT);
-    }
+  @Override
+  public Set<ScopeLevel> getValidScopeLevels() {
+    return EnumSet.of(ScopeLevel.ACCOUNT, ScopeLevel.ORGANIZATION, ScopeLevel.PROJECT);
+  }
 
-    @Override
-    public Optional<String> getEventFrameworkEntityType() {
-        return Optional.of(EventsFrameworkMetadataConstants.CHAOS_WORKFLOW);
-    }
+  @Override
+  public Optional<String> getEventFrameworkEntityType() {
+    return Optional.of(EventsFrameworkMetadataConstants.CHAOS_WORKFLOW);
+  }
 
-    @Override
-    public ResourceInfo getResourceInfoFromEvent(Message message) {
-        EntityChangeDTO entityChangeDTO = null;
-        try {
-            entityChangeDTO = EntityChangeDTO.parseFrom(message.getMessage().getData());
-        } catch (InvalidProtocolBufferException e) {
-            log.error("Exception in unpacking EntityChangeDTO for key {}", message.getId(), e);
-        }
-        if (Objects.isNull(entityChangeDTO)) {
-            return null;
-        }
-        return ResourceInfo.builder()
-                .accountIdentifier(stripToNull(entityChangeDTO.getAccountIdentifier().getValue()))
-                .orgIdentifier(stripToNull(entityChangeDTO.getOrgIdentifier().getValue()))
-                .projectIdentifier(stripToNull(entityChangeDTO.getProjectIdentifier().getValue()))
-                .resourceType(getType())
-                .resourceIdentifier(entityChangeDTO.getIdentifier().getValue())
-                .build();
+  @Override
+  public ResourceInfo getResourceInfoFromEvent(Message message) {
+    EntityChangeDTO entityChangeDTO = null;
+    try {
+      entityChangeDTO = EntityChangeDTO.parseFrom(message.getMessage().getData());
+    } catch (InvalidProtocolBufferException e) {
+      log.error("Exception in unpacking EntityChangeDTO for key {}", message.getId(), e);
     }
+    if (Objects.isNull(entityChangeDTO)) {
+      return null;
+    }
+    return ResourceInfo.builder()
+        .accountIdentifier(stripToNull(entityChangeDTO.getAccountIdentifier().getValue()))
+        .orgIdentifier(stripToNull(entityChangeDTO.getOrgIdentifier().getValue()))
+        .projectIdentifier(stripToNull(entityChangeDTO.getProjectIdentifier().getValue()))
+        .resourceType(getType())
+        .resourceIdentifier(entityChangeDTO.getIdentifier().getValue())
+        .build();
+  }
 
-    @Override
-    public List<Boolean> validate(List<String> resourceIds, Scope scope) {
-        return null;
-    }
+  @Override
+  public List<Boolean> validate(List<String> resourceIds, Scope scope) {
+    return null;
+  }
 
-    @Override
-    public Map<ScopeLevel, EnumSet<ValidatorType>> getSelectorKind() {
-        return ImmutableMap.of(ScopeLevel.ACCOUNT, EnumSet.of(BY_RESOURCE_TYPE_INCLUDING_CHILD_SCOPES),
-                ScopeLevel.ORGANIZATION, EnumSet.of(BY_RESOURCE_TYPE_INCLUDING_CHILD_SCOPES), ScopeLevel.PROJECT,
-                EnumSet.of(BY_RESOURCE_TYPE));
-    }
+  @Override
+  public Map<ScopeLevel, EnumSet<ValidatorType>> getSelectorKind() {
+    return ImmutableMap.of(ScopeLevel.ACCOUNT, EnumSet.of(BY_RESOURCE_TYPE_INCLUDING_CHILD_SCOPES),
+        ScopeLevel.ORGANIZATION, EnumSet.of(BY_RESOURCE_TYPE_INCLUDING_CHILD_SCOPES), ScopeLevel.PROJECT,
+        EnumSet.of(BY_RESOURCE_TYPE));
+  }
 }
