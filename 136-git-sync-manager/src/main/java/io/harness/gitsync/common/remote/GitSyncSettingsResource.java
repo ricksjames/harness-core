@@ -159,4 +159,19 @@ public class GitSyncSettingsResource {
     return ResponseDTO.newResponse(
         gitSyncSettingsService.enableGitSimplification(accountIdentifier, orgIdentifier, projectIdentifier));
   }
+
+  @GET
+  @Hidden
+  @Path("/git-simplification")
+  @ApiOperation(value = "Get Git Simplification status for a project", nickname = "postGitSyncSetting")
+  public ResponseDTO<Boolean> getGitSimplificationStatus(
+      @Parameter(required = true) @NotEmpty @QueryParam(ACCOUNT_KEY) @AccountIdentifier String accountIdentifier,
+      @Parameter(required = true) @NotEmpty @QueryParam(ORG_KEY) @OrgIdentifier String orgIdentifier,
+      @Parameter(required = true) @NotEmpty @QueryParam(PROJECT_KEY) @ProjectIdentifier String projectIdentifier) {
+    accessControlClient.checkForAccessOrThrow(ResourceScope.of(accountIdentifier, orgIdentifier, projectIdentifier),
+        Resource.of(ResourceTypes.PROJECT, projectIdentifier), EDIT_PROJECT_PERMISSION);
+
+    return ResponseDTO.newResponse(
+        gitSyncSettingsService.enableGitSimplification(accountIdentifier, orgIdentifier, projectIdentifier));
+  }
 }

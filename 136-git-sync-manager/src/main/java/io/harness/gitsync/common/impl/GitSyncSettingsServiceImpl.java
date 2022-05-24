@@ -96,6 +96,15 @@ public class GitSyncSettingsServiceImpl implements GitSyncSettingsService {
     return true;
   }
 
+  @Override
+  public boolean getGitSimplificationStatus(String accountIdentifier, String orgIdentifier, String projectIdentifier) {
+    try {
+      return isGitSimplificationEnabled(accountIdentifier, orgIdentifier, projectIdentifier);
+    } catch (InvalidRequestException ex) {
+      return false;
+    }
+  }
+
   private boolean isGitSimplificationEnabled(String accountIdentifier, String orgIdentifier, String projectIdentifier) {
     Optional<GitSyncSettingsDTO> optionalGitSyncSettingsDTO = get(accountIdentifier, orgIdentifier, projectIdentifier);
     if (optionalGitSyncSettingsDTO.isPresent()) {
