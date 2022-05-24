@@ -44,6 +44,10 @@ public class BitbucketServerCreateBranchScmApiErrorHandler implements ScmApiErro
         throw NestedExceptionUtils.hintWithExplanationException(CREATE_BRANCH_NOT_FOUND_ERROR_HINT,
             CREATE_BRANCH_FAILED_MESSAGE + CREATE_BRANCH_NOT_FOUND_ERROR_EXPLANATION,
             new ScmResourceNotFoundException(errorMessage));
+      case 409:
+        throw NestedExceptionUtils.hintWithExplanationException(ScmErrorHints.BRANCH_ALREADY_EXISTS,
+                CREATE_BRANCH_FAILED_MESSAGE + ScmErrorExplanations.BRANCH_ALREADY_EXISTS,
+                new ScmBadRequestException(errorMessage));
       default:
         log.error(String.format("Error while creating bitbucket(server) branch: [%s: %s] ", statusCode, errorMessage));
         throw new ScmUnexpectedException(errorMessage);

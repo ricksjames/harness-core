@@ -31,6 +31,10 @@ public class BitbucketServerCreateFileScmApiErrorHandler implements ScmApiErrorH
         throw NestedExceptionUtils.hintWithExplanationException(REPO_NOT_FOUND,
             CREATE_FILE_REQUEST_FAILURE + ScmErrorExplanations.REPO_NOT_FOUND,
             new ScmBadRequestException(errorMessage));
+      case 409:
+        throw NestedExceptionUtils.hintWithExplanationException(ScmErrorHints.FILE_ALREADY_EXISTS,
+                CREATE_FILE_REQUEST_FAILURE + ScmErrorExplanations.FILE_ALREADY_EXISTS,
+                new ScmBadRequestException(errorMessage));
       default:
         throw new ScmUnexpectedException(errorMessage);
     }
