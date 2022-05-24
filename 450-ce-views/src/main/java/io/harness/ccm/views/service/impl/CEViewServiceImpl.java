@@ -335,6 +335,7 @@ public class CEViewServiceImpl implements CEViewService {
       graphQLViewObjList.add(QLCEView.builder()
           .id(view.getUuid())
           .name(view.getName())
+          .folderId(view.getFolderId())
           .totalCost(view.getTotalCost())
           .createdBy(null != view.getCreatedBy() ? view.getCreatedBy().getEmail() : "")
           .createdAt(view.getCreatedAt())

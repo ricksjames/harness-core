@@ -110,6 +110,7 @@ public class PerspectiveFolderResource {
   }
 
   @POST
+  @Path("search")
   @Timed
   @ExceptionMetered
   @ApiOperation(value = "Get folders for account", nickname = "getFolders")
