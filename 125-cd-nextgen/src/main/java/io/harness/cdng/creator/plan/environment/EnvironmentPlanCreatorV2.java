@@ -73,10 +73,8 @@ public class EnvironmentPlanCreatorV2 extends ChildrenPlanCreator<EnvironmentPla
       InfrastructureDefinitionConfig infrastructureDefinitionConfig =
           config.getInfrastructureDefinitions().get(0).getInfrastructureDefinitionConfig();
       YamlField infraField = ctx.getCurrentField().getNode().getField("infrastructureDefinitions");
-      YamlField infraDefinitionField = null;
-      try {
-        infraDefinitionField = YamlUtils.readTree(
-            config.getInfrastructureDefinitions().get(0).getInfrastructureDefinitionConfig().toString());
+
+      YamlField infraDefinitionField = ctx.getCurrentField().getNode().getField("infrastructureDefinitions").getNode().asArray().get(0).getField("infrastructureDefinition");
 
         PlanNode infraSpecNode =
             InfrastructurePmsPlanCreator.getInfraStepPlanNode(infrastructureDefinitionConfig.getSpec());
@@ -91,10 +89,6 @@ public class EnvironmentPlanCreatorV2 extends ChildrenPlanCreator<EnvironmentPla
 
         planCreationResponseMap.putAll(InfrastructurePmsPlanCreator.createPlanForInfraSectionV2(
             infraField.getNode(), infraDefPlanNode.getUuid(), infrastructureDefinitionConfig, kryoSerializer));
-
-      } catch (IOException e) {
-        throw new InvalidRequestException(String.format("Cannot convert to yaml field %s", e));
-      }
     }
     return planCreationResponseMap;
   }
