@@ -67,6 +67,7 @@ public class CommonStepInfo {
                                .addFolderPaths(FolderPathConstants.APPROVAL)
                                .build())
           .setFeatureRestrictionName(FeatureRestrictionName.INTEGRATED_APPROVALS_WITH_CUSTOM_SCRIPT.name())
+          .setFeatureFlag(FeatureName.NG_CUSTOM_APPROVAL.name())
           .build();
   StepInfo jiraApprovalStepInfo =
       StepInfo.newBuilder()
