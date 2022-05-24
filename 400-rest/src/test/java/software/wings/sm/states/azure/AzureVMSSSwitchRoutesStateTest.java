@@ -101,7 +101,7 @@ public class AzureVMSSSwitchRoutesStateTest extends WingsBaseTest {
     assertThat(switchRoutesState.getTimeoutMillis(mockContext)).isEqualTo(timeOut);
     assertThat(switchRoutesState.getSkipMessage()).isEqualTo(SKIP_VMSS_DEPLOY);
     verifyDelegateTaskCreationResult(response, false);
-    verify(stateExecutionService).appendDelegateTaskDetails(anyString(), any());
+    verify(stateExecutionService).appendDelegateTaskDetails(any(), any());
   }
 
   @Test(expected = InvalidRequestException.class)
@@ -202,7 +202,7 @@ public class AzureVMSSSwitchRoutesStateTest extends WingsBaseTest {
     assertThat(switchRouteRollbackState.isDownsizeOldVMSS()).isTrue();
     assertThat(switchRouteRollbackState.getTimeoutMillis()).isNull();
     verifyDelegateTaskCreationResult(response, true);
-    verify(stateExecutionService).appendDelegateTaskDetails(anyString(), any());
+    verify(stateExecutionService).appendDelegateTaskDetails(any(), any());
   }
 
   @Test
