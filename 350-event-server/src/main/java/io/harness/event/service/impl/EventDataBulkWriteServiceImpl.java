@@ -112,7 +112,7 @@ public class EventDataBulkWriteServiceImpl implements EventDataBulkWriteService 
         log.error("Exception occurred with bulkWriteExecutor", ex);
         throw ex;
       } catch (final Exception ex) {
-        log.warn("Exception occurred with bulkWriteExecutor, retry:{}", i, ex);
+        log.error("Exception occurred with bulkWriteExecutor, retry:{}", i, ex);
       }
     }
     result = bulkWriteOperation.execute();
