@@ -285,9 +285,9 @@ public class AnomalyEntityDao {
             statement.addBatch(getInsertQuery(anomaly));
             index++;
             if (index % BATCH_SIZE == 0 || index == anomaliesList.size()) {
-              log.debug("Prepared Statement in AnomalyEntityDao: {} ", statement);
+              log.info("Prepared Statement in AnomalyEntityDao: {} ", statement);
               int[] count = statement.executeBatch();
-              log.debug("Successfully inserted {} anomalies into timescaledb", IntStream.of(count).sum());
+              log.info("Successfully inserted {} anomalies into timescaledb", IntStream.of(count).sum());
             }
           }
           successfulInsert = true;
