@@ -90,8 +90,9 @@ public class EventPublisherServerImpl extends EventPublisherGrpc.EventPublisherI
       if (isNotEmpty(withoutCategory)) {
         try {
           long startTime = System.currentTimeMillis();
-          hPersistence.saveIgnoringDuplicateKeys(withoutCategory);
+          hPersistence.saveBatch(withoutCategory);
           long endTime = System.currentTimeMillis();
+          log.info("saveIgnoringDuplicateKeys, withoutCategory size: {}", withoutCategory.size());
           log.info("saveIgnoringDuplicateKeys, startTime: {}", startTime);
           log.info("saveIgnoringDuplicateKeys, endTime: {}", endTime);
           log.info("saveIgnoringDuplicateKeys, totalTime: {}", endTime - startTime);
