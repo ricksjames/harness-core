@@ -47,8 +47,8 @@ import java.util.Set;
 
 @OwnedBy(HarnessTeam.CDC)
 public class ServicePlanCreatorV2 extends ChildrenPlanCreator<NGServiceV2InfoConfig> {
-  @Inject KryoSerializer kryoSerializer;
-  @Inject EnforcementValidator enforcementValidator;
+  @Inject private KryoSerializer kryoSerializer;
+  @Inject private EnforcementValidator enforcementValidator;
 
   @Override
   public LinkedHashMap<String, PlanCreationResponse> createPlanForChildrenNodes(
