@@ -7,11 +7,11 @@
 
 package io.harness.gitsync.common.scmerrorhandling.handlers.bitbucketserver;
 
+import static io.harness.annotations.dev.HarnessTeam.PL;
+
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.exception.*;
 import io.harness.gitsync.common.scmerrorhandling.handlers.ScmApiErrorHandler;
-
-import static io.harness.annotations.dev.HarnessTeam.PL;
 
 @OwnedBy(PL)
 public class BitbucketServerCreatePullRequestScmApiErrorHandler implements ScmApiErrorHandler {
@@ -33,6 +33,8 @@ public class BitbucketServerCreatePullRequestScmApiErrorHandler implements ScmAp
             CREATE_PULL_REQUEST_FAILURE + ScmErrorExplanations.REPO_NOT_FOUND,
             new ScmBadRequestException(errorMessage));
       default:
+        log.error(String.format(
+            "Error while creating pull requests in bitbucket(server): [%s: %s] ", statusCode, errorMessage));
         throw new ScmUnexpectedException(errorMessage);
     }
   }

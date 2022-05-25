@@ -7,14 +7,14 @@
 
 package io.harness.gitsync.common.scmerrorhandling.handlers.bitbucketserver;
 
-import io.harness.annotations.dev.OwnedBy;
-import io.harness.exception.*;
-import io.harness.gitsync.common.scmerrorhandling.handlers.ScmApiErrorHandler;
-
 import static io.harness.annotations.dev.HarnessTeam.PL;
 import static io.harness.gitsync.common.scmerrorhandling.handlers.bitbucketcloud.ScmErrorExplanations.INVALID_CONNECTOR_CREDS;
 import static io.harness.gitsync.common.scmerrorhandling.handlers.bitbucketcloud.ScmErrorHints.INVALID_CREDENTIALS;
 import static io.harness.gitsync.common.scmerrorhandling.handlers.bitbucketcloud.ScmErrorHints.REPO_NOT_FOUND;
+
+import io.harness.annotations.dev.OwnedBy;
+import io.harness.exception.*;
+import io.harness.gitsync.common.scmerrorhandling.handlers.ScmApiErrorHandler;
 
 @OwnedBy(PL)
 public class BitbucketServerCreateFileScmApiErrorHandler implements ScmApiErrorHandler {
@@ -32,6 +32,7 @@ public class BitbucketServerCreateFileScmApiErrorHandler implements ScmApiErrorH
             CREATE_FILE_REQUEST_FAILURE + ScmErrorExplanations.REPO_NOT_FOUND,
             new ScmBadRequestException(errorMessage));
       default:
+        log.error(String.format("Error while creating file in bitbucket(server): [%s: %s] ", statusCode, errorMessage));
         throw new ScmUnexpectedException(errorMessage);
     }
   }

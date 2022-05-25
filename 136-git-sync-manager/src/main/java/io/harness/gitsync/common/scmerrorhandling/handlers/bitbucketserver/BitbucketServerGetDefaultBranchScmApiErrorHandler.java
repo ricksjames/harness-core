@@ -30,7 +30,7 @@ public class BitbucketServerGetDefaultBranchScmApiErrorHandler implements ScmApi
       case 404:
         throw NestedExceptionUtils.hintWithExplanationException(ScmErrorHints.REPO_NOT_FOUND,
             GET_DEFAULT_BRANCH_FAILED_MESSAGE + ScmErrorExplanations.REPO_NOT_FOUND,
-            new ScmResourceNotFoundException(errorMessage));
+            new ScmBadRequestException(errorMessage));
       default:
         log.error(String.format("Error while fetching default bitbucket branch: [%s: %s]", statusCode, errorMessage));
         throw new ScmUnexpectedException(errorMessage);
