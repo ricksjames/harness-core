@@ -98,6 +98,5 @@ public class NGCommonsKryoRegistrar implements KryoRegistrar {
 
     kryo.register(CDLicenseType.class, 930010);
     kryo.register(PageRequestDTO.class, 5216);
-    kryo.register(StoreType.class, 930011);
   }
 }
