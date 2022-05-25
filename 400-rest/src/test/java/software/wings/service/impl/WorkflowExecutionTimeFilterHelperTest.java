@@ -8,6 +8,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.doReturn;
 
+import io.harness.CategoryTest;
 import io.harness.beans.PageRequest;
 import io.harness.beans.SearchFilter;
 import io.harness.category.element.UnitTests;
@@ -21,7 +22,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-public class WorkflowExecutionTimeFilterHelperTest {
+public class WorkflowExecutionTimeFilterHelperTest extends CategoryTest {
   private final Long THREE_MONTHS_MILLIS = 7889400000L;
   private final Long FOUR_MONTHS_MILLIS = 10519200000L;
   private final Long TWO_MONTHS_MILLIS = 5259600000L;
