@@ -18,18 +18,19 @@ import static io.harness.annotations.dev.HarnessTeam.PL;
 @OwnedBy(PL)
 public class BitbucketServerListBranchesScmApiErrorHandler implements ScmApiErrorHandler {
   public static final String LIST_BRANCH_FAILED_MESSAGE = "Listing branches from Bitbucket failed. ";
+
   @Override
   public void handleError(int statusCode, String errorMessage) throws WingsException {
     switch (statusCode) {
       case 401:
       case 403:
         throw NestedExceptionUtils.hintWithExplanationException(ScmErrorHints.INVALID_CREDENTIALS,
-            LIST_BRANCH_FAILED_MESSAGE + ScmErrorExplanations.INVALID_CONNECTOR_CREDS,
-            new ScmUnauthorizedException(errorMessage));
+                LIST_BRANCH_FAILED_MESSAGE + ScmErrorExplanations.INVALID_CONNECTOR_CREDS,
+                new ScmUnauthorizedException(errorMessage));
       case 404:
         throw NestedExceptionUtils.hintWithExplanationException(ScmErrorHints.REPO_NOT_FOUND,
-            LIST_BRANCH_FAILED_MESSAGE + ScmErrorExplanations.REPO_NOT_FOUND,
-            new ScmBadRequestException(errorMessage));
+                LIST_BRANCH_FAILED_MESSAGE + ScmErrorExplanations.REPO_NOT_FOUND,
+                new ScmBadRequestException(errorMessage));
       default:
         log.error(String.format("Error while listing bitbucket branches: [%s: %s]", statusCode, errorMessage));
         throw new ScmUnexpectedException(errorMessage);

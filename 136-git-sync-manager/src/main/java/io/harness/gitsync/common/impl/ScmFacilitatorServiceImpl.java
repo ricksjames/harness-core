@@ -82,7 +82,7 @@ public class ScmFacilitatorServiceImpl implements ScmFacilitatorService {
         scmConnector);
     if (isFailureResponse(response.getStatus())) {
       ScmApiErrorHandlingHelper.processAndThrowError(ScmApis.LIST_REPOSITORIES, scmConnector.getConnectorType(),
-          scmConnector.getUrl(), response.getStatus(), response.getError(), );
+          scmConnector.getUrl(), response.getStatus(), response.getError());
     }
 
     return prepareListRepoResponse(scmConnector, response);
@@ -105,7 +105,7 @@ public class ScmFacilitatorServiceImpl implements ScmFacilitatorService {
 
     if (isFailureResponse(listBranchesWithDefaultResponse.getStatus())) {
       ScmApiErrorHandlingHelper.processAndThrowError(ScmApis.LIST_BRANCHES, scmConnector.getConnectorType(),
-          scmConnector.getUrl() listBranchesWithDefaultResponse.getStatus(),
+          scmConnector.getUrl(), listBranchesWithDefaultResponse.getStatus(),
           listBranchesWithDefaultResponse.getError());
     }
 

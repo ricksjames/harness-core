@@ -7,12 +7,13 @@
 
 package io.harness.gitsync.common.scmerrorhandling.handlers.bitbucketserver;
 
+import static io.harness.annotations.dev.HarnessTeam.PL;
+
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.exception.*;
 import io.harness.gitsync.common.scmerrorhandling.handlers.ScmApiErrorHandler;
-import lombok.extern.slf4j.Slf4j;
 
-import static io.harness.annotations.dev.HarnessTeam.PL;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @OwnedBy(PL)
@@ -44,6 +45,10 @@ public class BitbucketServerCreateBranchScmApiErrorHandler implements ScmApiErro
       case 404:
         throw NestedExceptionUtils.hintWithExplanationException(CREATE_BRANCH_NOT_FOUND_ERROR_HINT,
             CREATE_BRANCH_FAILED_MESSAGE + CREATE_BRANCH_NOT_FOUND_ERROR_EXPLANATION,
+            new ScmBadRequestException(errorMessage));
+      case 409:
+        throw NestedExceptionUtils.hintWithExplanationException(ScmErrorHints.BRANCH_ALREADY_EXISTS,
+            CREATE_BRANCH_FAILED_MESSAGE + ScmErrorExplanations.BRANCH_ALREADY_EXISTS,
             new ScmBadRequestException(errorMessage));
       default:
         log.error(String.format("Error while creating bitbucket(server) branch: [%s: %s] ", statusCode, errorMessage));

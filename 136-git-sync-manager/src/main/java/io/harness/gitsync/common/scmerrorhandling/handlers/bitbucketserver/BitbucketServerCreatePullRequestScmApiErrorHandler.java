@@ -26,15 +26,17 @@ public class BitbucketServerCreatePullRequestScmApiErrorHandler implements ScmAp
       case 401:
       case 403:
         throw NestedExceptionUtils.hintWithExplanationException(ScmErrorHints.INVALID_CREDENTIALS,
-            CREATE_PULL_REQUEST_FAILURE + ScmErrorExplanations.INVALID_CONNECTOR_CREDS,
-            new ScmUnauthorizedException(errorMessage));
+                CREATE_PULL_REQUEST_FAILURE + ScmErrorExplanations.INVALID_CONNECTOR_CREDS,
+                new ScmUnauthorizedException(errorMessage));
       case 404:
-        throw NestedExceptionUtils.hintWithExplanationException(ScmErrorHints.REPO_NOT_FOUND,
-            CREATE_PULL_REQUEST_FAILURE + ScmErrorExplanations.REPO_NOT_FOUND,
-            new ScmBadRequestException(errorMessage));
+        throw NestedExceptionUtils.hintWithExplanationException(ScmErrorHints.REPO_OR_BRANCH_NOT_FOUND,
+                CREATE_PULL_REQUEST_FAILURE + ScmErrorExplanations.REPO_OR_BRANCH_NOT_FOUND,
+                new ScmBadRequestException(errorMessage));
+      case 409:
+        throw NestedExceptionUtils.hintWithExplanationException(ScmErrorHints.PR_ALREADY_EXISTS,
+                CREATE_PULL_REQUEST_FAILURE + ScmErrorExplanations.PR_ALREADY_EXISTS,
+                new ScmBadRequestException(errorMessage));
       default:
-        log.error(String.format(
-            "Error while creating pull requests in bitbucket(server): [%s: %s] ", statusCode, errorMessage));
         throw new ScmUnexpectedException(errorMessage);
     }
   }
