@@ -36,6 +36,7 @@ public class GitAwareEntityHelper {
   public GitAware fetchEntityFromRemote(
       GitAware entity, Scope scope, GitContextRequestParams gitContextRequestParams, Map<String, String> contextMap) {
     String repoName = gitContextRequestParams.getRepoName();
+    // if branch is empty, then git sdk will figure out the default branch for the repo by itself
     String branch =
         isNullOrDefault(gitContextRequestParams.getBranchName()) ? "" : gitContextRequestParams.getBranchName();
     String filePath = gitContextRequestParams.getFilePath();
@@ -48,7 +49,6 @@ public class GitAwareEntityHelper {
                                              .build(),
             repoName, branch, filePath, connectorRef, contextMap);
     entity.setData(scmGetFileResponse.getFileContent());
-    // Check if this looks good to all
     GitAwareContextHelper.updateScmGitMetaData(scmGetFileResponse.getGitMetaData());
     return entity;
   }
@@ -59,6 +59,7 @@ public class GitAwareEntityHelper {
     if (isNullOrDefault(repoName)) {
       throw new InvalidRequestException("No Repo Name provided.");
     }
+    // if branch is empty, then git sdk will figure out the default branch for the repo by itself
     String branch =
         isNullOrDefault(gitContextRequestParams.getBranchName()) ? "" : gitContextRequestParams.getBranchName();
     String filePath = gitContextRequestParams.getFilePath();
@@ -76,7 +77,6 @@ public class GitAwareEntityHelper {
                                              .projectIdentifier(scope.getProjectIdentifier())
                                              .build(),
             repoName, branch, filePath, connectorRef, contextMap);
-    // Check if this looks good to all
     GitAwareContextHelper.updateScmGitMetaData(scmGetFileResponse.getGitMetaData());
     return scmGetFileResponse.getFileContent();
   }
@@ -99,7 +99,9 @@ public class GitAwareEntityHelper {
     if (gitEntityInfo.isNewBranch() && isNullOrDefault(baseBranch)) {
       throw new InvalidRequestException("No base branch provided for committing to new branch");
     }
+    // if branch is empty, then git sdk will figure out the default branch for the repo by itself
     String branch = isNullOrDefault(gitEntityInfo.getBranch()) ? "" : gitEntityInfo.getBranch();
+    // if commitMsg is empty, then git sdk will use some default Commit Message
     String commitMsg = isNullOrDefault(gitEntityInfo.getCommitMsg()) ? "" : gitEntityInfo.getCommitMsg();
     ScmCreateFileGitRequest scmCreateFileGitRequest = ScmCreateFileGitRequest.builder()
                                                           .repoName(repoName)
@@ -136,7 +138,9 @@ public class GitAwareEntityHelper {
     if (gitEntityInfo.isNewBranch() && isNullOrDefault(baseBranch)) {
       throw new InvalidRequestException("No base branch provided for committing to new branch");
     }
+    // if branch is empty, then git sdk will figure out the default branch for the repo by itself
     String branch = isNullOrDefault(gitEntityInfo.getBranch()) ? "" : gitEntityInfo.getBranch();
+    // if commitMsg is empty, then git sdk will use some default Commit Message
     String commitMsg = isNullOrDefault(gitEntityInfo.getCommitMsg()) ? "" : gitEntityInfo.getCommitMsg();
     ScmUpdateFileGitRequest scmUpdateFileGitRequest = ScmUpdateFileGitRequest.builder()
                                                           .repoName(repoName)
