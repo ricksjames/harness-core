@@ -10,7 +10,6 @@ package io.harness.serializer.kryo;
 import static io.harness.annotations.dev.HarnessTeam.CDC;
 
 import io.harness.annotations.dev.OwnedBy;
-import io.harness.beans.DelegateTask;
 import io.harness.beans.ExecutionStatusResponseData;
 import io.harness.beans.RepairActionCode;
 import io.harness.beans.ShellScriptProvisionOutputVariables;
@@ -24,9 +23,6 @@ import com.esotericsoftware.kryo.Kryo;
 public class CgOrchestrationKryoRegister implements KryoRegistrar {
   @Override
   public void register(Kryo kryo) {
-    kryo.register(DelegateTask.Status.class, 5004);
-    kryo.register(DelegateTask.class, 5003);
-
     kryo.register(ExecutionStatusResponseData.class, 3102);
     kryo.register(RepairActionCode.class, 2528);
     kryo.register(ShellScriptProvisionOutputVariables.class, 40021);

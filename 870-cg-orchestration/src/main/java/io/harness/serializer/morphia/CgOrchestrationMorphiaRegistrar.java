@@ -10,7 +10,6 @@ package io.harness.serializer.morphia;
 import static io.harness.annotations.dev.HarnessTeam.CDC;
 
 import io.harness.annotations.dev.OwnedBy;
-import io.harness.beans.DelegateTask;
 import io.harness.beans.ResourceConstraint;
 import io.harness.beans.ShellScriptProvisionOutputVariables;
 import io.harness.beans.SweepingOutputInstance;
@@ -27,7 +26,6 @@ import java.util.Set;
 public class CgOrchestrationMorphiaRegistrar implements MorphiaRegistrar {
   @Override
   public void registerClasses(Set<Class> set) {
-    set.add(DelegateTask.class);
     set.add(StateInspection.class);
     set.add(SweepingOutputInstance.class);
     set.add(ResourceConstraint.class);

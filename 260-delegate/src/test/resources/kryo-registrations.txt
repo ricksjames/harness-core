@@ -207,7 +207,6 @@
 2014:com.google.api.services.monitoring.v3.model.Exponential
 2015:com.mongodb.BasicDBList
 2016:com.mongodb.BasicDBObject
-2528:io.harness.beans.RepairActionCode
 3001:io.harness.exception.VerificationOperationException
 3002:io.harness.exception.ServiceNowException
 3003:io.harness.encryption.SecretRefData
@@ -217,7 +216,6 @@
 3007:io.harness.tasks.FailureResponseData
 3008:io.harness.beans.KeyValuePair
 3101:io.harness.beans.SweepingOutput
-3102:io.harness.beans.ExecutionStatusResponseData
 4000:io.harness.beans.ExecutionInterruptType
 4002:software.wings.beans.ExecutionStrategy
 4004:io.harness.context.ContextElementType
@@ -845,8 +843,6 @@
 7268:software.wings.service.impl.aws.model.AwsS3ListBucketNamesRequest
 7269:software.wings.service.impl.aws.model.AwsS3ListBucketNamesResponse
 7272:software.wings.service.impl.aws.model.response.AwsCloudWatchMetricDataResponse
-7273:io.harness.delay.DelayEventNotifyData
-7277:software.wings.sm.BarrierStatusData
 7283:software.wings.service.impl.elk.ElkDataCollectionInfoV2
 7284:software.wings.beans.settings.azureartifacts.AzureArtifactsPATConfig
 7285:software.wings.helpers.ext.azure.devops.AzureDevopsProject
@@ -1595,7 +1591,6 @@
 40016:software.wings.beans.AzureResourceGroup
 40017:software.wings.beans.AzureImageGallery
 40018:software.wings.beans.AzureImageDefinition
-40021:io.harness.beans.ShellScriptProvisionOutputVariables
 40022:software.wings.beans.GitConfig.ProviderType
 40025:com.google.gson.internal.LinkedTreeMap
 40028:io.harness.perpetualtask.PerpetualTaskSchedule
@@ -1616,8 +1611,6 @@
 50008:software.wings.beans.ClusterSelectionCriteriaEntry
 50011:software.wings.helpers.ext.k8s.response.K8sRollingDeployRollbackResponse
 50012:software.wings.beans.settings.helm.OciHelmRepoConfig
-54320:io.harness.ng.core.entities.Organization
-54321:io.harness.ng.core.entities.Project
 54322:io.harness.ng.core.entities.SampleEncryptableSettingImplementation
 54323:io.harness.ng.core.NGAccessWithEncryptionConsumer
 54324:io.harness.ng.core.BaseNGAccess

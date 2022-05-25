@@ -7,6 +7,7 @@
 
 package io.harness.serializer.kryo;
 
+import io.harness.beans.DelegateTask;
 import io.harness.beans.EncryptedData;
 import io.harness.beans.EncryptedDataParent;
 import io.harness.beans.SecretChangeLog;
@@ -485,6 +486,8 @@ public class DelegateTasksKryoRegistrar implements KryoRegistrar {
   public void register(Kryo kryo) {
     kryo.register(ContainerRollbackRequestElement.class, 4010);
     kryo.register(ForkElement.class, 4007);
+    kryo.register(DelegateTask.class, 5003);
+    kryo.register(DelegateTask.Status.class, 5004);
     kryo.register(ArtifactStreamAttributes.class, 5007);
     kryo.register(BambooConfig.class, 5009);
     kryo.register(DockerConfig.class, 5010);

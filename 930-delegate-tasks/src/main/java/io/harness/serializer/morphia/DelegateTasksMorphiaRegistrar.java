@@ -7,6 +7,7 @@
 
 package io.harness.serializer.morphia;
 
+import io.harness.beans.DelegateTask;
 import io.harness.beans.EncryptedData;
 import io.harness.beans.MigrateSecretTask;
 import io.harness.beans.SecretChangeLog;
@@ -208,6 +209,7 @@ public class DelegateTasksMorphiaRegistrar implements MorphiaRegistrar {
     set.add(EmailData.class);
     set.add(CommandUnit.class);
     set.add(CustomSecretsManagerConfig.class);
+    set.add(DelegateTask.class);
   }
 
   @Override
