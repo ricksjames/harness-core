@@ -7,11 +7,11 @@
 
 package io.harness.gitsync.common.scmerrorhandling.handlers.bitbucketserver;
 
+import static io.harness.annotations.dev.HarnessTeam.PL;
+
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.exception.*;
 import io.harness.gitsync.common.scmerrorhandling.handlers.ScmApiErrorHandler;
-
-import static io.harness.annotations.dev.HarnessTeam.PL;
 
 @OwnedBy(PL)
 public class BitbucketServerCreatePullRequestScmApiErrorHandler implements ScmApiErrorHandler {
@@ -34,8 +34,8 @@ public class BitbucketServerCreatePullRequestScmApiErrorHandler implements ScmAp
             new ScmBadRequestException(errorMessage));
       case 409:
         throw NestedExceptionUtils.hintWithExplanationException(ScmErrorHints.PR_ALREADY_EXISTS,
-                CREATE_PULL_REQUEST_FAILURE + ScmErrorExplanations.PR_ALREADY_EXISTS,
-                new ScmBadRequestException(errorMessage));
+            CREATE_PULL_REQUEST_FAILURE + ScmErrorExplanations.PR_ALREADY_EXISTS,
+            new ScmBadRequestException(errorMessage));
       default:
         throw new ScmUnexpectedException(errorMessage);
     }

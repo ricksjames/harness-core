@@ -18,7 +18,20 @@ import io.harness.beans.Scope;
 import io.harness.delegate.beans.connector.scm.ScmConnector;
 import io.harness.gitsync.beans.GitRepositoryDTO;
 import io.harness.gitsync.common.beans.ScmApis;
-import io.harness.gitsync.common.dtos.*;
+import io.harness.gitsync.common.dtos.CreateGitFileRequestDTO;
+import io.harness.gitsync.common.dtos.GitBranchDetailsDTO;
+import io.harness.gitsync.common.dtos.GitBranchesResponseDTO;
+import io.harness.gitsync.common.dtos.GitRepositoryResponseDTO;
+import io.harness.gitsync.common.dtos.RepoProviders;
+import io.harness.gitsync.common.dtos.ScmCommitFileResponseDTO;
+import io.harness.gitsync.common.dtos.ScmCreateFileRequestDTO;
+import io.harness.gitsync.common.dtos.ScmCreatePRRequestDTO;
+import io.harness.gitsync.common.dtos.ScmCreatePRResponseDTO;
+import io.harness.gitsync.common.dtos.ScmGetFileByBranchRequestDTO;
+import io.harness.gitsync.common.dtos.ScmGetFileByCommitIdRequestDTO;
+import io.harness.gitsync.common.dtos.ScmGetFileResponseDTO;
+import io.harness.gitsync.common.dtos.ScmUpdateFileRequestDTO;
+import io.harness.gitsync.common.dtos.UpdateGitFileRequestDTO;
 import io.harness.gitsync.common.helper.GitSyncConnectorHelper;
 import io.harness.gitsync.common.helper.RepoProviderHelper;
 import io.harness.gitsync.common.scmerrorhandling.ScmApiErrorHandlingHelper;
@@ -68,10 +81,8 @@ public class ScmFacilitatorServiceImpl implements ScmFacilitatorService {
             PageRequestDTO.builder().pageIndex(pageRequest.getPageIndex()).pageSize(pageRequest.getPageSize()).build()),
         scmConnector);
     if (isFailureResponse(response.getStatus())) {
-      RepoProviders repoProvider =
-          RepoProviderHelper.getRepoProviderType(scmConnector.getConnectorType(), scmConnector.getUrl());
-      ScmApiErrorHandlingHelper.processAndThrowError(
-          ScmApis.LIST_REPOSITORIES, repoProvider, response.getStatus(), response.getError());
+      ScmApiErrorHandlingHelper.processAndThrowError(ScmApis.LIST_REPOSITORIES, scmConnector.getConnectorType(),
+          scmConnector.getUrl(), response.getStatus(), response.getError());
     }
 
     return prepareListRepoResponse(scmConnector, response);
@@ -93,10 +104,9 @@ public class ScmFacilitatorServiceImpl implements ScmFacilitatorService {
             scmConnector);
 
     if (isFailureResponse(listBranchesWithDefaultResponse.getStatus())) {
-      RepoProviders repoProvider =
-          RepoProviderHelper.getRepoProviderType(scmConnector.getConnectorType(), scmConnector.getUrl());
-      ScmApiErrorHandlingHelper.processAndThrowError(ScmApis.LIST_BRANCHES, repoProvider,
-          listBranchesWithDefaultResponse.getStatus(), listBranchesWithDefaultResponse.getError());
+      ScmApiErrorHandlingHelper.processAndThrowError(ScmApis.LIST_BRANCHES, scmConnector.getConnectorType(),
+          scmConnector.getUrl(), listBranchesWithDefaultResponse.getStatus(),
+          listBranchesWithDefaultResponse.getError());
     }
 
     List<GitBranchDetailsDTO> gitBranches =
@@ -129,10 +139,8 @@ public class ScmFacilitatorServiceImpl implements ScmFacilitatorService {
         scmConnector);
 
     if (isFailureResponse(fileContent.getStatus())) {
-      RepoProviders repoProvider =
-          RepoProviderHelper.getRepoProviderType(scmConnector.getConnectorType(), scmConnector.getUrl());
-      ScmApiErrorHandlingHelper.processAndThrowError(
-          ScmApis.GET_FILE, repoProvider, fileContent.getStatus(), fileContent.getError());
+      ScmApiErrorHandlingHelper.processAndThrowError(ScmApis.GET_FILE, scmConnector.getConnectorType(),
+          scmConnector.getUrl(), fileContent.getStatus(), fileContent.getError());
     }
 
     return ScmGetFileResponseDTO.builder()
@@ -169,10 +177,8 @@ public class ScmFacilitatorServiceImpl implements ScmFacilitatorService {
             scmConnector);
 
     if (isFailureResponse(createFileResponse.getStatus())) {
-      RepoProviders repoProvider =
-          RepoProviderHelper.getRepoProviderType(scmConnector.getConnectorType(), scmConnector.getUrl());
-      ScmApiErrorHandlingHelper.processAndThrowError(
-          ScmApis.CREATE_FILE, repoProvider, createFileResponse.getStatus(), createFileResponse.getError());
+      ScmApiErrorHandlingHelper.processAndThrowError(ScmApis.CREATE_FILE, scmConnector.getConnectorType(),
+          scmConnector.getUrl(), createFileResponse.getStatus(), createFileResponse.getError());
     }
 
     return ScmCommitFileResponseDTO.builder()
@@ -209,10 +215,8 @@ public class ScmFacilitatorServiceImpl implements ScmFacilitatorService {
             scmConnector);
 
     if (isFailureResponse(updateFileResponse.getStatus())) {
-      RepoProviders repoProvider =
-          RepoProviderHelper.getRepoProviderType(scmConnector.getConnectorType(), scmConnector.getUrl());
-      ScmApiErrorHandlingHelper.processAndThrowError(
-          ScmApis.UPDATE_FILE, repoProvider, updateFileResponse.getStatus(), updateFileResponse.getError());
+      ScmApiErrorHandlingHelper.processAndThrowError(ScmApis.UPDATE_FILE, scmConnector.getConnectorType(),
+          scmConnector.getUrl(), updateFileResponse.getStatus(), updateFileResponse.getError());
     }
 
     return ScmCommitFileResponseDTO.builder()
@@ -236,10 +240,8 @@ public class ScmFacilitatorServiceImpl implements ScmFacilitatorService {
             scmConnector);
 
     if (isFailureResponse(createPRResponse.getStatus())) {
-      RepoProviders repoProvider =
-          RepoProviderHelper.getRepoProviderType(scmConnector.getConnectorType(), scmConnector.getUrl());
-      ScmApiErrorHandlingHelper.processAndThrowError(
-          ScmApis.CREATE_PULL_REQUEST, repoProvider, createPRResponse.getStatus(), createPRResponse.getError());
+      ScmApiErrorHandlingHelper.processAndThrowError(ScmApis.CREATE_PULL_REQUEST, scmConnector.getConnectorType(),
+          scmConnector.getUrl(), createPRResponse.getStatus(), createPRResponse.getError());
     }
 
     return ScmCreatePRResponseDTO.builder().prNumber(createPRResponse.getNumber()).build();
@@ -261,10 +263,8 @@ public class ScmFacilitatorServiceImpl implements ScmFacilitatorService {
         scmConnector);
 
     if (isFailureResponse(fileContent.getStatus())) {
-      RepoProviders repoProvider =
-          RepoProviderHelper.getRepoProviderType(scmConnector.getConnectorType(), scmConnector.getUrl());
-      ScmApiErrorHandlingHelper.processAndThrowError(
-          ScmApis.GET_FILE, repoProvider, fileContent.getStatus(), fileContent.getError());
+      ScmApiErrorHandlingHelper.processAndThrowError(ScmApis.GET_FILE, scmConnector.getConnectorType(),
+          scmConnector.getUrl(), fileContent.getStatus(), fileContent.getError());
     }
 
     return ScmGetFileResponseDTO.builder()
@@ -286,10 +286,8 @@ public class ScmFacilitatorServiceImpl implements ScmFacilitatorService {
             scmConnector);
 
     if (isFailureResponse(getUserRepoResponse.getStatus())) {
-      RepoProviders repoProvider =
-          RepoProviderHelper.getRepoProviderType(scmConnector.getConnectorType(), scmConnector.getUrl());
-      ScmApiErrorHandlingHelper.processAndThrowError(
-          ScmApis.GET_DEFAULT_BRANCH, repoProvider, getUserRepoResponse.getStatus(), getUserRepoResponse.getError());
+      ScmApiErrorHandlingHelper.processAndThrowError(ScmApis.GET_DEFAULT_BRANCH, scmConnector.getConnectorType(),
+          scmConnector.getUrl(), getUserRepoResponse.getStatus(), getUserRepoResponse.getError());
     }
     return getUserRepoResponse.getRepo().getBranch();
   }
@@ -325,10 +323,8 @@ public class ScmFacilitatorServiceImpl implements ScmFacilitatorService {
             scmConnector);
 
     if (isFailureResponse(createBranchResponse.getStatus())) {
-      RepoProviders repoProvider =
-          RepoProviderHelper.getRepoProviderType(scmConnector.getConnectorType(), scmConnector.getUrl());
-      ScmApiErrorHandlingHelper.processAndThrowError(
-          ScmApis.CREATE_BRANCH, repoProvider, createBranchResponse.getStatus(), createBranchResponse.getError());
+      ScmApiErrorHandlingHelper.processAndThrowError(ScmApis.CREATE_BRANCH, scmConnector.getConnectorType(),
+          scmConnector.getUrl(), createBranchResponse.getStatus(), createBranchResponse.getError());
     }
   }
 }

@@ -25,17 +25,18 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @OwnedBy(PL)
 public class ScmApiErrorHandlingHelper {
-  public void processAndThrowError(ScmApis scmAPI, RepoProviders repoProvider, int statusCode, String errorMessage) {
-    ScmApiErrorHandler scmAPIErrorHandler = getScmAPIErrorHandler(scmAPI, repoProvider);
+  public void processAndThrowError(ScmApis scmAPI, ConnectorType connectorType, String repoUrl, int statusCode, String errorMessage) {
+    ScmApiErrorHandler scmAPIErrorHandler = getScmAPIErrorHandler(scmAPI, connectorType, repoUrl);
     scmAPIErrorHandler.handleError(statusCode, errorMessage);
   }
 
   @VisibleForTesting
-  protected ScmApiErrorHandler getScmAPIErrorHandler(ScmApis scmApi, RepoProviders repoProvider) {
+  protected ScmApiErrorHandler getScmAPIErrorHandler(ScmApis scmApi, ConnectorType connectorType, String repoUrl) {
+    RepoProviders repoProvider = RepoProviderHelper.getRepoProviderType(connectorType, repoUrl);
     ScmApiErrorHandler scmApiErrorHandler = ScmApiErrorHandlerFactory.getHandler(scmApi, repoProvider);
     if (scmApiErrorHandler == null) {
-      log.error(String.format("No scm API handler registered for API: %s, providerType: %s",
-          scmApi.toString(), repoProvider));
+      log.error(String.format(
+          "No scm API handler registered for API: %s, providerType: %s", scmApi.toString(), repoProvider));
       return new DefaultScmApiErrorHandler();
     }
     return scmApiErrorHandler;
