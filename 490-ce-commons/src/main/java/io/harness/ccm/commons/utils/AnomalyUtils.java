@@ -8,8 +8,6 @@
 package io.harness.ccm.commons.utils;
 
 import static io.harness.ccm.commons.entities.CCMField.ANOMALOUS_SPEND;
-import static io.harness.ccm.commons.entities.CCMSortOrder.ASCENDING;
-import static io.harness.ccm.commons.entities.CCMSortOrder.DESCENDING;
 
 import io.harness.ccm.commons.constants.AnomalyFieldConstants;
 import io.harness.ccm.commons.constants.ViewFieldConstants;
@@ -88,6 +86,16 @@ public class AnomalyUtils {
         builder.append(SEPARATOR);
         builder.append(anomaly.getAwsusagetype());
       }
+    } else if (anomaly.getAzureSubscriptionGuid() != null) {
+      builder.append(anomaly.getAzureSubscriptionGuid());
+      if (anomaly.getAzureResourceGroup() != null) {
+        builder.append(SEPARATOR);
+        builder.append(anomaly.getAzureResourceGroup());
+      }
+      if (anomaly.getAzureMeterCategory() != null) {
+        builder.append(SEPARATOR);
+        builder.append(anomaly.getAzureMeterCategory());
+      }
     }
     return builder.toString();
   }
@@ -127,6 +135,17 @@ public class AnomalyUtils {
         builder.append(ViewFieldConstants.AWS_USAGE_TYPE_ID);
       }
       return builder.toString();
+    } else if (anomaly.getAzureSubscriptionGuid() != null) {
+      builder.append(ViewFieldConstants.AZURE_SUBSCRIPTION_GUID);
+      if (anomaly.getAzureResourceGroup() != null) {
+        builder.append(SEPARATOR);
+        builder.append(ViewFieldConstants.AZURE_RESOURCE_GROUP);
+      }
+      if (anomaly.getAzureMeterCategory() != null) {
+        builder.append(SEPARATOR);
+        builder.append(ViewFieldConstants.AZURE_METER_CATEGORY);
+      }
+      return builder.toString();
     }
 
     return "";
@@ -157,6 +176,14 @@ public class AnomalyUtils {
         return ViewFieldConstants.AWS_SERVICE_FIELD_ID;
       }
       return ViewFieldConstants.AWS_ACCOUNT_FIELD_ID;
+    } else if (anomaly.getAzureSubscriptionGuid() != null) {
+      if (anomaly.getAzureMeterCategory() != null) {
+        return ViewFieldConstants.AZURE_METER_CATEGORY;
+      }
+      if (anomaly.getAzureResourceGroup() != null) {
+        return ViewFieldConstants.AZURE_RESOURCE_GROUP;
+      }
+      return ViewFieldConstants.AZURE_SUBSCRIPTION_GUID;
     }
     return null;
   }
@@ -168,6 +195,8 @@ public class AnomalyUtils {
       return AnomalyFieldConstants.AWS;
     } else if (anomaly.getGcpproject() != null) {
       return AnomalyFieldConstants.GCP;
+    } else if (anomaly.getAzureSubscriptionGuid() != null) {
+      return AnomalyFieldConstants.AZURE;
     }
     return "";
   }
@@ -213,6 +242,9 @@ public class AnomalyUtils {
         .awsServiceCode(anomaly.getAwsservice())
         .awsUsageType(anomaly.getAwsusagetype())
         .awsInstancetype(anomaly.getAwsinstancetype())
+        .azureSubscriptionGuid(anomaly.getAzureSubscriptionGuid())
+        .azureResourceGroup(anomaly.getAzureResourceGroup())
+        .azureMeterCategory(anomaly.getAzureMeterCategory())
         .build();
   }
 
