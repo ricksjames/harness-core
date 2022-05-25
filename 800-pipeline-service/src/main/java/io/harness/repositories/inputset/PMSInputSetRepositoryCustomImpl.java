@@ -114,18 +114,21 @@ public class PMSInputSetRepositoryCustomImpl implements PMSInputSetRepositoryCus
       functor.get();
       return inputSetEntity;
     }
-    Scope scope = Scope.builder()
-                      .accountIdentifier(entityToSave.getAccountIdentifier())
-                      .orgIdentifier(entityToSave.getOrgIdentifier())
-                      .projectIdentifier(entityToSave.getProjectIdentifier())
-                      .build();
-    String yamlToPush = entityToSave.getYaml();
-    entityToSave.setYaml("");
-    entityToSave.setStoreType(StoreType.REMOTE);
-    entityToSave.setConnectorRef(gitEntityInfo.getConnectorRef());
-    entityToSave.setRepo(gitEntityInfo.getRepoName());
-    entityToSave.setFilePath(gitEntityInfo.getFilePath());
-    gitAwareEntityHelper.createEntityOnGit(entityToSave, yamlToPush, scope);
+    if (gitSyncSdkService.isGitSimplificationEnabled(entityToSave.getAccountIdentifier(),
+            entityToSave.getOrgIdentifier(), entityToSave.getProjectIdentifier())) {
+      Scope scope = Scope.builder()
+                        .accountIdentifier(entityToSave.getAccountIdentifier())
+                        .orgIdentifier(entityToSave.getOrgIdentifier())
+                        .projectIdentifier(entityToSave.getProjectIdentifier())
+                        .build();
+      String yamlToPush = entityToSave.getYaml();
+      entityToSave.setYaml("");
+      entityToSave.setStoreType(StoreType.REMOTE);
+      entityToSave.setConnectorRef(gitEntityInfo.getConnectorRef());
+      entityToSave.setRepo(gitEntityInfo.getRepoName());
+      entityToSave.setFilePath(gitEntityInfo.getFilePath());
+      gitAwareEntityHelper.createEntityOnGit(entityToSave, yamlToPush, scope);
+    }
     InputSetEntity savedInputSetEntity = mongoTemplate.save(entityToSave);
     functor.get();
     return savedInputSetEntity;
@@ -260,13 +263,17 @@ public class PMSInputSetRepositoryCustomImpl implements PMSInputSetRepositoryCus
           entityToUpdate.getPipelineIdentifier(), updatedEntity, oldEntityFromDB));
       return updatedEntity;
     }
-    Scope scope = Scope.builder()
-                      .accountIdentifier(updatedEntity.getAccountIdentifier())
-                      .orgIdentifier(updatedEntity.getOrgIdentifier())
-                      .projectIdentifier(updatedEntity.getProjectIdentifier())
-                      .build();
-    gitAwareEntityHelper.updateEntityOnGit(updatedEntity, updatedEntity.getYaml(), scope);
-    // TODO: Outbox
+    if (gitSyncSdkService.isGitSimplificationEnabled(entityToUpdate.getAccountIdentifier(),
+            entityToUpdate.getOrgIdentifier(), entityToUpdate.getProjectIdentifier())) {
+      Scope scope = Scope.builder()
+                        .accountIdentifier(updatedEntity.getAccountIdentifier())
+                        .orgIdentifier(updatedEntity.getOrgIdentifier())
+                        .projectIdentifier(updatedEntity.getProjectIdentifier())
+                        .build();
+      gitAwareEntityHelper.updateEntityOnGit(updatedEntity, updatedEntity.getYaml(), scope);
+    }
+    outboxService.save(new InputSetUpdateEvent(entityToUpdate.getAccountIdentifier(), entityToUpdate.getOrgIdentifier(),
+        entityToUpdate.getProjectIdentifier(), entityToUpdate.getPipelineIdentifier(), updatedEntity, oldEntityFromDB));
     return updatedEntity;
   }
 
