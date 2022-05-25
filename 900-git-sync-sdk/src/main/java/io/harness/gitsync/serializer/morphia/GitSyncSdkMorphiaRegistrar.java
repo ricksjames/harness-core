@@ -26,7 +26,6 @@ public class GitSyncSdkMorphiaRegistrar implements MorphiaRegistrar {
     set.add(GitSyncableEntity.class);
     set.add(EntityGitBranchMetadata.class);
     set.add(GitProcessRequest.class);
-    set.add(GitAware.class);
   }
 
   @Override

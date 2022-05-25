@@ -9,6 +9,7 @@ package io.harness.gitsync.common.dtos;
 
 import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
+import io.harness.persistence.gitaware.GitAware;
 
 import lombok.AccessLevel;
 import lombok.Builder;
