@@ -26,7 +26,6 @@ import io.harness.gitsync.scm.beans.ScmCreateFileGitResponse;
 import io.harness.gitsync.scm.beans.ScmGetFileResponse;
 import io.harness.gitsync.scm.beans.ScmGitMetaData;
 import io.harness.gitsync.scm.beans.ScmUpdateFileGitResponse;
-import io.harness.gitsync.scm.beans.ScmUpdateFileResponse;
 import io.harness.manage.GlobalContextManager;
 import io.harness.persistence.gitaware.GitAware;
 import io.harness.rule.Owner;
