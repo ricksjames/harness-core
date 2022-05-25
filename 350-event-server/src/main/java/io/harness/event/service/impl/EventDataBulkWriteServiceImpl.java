@@ -14,7 +14,6 @@ import io.harness.event.service.intfc.EventBatchQueryFnFactory;
 import io.harness.event.service.intfc.EventDataBulkWriteService;
 import io.harness.persistence.HPersistence;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
@@ -23,7 +22,6 @@ import com.mongodb.BulkWriteOperation;
 import com.mongodb.BulkWriteResult;
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 
 @Singleton
@@ -38,33 +36,26 @@ public class EventDataBulkWriteServiceImpl implements EventDataBulkWriteService 
     this.eventServiceConfig = eventServiceConfig;
   }
 
-  private final EventBatchQueryFnFactory<PublishedMessage> publishedMessageUpsertQueryFn =
+  private final EventBatchQueryFnFactory<PublishedMessage> publishedMessageInsertQueryFn =
       (bulkWriteOperation, publishedMessage) -> {
-    final BasicDBObject setOnInsertPublishedMessageBasicDBObject =
+    final BasicDBObject publishedMessageBasicDBObject =
         new BasicDBObject()
             .append("_id", publishedMessage.getUuid())
             .append(PublishedMessageKeys.accountId, publishedMessage.getAccountId())
             .append(PublishedMessageKeys.createdAt, Instant.now().toEpochMilli())
             .append(PublishedMessageKeys.occurredAt, publishedMessage.getOccurredAt())
+            .append(PublishedMessageKeys.validUntil, publishedMessage.getValidUntil())
             .append(PublishedMessageKeys.type, publishedMessage.getType())
             .append(PublishedMessageKeys.data, publishedMessage.getData())
             .append(PublishedMessageKeys.category, publishedMessage.getCategory())
             .append(PublishedMessageKeys.attributes, publishedMessage.getAttributes());
 
-    final BasicDBObject setPublishedMessageBasicDBObject =
-        new BasicDBObject().append(PublishedMessageKeys.validUntil, publishedMessage.getValidUntil());
-
-    final BasicDBObject filter = new BasicDBObject(ImmutableMap.of(
-        PublishedMessageKeys.accountId, publishedMessage.getAccountId(), "_id", publishedMessage.getUuid()));
-
-    bulkWriteOperation.find(filter).upsert().update(
-        new BasicDBObject("$set", setPublishedMessageBasicDBObject)
-            .append("$setOnInsert", setOnInsertPublishedMessageBasicDBObject));
+    bulkWriteOperation.insert(publishedMessageBasicDBObject);
   };
 
   @Override
-  public boolean upsertPublishedMessages(final List<PublishedMessage> publishedMessages) {
-    return batchQueryExecutor(publishedMessages, publishedMessageUpsertQueryFn, PublishedMessage.class);
+  public boolean insertPublishedMessages(final List<PublishedMessage> publishedMessages) {
+    return batchQueryExecutor(publishedMessages, publishedMessageInsertQueryFn, PublishedMessage.class);
   }
 
   private <T> boolean batchQueryExecutor(

@@ -90,11 +90,12 @@ public class EventPublisherServerImpl extends EventPublisherGrpc.EventPublisherI
       if (isNotEmpty(withoutCategory)) {
         try {
           long startTime = System.currentTimeMillis();
-          log.info("upsertPublishedMessages, startTime: {}", startTime);
-          eventDataBulkWriteService.upsertPublishedMessages(withoutCategory);
+          eventDataBulkWriteService.insertPublishedMessages(withoutCategory);
           long endTime = System.currentTimeMillis();
+          log.info("upsertPublishedMessages, startTime: {}", startTime);
           log.info("upsertPublishedMessages, endTime: {}", endTime);
           log.info("upsertPublishedMessages, Total time: {}", endTime - startTime);
+          log.info("upsertPublishedMessages, withoutCategory size: {}", withoutCategory.size());
         } catch (Exception e) {
           log.warn("Encountered error while persisting messages", e);
           responseObserver.onError(Status.INTERNAL.withCause(e).asException());
@@ -155,7 +156,7 @@ public class EventPublisherServerImpl extends EventPublisherGrpc.EventPublisherI
       String accountId, PublishMessage publishMessage) {
     try {
       return PublishedMessage.builder()
-          .uuid(StringUtils.defaultIfEmpty(publishMessage.getMessageId(), generateUuid()))
+          .uuid(generateUuid())
           .accountId(accountId)
           .data(publishMessage.getPayload().toByteArray())
           .type(AnyUtils.toFqcn(publishMessage.getPayload()))

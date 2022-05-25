@@ -12,5 +12,5 @@ import io.harness.ccm.commons.entities.events.PublishedMessage;
 import java.util.List;
 
 public interface EventDataBulkWriteService {
-  boolean upsertPublishedMessages(List<PublishedMessage> publishedMessages);
+  boolean insertPublishedMessages(List<PublishedMessage> publishedMessages);
 }
