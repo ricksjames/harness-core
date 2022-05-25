@@ -32,6 +32,7 @@ import io.harness.delegate.task.serverless.ServerlessAwsCommandTaskHelper;
 import io.harness.delegate.task.serverless.ServerlessAwsLambdaDeployConfig;
 import io.harness.delegate.task.serverless.ServerlessAwsLambdaInfraConfig;
 import io.harness.delegate.task.serverless.ServerlessAwsLambdaManifestConfig;
+import io.harness.delegate.task.serverless.ServerlessFirstDeploymentTimestamp;
 import io.harness.delegate.task.serverless.ServerlessInfraConfigHelper;
 import io.harness.delegate.task.serverless.ServerlessTaskHelperBase;
 import io.harness.delegate.task.serverless.request.ServerlessCommandRequest;
@@ -211,9 +212,13 @@ public class ServerlessAwsLambdaDeployCommandTaskHandler extends ServerlessComma
   private void prepareRollbackData(ServerlessDeployRequest serverlessDeployRequest, LogCallback executionLogCallback,
       ServerlessDelegateTaskParams serverlessDelegateTaskParams) throws Exception {
     executionLogCallback.saveExecutionLog(format("Preparing Rollback Data..%n%n"));
-    boolean isFirstDeployment = serverlessAwsCommandTaskHelper.isFirstDeployment(executionLogCallback, serverlessDeployRequest, serverlessDeployRequest.getManifestContent());
-    if(isFirstDeployment) {
-      previousDeployTimeStamp = "firstDeployment";
+    boolean isFirstDeployment = serverlessAwsCommandTaskHelper.isFirstDeployment(
+        executionLogCallback, serverlessDeployRequest, serverlessDeployRequest.getManifestContent());
+    if (isFirstDeployment) {
+      previousDeployTimeStamp = ServerlessFirstDeploymentTimestamp.SERVERLESS_FIRST_DEPLOYMENT_TIMESTAMP.toString();
+      executionLogCallback.saveExecutionLog(
+          format("Deploy List command skipped..%n"), LogLevel.INFO, CommandExecutionStatus.SUCCESS);
+      return;
     }
     ServerlessCliResponse response =
         serverlessAwsCommandTaskHelper.deployList(serverlessClient, serverlessDelegateTaskParams, executionLogCallback,
