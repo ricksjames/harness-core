@@ -179,11 +179,13 @@ public class AnomalyDetectionHelper {
       return AnomalyDetectionHelper.generateHash(
           String.join(",", anomaly.getAnomalyTime().toString(), anomaly.getClusterId(), anomaly.getNamespace(),
               anomaly.getWorkloadName(), anomaly.getGcpProject(), anomaly.getGcpProduct(), anomaly.getGcpSKUId(),
-              anomaly.getAwsAccount(), anomaly.getAwsService(), anomaly.getAwsUsageType()));
+              anomaly.getAwsAccount(), anomaly.getAwsService(), anomaly.getAwsUsageType(),
+              anomaly.getAzureSubscription(), anomaly.getAzureResourceGroup(), anomaly.getAzureMeterCategory()));
     } else {
       return AnomalyDetectionHelper.generateHash(String.join(",", anomaly.getClusterId(), anomaly.getNamespace(),
           anomaly.getWorkloadName(), anomaly.getGcpProject(), anomaly.getGcpProduct(), anomaly.getGcpSKUId(),
-          anomaly.getAwsAccount(), anomaly.getAwsService(), anomaly.getAwsUsageType()));
+          anomaly.getAwsAccount(), anomaly.getAwsService(), anomaly.getAwsUsageType(), anomaly.getAzureSubscription(),
+          anomaly.getAzureResourceGroup(), anomaly.getAzureMeterCategory()));
     }
   }
 }
