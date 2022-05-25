@@ -48,7 +48,6 @@ public class GitAwareEntityHelper {
                                              .build(),
             repoName, branch, filePath, connectorRef, contextMap);
     entity.setData(scmGetFileResponse.getFileContent());
-    // Check if this looks good to all
     GitAwareContextHelper.updateScmGitMetaData(scmGetFileResponse.getGitMetaData());
     return entity;
   }
@@ -76,7 +75,6 @@ public class GitAwareEntityHelper {
                                              .projectIdentifier(scope.getProjectIdentifier())
                                              .build(),
             repoName, branch, filePath, connectorRef, contextMap);
-    // Check if this looks good to all
     GitAwareContextHelper.updateScmGitMetaData(scmGetFileResponse.getGitMetaData());
     return scmGetFileResponse.getFileContent();
   }
