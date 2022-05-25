@@ -50,6 +50,7 @@ public class NGServiceEntityMapper {
                                    .description(serviceEntity.getDescription())
                                    .tags(convertToMap(serviceEntity.getTags()))
                                    .serviceDefinition(sDef)
+                                   .gitOpsEnabled(serviceEntity.getGitOpsEnabled())
                                    .build())
         .build();
   }
