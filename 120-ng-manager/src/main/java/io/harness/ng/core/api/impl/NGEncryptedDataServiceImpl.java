@@ -462,7 +462,7 @@ public class NGEncryptedDataServiceImpl implements NGEncryptedDataService {
     List<Field> encryptedFields = object.getSecretReferenceFields();
 
     // check if the secrets are accessible
-    for (Field field : object.getSecretReferenceFields()) {
+    for (Field field : encryptedFields) {
       try {
         field.setAccessible(true);
         SecretRefData secretRefData = (SecretRefData) field.get(object);
