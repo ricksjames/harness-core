@@ -18,6 +18,7 @@ import io.harness.gitsync.common.beans.GitSyncSettings.GitSyncSettingsKeys;
 import io.harness.gitsync.common.dtos.GitSyncSettingsDTO;
 import io.harness.gitsync.common.remote.GitSyncSettingsMapper;
 import io.harness.gitsync.common.service.GitSyncSettingsService;
+import io.harness.gitsync.common.service.YamlGitConfigService;
 import io.harness.repositories.gitSyncSettings.GitSyncSettingsRepository;
 
 import com.google.inject.Inject;
@@ -37,6 +38,7 @@ import org.springframework.data.mongodb.core.query.Update;
 @OwnedBy(DX)
 public class GitSyncSettingsServiceImpl implements GitSyncSettingsService {
   private final GitSyncSettingsRepository gitSyncSettingsRepository;
+  private final YamlGitConfigService yamlGitConfigService;
 
   @Override
   public Optional<GitSyncSettingsDTO> get(String accountIdentifier, String orgIdentifier, String projectIdentifier) {
@@ -84,6 +86,10 @@ public class GitSyncSettingsServiceImpl implements GitSyncSettingsService {
 
   @Override
   public boolean enableGitSimplification(String accountIdentifier, String orgIdentifier, String projectIdentifier) {
+    if (yamlGitConfigService.isGitSyncEnabled(accountIdentifier, orgIdentifier, projectIdentifier)) {
+      throwExceptionIfGitSyncAlreadyEnabled();
+    }
+
     if (!isGitSimplificationEnabled(accountIdentifier, orgIdentifier, projectIdentifier)) {
       GitSyncSettings gitSyncSettings =
           getGitSyncSettingsForGitSimplification(accountIdentifier, orgIdentifier, projectIdentifier);
@@ -112,8 +118,7 @@ public class GitSyncSettingsServiceImpl implements GitSyncSettingsService {
       if (gitSyncSettings.isGitSimplificationEnabled()) {
         return true;
       }
-      throw new InvalidRequestException(
-          "Git Management experience is already enabled in this project, cannot enable Git Simplification experience on the same project. Please try with a new project.");
+      throwExceptionIfGitSyncAlreadyEnabled();
     }
     return false;
   }
@@ -128,5 +133,10 @@ public class GitSyncSettingsServiceImpl implements GitSyncSettingsService {
         .projectIdentifier(projectIdentifier)
         .settings(settings)
         .build();
+  }
+
+  private void throwExceptionIfGitSyncAlreadyEnabled() {
+    throw new InvalidRequestException(
+        "Git Management experience is already enabled in this project, cannot enable Git Simplification experience on the same project. Please try with a new project.");
   }
 }
