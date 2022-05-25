@@ -19,6 +19,7 @@ import io.harness.gitsync.beans.StoreType;
 import io.harness.gitsync.interceptor.GitEntityInfo;
 import io.harness.gitsync.interceptor.GitSyncBranchContext;
 import io.harness.gitsync.persistance.GitAwarePersistence;
+import io.harness.gitsync.persistance.GitSyncSdkService;
 import io.harness.manage.GlobalContextManager;
 import io.harness.outbox.OutboxEvent;
 import io.harness.outbox.api.OutboxService;
@@ -50,6 +51,7 @@ public class PMSPipelineRepositoryCustomImplTest extends CategoryTest {
   @Mock PipelineMetadataService pipelineMetadataService;
   @Mock GitAwareEntityHelper gitAwareEntityHelper;
   @Mock OutboxService outboxService;
+  @Mock GitSyncSdkService gitSyncSdkService;
 
   String accountIdentifier = "acc";
   String orgIdentifier = "org";
@@ -84,7 +86,10 @@ public class PMSPipelineRepositoryCustomImplTest extends CategoryTest {
   public void setUp() {
     MockitoAnnotations.initMocks(this);
     pipelineRepository = new PMSPipelineRepositoryCustomImpl(mongoTemplate, gitAwarePersistence, transactionHelper,
-        pipelineMetadataService, gitAwareEntityHelper, outboxService);
+        pipelineMetadataService, gitAwareEntityHelper, outboxService, gitSyncSdkService);
+    doReturn(true)
+        .when(gitSyncSdkService)
+        .isGitSimplificationEnabled(accountIdentifier, orgIdentifier, projectIdentifier);
   }
 
   private void setupGitContext(GitEntityInfo branchInfo) {
