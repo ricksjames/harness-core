@@ -177,7 +177,7 @@ public class PMSInputSetRepositoryCustomImpl implements PMSInputSetRepositoryCus
     }
     if (savedEntity.getStoreType() == StoreType.REMOTE) {
       // fetch yaml from git
-      GitEntityInfo gitEntityInfo = GitAwareContextHelper.getGitEntityInfo();
+      GitEntityInfo gitEntityInfo = GitAwareContextHelper.getGitRequestParamsInfo();
       savedEntity = (InputSetEntity) gitAwareEntityHelper.fetchEntityFromRemote(savedEntity,
           Scope.builder()
               .accountIdentifier(accountId)

@@ -216,7 +216,7 @@ public class PMSPipelineRepositoryCustomImpl implements PMSPipelineRepositoryCus
     }
     if (savedEntity.getStoreType() == StoreType.REMOTE) {
       // fetch yaml from git
-      GitEntityInfo gitEntityInfo = GitAwareContextHelper.getGitEntityInfo();
+      GitEntityInfo gitEntityInfo = GitAwareContextHelper.getGitRequestParamsInfo();
       savedEntity = (PipelineEntity) gitAwareEntityHelper.fetchEntityFromRemote(savedEntity,
           Scope.builder()
               .accountIdentifier(accountId)
@@ -376,7 +376,7 @@ public class PMSPipelineRepositoryCustomImpl implements PMSPipelineRepositoryCus
 
   @Override
   public String importPipelineFromRemote(String accountId, String orgIdentifier, String projectIdentifier) {
-    GitEntityInfo gitEntityInfo = GitAwareContextHelper.getGitEntityInfo();
+    GitEntityInfo gitEntityInfo = GitAwareContextHelper.getGitRequestParamsInfo();
     Scope scope = Scope.builder()
                       .accountIdentifier(accountId)
                       .orgIdentifier(orgIdentifier)
