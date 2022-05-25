@@ -228,6 +228,7 @@ public class OwnerRule implements TestRule {
   public static final String TMACARI = "tudor.macari";
   public static final String NAMAN = "naman.verma";
   public static final String NAMAN_TALAYCHA = "naman.talaycha";
+  public static final String LOVISH_BANSAL = "lovish.bansal";
   public static final String DEEPAK_PUTHRAYA = "deepak.puthraya";
   public static final String LUCAS = "lucas.mari";
   public static final String NICOLAS = "nicolas.bantar";
