@@ -237,6 +237,7 @@ public class ServerlessAwsLambdaDeployCommandTaskHandler extends ServerlessComma
     } else {
       executionLogCallback.saveExecutionLog(
           color(format("%nDeploy List command failed..%n"), LogColor.Red, LogWeight.Bold), ERROR);
+      executionLogCallback.saveExecutionLog(format("Done..%n"), LogLevel.INFO, CommandExecutionStatus.SUCCESS);
     }
   }
 
