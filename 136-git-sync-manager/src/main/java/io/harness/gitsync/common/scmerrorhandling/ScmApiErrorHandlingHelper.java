@@ -10,8 +10,10 @@ package io.harness.gitsync.common.scmerrorhandling;
 import static io.harness.annotations.dev.HarnessTeam.PL;
 
 import io.harness.annotations.dev.OwnedBy;
+import io.harness.delegate.beans.connector.ConnectorType;
 import io.harness.gitsync.common.beans.ScmApis;
 import io.harness.gitsync.common.dtos.RepoProviders;
+import io.harness.gitsync.common.helper.RepoProviderHelper;
 import io.harness.gitsync.common.scmerrorhandling.handlers.DefaultScmApiErrorHandler;
 import io.harness.gitsync.common.scmerrorhandling.handlers.ScmApiErrorHandler;
 
@@ -23,13 +25,14 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @OwnedBy(PL)
 public class ScmApiErrorHandlingHelper {
-  public void processAndThrowError(ScmApis scmAPI, RepoProviders repoProvider, int statusCode, String errorMessage) {
-    ScmApiErrorHandler scmAPIErrorHandler = getScmAPIErrorHandler(scmAPI, repoProvider);
+  public void processAndThrowError(ScmApis scmAPI, ConnectorType connectorType, String repoUrl, int statusCode, String errorMessage) {
+    ScmApiErrorHandler scmAPIErrorHandler = getScmAPIErrorHandler(scmAPI, connectorType, repoUrl);
     scmAPIErrorHandler.handleError(statusCode, errorMessage);
   }
 
   @VisibleForTesting
-  protected ScmApiErrorHandler getScmAPIErrorHandler(ScmApis scmApi, RepoProviders repoProvider) {
+  protected ScmApiErrorHandler getScmAPIErrorHandler(ScmApis scmApi, ConnectorType connectorType, String repoUrl) {
+    RepoProviders repoProvider = RepoProviderHelper.getRepoProviderType(connectorType, repoUrl);
     ScmApiErrorHandler scmApiErrorHandler = ScmApiErrorHandlerFactory.getHandler(scmApi, repoProvider);
     if (scmApiErrorHandler == null) {
       log.error(String.format(
