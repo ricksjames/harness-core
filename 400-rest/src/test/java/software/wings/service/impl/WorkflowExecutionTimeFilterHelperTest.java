@@ -1,5 +1,6 @@
 package software.wings.service.impl;
 
+import static io.harness.beans.PageRequest.PageRequestBuilder.aPageRequest;
 import static io.harness.rule.OwnerRule.ABHINAV;
 
 import static software.wings.beans.WorkflowExecution.WorkflowExecutionKeys;
@@ -44,7 +45,7 @@ public class WorkflowExecutionTimeFilterHelperTest extends CategoryTest {
   @Category(UnitTests.class)
   public void testWorkflowExecutionFilter() {
     final PageRequest pageRequest =
-        PageRequest.PageRequestBuilder.aPageRequest()
+        aPageRequest()
             .addFilter(SearchFilter.builder()
                            .op(SearchFilter.Operator.GT)
                            .fieldValues(new Object[] {System.currentTimeMillis() - FOUR_MONTHS_MILLIS})
@@ -54,7 +55,7 @@ public class WorkflowExecutionTimeFilterHelperTest extends CategoryTest {
     assertThatThrownBy(() -> workflowExecutionTimeFilterHelper.updatePageRequestForTimeFilter(pageRequest, ACCOUNT_ID));
 
     final PageRequest pageRequest1 =
-        PageRequest.PageRequestBuilder.aPageRequest()
+        aPageRequest()
             .addFilter(SearchFilter.builder()
                            .op(SearchFilter.Operator.GT)
                            .fieldValues(new Object[] {System.currentTimeMillis() - THREE_MONTHS_MILLIS})
@@ -64,7 +65,7 @@ public class WorkflowExecutionTimeFilterHelperTest extends CategoryTest {
     workflowExecutionTimeFilterHelper.updatePageRequestForTimeFilter(pageRequest1, ACCOUNT_ID);
 
     final PageRequest pageRequest2 =
-        PageRequest.PageRequestBuilder.aPageRequest()
+        aPageRequest()
             .addFilter(SearchFilter.builder()
                            .op(SearchFilter.Operator.GT)
                            .fieldValues(new Object[] {System.currentTimeMillis() - SIX_MONTHS_MILLIS})
@@ -75,7 +76,7 @@ public class WorkflowExecutionTimeFilterHelperTest extends CategoryTest {
         () -> workflowExecutionTimeFilterHelper.updatePageRequestForTimeFilter(pageRequest2, ACCOUNT_ID));
 
     final PageRequest pageRequest3 =
-        PageRequest.PageRequestBuilder.aPageRequest()
+        aPageRequest()
             .addFilter(SearchFilter.builder()
                            .op(SearchFilter.Operator.GT)
                            .fieldValues(new Object[] {System.currentTimeMillis() - SIX_MONTHS_MILLIS})
@@ -90,7 +91,7 @@ public class WorkflowExecutionTimeFilterHelperTest extends CategoryTest {
     workflowExecutionTimeFilterHelper.updatePageRequestForTimeFilter(pageRequest3, ACCOUNT_ID);
 
     final PageRequest pageRequest4 =
-        PageRequest.PageRequestBuilder.aPageRequest()
+        aPageRequest()
             .addFilter(SearchFilter.builder()
                            .fieldName(WorkflowExecutionKeys.createdAt)
                            .op(SearchFilter.Operator.GT)
