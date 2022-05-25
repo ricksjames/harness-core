@@ -112,7 +112,7 @@ public class InfrastructurePmsPlanCreator {
     if (!allowSimultaneousDeployments) {
       // Passing infra section parent node since rbac will be created parallel to environment node
       YamlField rcYamlField =
-          addResourceConstraintDependency(infraSectionNode.getParentNode(), kryoSerializer, planCreationResponseMap);
+          addResourceConstraintDependency(infraSectionNode.getParentNode(), planCreationResponseMap);
       adviserObtainments = getAdviserObtainmentFromMetaDataToResourceConstraint(rcYamlField, kryoSerializer);
     }
 
@@ -146,8 +146,7 @@ public class InfrastructurePmsPlanCreator {
         pipelineInfrastructure.getAllowSimultaneousDeployments());
 
     if (!allowSimultaneousDeployments) {
-      YamlField rcYamlField =
-          addResourceConstraintDependency(infraSectionNode, kryoSerializer, planCreationResponseMap);
+      YamlField rcYamlField = addResourceConstraintDependency(infraSectionNode, planCreationResponseMap);
       adviserObtainments = getAdviserObtainmentFromMetaDataToResourceConstraint(rcYamlField, kryoSerializer);
     }
 
@@ -160,8 +159,8 @@ public class InfrastructurePmsPlanCreator {
     return planCreationResponseMap;
   }
 
-  private static YamlField addResourceConstraintDependency(YamlNode rbacSiblingNode, KryoSerializer kryoSerializer,
-      LinkedHashMap<String, PlanCreationResponse> planCreationResponseMap) {
+  public YamlField addResourceConstraintDependency(
+      YamlNode rbacSiblingNode, LinkedHashMap<String, PlanCreationResponse> planCreationResponseMap) {
     YamlField rcYamlField = constructResourceConstraintYamlField(rbacSiblingNode);
 
     try {
@@ -182,7 +181,7 @@ public class InfrastructurePmsPlanCreator {
     return rcYamlField;
   }
 
-  private static PlanNodeBuilder planBuilderForInfraSection(YamlNode infraSectionNode) {
+  public PlanNodeBuilder planBuilderForInfraSection(YamlNode infraSectionNode) {
     return PlanNode.builder()
         .uuid(infraSectionNode.getUuid())
         .name(PlanCreatorConstants.INFRA_SECTION_NODE_NAME)
@@ -195,7 +194,7 @@ public class InfrastructurePmsPlanCreator {
                 .build());
   }
 
-  private static InfraSectionStepParameters getInfraSectionStepParamsFromConfig(
+  public InfraSectionStepParameters getInfraSectionStepParamsFromConfig(
       InfrastructureDefinitionConfig infrastructure, String infraStepNodeUuid) {
     return InfraSectionStepParameters.builder()
         .childNodeID(infraStepNodeUuid)
