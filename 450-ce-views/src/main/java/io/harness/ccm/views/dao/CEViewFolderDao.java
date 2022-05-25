@@ -91,7 +91,7 @@ public class CEViewFolderDao {
         .name((viewType.equals(ViewType.DEFAULT)) ? "Default Folder": "Out of the box Folder")
         .pinned(true)
         .viewType(viewType)
-        .description((viewType.equals(ViewType.DEFAULT)) ? "Contains all the custom perspective not belonging to any folder": "Contains all the perspectives created by Harness")
+        .description((viewType.equals(ViewType.DEFAULT)) ? "Contains all the custom perspectives not belonging to any folder": "Contains all the perspectives created by Harness")
         .build();
     return hPersistence.save(ceViewFolder);
   }
