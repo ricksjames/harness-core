@@ -98,6 +98,7 @@ import io.harness.service.ScmServiceClient;
 import io.harness.utils.ScmGrpcClientUtils;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Strings;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import java.util.ArrayList;
@@ -161,7 +162,7 @@ public class ScmServiceClientImpl implements ScmServiceClient {
 
     final FileModifyRequest.Builder fileModifyRequestBuilder = getFileModifyRequest(scmConnector, gitFileDetails);
     final FileModifyRequest fileModifyRequest =
-        fileModifyRequestBuilder.setBlobId(gitFileDetails.getOldFileSha()).build();
+        fileModifyRequestBuilder.setBlobId(Strings.nullToEmpty(gitFileDetails.getOldFileSha())).build();
     UpdateFileResponse updateFileResponse =
         ScmGrpcClientUtils.retryAndProcessException(scmBlockingStub::updateFile, fileModifyRequest);
 
@@ -772,6 +773,8 @@ public class ScmServiceClientImpl implements ScmServiceClient {
         scmBlockingStub::getLatestCommit,
         GetLatestCommitRequest.newBuilder().setBranch(baseBranchName).setSlug(slug).setProvider(gitProvider).build());
     if (isFailureResponse(latestCommitResponse.getStatus())) {
+      log.error(String.format("Error while getting latest commit of branch [%s], %s: %s", baseBranchName,
+          latestCommitResponse.getStatus(), latestCommitResponse.getError()));
       return CreateBranchResponse.newBuilder()
           .setStatus(latestCommitResponse.getStatus())
           .setError(latestCommitResponse.getError())
@@ -779,6 +782,21 @@ public class ScmServiceClientImpl implements ScmServiceClient {
     }
     return createNewBranchFromDefault(
         slug, gitProvider, newBranchName, latestCommitResponse.getCommit().getSha(), scmBlockingStub);
+  }
+
+  @Override
+  public CreatePRResponse createPullRequestV2(ScmConnector scmConnector, String sourceBranchName,
+      String targetBranchName, String prTitle, SCMGrpc.SCMBlockingStub scmBlockingStub) {
+    String slug = scmGitProviderHelper.getSlug(scmConnector);
+    Provider gitProvider = scmGitProviderMapper.mapToSCMGitProvider(scmConnector);
+    return ScmGrpcClientUtils.retryAndProcessException(scmBlockingStub::createPR,
+        CreatePRRequest.newBuilder()
+            .setSlug(slug)
+            .setTitle(prTitle)
+            .setProvider(gitProvider)
+            .setSource(sourceBranchName)
+            .setTarget(targetBranchName)
+            .build());
   }
 
   private FileContentBatchResponse processListFilesByFilePaths(ScmConnector connector, List<String> filePaths,
