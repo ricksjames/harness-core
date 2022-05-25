@@ -6712,6 +6712,7 @@
     "StepCommandUnit": {
       "type": "object",
       "required": [
+        "name",
         "type"
       ],
       "properties": {
