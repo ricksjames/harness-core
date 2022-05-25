@@ -9,20 +9,25 @@ import io.harness.beans.PageRequest;
 import io.harness.beans.SearchFilter;
 import io.harness.exception.InvalidRequestException;
 import io.harness.ff.FeatureFlagService;
+import io.harness.persistence.HPersistence;
 
 import software.wings.beans.WorkflowExecution;
 import software.wings.beans.WorkflowExecution.WorkflowExecutionKeys;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
+import org.mongodb.morphia.DatastoreImpl;
+import org.mongodb.morphia.mapping.Mapper;
 
 @Singleton
 @Slf4j
 public class WorkflowExecutionTimeFilterHelper {
   @Inject FeatureFlagService featureFlagService;
+  @Inject HPersistence hPersistence;
   private final Long THREE_MONTHS_MILLIS = 7889400000L;
   private final Long FOUR_MONTHS_MILLIS = 10519200000L;
 
@@ -30,8 +35,9 @@ public class WorkflowExecutionTimeFilterHelper {
     if (!featureFlagService.isEnabled(ENABLE_DEFAULT_TIMEFRAME_IN_DEPLOYMENTS, accountId)) {
       return;
     }
+    PageRequest<WorkflowExecution> copiedPageRequest = populatePageRequestFilters(pageRequest);
     final List<SearchFilter> searchFiltersForTime =
-        emptyIfNull(pageRequest.getFilters())
+        emptyIfNull(copiedPageRequest.getFilters())
             .stream()
             .filter(searchFilter -> searchFilter.getFieldName().equals(WorkflowExecutionKeys.createdAt))
             .collect(Collectors.toList());
@@ -70,6 +76,15 @@ public class WorkflowExecutionTimeFilterHelper {
         throw new InvalidRequestException("Time range can be maximum  of three months");
       }
     }
+  }
+
+  @VisibleForTesting
+  PageRequest<WorkflowExecution> populatePageRequestFilters(PageRequest<WorkflowExecution> pageRequest) {
+    Mapper mapper = ((DatastoreImpl) hPersistence.getDatastore(WorkflowExecution.class)).getMapper();
+    PageRequest<WorkflowExecution> copiedPageRequest = pageRequest.copy();
+    copiedPageRequest.populateFilters(
+        copiedPageRequest.getUriInfo().getQueryParameters(), mapper.getMappedClass(WorkflowExecution.class), mapper);
+    return copiedPageRequest;
   }
 
   private boolean checkTimeGreaterThanFourMonths(List<SearchFilter> searchFiltersForTime) {

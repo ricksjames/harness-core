@@ -22,6 +22,7 @@ import org.junit.experimental.categories.Category;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.Spy;
 
 public class WorkflowExecutionTimeFilterHelperTest extends CategoryTest {
   private final Long THREE_MONTHS_MILLIS = 7889400000L;
@@ -32,7 +33,7 @@ public class WorkflowExecutionTimeFilterHelperTest extends CategoryTest {
   private final String ACCOUNT_ID = "accountId";
 
   @Mock FeatureFlagService featureFlagService;
-  @InjectMocks WorkflowExecutionTimeFilterHelper workflowExecutionTimeFilterHelper;
+  @InjectMocks @Spy WorkflowExecutionTimeFilterHelper workflowExecutionTimeFilterHelper;
 
   @Before
   public void runBeforeTest() {
@@ -52,6 +53,7 @@ public class WorkflowExecutionTimeFilterHelperTest extends CategoryTest {
                            .fieldName(WorkflowExecutionKeys.createdAt)
                            .build())
             .build();
+    doReturn(pageRequest).when(workflowExecutionTimeFilterHelper).populatePageRequestFilters(any());
     assertThatThrownBy(() -> workflowExecutionTimeFilterHelper.updatePageRequestForTimeFilter(pageRequest, ACCOUNT_ID));
 
     final PageRequest pageRequest1 =
@@ -62,6 +64,7 @@ public class WorkflowExecutionTimeFilterHelperTest extends CategoryTest {
                            .fieldName(WorkflowExecutionKeys.createdAt)
                            .build())
             .build();
+    doReturn(pageRequest1).when(workflowExecutionTimeFilterHelper).populatePageRequestFilters(any());
     workflowExecutionTimeFilterHelper.updatePageRequestForTimeFilter(pageRequest1, ACCOUNT_ID);
 
     final PageRequest pageRequest2 =
@@ -72,6 +75,7 @@ public class WorkflowExecutionTimeFilterHelperTest extends CategoryTest {
                            .fieldName(WorkflowExecutionKeys.createdAt)
                            .build())
             .build();
+    doReturn(pageRequest2).when(workflowExecutionTimeFilterHelper).populatePageRequestFilters(any());
     assertThatThrownBy(
         () -> workflowExecutionTimeFilterHelper.updatePageRequestForTimeFilter(pageRequest2, ACCOUNT_ID));
 
@@ -88,6 +92,7 @@ public class WorkflowExecutionTimeFilterHelperTest extends CategoryTest {
                            .fieldName(WorkflowExecutionKeys.createdAt)
                            .build())
             .build();
+    doReturn(pageRequest3).when(workflowExecutionTimeFilterHelper).populatePageRequestFilters(any());
     workflowExecutionTimeFilterHelper.updatePageRequestForTimeFilter(pageRequest3, ACCOUNT_ID);
 
     final PageRequest pageRequest4 =
@@ -103,6 +108,7 @@ public class WorkflowExecutionTimeFilterHelperTest extends CategoryTest {
                            .fieldValues(new Object[] {System.currentTimeMillis()})
                            .build())
             .build();
+    doReturn(pageRequest4).when(workflowExecutionTimeFilterHelper).populatePageRequestFilters(any());
     assertThatThrownBy(
         () -> workflowExecutionTimeFilterHelper.updatePageRequestForTimeFilter(pageRequest4, ACCOUNT_ID));
   }
