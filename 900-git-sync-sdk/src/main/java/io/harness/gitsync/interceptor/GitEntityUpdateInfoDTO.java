@@ -64,4 +64,5 @@ public class GitEntityUpdateInfoDTO {
   @Parameter(description = GitSyncApiConstants.STORE_TYPE_PARAM_MESSAGE)
   @QueryParam(GitSyncApiConstants.STORE_TYPE)
   StoreType storeType;
+  @QueryParam(GitSyncApiConstants.LAST_COMMIT_ID) String lastCommitId; // used for bitbucket update use-case
 }
