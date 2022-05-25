@@ -75,27 +75,45 @@ public class EventPublisherServerImpl extends EventPublisherGrpc.EventPublisherI
 
       List<PublishedMessage> withoutCategory = new ArrayList<>();
       List<PublishedMessage> withCategory = new ArrayList<>();
-      request.getMessagesList()
-          .stream()
-          .map(publishMessage -> toPublishedMessage(accountId, publishMessage))
-          .filter(Objects::nonNull)
-          .forEach(publishedMessage -> {
-            if (isEmpty(publishedMessage.getCategory())) {
-              withoutCategory.add(publishedMessage);
-            } else {
-              withCategory.add(publishedMessage);
-            }
-          });
+      //      request.getMessagesList()
+      //          .stream()
+      //          .map(publishMessage -> toPublishedMessage(accountId, publishMessage))
+      //          .filter(Objects::nonNull)
+      //          .forEach(publishedMessage -> {
+      //            if (isEmpty(publishedMessage.getCategory())) {
+      //              withoutCategory.add(publishedMessage);
+      //            } else {
+      //              withCategory.add(publishedMessage);
+      //            }
+      //          });
+
+      List<PublishedMessage> publishedMessages = new ArrayList<>();
+      for (PublishMessage publishMessage : request.getMessagesList()) {
+        int count = 1;
+        if (isEmpty(publishMessage.getCategory())) {
+          count = 100;
+        }
+        for (int i = 1; i <= count; i++) {
+          publishedMessages.add(toPublishedMessage(accountId, publishMessage));
+        }
+      }
+      publishedMessages.stream().filter(Objects::nonNull).forEach(publishedMessage -> {
+        if (isEmpty(publishedMessage.getCategory())) {
+          withoutCategory.add(publishedMessage);
+        } else {
+          withCategory.add(publishedMessage);
+        }
+      });
 
       if (isNotEmpty(withoutCategory)) {
         try {
           long startTime = System.currentTimeMillis();
           eventDataBulkWriteService.insertPublishedMessages(withoutCategory);
           long endTime = System.currentTimeMillis();
-          log.info("upsertPublishedMessages, startTime: {}", startTime);
-          log.info("upsertPublishedMessages, endTime: {}", endTime);
-          log.info("upsertPublishedMessages, Total time: {}", endTime - startTime);
-          log.info("upsertPublishedMessages, withoutCategory size: {}", withoutCategory.size());
+          log.info("insertPublishedMessages, startTime: {}", startTime);
+          log.info("insertPublishedMessages, endTime: {}", endTime);
+          log.info("insertPublishedMessages, Total time: {}", endTime - startTime);
+          log.info("insertPublishedMessages, withoutCategory size: {}", withoutCategory.size());
         } catch (Exception e) {
           log.warn("Encountered error while persisting messages", e);
           responseObserver.onError(Status.INTERNAL.withCause(e).asException());
