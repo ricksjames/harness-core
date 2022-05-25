@@ -91,6 +91,7 @@ public class OwnerRule implements TestRule {
   public static final String AGORODETKI = "alexandr.gorodetki";
   public static final String ALEXEI = "alexei.stirbul";
   public static final String ALLEN = "allen.thomas";
+  public static final String ALLU_VAMSI= "allu.vamsi";
   public static final String AMAN = "aman.singh";
   public static final String AMIT = "amit.jambure";
   public static final String ANJAN = "anjan.balgovind";
@@ -193,6 +194,7 @@ public class OwnerRule implements TestRule {
   public static final String UTSAV = "utsav.krishnan";
   public static final String VAIBHAV_KUMAR = "vaibhav.kumar";
   public static final String VAIBHAV_SI = "vaibhav.si";
+
   public static final String VENKATESH = "venkatesh.kotrike";
   public static final String VIKAS = "vikas.naiyar";
   public static final String VIKAS_S = "vikas.singh";
@@ -286,6 +288,7 @@ public class OwnerRule implements TestRule {
           .put(ADITHYA, defaultUserInfo(ADITHYA).slack("U03AKHX2LTB").team(PL).build())
           .put(ALEKSANDAR, defaultUserInfo(ALEKSANDAR).slack("U012MKR5FUZ").team(CI).build())
           .put(ALLEN, defaultUserInfo(ALLEN).slack("U01QCSY8518").team(GTM).build())
+          .put(ALLU_VAMSI, defaultUserInfo(ALLU_VAMSI).slack("U03F6UU0J7N").team(CDP).build())
           .put(AGORODETKI, defaultUserInfo(AGORODETKI).slack("U013KM8H2NL").team(CDC).build())
           .put(AKRITI, defaultUserInfo(AKRITI).slack("U01JCQAS84S").team(PL).build())
           .put(ALEXEI, defaultUserInfo(ALEXEI).slack("U012VS112EN").team(CDC).build())
