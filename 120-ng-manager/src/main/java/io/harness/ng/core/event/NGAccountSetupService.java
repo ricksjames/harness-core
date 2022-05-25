@@ -8,6 +8,7 @@
 package io.harness.ng.core.event;
 
 import static io.harness.NGConstants.DEFAULT_ORG_IDENTIFIER;
+import static io.harness.NGConstants.DEFAULT_PROJECT_IDENTIFIER;
 import static io.harness.annotations.dev.HarnessTeam.PL;
 import static io.harness.data.structure.EmptyPredicate.isEmpty;
 import static io.harness.ng.core.invites.mapper.RoleBindingMapper.getDefaultResourceGroupIdentifierForAdmins;
@@ -16,6 +17,7 @@ import static io.harness.ng.core.invites.mapper.RoleBindingMapper.getManagedAdmi
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 
+import io.harness.ModuleType;
 import io.harness.accesscontrol.AccessControlAdminClient;
 import io.harness.accesscontrol.principals.PrincipalDTO;
 import io.harness.accesscontrol.principals.PrincipalType;
@@ -32,8 +34,11 @@ import io.harness.ng.accesscontrol.migrations.services.AccessControlMigrationSer
 import io.harness.ng.core.AccountOrgProjectValidator;
 import io.harness.ng.core.accountsetting.services.NGAccountSettingService;
 import io.harness.ng.core.dto.OrganizationDTO;
+import io.harness.ng.core.dto.ProjectDTO;
 import io.harness.ng.core.entities.Organization;
+import io.harness.ng.core.entities.Project;
 import io.harness.ng.core.services.OrganizationService;
+import io.harness.ng.core.services.ProjectService;
 import io.harness.ng.core.user.UserInfo;
 import io.harness.ng.core.user.UserMembershipUpdateSource;
 import io.harness.ng.core.user.service.NgUserService;
@@ -47,6 +52,8 @@ import com.google.common.collect.Lists;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -71,15 +78,17 @@ public class NGAccountSetupService {
   private final CIDefaultEntityManager ciDefaultEntityManager;
   private final boolean shouldAssignAdmins;
   private final NGAccountSettingService accountSettingService;
+  private final ProjectService projectService;
 
   @Inject
-  public NGAccountSetupService(OrganizationService organizationService,
+  public NGAccountSetupService(OrganizationService organizationService, ProjectService projectService,
       AccountOrgProjectValidator accountOrgProjectValidator,
       @Named("PRIVILEGED") AccessControlAdminClient accessControlAdminClient, NgUserService ngUserService,
       UserClient userClient, AccessControlMigrationService accessControlMigrationService,
       HarnessSMManager harnessSMManager, CIDefaultEntityManager ciDefaultEntityManager,
       NextGenConfiguration nextGenConfiguration, NGAccountSettingService accountSettingService) {
     this.organizationService = organizationService;
+    this.projectService = projectService;
     this.accountOrgProjectValidator = accountOrgProjectValidator;
     this.accessControlAdminClient = accessControlAdminClient;
     this.ngUserService = ngUserService;
@@ -101,7 +110,8 @@ public class NGAccountSetupService {
     }
 
     Organization defaultOrg = createDefaultOrg(accountIdentifier);
-    setupRBAC(defaultOrg.getAccountIdentifier(), defaultOrg.getIdentifier());
+    Project defaultProject = createDefaultProject(accountIdentifier, defaultOrg.getIdentifier());
+    setupRBAC(defaultOrg.getAccountIdentifier(), defaultOrg.getIdentifier(), defaultProject.getIdentifier());
     log.info("[NGAccountSetupService]: Creating global SM for account{}", accountIdentifier);
     harnessSMManager.createGlobalSecretManager();
     log.info("[NGAccountSetupService]: Global SM Created Successfully for account{}", accountIdentifier);
@@ -125,7 +135,24 @@ public class NGAccountSetupService {
     return organizationService.create(accountIdentifier, createOrganizationDTO);
   }
 
-  private void setupRBAC(String accountIdentifier, String orgIdentifier) {
+  private Project createDefaultProject(String accountIdentifier, String organizationIdentifier) {
+    Optional<Project> project =
+        projectService.get(accountIdentifier, organizationIdentifier, DEFAULT_PROJECT_IDENTIFIER);
+    if (project.isPresent()) {
+      log.info(String.format(
+          "Default Project for account %s organization %s already present", accountIdentifier, organizationIdentifier));
+      return project.get();
+    }
+    ProjectDTO createProjectDTO = ProjectDTO.builder().build();
+    createProjectDTO.setIdentifier(DEFAULT_PROJECT_IDENTIFIER);
+    createProjectDTO.setName("default");
+    createProjectDTO.setTags(emptyMap());
+    createProjectDTO.setDescription("Default Project");
+    createProjectDTO.setModules(new ArrayList<>(Arrays.asList(ModuleType.CI, ModuleType.CD, ModuleType.CF)));
+    return projectService.create(accountIdentifier, organizationIdentifier, createProjectDTO);
+  }
+
+  private void setupRBAC(String accountIdentifier, String orgIdentifier, String projectIdentifier) {
     Collection<UserInfo> cgUsers = getCGUsers(accountIdentifier);
     Collection<String> cgAdmins =
         cgUsers.stream().filter(UserInfo::isAdmin).map(UserInfo::getUuid).collect(Collectors.toSet());
@@ -149,6 +176,20 @@ public class NGAccountSetupService {
       }
       accessControlMigrationService.save(
           AccessControlMigration.builder().accountIdentifier(accountIdentifier).orgIdentifier(orgIdentifier).build());
+    }
+
+    Scope projectScope = Scope.of(accountIdentifier, orgIdentifier, projectIdentifier);
+    if (!hasAdmin(projectScope)) {
+      cgAdmins.forEach(user -> upsertUserMembership(projectScope, user));
+      assignAdminRoleToUsers(projectScope, cgAdmins);
+      if (shouldAssignAdmins && !hasAdmin(projectScope)) {
+        throw new GeneralException(String.format("No Admin could be assigned in scope %s", projectScope));
+      }
+      accessControlMigrationService.save(AccessControlMigration.builder()
+                                             .accountIdentifier(accountIdentifier)
+                                             .orgIdentifier(orgIdentifier)
+                                             .projectIdentifier(projectIdentifier)
+                                             .build());
     }
   }
 
