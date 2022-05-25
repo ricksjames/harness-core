@@ -7,17 +7,19 @@
 
 package io.harness.gitsync.common.scmerrorhandling.handlers.bitbucketserver;
 
+import static io.harness.annotations.dev.HarnessTeam.PL;
+
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.exception.*;
 import io.harness.gitsync.common.scmerrorhandling.handlers.ScmApiErrorHandler;
-import lombok.extern.slf4j.Slf4j;
 
-import static io.harness.annotations.dev.HarnessTeam.PL;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @OwnedBy(PL)
 public class BitbucketServerCreateBranchScmApiErrorHandler implements ScmApiErrorHandler {
-  public static final String CREATE_BRANCH_FAILED_MESSAGE = "The requested branch could not be created on Bitbucket Server. ";
+  public static final String CREATE_BRANCH_FAILED_MESSAGE =
+      "The requested branch could not be created on Bitbucket Server. ";
   public static final String CREATE_BRANCH_UNPROCESSABLE_ENTITY_ERROR_HINT =
       "Please check that the requested Bitbucket branch name is valid and does not already exist.";
   public static final String CREATE_BRANCH_UNPROCESSABLE_ENTITY_ERROR_EXPLANATION = "Possible reasons can be:\n"
@@ -46,8 +48,8 @@ public class BitbucketServerCreateBranchScmApiErrorHandler implements ScmApiErro
             new ScmResourceNotFoundException(errorMessage));
       case 409:
         throw NestedExceptionUtils.hintWithExplanationException(ScmErrorHints.BRANCH_ALREADY_EXISTS,
-                CREATE_BRANCH_FAILED_MESSAGE + ScmErrorExplanations.BRANCH_ALREADY_EXISTS,
-                new ScmBadRequestException(errorMessage));
+            CREATE_BRANCH_FAILED_MESSAGE + ScmErrorExplanations.BRANCH_ALREADY_EXISTS,
+            new ScmBadRequestException(errorMessage));
       default:
         log.error(String.format("Error while creating bitbucket(server) branch: [%s: %s] ", statusCode, errorMessage));
         throw new ScmUnexpectedException(errorMessage);

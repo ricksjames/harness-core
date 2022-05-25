@@ -91,12 +91,12 @@ public class NGCommonsKryoRegistrar implements KryoRegistrar {
     kryo.register(PlanCreatorException.class, 970007);
     kryo.register(ServiceAccountDTO.class, 970008);
     kryo.register(SchemaCacheKey.class, 970009);
+    kryo.register(StoreType.class, 970010);
 
     kryo.register(AppDynamicsApplication.class, 9020);
     kryo.register(AppDynamicsTier.class, 9021);
 
     kryo.register(CDLicenseType.class, 930010);
     kryo.register(PageRequestDTO.class, 5216);
-    kryo.register(StoreType.class, 930011);
   }
 }
