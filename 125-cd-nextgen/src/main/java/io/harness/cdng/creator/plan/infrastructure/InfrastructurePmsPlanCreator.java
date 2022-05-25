@@ -78,16 +78,16 @@ public class InfrastructurePmsPlanCreator {
         .build();
   }
 
-  public LinkedHashMap<String, PlanCreationResponse> createPlanForInfraSection(YamlNode infraSectionNode,
-      String infraStepNodeUuid, StepParameters stepParameters, KryoSerializer kryoSerializer) {
+  public LinkedHashMap<String, PlanCreationResponse> createPlanForInfraSection(
+      YamlNode infraSectionNode, String infraStepNodeUuid, InfraSection infraSection, KryoSerializer kryoSerializer) {
     // Plan Node for v1
-    if (stepParameters instanceof PipelineInfrastructure) {
-      PipelineInfrastructure pipelineInfrastructure = (PipelineInfrastructure) stepParameters;
+    if (infraSection instanceof PipelineInfrastructure) {
+      PipelineInfrastructure pipelineInfrastructure = (PipelineInfrastructure) infraSection;
       return createPlanForInfraSectionV1(infraSectionNode, infraStepNodeUuid, pipelineInfrastructure, kryoSerializer);
     }
 
     // Plan Node for v2
-    InfrastructureDefinitionConfig infrastructureDefinitionConfig = (InfrastructureDefinitionConfig) stepParameters;
+    InfrastructureDefinitionConfig infrastructureDefinitionConfig = (InfrastructureDefinitionConfig) infraSection;
     return createPlanForInfraSectionV2(
         infraSectionNode, infraStepNodeUuid, infrastructureDefinitionConfig, kryoSerializer);
   }
