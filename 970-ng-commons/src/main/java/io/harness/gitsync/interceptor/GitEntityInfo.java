@@ -43,6 +43,7 @@ public class GitEntityInfo {
   @Setter StoreType storeType;
   String connectorRef;
   @Setter String repoName;
+  @Wither String lastCommitId;
 
   public boolean isNull() {
     // todo @Abhinav Maybe we should use null in place of default

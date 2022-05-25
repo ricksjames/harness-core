@@ -168,6 +168,7 @@ public class InputSetResourcePMS {
           String.format("InputSet with the given ID: %s does not exist or has been deleted", inputSetIdentifier));
     }
     InputSetEntity inputSetEntity = optionalInputSetEntity.get();
+    InputSetResponseDTOPMS inputSet = PMSInputSetElementMapper.toInputSetResponseDTOPMS(inputSetEntity);
 
     if (inputSetEntity.getStoreType() == StoreType.REMOTE) {
       InputSetErrorWrapperDTOPMS errorWrapperDTOPMS = validateAndMergeHelper.validateInputSet(
@@ -178,7 +179,6 @@ public class InputSetResourcePMS {
       }
     }
 
-    InputSetResponseDTOPMS inputSet = PMSInputSetElementMapper.toInputSetResponseDTOPMS(inputSetEntity);
     String version = inputSetEntity.getVersion().toString();
 
     return ResponseDTO.newResponse(version, inputSet);
@@ -217,6 +217,8 @@ public class InputSetResourcePMS {
           String.format("InputSet with the given ID: %s does not exist or has been deleted", inputSetIdentifier));
     }
     InputSetEntity inputSetEntity = optionalInputSetEntity.get();
+    OverlayInputSetResponseDTOPMS overlayInputSet =
+        PMSInputSetElementMapper.toOverlayInputSetResponseDTOPMS(inputSetEntity);
 
     if (inputSetEntity.getStoreType() == StoreType.REMOTE) {
       Map<String, String> overlayInputSetErrorResponse = validateAndMergeHelper.validateOverlayInputSet(
@@ -227,8 +229,6 @@ public class InputSetResourcePMS {
       }
     }
 
-    OverlayInputSetResponseDTOPMS overlayInputSet =
-        PMSInputSetElementMapper.toOverlayInputSetResponseDTOPMS(inputSetEntity);
     String version = inputSetEntity.getVersion().toString();
 
     return ResponseDTO.newResponse(version, overlayInputSet);

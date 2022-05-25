@@ -12,7 +12,6 @@ import static io.harness.exception.WingsException.USER;
 
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.beans.IdentifierRef;
-import io.harness.beans.Scope;
 import io.harness.connector.ConnectorInfoDTO;
 import io.harness.connector.ConnectorResponseDTO;
 import io.harness.connector.services.ConnectorService;
@@ -269,23 +268,11 @@ public class GitSyncConnectorHelper {
         USER);
   }
 
-  public ScmConnector getScmConnectorByRef(Scope scope, String connectorRef) {
-    return getScmConnector(
-        scope.getAccountIdentifier(), scope.getOrgIdentifier(), scope.getProjectIdentifier(), connectorRef);
-  }
-
   public ScmConnector getDecryptedConnectorByRef(
       String accountIdentifier, String orgIdentifier, String projectIdentifier, String connectorRef) {
     ScmConnector gitConnectorConfig =
         getScmConnector(accountIdentifier, orgIdentifier, projectIdentifier, connectorRef);
     return getDecryptedConnector(accountIdentifier, orgIdentifier, projectIdentifier, gitConnectorConfig);
-  }
-
-  public ScmConnector getDecryptedConnectorByRef(Scope scope, String connectorRef) {
-    ScmConnector gitConnectorConfig = getScmConnector(
-        scope.getAccountIdentifier(), scope.getOrgIdentifier(), scope.getProjectIdentifier(), connectorRef);
-    return getDecryptedConnector(
-        scope.getAccountIdentifier(), scope.getOrgIdentifier(), scope.getProjectIdentifier(), gitConnectorConfig);
   }
 
   public ScmConnector getScmConnectorForGivenRepo(

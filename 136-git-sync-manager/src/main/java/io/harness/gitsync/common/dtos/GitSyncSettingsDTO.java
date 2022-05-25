@@ -34,4 +34,5 @@ public class GitSyncSettingsDTO {
           "Specifies Connectivity Mode for Git Sync. If True, executes through Delegate, else executes through Platform. The default value is True")
   @NotNull
   boolean executeOnDelegate;
+  @Schema(hidden = true) boolean isGitSimplificationEnabled;
 }

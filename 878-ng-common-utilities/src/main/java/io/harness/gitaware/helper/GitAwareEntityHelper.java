@@ -82,7 +82,7 @@ public class GitAwareEntityHelper {
   }
 
   public ScmCreateFileGitResponse createEntityOnGit(GitAware gitAwareEntity, String yaml, Scope scope) {
-    GitEntityInfo gitEntityInfo = GitAwareContextHelper.getGitEntityInfo();
+    GitEntityInfo gitEntityInfo = GitAwareContextHelper.getGitRequestParamsInfo();
     String repoName = gitAwareEntity.getRepo();
     if (isNullOrDefault(repoName)) {
       throw new InvalidRequestException("No Repo Name provided.");
@@ -119,7 +119,7 @@ public class GitAwareEntityHelper {
   }
 
   public ScmUpdateFileGitResponse updateEntityOnGit(GitAware gitAwareEntity, String yaml, Scope scope) {
-    GitEntityInfo gitEntityInfo = GitAwareContextHelper.getGitEntityInfo();
+    GitEntityInfo gitEntityInfo = GitAwareContextHelper.getGitRequestParamsInfo();
     String repoName = gitAwareEntity.getRepo();
     if (isNullOrDefault(repoName)) {
       throw new InvalidRequestException("No Repo Name provided.");
@@ -148,7 +148,7 @@ public class GitAwareEntityHelper {
                                                           .commitMessage(commitMsg)
                                                           .baseBranch(baseBranch)
                                                           .oldFileSha(gitEntityInfo.getLastObjectId())
-                                                          .oldCommitId(gitEntityInfo.getResolvedConflictCommitId())
+                                                          .oldCommitId(gitEntityInfo.getLastCommitId())
                                                           .build();
 
     return scmGitSyncHelper.updateFile(scope, scmUpdateFileGitRequest, Collections.emptyMap());

@@ -87,24 +87,7 @@ public class PMSPipelineDtoMapper {
   }
 
   public PMSPipelineSummaryResponseDTO preparePipelineSummary(PipelineEntity pipelineEntity) {
-    return PMSPipelineSummaryResponseDTO.builder()
-        .identifier(pipelineEntity.getIdentifier())
-        .description(pipelineEntity.getDescription())
-        .name(pipelineEntity.getName())
-        .tags(TagMapper.convertToMap(pipelineEntity.getTags()))
-        .version(pipelineEntity.getVersion())
-        .numOfStages(pipelineEntity.getStageCount())
-        .executionSummaryInfo(getExecutionSummaryInfoDTO(pipelineEntity))
-        .lastUpdatedAt(pipelineEntity.getLastUpdatedAt())
-        .createdAt(pipelineEntity.getCreatedAt())
-        .modules(pipelineEntity.getFilters().keySet())
-        .filters(ModuleInfoMapper.getModuleInfo(pipelineEntity.getFilters()))
-        .stageNames(pipelineEntity.getStageNames())
-        .storeType(pipelineEntity.getStoreType())
-        .connectorRef(pipelineEntity.getConnectorRef())
-        .gitDetails(getEntityGitDetails(pipelineEntity))
-        .entityValidityDetails(getEntityValidityDetails(pipelineEntity))
-        .build();
+    return preparePipelineSummary(pipelineEntity, getEntityGitDetails(pipelineEntity));
   }
 
   public PMSPipelineSummaryResponseDTO preparePipelineSummaryForListView(PipelineEntity pipelineEntity) {
@@ -112,6 +95,11 @@ public class PMSPipelineDtoMapper {
         ? EntityGitDetailsMapper.mapEntityGitDetails(pipelineEntity)
         : pipelineEntity.getStoreType() == StoreType.REMOTE ? GitAwareContextHelper.getEntityGitDetails(pipelineEntity)
                                                             : null;
+    return preparePipelineSummary(pipelineEntity, entityGitDetails);
+  }
+
+  private PMSPipelineSummaryResponseDTO preparePipelineSummary(
+      PipelineEntity pipelineEntity, EntityGitDetails entityGitDetails) {
     return PMSPipelineSummaryResponseDTO.builder()
         .identifier(pipelineEntity.getIdentifier())
         .description(pipelineEntity.getDescription())

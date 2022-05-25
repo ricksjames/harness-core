@@ -93,7 +93,7 @@ public class ValidateAndMergeHelper {
             pmsPipelineService.get(accountId, orgIdentifier, projectIdentifier, pipelineIdentifier, false);
       }
       if (optionalPipelineEntity.isPresent()) {
-        StoreType storeTypeInContext = GitAwareContextHelper.getGitEntityInfo().getStoreType();
+        StoreType storeTypeInContext = GitAwareContextHelper.getGitRequestParamsInfo().getStoreType();
         PipelineEntity pipelineEntity = optionalPipelineEntity.get();
         if (storeTypeInContext != null && pipelineEntity.getStoreType() != storeTypeInContext) {
           throw new InvalidRequestException("Input Set should have the same Store Type as the Pipeline it is for");

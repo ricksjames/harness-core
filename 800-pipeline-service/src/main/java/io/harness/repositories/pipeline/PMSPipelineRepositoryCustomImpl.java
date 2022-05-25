@@ -21,6 +21,7 @@ import io.harness.gitsync.common.helper.EntityDistinctElementHelper;
 import io.harness.gitsync.helpers.GitContextHelper;
 import io.harness.gitsync.interceptor.GitEntityInfo;
 import io.harness.gitsync.persistance.GitAwarePersistence;
+import io.harness.gitsync.persistance.GitSyncSdkService;
 import io.harness.gitsync.persistance.GitSyncableHarnessRepo;
 import io.harness.outbox.OutboxEvent;
 import io.harness.outbox.api.OutboxService;
@@ -68,6 +69,7 @@ public class PMSPipelineRepositoryCustomImpl implements PMSPipelineRepositoryCus
   private final PipelineMetadataService pipelineMetadataService;
   private final GitAwareEntityHelper gitAwareEntityHelper;
   private final OutboxService outboxService;
+  private final GitSyncSdkService gitSyncSdkService;
 
   @Override
   public Page<PipelineEntity> findAll(Criteria criteria, Pageable pageable, String accountIdentifier,
@@ -137,19 +139,22 @@ public class PMSPipelineRepositoryCustomImpl implements PMSPipelineRepositoryCus
       }
       return savedPipelineEntity;
     }
-    Scope scope = Scope.builder()
-                      .accountIdentifier(pipelineToSave.getAccountIdentifier())
-                      .orgIdentifier(pipelineToSave.getOrgIdentifier())
-                      .projectIdentifier(pipelineToSave.getProjectIdentifier())
-                      .build();
-    String yamlToPush = pipelineToSave.getYaml();
-    pipelineToSave.setYaml("");
-    pipelineToSave.setStoreType(StoreType.REMOTE);
-    pipelineToSave.setConnectorRef(gitEntityInfo.getConnectorRef());
-    pipelineToSave.setRepo(gitEntityInfo.getRepoName());
-    pipelineToSave.setFilePath(gitEntityInfo.getFilePath());
+    if (gitSyncSdkService.isGitSimplificationEnabled(pipelineToSave.getAccountIdentifier(),
+            pipelineToSave.getOrgIdentifier(), pipelineToSave.getProjectIdentifier())) {
+      Scope scope = Scope.builder()
+                        .accountIdentifier(pipelineToSave.getAccountIdentifier())
+                        .orgIdentifier(pipelineToSave.getOrgIdentifier())
+                        .projectIdentifier(pipelineToSave.getProjectIdentifier())
+                        .build();
+      String yamlToPush = pipelineToSave.getYaml();
+      pipelineToSave.setYaml("");
+      pipelineToSave.setStoreType(StoreType.REMOTE);
+      pipelineToSave.setConnectorRef(gitEntityInfo.getConnectorRef());
+      pipelineToSave.setRepo(gitEntityInfo.getRepoName());
+      pipelineToSave.setFilePath(gitEntityInfo.getFilePath());
 
-    gitAwareEntityHelper.createEntityOnGit(pipelineToSave, yamlToPush, scope);
+      gitAwareEntityHelper.createEntityOnGit(pipelineToSave, yamlToPush, scope);
+    }
     supplier.get();
     return mongoTemplate.save(pipelineToSave);
   }
@@ -211,7 +216,7 @@ public class PMSPipelineRepositoryCustomImpl implements PMSPipelineRepositoryCus
     }
     if (savedEntity.getStoreType() == StoreType.REMOTE) {
       // fetch yaml from git
-      GitEntityInfo gitEntityInfo = GitAwareContextHelper.getGitEntityInfo();
+      GitEntityInfo gitEntityInfo = GitAwareContextHelper.getGitRequestParamsInfo();
       savedEntity = (PipelineEntity) gitAwareEntityHelper.fetchEntityFromRemote(savedEntity,
           Scope.builder()
               .accountIdentifier(accountId)
@@ -282,12 +287,16 @@ public class PMSPipelineRepositoryCustomImpl implements PMSPipelineRepositoryCus
               pipelineToUpdate.getProjectIdentifier(), updatedPipelineEntity, oldEntityFromDB));
       return updatedPipelineEntity;
     }
-    Scope scope = Scope.builder()
-                      .accountIdentifier(updatedPipelineEntity.getAccountIdentifier())
-                      .orgIdentifier(updatedPipelineEntity.getOrgIdentifier())
-                      .projectIdentifier(updatedPipelineEntity.getProjectIdentifier())
-                      .build();
-    gitAwareEntityHelper.updateEntityOnGit(updatedPipelineEntity, pipelineToUpdate.getYaml(), scope);
+    if (gitSyncSdkService.isGitSimplificationEnabled(pipelineToUpdate.getAccountIdentifier(),
+            pipelineToUpdate.getOrgIdentifier(), pipelineToUpdate.getProjectIdentifier())) {
+      Scope scope = Scope.builder()
+                        .accountIdentifier(updatedPipelineEntity.getAccountIdentifier())
+                        .orgIdentifier(updatedPipelineEntity.getOrgIdentifier())
+                        .projectIdentifier(updatedPipelineEntity.getProjectIdentifier())
+                        .build();
+      gitAwareEntityHelper.updateEntityOnGit(updatedPipelineEntity, pipelineToUpdate.getYaml(), scope);
+    }
+
     outboxService.save(
         new PipelineUpdateEvent(pipelineToUpdate.getAccountIdentifier(), pipelineToUpdate.getOrgIdentifier(),
             pipelineToUpdate.getProjectIdentifier(), updatedPipelineEntity, oldEntityFromDB, true));
@@ -367,7 +376,7 @@ public class PMSPipelineRepositoryCustomImpl implements PMSPipelineRepositoryCus
 
   @Override
   public String importPipelineFromRemote(String accountId, String orgIdentifier, String projectIdentifier) {
-    GitEntityInfo gitEntityInfo = GitAwareContextHelper.getGitEntityInfo();
+    GitEntityInfo gitEntityInfo = GitAwareContextHelper.getGitRequestParamsInfo();
     Scope scope = Scope.builder()
                       .accountIdentifier(accountId)
                       .orgIdentifier(orgIdentifier)

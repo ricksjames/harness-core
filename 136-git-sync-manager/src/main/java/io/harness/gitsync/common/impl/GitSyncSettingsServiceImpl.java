@@ -9,8 +9,10 @@ package io.harness.gitsync.common.impl;
 
 import static io.harness.annotations.dev.HarnessTeam.DX;
 import static io.harness.gitsync.common.beans.GitSyncSettings.IS_EXECUTE_ON_DELEGATE;
+import static io.harness.gitsync.common.beans.GitSyncSettings.IS_GIT_SIMPLIFICATION_ENABLED;
 
 import io.harness.annotations.dev.OwnedBy;
+import io.harness.exception.InvalidRequestException;
 import io.harness.gitsync.common.beans.GitSyncSettings;
 import io.harness.gitsync.common.beans.GitSyncSettings.GitSyncSettingsKeys;
 import io.harness.gitsync.common.dtos.GitSyncSettingsDTO;
@@ -78,5 +80,53 @@ public class GitSyncSettingsServiceImpl implements GitSyncSettingsService {
   public void delete(String accountIdentifier, String orgIdentifier, String projectIdentifier) {
     gitSyncSettingsRepository.deleteByAccountIdentifierAndOrgIdentifierAndProjectIdentifier(
         accountIdentifier, orgIdentifier, projectIdentifier);
+  }
+
+  @Override
+  public boolean enableGitSimplification(String accountIdentifier, String orgIdentifier, String projectIdentifier) {
+    if (!isGitSimplificationEnabled(accountIdentifier, orgIdentifier, projectIdentifier)) {
+      GitSyncSettings gitSyncSettings =
+          getGitSyncSettingsForGitSimplification(accountIdentifier, orgIdentifier, projectIdentifier);
+      try {
+        gitSyncSettingsRepository.save(gitSyncSettings);
+      } catch (DuplicateKeyException ex) {
+        return isGitSimplificationEnabled(accountIdentifier, orgIdentifier, projectIdentifier);
+      }
+    }
+    return true;
+  }
+
+  @Override
+  public boolean getGitSimplificationStatus(String accountIdentifier, String orgIdentifier, String projectIdentifier) {
+    try {
+      return isGitSimplificationEnabled(accountIdentifier, orgIdentifier, projectIdentifier);
+    } catch (InvalidRequestException ex) {
+      return false;
+    }
+  }
+
+  private boolean isGitSimplificationEnabled(String accountIdentifier, String orgIdentifier, String projectIdentifier) {
+    Optional<GitSyncSettingsDTO> optionalGitSyncSettingsDTO = get(accountIdentifier, orgIdentifier, projectIdentifier);
+    if (optionalGitSyncSettingsDTO.isPresent()) {
+      GitSyncSettingsDTO gitSyncSettings = optionalGitSyncSettingsDTO.get();
+      if (gitSyncSettings.isGitSimplificationEnabled()) {
+        return true;
+      }
+      throw new InvalidRequestException(
+          "Git Management experience is already enabled in this project, cannot enable Git Simplification experience on the same project. Please try with a new project.");
+    }
+    return false;
+  }
+
+  private GitSyncSettings getGitSyncSettingsForGitSimplification(
+      String accountIdentifier, String orgIdentifier, String projectIdentifier) {
+    Map<String, String> settings = new HashMap<>();
+    settings.put(IS_GIT_SIMPLIFICATION_ENABLED, String.valueOf(true));
+    return GitSyncSettings.builder()
+        .accountIdentifier(accountIdentifier)
+        .orgIdentifier(orgIdentifier)
+        .projectIdentifier(projectIdentifier)
+        .settings(settings)
+        .build();
   }
 }
