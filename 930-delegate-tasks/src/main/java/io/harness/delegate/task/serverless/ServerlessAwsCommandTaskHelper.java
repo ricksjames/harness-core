@@ -28,6 +28,7 @@ import io.harness.delegate.beans.serverless.ServerlessAwsLambdaFunction;
 import io.harness.delegate.beans.serverless.ServerlessAwsLambdaFunction.ServerlessAwsLambdaFunctionBuilder;
 import io.harness.delegate.beans.serverless.ServerlessAwsLambdaManifestSchema;
 import io.harness.delegate.task.aws.AwsNgConfigMapper;
+import io.harness.delegate.task.serverless.request.ServerlessCommandRequest;
 import io.harness.delegate.task.serverless.request.ServerlessDeployRequest;
 import io.harness.exception.ExceptionUtils;
 import io.harness.exception.NestedExceptionUtils;
@@ -41,6 +42,7 @@ import io.harness.serverless.AbstractExecutable;
 import io.harness.serverless.ConfigCredentialCommand;
 import io.harness.serverless.DeployCommand;
 import io.harness.serverless.DeployListCommand;
+import io.harness.serverless.RemoveCommand;
 import io.harness.serverless.RollbackCommand;
 import io.harness.serverless.ServerlessCliResponse;
 import io.harness.serverless.ServerlessClient;
@@ -122,6 +124,18 @@ public class ServerlessAwsCommandTaskHelper {
         command, serverlessDelegateTaskParams.getWorkingDirectory(), executionLogCallback, true, timeoutInMillis);
   }
 
+  public boolean cloudFormationTemplateExists(
+          ServerlessCommandRequest serverlessCommandRequest, String cloudFormationStackName) {
+    ServerlessAwsLambdaInfraConfig serverlessAwsLambdaInfraConfig =
+            (ServerlessAwsLambdaInfraConfig) serverlessCommandRequest.getServerlessInfraConfig();
+    String region = serverlessAwsLambdaInfraConfig.getRegion();
+
+    awsCFHelperServiceDelegate.getStackBody(
+            awsNgConfigMapper.createAwsInternalConfig(serverlessAwsLambdaInfraConfig.getAwsConnectorDTO()), region,
+            cloudFormationStackName);
+    return true;
+  }
+
   public String getCurrentCloudFormationTemplate(
       LogCallback executionLogCallback, ServerlessDeployRequest serverlessDeployRequest) {
     ServerlessAwsLambdaManifestSchema serverlessManifestSchema =
@@ -151,6 +165,22 @@ public class ServerlessAwsCommandTaskHelper {
     }
     return ServerlessCommandTaskHelper.executeCommand(
         command, serverlessDelegateTaskParams.getWorkingDirectory(), executionLogCallback, true, timeoutInMillis);
+  }
+
+  public ServerlessCliResponse remove(ServerlessClient serverlessClient,
+                                        ServerlessDelegateTaskParams serverlessDelegateTaskParams, LogCallback executionLogCallback, long timeoutInMillis,
+                                        ServerlessAwsLambdaManifestConfig serverlessAwsLambdaManifestConfig,
+                                        ServerlessAwsLambdaInfraConfig serverlessAwsLambdaInfraConfig)
+          throws InterruptedException, IOException, TimeoutException {
+    executionLogCallback.saveExecutionLog("Serverless Remove Starting..\n");
+    RemoveCommand command = serverlessClient.remove()
+            .stage(serverlessAwsLambdaInfraConfig.getStage())
+            .region(serverlessAwsLambdaInfraConfig.getRegion());
+    if (EmptyPredicate.isNotEmpty(serverlessAwsLambdaManifestConfig.getConfigOverridePath())) {
+      command.config(serverlessAwsLambdaManifestConfig.getConfigOverridePath());
+    }
+    return ServerlessCommandTaskHelper.executeCommand(
+            command, serverlessDelegateTaskParams.getWorkingDirectory(), executionLogCallback, true, timeoutInMillis);
   }
 
   public ServerlessCliResponse rollback(ServerlessClient serverlessClient,
@@ -292,6 +322,23 @@ public class ServerlessAwsCommandTaskHelper {
             .collect(Collectors.toList());
 
     return timeStamps;
+  }
+
+  public boolean isFirstDeployment(LogCallback executionLogCallback, ServerlessCommandRequest serverlessCommandRequest, String manifestContent) {
+    ServerlessAwsLambdaManifestSchema serverlessManifestSchema =
+            parseServerlessManifest(executionLogCallback, manifestContent);
+    ServerlessAwsLambdaInfraConfig serverlessAwsLambdaInfraConfig =
+            (ServerlessAwsLambdaInfraConfig) serverlessCommandRequest.getServerlessInfraConfig();
+    String cloudFormationStackName =
+            serverlessManifestSchema.getService() + "-" + serverlessAwsLambdaInfraConfig.getStage();
+    try {
+      cloudFormationTemplateExists(serverlessCommandRequest, cloudFormationStackName);
+    } catch (Exception e) {
+      if(e.getMessage().contains("Stack with id " + cloudFormationStackName + " does not exist")) {
+        return true;
+      }
+    }
+    return false;
   }
 
   public Optional<String> getPreviousVersionTimeStamp(
