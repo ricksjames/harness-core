@@ -24,6 +24,7 @@ import io.harness.steps.cf.FeatureFlagStageStep;
 import io.harness.steps.cf.FlagConfigurationStep;
 import io.harness.steps.common.pipeline.PipelineSetupStep;
 import io.harness.steps.http.HttpStep;
+import io.harness.steps.jenkins.jenkinsstep.JenkinsBuildStep;
 import io.harness.steps.jira.create.JiraCreateStep;
 import io.harness.steps.jira.update.JiraUpdateStep;
 import io.harness.steps.policy.step.PolicyStep;
@@ -51,6 +52,7 @@ public class OrchestrationStepsModuleStepRegistrar {
     engineSteps.put(JiraApprovalStep.STEP_TYPE, JiraApprovalStep.class);
     engineSteps.put(JiraCreateStep.STEP_TYPE, JiraCreateStep.class);
     engineSteps.put(JiraUpdateStep.STEP_TYPE, JiraUpdateStep.class);
+    engineSteps.put(JenkinsBuildStep.STEP_TYPE, JenkinsBuildStep.class);
 
     engineSteps.put(HttpStep.STEP_TYPE, HttpStep.class);
     engineSteps.put(ShellScriptStep.STEP_TYPE, ShellScriptStep.class);
