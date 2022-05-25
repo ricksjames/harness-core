@@ -23,6 +23,7 @@ import io.harness.delegate.beans.connector.awsconnector.AwsManualConfigSpecDTO;
 import io.harness.delegate.beans.connector.awsconnector.AwsTaskParams;
 import io.harness.exception.ExceptionUtils;
 import io.harness.exception.InvalidRequestException;
+import io.harness.exception.sanitizer.ExceptionMessageSanitizer;
 import io.harness.logging.CommandExecutionStatus;
 import io.harness.security.encryption.SecretDecryptionService;
 
@@ -30,7 +31,6 @@ import software.wings.api.DeploymentType;
 import software.wings.beans.AwsInstanceFilter;
 import software.wings.beans.AwsInstanceFilter.AwsInstanceFilterBuilder;
 import software.wings.beans.AwsInstanceFilter.Tag;
-import software.wings.delegatetasks.ExceptionMessageSanitizer;
 import software.wings.service.impl.AwsApiHelperService;
 import software.wings.service.impl.AwsUtils;
 import software.wings.service.impl.aws.client.CloseableAmazonWebServiceClient;
