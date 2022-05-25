@@ -24,6 +24,7 @@ public interface YamlTypes {
   String ENVIRONMENT_YAML = "environment";
   String ENVIRONMENT_REF = "environmentRef";
   String INFRASTRUCTURE_DEF = "infrastructureDefinition";
+  String INFRASTRUCTURE_DEFS = "infrastructureDefinitions";
   String INFRASTRUCTURE_STEP_PARAMETERS = "infrastructureStepParameters";
   String ENVIRONMENT_NODE_ID = "environmentNodeId";
 

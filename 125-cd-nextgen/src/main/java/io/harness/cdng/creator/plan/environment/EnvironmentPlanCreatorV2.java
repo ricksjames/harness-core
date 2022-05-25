@@ -69,15 +69,15 @@ public class EnvironmentPlanCreatorV2 extends ChildrenPlanCreator<EnvironmentPla
       // if gitOpsEnabled is false, add dependency for infrastructure
       InfrastructureDefinitionConfig infrastructureDefinitionConfig =
           config.getInfrastructureDefinitions().get(0).getInfrastructureDefinitionConfig();
-      YamlField infraField = ctx.getCurrentField().getNode().getField("infrastructureDefinitions");
+      YamlField infraField = ctx.getCurrentField().getNode().getField(YamlTypes.INFRASTRUCTURE_DEFS);
 
       YamlField infraDefinitionField = ctx.getCurrentField()
                                            .getNode()
-                                           .getField("infrastructureDefinitions")
+                                           .getField(YamlTypes.INFRASTRUCTURE_DEFS)
                                            .getNode()
                                            .asArray()
                                            .get(0)
-                                           .getField("infrastructureDefinition");
+                                           .getField(YamlTypes.INFRASTRUCTURE_DEF);
 
       PlanNode infraSpecNode =
           InfrastructurePmsPlanCreator.getInfraStepPlanNode(infrastructureDefinitionConfig.getSpec());
