@@ -40,7 +40,9 @@ public class ExecutionInfoUpdateEventHandler implements PlanStatusUpdateObserver
 
   @Override
   public void onPlanStatusUpdate(Ambiance ambiance) {
-    try (PmsSecurityContextEventGuard securityContextEventGuard = new PmsSecurityContextEventGuard(ambiance)) {
+    // this security context guard is needed because now pipeline get requires proper permissions to be set in the case
+    // when the Pipeline is REMOTE
+    try (PmsSecurityContextEventGuard ignore = new PmsSecurityContextEventGuard(ambiance)) {
       String accountId = AmbianceUtils.getAccountId(ambiance);
       String projectId = AmbianceUtils.getProjectIdentifier(ambiance);
       String orgId = AmbianceUtils.getOrgIdentifier(ambiance);

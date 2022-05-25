@@ -91,6 +91,9 @@ public class PMSPipelineDtoMapper {
   }
 
   public PMSPipelineSummaryResponseDTO preparePipelineSummaryForListView(PipelineEntity pipelineEntity) {
+    // For List View, getEntityGitDetails(...) method cant be used because for REMOTE pipelines,
+    // GitAwareContextHelper.getEntityGitDetailsFromScmGitMetadata() cannot be used. That is because there won't be any
+    // SCM Context set.
     EntityGitDetails entityGitDetails = pipelineEntity.getStoreType() == null
         ? EntityGitDetailsMapper.mapEntityGitDetails(pipelineEntity)
         : pipelineEntity.getStoreType() == StoreType.REMOTE ? GitAwareContextHelper.getEntityGitDetails(pipelineEntity)
