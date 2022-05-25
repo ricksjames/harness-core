@@ -543,18 +543,7 @@ public class TemplateMergeHelper {
       } else {
         Map<FQN, Object> subMap =
             YamlSubMapExtractor.getFQNToObjectSubMap(linkedTemplateInputsConfig.getFqnToValueMap(), key);
-        if (isEmpty(subMap)) {
-          String randomUuid = UUID.randomUUID().toString();
-          linkedTemplateInputsConfig.getFqnToValueMap().put(key, randomUuid);
-          TemplateInputsErrorDTO errorDTO =
-              TemplateInputsErrorDTO.builder()
-                  .fieldName(randomUuid)
-                  .message(String.format(
-                      "Field %s is runtime input in template, but it's value is not provided after it's linked", key))
-                  .identifierOfErrorSource(templateRef)
-                  .build();
-          uuidToErrorMessageMap.put(randomUuid, errorDTO);
-        }
+        // TODO: throw error when subMap is empty
         subMap.keySet().forEach(linkedTemplateInputsFQNs::remove);
       }
     });
