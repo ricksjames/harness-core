@@ -25,7 +25,7 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 @OwnedBy(DX)
 public class GitAwareContextHelper {
-  public GitEntityInfo getGitEntityInfo() {
+  public GitEntityInfo getGitRequestParamsInfo() {
     final GitSyncBranchContext gitSyncBranchContext =
         GlobalContextManager.get(GitSyncBranchContext.NG_GIT_SYNC_CONTEXT);
     if (gitSyncBranchContext == null) {
@@ -82,12 +82,12 @@ public class GitAwareContextHelper {
   }
 
   public String getBranchInRequest() {
-    GitEntityInfo gitEntityInfo = GitAwareContextHelper.getGitEntityInfo();
+    GitEntityInfo gitEntityInfo = GitAwareContextHelper.getGitRequestParamsInfo();
     return gitEntityInfo == null ? "" : gitEntityInfo.getBranch();
   }
 
   public String getFilepathInRequest() {
-    GitEntityInfo gitEntityInfo = GitAwareContextHelper.getGitEntityInfo();
+    GitEntityInfo gitEntityInfo = GitAwareContextHelper.getGitRequestParamsInfo();
     return gitEntityInfo == null ? "" : gitEntityInfo.getFilePath();
   }
 }
