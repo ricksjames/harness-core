@@ -98,7 +98,7 @@ public class AwsListInstancesDelegateTaskHelper {
         tracker.trackEC2Call("List Ec2 instances");
         DescribeInstancesResult describeInstancesResult =
             closeableAmazonEC2Client.getClient().describeInstances(describeInstancesRequest);
-        result.addAll(getInstanceList(describeInstancesResult));
+        result.addAll(getInstanceList(describeInstancesResult, !awsTaskParams.isWinRm()));
         nextToken = describeInstancesResult.getNextToken();
       } while (nextToken != null);
       if (isNotEmpty(result)) {
@@ -111,6 +111,34 @@ public class AwsListInstancesDelegateTaskHelper {
           .instances(result)
           .commandExecutionStatus(CommandExecutionStatus.SUCCESS)
           .build();
+    } catch (Exception e) {
+      log.error("Exception getListInstances", e);
+      throw new InvalidRequestException(ExceptionUtils.getMessage(e), e);
+    }
+  }
+
+  public List<AwsInstance> getListInstances(
+      AwsInternalConfig awsInternalConfig, String region, List<String> instanceIds) {
+    try (CloseableAmazonWebServiceClient<AmazonEC2Client> closeableAmazonEC2Client =
+             new CloseableAmazonWebServiceClient(getAmazonEc2Client(Regions.fromName(region), awsInternalConfig))) {
+      List<AwsInstance> result = new ArrayList<>();
+      String nextToken = null;
+      do {
+        DescribeInstancesRequest describeInstancesRequest =
+            new DescribeInstancesRequest().withNextToken(nextToken).withInstanceIds(instanceIds);
+        tracker.trackEC2Call("List Ec2 instances");
+        DescribeInstancesResult describeInstancesResult =
+            closeableAmazonEC2Client.getClient().describeInstances(describeInstancesRequest);
+        result.addAll(getInstanceList(describeInstancesResult, false));
+        nextToken = describeInstancesResult.getNextToken();
+      } while (nextToken != null);
+      if (isNotEmpty(result)) {
+        tracker.trackEC2Call(
+            "Found instances: " + result.stream().map(AwsInstance::getInstanceId).collect(Collectors.joining(",")));
+      } else {
+        tracker.trackEC2Call("Found 0 instances");
+      }
+      return result;
     } catch (Exception e) {
       log.error("Exception getListInstances", e);
       throw new InvalidRequestException(ExceptionUtils.getMessage(e), e);
@@ -140,11 +168,12 @@ public class AwsListInstancesDelegateTaskHelper {
     return (AmazonEC2Client) builder.build();
   }
 
-  private List<AwsInstance> getInstanceList(DescribeInstancesResult result) {
+  private List<AwsInstance> getInstanceList(DescribeInstancesResult result, boolean excludeWinRm) {
     return result.getReservations()
         .stream()
         .map(Reservation::getInstances)
         .flatMap(List::stream)
+        .filter(o -> !excludeWinRm || excludeWinRm && !"windows".equals(o.getPlatform()))
         .map(o -> AwsInstance.builder().instanceId(o.getInstanceId()).publicDnsName(o.getPublicDnsName()).build())
         .collect(Collectors.toList());
   }

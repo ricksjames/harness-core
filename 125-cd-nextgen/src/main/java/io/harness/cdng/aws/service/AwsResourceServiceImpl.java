@@ -23,6 +23,7 @@ import io.harness.delegate.beans.connector.awsconnector.AwsCFTaskParamsRequest;
 import io.harness.delegate.beans.connector.awsconnector.AwsCFTaskResponse;
 import io.harness.delegate.beans.connector.awsconnector.AwsConnectorDTO;
 import io.harness.delegate.beans.connector.awsconnector.AwsIAMRolesResponse;
+import io.harness.delegate.beans.connector.awsconnector.AwsListASGInstancesTaskParamsRequest;
 import io.harness.delegate.beans.connector.awsconnector.AwsListInstancesTaskParamsRequest;
 import io.harness.delegate.beans.connector.awsconnector.AwsListInstancesTaskResponse;
 import io.harness.delegate.beans.connector.awsconnector.AwsTaskParams;
@@ -59,6 +60,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.apache.commons.lang3.StringUtils;
 
 @Singleton
 @OwnedBy(CDP)
@@ -164,23 +166,35 @@ public class AwsResourceServiceImpl implements AwsResourceService {
   }
 
   @Override
-  public List<AwsInstance> filterHosts(
-      IdentifierRef awsConnectorRef, boolean winRm, String region, List<String> vpcIds, Map<String, String> tags) {
+  public List<AwsInstance> filterHosts(IdentifierRef awsConnectorRef, boolean winRm, String region, List<String> vpcIds,
+      Map<String, String> tags, String autoScalingGroupName) {
     BaseNGAccess access = serviceHelper.getBaseNGAccess(awsConnectorRef.getAccountIdentifier(),
         awsConnectorRef.getOrgIdentifier(), awsConnectorRef.getProjectIdentifier());
 
     AwsConnectorDTO awsConnector = serviceHelper.getAwsConnector(awsConnectorRef);
     List<EncryptedDataDetail> encryptedData = serviceHelper.getAwsEncryptionDetails(awsConnector, access);
 
-    AwsListInstancesTaskParamsRequest awsTaskParams = AwsListInstancesTaskParamsRequest.builder()
-                                                          .awsConnector(awsConnector)
-                                                          .awsTaskType(AwsTaskType.LIST_INSTANCES)
-                                                          .encryptionDetails(encryptedData)
-                                                          .region(region)
-                                                          .vpcIds(vpcIds)
-                                                          .tags(tags)
-                                                          .winRm(winRm)
-                                                          .build();
+    final AwsTaskParams awsTaskParams;
+
+    if (StringUtils.isEmpty(autoScalingGroupName)) {
+      awsTaskParams = AwsListInstancesTaskParamsRequest.builder()
+                          .awsConnector(awsConnector)
+                          .awsTaskType(AwsTaskType.LIST_INSTANCES)
+                          .encryptionDetails(encryptedData)
+                          .region(region)
+                          .vpcIds(vpcIds)
+                          .tags(tags)
+                          .winRm(winRm)
+                          .build();
+    } else {
+      awsTaskParams = AwsListASGInstancesTaskParamsRequest.builder()
+                          .awsConnector(awsConnector)
+                          .awsTaskType(AwsTaskType.LIST_ASG_INSTANCES)
+                          .encryptionDetails(encryptedData)
+                          .region(region)
+                          .autoScalingGroupName(autoScalingGroupName)
+                          .build();
+    }
 
     DelegateResponseData responseData =
         serviceHelper.getResponseData(access, awsTaskParams, TaskType.NG_AWS_TASK.name());

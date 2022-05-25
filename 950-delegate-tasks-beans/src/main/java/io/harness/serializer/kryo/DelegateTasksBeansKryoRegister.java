@@ -146,6 +146,7 @@ import io.harness.delegate.beans.connector.awsconnector.AwsCFTaskParamsRequest;
 import io.harness.delegate.beans.connector.awsconnector.AwsCFTaskResponse;
 import io.harness.delegate.beans.connector.awsconnector.AwsDelegateTaskResponse;
 import io.harness.delegate.beans.connector.awsconnector.AwsIAMRolesResponse;
+import io.harness.delegate.beans.connector.awsconnector.AwsListASGInstancesTaskParamsRequest;
 import io.harness.delegate.beans.connector.awsconnector.AwsListInstancesTaskParamsRequest;
 import io.harness.delegate.beans.connector.awsconnector.AwsListInstancesTaskResponse;
 import io.harness.delegate.beans.connector.awsconnector.AwsS3BucketResponse;
@@ -1391,6 +1392,7 @@ public class DelegateTasksBeansKryoRegister implements KryoRegistrar {
     kryo.register(AwsListInstancesTaskParamsRequest.class, 83071);
     kryo.register(AwsListInstancesTaskResponse.class, 83072);
     kryo.register(AwsInstance.class, 83073);
+    kryo.register(AwsListASGInstancesTaskParamsRequest.class, 83074);
 
     // WinRm
     kryo.register(WinRmCredentialsSpecDTO.class, 600001);

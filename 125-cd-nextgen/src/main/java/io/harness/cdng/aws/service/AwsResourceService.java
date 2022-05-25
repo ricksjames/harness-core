@@ -71,6 +71,18 @@ public interface AwsResourceService {
   List<AwsCFTemplateParamsData> getCFparametersKeys(String type, String region, boolean isBranch, String branch,
       String filePath, String commitId, IdentifierRef awsConnectorRef, String data, String connectorDTO);
 
-  List<AwsInstance> filterHosts(
-      IdentifierRef awsConnectorRef, boolean winRm, String region, List<String> vpcIds, Map<String, String> tags);
+  /**
+   * Get list of AWS instance hosts based on search criteria.
+   * Use either autoScalingGroupName or (vpcIds, tags) criteria.
+   *
+   * @param awsConnectorRef the IdentifierRef of the aws connector
+   * @param winRm true for winRm credentials, default false
+   * @param region AWS region
+   * @param vpcIds list of AWS vpc-ids
+   * @param tags map of tags
+   * @param autoScalingGroupName AWS autoScalingGroupName
+   * @return
+   */
+  List<AwsInstance> filterHosts(IdentifierRef awsConnectorRef, boolean winRm, String region, List<String> vpcIds,
+      Map<String, String> tags, String autoScalingGroupName);
 }

@@ -123,8 +123,8 @@ public class AwsHelperResource {
       @RequestBody(required = true, description = "Filter body") @Valid AwsListInstancesFilterDTO filterDTO) {
     IdentifierRef connectorRef =
         IdentifierRefHelper.getIdentifierRef(awsConnectorRef, accountIdentifier, orgIdentifier, projectIdentifier);
-    List<AwsInstance> instances = awsHelperService.filterHosts(
-        connectorRef, filterDTO.isWinRm(), filterDTO.getRegion(), filterDTO.getVpcIds(), filterDTO.getTags());
+    List<AwsInstance> instances = awsHelperService.filterHosts(connectorRef, filterDTO.isWinRm(), filterDTO.getRegion(),
+        filterDTO.getVpcIds(), filterDTO.getTags(), filterDTO.getAutoScalingGroupName());
     List<String> result = Objects.isNull(instances)
         ? Collections.emptyList()
         : instances.stream().map(AwsInstance::getPublicDnsName).collect(Collectors.toList());
