@@ -69,34 +69,45 @@ public class RuntimeInputValuesValidator {
     }
 
     if (NGExpressionUtils.matchesInputSetPattern(templateValue)
-        && !NGExpressionUtils.isRuntimeOrExpressionField(inputSetFieldValue)) {
+        && !EngineExpressionEvaluator.hasExpressions(inputSetFieldValue)) {
       try {
         ParameterField<?> templateField = YamlUtils.read(templateValue, ParameterField.class);
-        if (templateField.getInputSetValidator() == null) {
-          return error;
-        }
-        InputSetValidator inputSetValidator = templateField.getInputSetValidator();
-        if (inputSetValidator.getValidatorType() == REGEX) {
-          boolean matchesPattern =
-              NGExpressionUtils.matchesPattern(Pattern.compile(inputSetValidator.getParameters()), inputSetFieldValue);
-          error = matchesPattern
-              ? ""
-              : String.format("The value provided %s does not match the required regex pattern", inputSetFieldValue);
-        } else if (inputSetValidator.getValidatorType() == ALLOWED_VALUES) {
-          String[] allowedValues = inputSetValidator.getParameters().split(", *");
-          boolean matches = false;
-          for (String allowedValue : allowedValues) {
-            if (NGExpressionUtils.isRuntimeOrExpressionField(allowedValue)) {
-              return error;
-            } else if (allowedValue.equals(inputSetFieldValue)) {
-              matches = true;
-            }
+        if (NGExpressionUtils.matchesInputSetPattern(inputSetFieldValue)) {
+          if (templateField.getInputSetValidator() != null) {
+            // if both are runtime inputs with input set validator, they should match exactly else return error
+            error = templateValue.equals(inputSetFieldValue)
+                ? ""
+                : String.format(
+                    "The runtime input validator %s cannot be overridden with different runtime input validator %s",
+                    templateValue, inputSetFieldValue);
           }
-          String result = String.join(",", allowedValues);
-          error = matches ? ""
-                          : String.format("The value provided %s does not match any of the allowed values "
-                                  + "[%s]",
-                              inputSetFieldValue, result);
+        } else {
+          if (templateField.getInputSetValidator() == null) {
+            return error;
+          }
+          InputSetValidator inputSetValidator = templateField.getInputSetValidator();
+          if (inputSetValidator.getValidatorType() == REGEX) {
+            boolean matchesPattern = NGExpressionUtils.matchesPattern(
+                Pattern.compile(inputSetValidator.getParameters()), inputSetFieldValue);
+            error = matchesPattern
+                ? ""
+                : String.format("The value provided %s does not match the required regex pattern", inputSetFieldValue);
+          } else if (inputSetValidator.getValidatorType() == ALLOWED_VALUES) {
+            String[] allowedValues = inputSetValidator.getParameters().split(", *");
+            boolean matches = false;
+            for (String allowedValue : allowedValues) {
+              if (NGExpressionUtils.isRuntimeOrExpressionField(allowedValue)) {
+                return error;
+              } else if (allowedValue.equals(inputSetFieldValue)) {
+                matches = true;
+              }
+            }
+            String result = String.join(",", allowedValues);
+            error = matches ? ""
+                            : String.format("The value provided %s does not match any of the allowed values "
+                                    + "[%s]",
+                                inputSetFieldValue, result);
+          }
         }
       } catch (IOException e) {
         throw new InvalidRequestException(

@@ -30,6 +30,7 @@ import io.harness.gitsync.interceptor.GitEntityInfo;
 import io.harness.gitsync.interceptor.GitSyncBranchContext;
 import io.harness.ng.core.common.beans.NGTag.NGTagKeys;
 import io.harness.ng.core.template.TemplateMergeResponseDTO;
+import io.harness.ng.core.template.exception.NGTemplateResolveException;
 import io.harness.opaclient.model.OpaConstants;
 import io.harness.pms.PmsFeatureFlagService;
 import io.harness.pms.contracts.governance.ExpansionRequestMetadata;
@@ -175,6 +176,8 @@ public class PMSPipelineServiceHelper {
       }
     } catch (io.harness.yaml.validator.InvalidYamlException ex) {
       ex.setYaml(pipelineEntity.getData());
+      throw ex;
+    } catch (NGTemplateResolveException ex) {
       throw ex;
     } catch (Exception ex) {
       YamlSchemaErrorWrapperDTO errorWrapperDTO =
