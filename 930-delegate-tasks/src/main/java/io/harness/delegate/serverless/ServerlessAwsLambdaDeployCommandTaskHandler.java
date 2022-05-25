@@ -211,6 +211,10 @@ public class ServerlessAwsLambdaDeployCommandTaskHandler extends ServerlessComma
   private void prepareRollbackData(ServerlessDeployRequest serverlessDeployRequest, LogCallback executionLogCallback,
       ServerlessDelegateTaskParams serverlessDelegateTaskParams) throws Exception {
     executionLogCallback.saveExecutionLog(format("Preparing Rollback Data..%n%n"));
+    boolean isFirstDeployment = serverlessAwsCommandTaskHelper.isFirstDeployment(executionLogCallback, serverlessDeployRequest, serverlessDeployRequest.getManifestContent());
+    if(isFirstDeployment) {
+      previousDeployTimeStamp = "firstDeployment";
+    }
     ServerlessCliResponse response =
         serverlessAwsCommandTaskHelper.deployList(serverlessClient, serverlessDelegateTaskParams, executionLogCallback,
             serverlessAwsLambdaInfraConfig, timeoutInMillis, serverlessManifestConfig);
