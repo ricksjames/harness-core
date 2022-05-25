@@ -10,6 +10,7 @@ import io.harness.pms.contracts.execution.StrategyMetadata;
 
 import com.google.inject.Singleton;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,7 +36,7 @@ public class MatrixConfigService implements StrategyConfigService {
                        .setStrategyMetadata(StrategyMetadata.newBuilder()
                                                 .setCurrentIteration(currentIteration)
                                                 .setTotalIterations(totalCount)
-                                                .getDefaultInstanceForType())
+                                                .build())
                        .build());
       currentIteration++;
     }
@@ -47,7 +48,7 @@ public class MatrixConfigService implements StrategyConfigService {
       List<String> keys) {
     if (axes.size() == 0) {
       if (!exclude.contains(ExcludeConfig.builder().exclude(currentCombination).build())) {
-        combinations.add(currentCombination);
+        combinations.add(new HashMap<>(currentCombination));
         matrixMetadata.add(keys);
       }
       return;
@@ -59,6 +60,8 @@ public class MatrixConfigService implements StrategyConfigService {
     for (String value : axisValues.getAxisValue().getValue()) {
       currentCombination.put(key, value);
       fetchCombinations(currentCombination, axes, combinations, exclude, matrixMetadata, keys);
+      currentCombination.remove(key);
     }
+    axes.put(key, axisValues);
   }
 }
