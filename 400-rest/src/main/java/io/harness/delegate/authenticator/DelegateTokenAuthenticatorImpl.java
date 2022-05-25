@@ -102,12 +102,13 @@ public class DelegateTokenAuthenticatorImpl implements DelegateTokenAuthenticato
 
     String tokenHash = DigestUtils.md5Hex(tokenString);
     // first validate it from DelegateJWTCache
-    if (delegateJWTCacheHelper.validateDelegateJWTString(delegateId, tokenString, tokenHash)) {
+    if (delegateJWTCacheHelper.validateDelegateJWTString(tokenHash)) {
       return;
     }
 
-    log.debug(
-        "Not able to validate DelegateJWT from cache. Falling back to older method of validating from delegate token cache.");
+    //    log.debug(
+    //        "Not able to validate DelegateJWT from cache. Falling back to older method of validating from delegate
+    //        token cache.");
 
     DelegateToken delegateTokenFromCache = delegateTokenCacheHelper.getDelegateToken(delegateId);
     boolean decryptedWithTokenFromCache =
