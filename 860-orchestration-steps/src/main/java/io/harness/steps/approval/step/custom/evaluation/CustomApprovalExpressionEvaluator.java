@@ -10,12 +10,11 @@ package io.harness.steps.approval.step.custom.evaluation;
 import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.expression.EngineExpressionEvaluator;
+import io.harness.steps.OutputExpressionConstants;
 import io.harness.steps.approval.step.custom.beans.CustomApprovalTicketNG;
 
 @OwnedBy(HarnessTeam.CDC)
 public class CustomApprovalExpressionEvaluator extends EngineExpressionEvaluator {
-  public static final String TICKET_IDENTIFIER = "ticket";
-
   private final CustomApprovalTicketNG customApprovalTicketNG;
 
   public CustomApprovalExpressionEvaluator(CustomApprovalTicketNG customApprovalTicketNG) {
@@ -26,6 +25,6 @@ public class CustomApprovalExpressionEvaluator extends EngineExpressionEvaluator
   @Override
   protected void initialize() {
     super.initialize();
-    addToContext(TICKET_IDENTIFIER, customApprovalTicketNG.getFields());
+    addToContext(OutputExpressionConstants.OUTPUT, customApprovalTicketNG.getFields());
   }
 }

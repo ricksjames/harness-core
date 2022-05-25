@@ -30,7 +30,8 @@ import org.apache.commons.lang3.StringUtils;
 public class CustomApprovalCriteriaEvaluator {
   public static boolean evaluateCriteria(CustomApprovalTicketNG ticket, CriteriaSpecDTO criteriaSpec) {
     if (ticket == null || ticket.getFields() == null || EmptyPredicate.isEmpty(ticket.getFields())) {
-      throw new ApprovalStepNGException("Failed to fetch ticket. Ticket number might be invalid", true);
+      throw new ApprovalStepNGException(
+          "Custom Approval has no output fields. At least one output field must be set", true);
     }
     if (criteriaSpec instanceof JexlCriteriaSpecDTO) {
       return evaluateJexlCriteria(ticket, (JexlCriteriaSpecDTO) criteriaSpec);
@@ -48,8 +49,9 @@ public class CustomApprovalCriteriaEvaluator {
     }
 
     try {
-      CustomApprovalExpressionEvaluator serviceNowExpressionEvaluator = new CustomApprovalExpressionEvaluator(ticketNG);
-      Object result = serviceNowExpressionEvaluator.evaluateExpression(expression);
+      CustomApprovalExpressionEvaluator customApprovalExpressionEvaluator =
+          new CustomApprovalExpressionEvaluator(ticketNG);
+      Object result = customApprovalExpressionEvaluator.evaluateExpression(expression);
       if (result instanceof Boolean) {
         return (boolean) result;
       } else {
