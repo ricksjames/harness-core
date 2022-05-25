@@ -44,9 +44,9 @@ public class RemoveDuplicateAnomaliesTasklet implements Tasklet {
     List<String> duplicateIds = getDuplicates(anomalyList);
     log.info("[RDA] deleting anomalies {}", duplicateIds);
 
-    //    if (!duplicateIds.isEmpty()) {
-    //      removeDuplicates(duplicateIds, startTime);
-    //    }
+    if (!duplicateIds.isEmpty()) {
+      removeDuplicates(duplicateIds, startTime);
+    }
     return null;
   }
 
