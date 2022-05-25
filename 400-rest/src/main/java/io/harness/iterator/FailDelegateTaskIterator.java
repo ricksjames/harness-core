@@ -69,6 +69,7 @@ import java.security.SecureRandom;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
@@ -102,6 +103,7 @@ public class FailDelegateTaskIterator implements MongoPersistenceIterator.Handle
   private static final long DELEGATE_TASK_FAIL_TIMEOUT = 5;
   private static final FindOptions expiryLimit = new FindOptions().limit(100);
   private static final SecureRandom random = new SecureRandom();
+  List<String> rings = Arrays.asList("ring2", "ring3");
 
   public void registerIterators(int threadPoolSize) {
     PersistenceIteratorFactory.PumpExecutorOptions options =
@@ -114,13 +116,12 @@ public class FailDelegateTaskIterator implements MongoPersistenceIterator.Handle
         MongoPersistenceIterator.<Account, MorphiaFilterExpander<Account>>builder()
             .clazz(Account.class)
             .fieldName(AccountKeys.delegateTaskFailIteration)
-            .targetInterval(Duration.ofSeconds(DELEGATE_TASK_FAIL_TIMEOUT))
+            .targetInterval(Duration.ofMinutes(DELEGATE_TASK_FAIL_TIMEOUT))
             .acceptableNoAlertDelay(Duration.ofSeconds(45))
             .acceptableExecutionTime(Duration.ofSeconds(30))
             .filterExpander(query
-                -> query.or(query.criteria(AccountKeys.licenseInfo).doesNotExist(),
-                    query.criteria(AccountKeys.licenseInfo + "." + LicenseInfoKeys.accountStatus)
-                        .equal(AccountStatus.ACTIVE)))
+                -> query.criteria(AccountKeys.ringName)
+                            .in(rings))
             .handler(this)
             .schedulingType(MongoPersistenceIterator.SchedulingType.REGULAR)
             .persistenceProvider(persistenceProvider)
@@ -129,6 +130,7 @@ public class FailDelegateTaskIterator implements MongoPersistenceIterator.Handle
 
   @Override
   public void handle(Account account) {
+    log.info("iterator running for account {} ", account.getAccountName());
     if (configurationController.isPrimary()) {
       markTimedOutTasksAsFailed(account);
       markLongQueuedTasksAsFailed(account);
