@@ -16,7 +16,6 @@ import static java.lang.String.format;
 
 import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
-import io.harness.data.structure.EmptyPredicate;
 import io.harness.delegate.beans.logstreaming.CommandUnitsProgress;
 import io.harness.delegate.beans.logstreaming.ILogStreamingTaskClient;
 import io.harness.delegate.beans.serverless.ServerlessAwsLambdaManifestSchema;
@@ -26,6 +25,7 @@ import io.harness.delegate.task.serverless.ServerlessAwsCommandTaskHelper;
 import io.harness.delegate.task.serverless.ServerlessAwsLambdaInfraConfig;
 import io.harness.delegate.task.serverless.ServerlessAwsLambdaManifestConfig;
 import io.harness.delegate.task.serverless.ServerlessAwsLambdaRollbackConfig;
+import io.harness.delegate.task.serverless.ServerlessFirstDeploymentTimestamp;
 import io.harness.delegate.task.serverless.ServerlessInfraConfigHelper;
 import io.harness.delegate.task.serverless.ServerlessTaskHelperBase;
 import io.harness.delegate.task.serverless.request.ServerlessCommandRequest;
@@ -65,6 +65,7 @@ public class ServerlessAwsLambdaRollbackCommandTaskHandler extends ServerlessCom
   private ServerlessAwsLambdaInfraConfig serverlessAwsLambdaInfraConfig;
   private ServerlessAwsLambdaConfig serverlessAwsLambdaConfig;
   private long timeoutInMillis;
+  private boolean addTimestampToResponse;
 
   @Override
   protected ServerlessCommandResponse executeTaskInternal(ServerlessCommandRequest serverlessCommandRequest,
@@ -178,33 +179,39 @@ public class ServerlessAwsLambdaRollbackCommandTaskHandler extends ServerlessCom
     ServerlessCliResponse response;
     ServerlessAwsLambdaRollbackConfig serverlessAwsLambdaRollbackConfig =
         (ServerlessAwsLambdaRollbackConfig) serverlessRollbackRequest.getServerlessRollbackConfig();
+    addTimestampToResponse = true;
     ServerlessAwsLambdaRollbackResultBuilder serverlessAwsLambdaRollbackResultBuilder =
-            ServerlessAwsLambdaRollbackResult.builder();
+        ServerlessAwsLambdaRollbackResult.builder();
     serverlessAwsLambdaRollbackResultBuilder.service(serverlessManifestSchema.getService());
     serverlessAwsLambdaRollbackResultBuilder.region(serverlessAwsLambdaInfraConfig.getRegion());
     serverlessAwsLambdaRollbackResultBuilder.stage(serverlessAwsLambdaInfraConfig.getStage());
     ServerlessRollbackResponseBuilder serverlessRollbackResponseBuilder = ServerlessRollbackResponse.builder();
 
-    if(serverlessAwsLambdaRollbackConfig.getPreviousVersionTimeStamp().equals("firstDeployment")) {
-      if(serverlessAwsCommandTaskHelper.isFirstDeployment(executionLogCallback, serverlessRollbackRequest, serverlessRollbackRequest.getManifestContent())) {
-        executionLogCallback.saveExecutionLog(format("Nothing to Rollback or Remove..%n"), LogLevel.INFO, CommandExecutionStatus.SUCCESS);
+    if (ServerlessFirstDeploymentTimestamp.SERVERLESS_FIRST_DEPLOYMENT_TIMESTAMP.toString().equals(
+            serverlessAwsLambdaRollbackConfig.getPreviousVersionTimeStamp())) {
+      if (serverlessAwsCommandTaskHelper.isFirstDeployment(
+              executionLogCallback, serverlessRollbackRequest, serverlessRollbackRequest.getManifestContent())) {
+        executionLogCallback.saveExecutionLog(
+            format("Nothing to Rollback or Remove..%n"), LogLevel.INFO, CommandExecutionStatus.SUCCESS);
         serverlessRollbackResponseBuilder.commandExecutionStatus(CommandExecutionStatus.SUCCESS);
         serverlessRollbackResponseBuilder.serverlessRollbackResult(serverlessAwsLambdaRollbackResultBuilder.build());
         return serverlessRollbackResponseBuilder.build();
       } else {
         response = serverlessAwsCommandTaskHelper.remove(serverlessClient, serverlessDelegateTaskParams,
-                executionLogCallback, timeoutInMillis, serverlessManifestConfig,
-                serverlessAwsLambdaInfraConfig);
+            executionLogCallback, timeoutInMillis, serverlessManifestConfig, serverlessAwsLambdaInfraConfig);
+        addTimestampToResponse = false;
       }
     } else {
       response = serverlessAwsCommandTaskHelper.rollback(serverlessClient, serverlessDelegateTaskParams,
-              executionLogCallback, serverlessAwsLambdaRollbackConfig, timeoutInMillis, serverlessManifestConfig,
-              serverlessAwsLambdaInfraConfig);
+          executionLogCallback, serverlessAwsLambdaRollbackConfig, timeoutInMillis, serverlessManifestConfig,
+          serverlessAwsLambdaInfraConfig);
     }
 
     if (response.getCommandExecutionStatus() == CommandExecutionStatus.SUCCESS) {
-      serverlessAwsLambdaRollbackResultBuilder.rollbackTimeStamp(
-          serverlessAwsLambdaRollbackConfig.getPreviousVersionTimeStamp());
+      if (addTimestampToResponse) {
+        serverlessAwsLambdaRollbackResultBuilder.rollbackTimeStamp(
+            serverlessAwsLambdaRollbackConfig.getPreviousVersionTimeStamp());
+      }
       executionLogCallback.saveExecutionLog(
           color(format("%nRollback completed successfully..%n"), LogColor.White, LogWeight.Bold), LogLevel.INFO,
           CommandExecutionStatus.SUCCESS);
