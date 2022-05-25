@@ -136,6 +136,7 @@ public class DelegateTokenAuthenticatorImpl implements DelegateTokenAuthenticato
       } catch (ParseException e) {
         log.warn("Couldn't parse token", e);
       }
+      delegateJWTCacheHelper.setDelegateJWTCache(tokenHash, false);
       log.error("Delegate {} is using REVOKED delegate token. DelegateId: {}", delegateHostName, delegateId);
       throw new RevokedTokenException("Invalid delegate token. Delegate is using revoked token", USER_ADMIN);
     }
@@ -148,13 +149,14 @@ public class DelegateTokenAuthenticatorImpl implements DelegateTokenAuthenticato
       JWTClaimsSet jwtClaimsSet = encryptedJWT.getJWTClaimsSet();
       if (System.currentTimeMillis() > jwtClaimsSet.getExpirationTime().getTime()) {
         log.error("Delegate {} is using EXPIRED delegate token. DelegateId: {}", jwtClaimsSet.getIssuer(), delegateId);
+        delegateJWTCacheHelper.setDelegateJWTCache(tokenHash, false);
         throw new InvalidRequestException("Unauthorized", EXPIRED_TOKEN, null);
       }
     } catch (Exception ex) {
       throw new InvalidRequestException("Unauthorized", ex, EXPIRED_TOKEN, null);
     }
 
-    delegateJWTCacheHelper.setDelegateJWTCache(tokenHash);
+    delegateJWTCacheHelper.setDelegateJWTCache(tokenHash, true);
   }
 
   @Override
