@@ -199,7 +199,7 @@ for tfConfigInspectVersion in v1.0 v1.1; do
 
 done
 
-for scmVersion in b1e57f64; do
+for scmVersion in 25a60daa; do
   echo "Adding scm" $scmVersion
 
   SCM_LINUX_DIR="${IMAGES_DIR}/scm/linux/$scmVersion/"
