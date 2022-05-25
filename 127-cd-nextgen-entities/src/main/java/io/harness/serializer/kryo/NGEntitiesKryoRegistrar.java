@@ -40,6 +40,7 @@ import io.harness.cdng.manifest.yaml.HelmChartManifestOutcome;
 import io.harness.cdng.manifest.yaml.HelmCommandFlagType;
 import io.harness.cdng.manifest.yaml.HelmManifestCommandFlag;
 import io.harness.cdng.manifest.yaml.HttpStoreConfig;
+import io.harness.cdng.manifest.yaml.InheritFromManifestStoreConfig;
 import io.harness.cdng.manifest.yaml.K8sManifestOutcome;
 import io.harness.cdng.manifest.yaml.KustomizeManifestOutcome;
 import io.harness.cdng.manifest.yaml.KustomizePatchesManifestOutcome;
@@ -79,6 +80,7 @@ import io.harness.cdng.service.beans.StageOverridesConfig;
 import io.harness.cdng.service.beans.WinRmServiceSpec;
 import io.harness.cdng.variables.beans.NGVariableOverrideSetWrapper;
 import io.harness.cdng.variables.beans.NGVariableOverrideSets;
+import io.harness.ng.core.environment.beans.Environment;
 import io.harness.ng.core.service.entity.ServiceEntity;
 import io.harness.serializer.KryoRegistrar;
 
@@ -166,5 +168,7 @@ public class NGEntitiesKryoRegistrar implements KryoRegistrar {
     kryo.register(GitLabStore.class, 12528);
     kryo.register(BitbucketStore.class, 12529);
     kryo.register(GitStore.class, 8023);
+    kryo.register(Environment.class, 22003);
+    kryo.register(InheritFromManifestStoreConfig.class, 12565);
   }
 }
