@@ -33,7 +33,9 @@ public class GitSyncLogContextHelper {
   public static Map<String, String> setContextMap(Scope scope, String repoName, String branchName, String filePath,
       GitOperation operationType, Map<String, String> contextMap) {
     logContextMap = new HashMap<>();
-    logContextMap.putAll(contextMap);
+    if (isNotEmpty(contextMap)) {
+      logContextMap.putAll(contextMap);
+    }
     setContextIfNotNull(ACCOUNT_KEY, scope.getAccountIdentifier());
     setContextIfNotNull(ORG_KEY, scope.getOrgIdentifier());
     setContextIfNotNull(PROJECT_KEY, scope.getProjectIdentifier());
