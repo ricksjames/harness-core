@@ -28,6 +28,7 @@ import io.harness.template.beans.yaml.NGTemplateInfoConfig;
 import io.harness.template.entity.TemplateEntity;
 import io.harness.utils.YamlPipelineUtils;
 
+import io.dropwizard.jersey.validation.JerseyViolationException;
 import java.io.IOException;
 import lombok.experimental.UtilityClass;
 
@@ -153,6 +154,9 @@ public class NGTemplateDtoMapper {
       NGTemplateConfig templateConfig = YamlPipelineUtils.read(templateYaml, NGTemplateConfig.class);
       validateTemplateYaml(templateConfig, orgId, projectId, templateIdentifier, versionLabel);
       return toTemplateEntityResponse(accountId, orgId, projectId, templateConfig, templateYaml);
+    } catch (JerseyViolationException e) {
+      throw new InvalidRequestException("Identifier " + templateIdentifier + " did not pass validation checks: "
+          + e.getConstraintViolations().stream().map(i -> i.getMessage()).reduce("", (i, j) -> i + " <" + j + "> "));
     } catch (IOException e) {
       throw new InvalidRequestException("Cannot create template entity due to " + e.getMessage());
     }
