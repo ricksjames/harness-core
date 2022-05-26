@@ -13,6 +13,7 @@ import static io.harness.gitsync.common.beans.BranchSyncStatus.UNSYNCED;
 import static io.harness.gitsync.common.scmerrorhandling.ScmErrorCodeToHttpStatusCodeMapping.HTTP_200;
 
 import io.harness.annotations.dev.OwnedBy;
+import io.harness.beans.FeatureName;
 import io.harness.beans.IdentifierRef;
 import io.harness.common.EntityReference;
 import io.harness.connector.ConnectorResponseDTO;
@@ -87,6 +88,7 @@ import io.harness.security.Principal;
 import io.harness.security.dto.UserPrincipal;
 import io.harness.tasks.DecryptGitApiAccessHelper;
 import io.harness.utils.IdentifierRefHelper;
+import io.harness.utils.featureflaghelper.NGFeatureFlagHelperService;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Inject;
@@ -120,6 +122,7 @@ public class HarnessToGitHelperServiceImpl implements HarnessToGitHelperService 
   private final FullSyncJobService fullSyncJobService;
   private final ScmFacilitatorService scmFacilitatorService;
   private final GitSyncSettingsService gitSyncSettingsService;
+  private final NGFeatureFlagHelperService featureFlagHelperService;
 
   @Inject
   public HarnessToGitHelperServiceImpl(@Named("connectorDecoratorService") ConnectorService connectorService,
@@ -129,7 +132,8 @@ public class HarnessToGitHelperServiceImpl implements HarnessToGitHelperService 
       ScmOrchestratorService scmOrchestratorService, GitBranchSyncService gitBranchSyncService,
       GitCommitService gitCommitService, UserProfileHelper userProfileHelper, GitSyncErrorService gitSyncErrorService,
       GitSyncConnectorHelper gitSyncConnectorHelper, FullSyncJobService fullSyncJobService,
-      ScmFacilitatorService scmFacilitatorService, GitSyncSettingsService gitSyncSettingsService) {
+      ScmFacilitatorService scmFacilitatorService, GitSyncSettingsService gitSyncSettingsService,
+      NGFeatureFlagHelperService featureFlagHelperService) {
     this.connectorService = connectorService;
     this.decryptScmApiAccess = decryptScmApiAccess;
     this.gitEntityService = gitEntityService;
@@ -147,6 +151,7 @@ public class HarnessToGitHelperServiceImpl implements HarnessToGitHelperService 
     this.fullSyncJobService = fullSyncJobService;
     this.scmFacilitatorService = scmFacilitatorService;
     this.gitSyncSettingsService = gitSyncSettingsService;
+    this.featureFlagHelperService = featureFlagHelperService;
   }
 
   private Optional<ConnectorResponseDTO> getConnector(
@@ -251,8 +256,20 @@ public class HarnessToGitHelperServiceImpl implements HarnessToGitHelperService 
 
   @Override
   public Boolean isGitSimplificationEnabled(EntityScopeInfo entityScopeInfo) {
-    return gitSyncSettingsService.getGitSimplificationStatus(entityScopeInfo.getAccountId(),
-        entityScopeInfo.getOrgId().getValue(), entityScopeInfo.getProjectId().getValue());
+    try {
+      if (featureFlagHelperService.isEnabled(entityScopeInfo.getAccountId(), FeatureName.GIT_SIMPLIFICATION)) {
+        return true;
+      }
+      return gitSyncSettingsService.getGitSimplificationStatus(entityScopeInfo.getAccountId(),
+          entityScopeInfo.getOrgId().getValue(), entityScopeInfo.getProjectId().getValue());
+    } catch (Exception ex) {
+      log.error(
+          String.format(
+              "Exception while checking git Simplification status for accountId: %s , orgId: %s , projectId: %s "),
+          entityScopeInfo.getAccountId(), entityScopeInfo.getOrgId().getValue(),
+          entityScopeInfo.getProjectId().getValue(), ex);
+      return false;
+    }
   }
 
   private void createGitBranch(
