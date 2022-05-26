@@ -1,10 +1,16 @@
+/*
+ * Copyright 2022 Harness Inc. All rights reserved.
+ * Use of this source code is governed by the PolyForm Free Trial 1.0.0 license
+ * that can be found in the licenses directory at the root of this repository, also available at
+ * https://polyformproject.org/wp-content/uploads/2020/05/PolyForm-Free-Trial-1.0.0.txt.
+ */
+
 package io.harness.gitsync.common.helper;
 
 import static io.harness.NGCommonEntityConstants.ACCOUNT_KEY;
 import static io.harness.NGCommonEntityConstants.ORG_KEY;
 import static io.harness.NGCommonEntityConstants.PROJECT_KEY;
 import static io.harness.annotations.dev.HarnessTeam.PL;
-import static io.harness.data.structure.EmptyPredicate.isEmpty;
 import static io.harness.data.structure.EmptyPredicate.isNotEmpty;
 
 import io.harness.annotations.dev.OwnedBy;
@@ -22,13 +28,12 @@ public class GitSyncLogContextHelper {
   public static final String REPO_NAME_KEY = "repoName";
   public static final String FILEPATH_KEY = "filePath";
   public static final String BRANCH_KEY = "branch";
-  private Map<String, String> logContextMap = new HashMap<>();
+  private Map<String, String> logContextMap;
 
   public static Map<String, String> setContextMap(Scope scope, String repoName, String branchName, String filePath,
       GitOperation operationType, Map<String, String> contextMap) {
-    if (isNotEmpty(contextMap)) {
-      logContextMap = contextMap;
-    }
+    logContextMap = new HashMap<>();
+    logContextMap.putAll(contextMap);
     setContextIfNotNull(ACCOUNT_KEY, scope.getAccountIdentifier());
     setContextIfNotNull(ORG_KEY, scope.getOrgIdentifier());
     setContextIfNotNull(PROJECT_KEY, scope.getProjectIdentifier());
