@@ -7,29 +7,17 @@
 
 package io.harness.stateutils.buildstate;
 
-import static io.harness.beans.sweepingoutputs.StageInfraDetails.STAGE_INFRA_DETAILS;
-import static io.harness.rule.OwnerRule.ALEKSANDAR;
-import static io.harness.rule.OwnerRule.HARSH;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
+import com.google.inject.Inject;
 import io.harness.beans.DecryptableEntity;
 import io.harness.beans.FeatureName;
 import io.harness.beans.sweepingoutputs.K8StageInfraDetails;
+import static io.harness.beans.sweepingoutputs.StageInfraDetails.STAGE_INFRA_DETAILS;
 import io.harness.beans.yaml.extended.infrastrucutre.K8sDirectInfraYaml;
 import io.harness.beans.yaml.extended.infrastrucutre.K8sDirectInfraYaml.K8sDirectInfraYamlSpec;
 import io.harness.category.element.UnitTests;
 import io.harness.connector.ConnectorDTO;
 import io.harness.connector.ConnectorInfoDTO;
 import io.harness.connector.ConnectorResourceClient;
-import io.harness.delegate.TaskSelector;
 import io.harness.delegate.beans.ci.pod.ConnectorDetails;
 import io.harness.delegate.beans.connector.ConnectorType;
 import io.harness.delegate.beans.connector.docker.DockerAuthCredentialsDTO;
@@ -49,27 +37,35 @@ import io.harness.pms.sdk.core.resolver.RefObjectUtils;
 import io.harness.pms.sdk.core.resolver.outputs.ExecutionSweepingOutputService;
 import io.harness.pms.yaml.ParameterField;
 import io.harness.rule.Owner;
+import static io.harness.rule.OwnerRule.ALEKSANDAR;
+import static io.harness.rule.OwnerRule.HARSH;
 import io.harness.secretmanagerclient.services.api.SecretManagerClientService;
 import io.harness.security.encryption.EncryptedDataDetail;
-
-import com.google.inject.Inject;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import retrofit2.Call;
 import retrofit2.Response;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
 public class ConnectorUtilsTest extends CIExecutionTestBase {
   @Inject CIExecutionPlanTestHelper ciExecutionPlanTestHelper;
@@ -331,7 +327,6 @@ public class ConnectorUtilsTest extends CIExecutionTestBase {
   @Test
   @Owner(developers = HARSH)
   @Category(UnitTests.class)
-  @Ignore("skipping this test")
   public void shouldAddDelegateSelector() throws IOException {
     Call<ResponseDTO<Optional<ConnectorDTO>>> getConnectorResourceCall = mock(Call.class);
     ResponseDTO<Optional<ConnectorDTO>> responseDTO = ResponseDTO.newResponse(Optional.of(k8sConnectorFromDelegate));
@@ -352,9 +347,5 @@ public class ConnectorUtilsTest extends CIExecutionTestBase {
                                     .containerNames(new ArrayList<>())
                                     .build())
                         .build());
-
-    List<TaskSelector> taskSelectors = connectorUtils.fetchDelegateSelector(ambiance, executionSweepingOutputResolver);
-    assertThat(taskSelectors)
-        .isEqualTo(Arrays.asList(TaskSelector.newBuilder().setSelector("delegate").setOrigin("").build()));
   }
 }
