@@ -18,6 +18,9 @@ import java.util.Arrays;
 import java.util.List;
 
 public enum ServiceDefinitionType {
+  @JsonProperty(ServiceSpecType.GITOPS)
+  GITOPS("GitOps", Lists.newArrayList(ExecutionStrategyType.DEFAULT), ServiceSpecType.GITOPS),
+
   @JsonProperty(ServiceSpecType.KUBERNETES)
   KUBERNETES(ServiceSpecType.KUBERNETES,
       Lists.newArrayList(ExecutionStrategyType.ROLLING, ExecutionStrategyType.BLUE_GREEN, ExecutionStrategyType.CANARY,

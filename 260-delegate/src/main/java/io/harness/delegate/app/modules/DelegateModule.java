@@ -189,6 +189,7 @@ import io.harness.delegate.task.gcp.taskHandlers.GcpValidationTaskHandler;
 import io.harness.delegate.task.gcp.taskHandlers.TaskHandler;
 import io.harness.delegate.task.git.GitFetchTaskNG;
 import io.harness.delegate.task.git.NGGitCommandTask;
+import io.harness.delegate.task.git.NGGitOpsCommandTask;
 import io.harness.delegate.task.gitapi.DecryptGitAPIAccessTask;
 import io.harness.delegate.task.gitapi.GitApiTask;
 import io.harness.delegate.task.helm.HelmCommandTaskNG;
@@ -1547,6 +1548,7 @@ public class DelegateModule extends AbstractModule {
     mapBinder.addBinding(TaskType.RANCHER_RESOLVE_CLUSTERS).toInstance(RancherResolveClustersTask.class);
 
     // Add all NG tasks below this.
+    mapBinder.addBinding(TaskType.GITOPS_TASK_NG).toInstance(NGGitOpsCommandTask.class);
     mapBinder.addBinding(TaskType.GCP_TASK).toInstance(GcpTask.class);
     mapBinder.addBinding(TaskType.VALIDATE_KUBERNETES_CONFIG).toInstance(KubernetesTestConnectionDelegateTask.class);
     mapBinder.addBinding(TaskType.NG_GIT_COMMAND).toInstance(NGGitCommandTask.class);

@@ -30,6 +30,7 @@ import io.harness.cdng.creator.plan.steps.CDPMSStepPlanCreator;
 import io.harness.cdng.creator.plan.steps.CloudformationCreateStackStepPlanCreator;
 import io.harness.cdng.creator.plan.steps.CloudformationDeleteStackStepPlanCreator;
 import io.harness.cdng.creator.plan.steps.CloudformationRollbackStackStepPlanCreator;
+import io.harness.cdng.creator.plan.steps.GitOpsCreatePRStepPlanCreatorV2;
 import io.harness.cdng.creator.plan.steps.HelmDeployStepPlanCreatorV2;
 import io.harness.cdng.creator.plan.steps.HelmRollbackStepPlanCreatorV2;
 import io.harness.cdng.creator.plan.steps.K8sApplyStepPlanCreator;
@@ -102,6 +103,7 @@ public class CDNGPlanCreatorProvider implements PipelineServiceInfoProvider {
   @Override
   public List<PartialPlanCreator<?>> getPlanCreators() {
     List<PartialPlanCreator<?>> planCreators = new LinkedList<>();
+    planCreators.add(new GitOpsCreatePRStepPlanCreatorV2());
     planCreators.add(new DeploymentStagePMSPlanCreatorV2());
     planCreators.add(new CDPMSStepPlanCreator());
     planCreators.add(new K8sCanaryStepPlanCreator());
@@ -185,6 +187,13 @@ public class CDNGPlanCreatorProvider implements PipelineServiceInfoProvider {
 
   @Override
   public List<StepInfo> getStepInfo() {
+    StepInfo gitOpsCreatePR =
+        StepInfo.newBuilder()
+            .setName("GitOps Create PR")
+            .setType(StepSpecTypeConstants.GITOPS_CREATE_PR)
+            .setStepMetaData(StepMetaData.newBuilder().addCategory("GitOps").setFolderPath("GitOps").build())
+            .build();
+
     StepInfo k8sRolling =
         StepInfo.newBuilder()
             .setName("Rolling Deployment")
@@ -365,6 +374,7 @@ public class CDNGPlanCreatorProvider implements PipelineServiceInfoProvider {
 
     List<StepInfo> stepInfos = new ArrayList<>();
 
+    stepInfos.add(gitOpsCreatePR);
     stepInfos.add(k8sRolling);
     stepInfos.add(delete);
     stepInfos.add(canaryDeploy);

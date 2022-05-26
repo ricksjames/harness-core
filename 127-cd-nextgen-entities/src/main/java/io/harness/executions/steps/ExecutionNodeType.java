@@ -13,6 +13,7 @@ import io.harness.cdng.visitor.YamlTypes;
 
 @OwnedBy(HarnessTeam.CDP)
 public enum ExecutionNodeType {
+  GITOPS_CREATE_PR("GITOPS_CREATE_PR", StepSpecTypeConstants.GITOPS_CREATE_PR),
   SERVICE("SERVICE", YamlTypes.SERVICE_ENTITY),
   ENVIRONMENT("ENVIRONMENT", YamlTypes.ENVIRONMENT_YAML),
   SERVICE_CONFIG("SERVICE_CONFIG", YamlTypes.SERVICE_CONFIG),

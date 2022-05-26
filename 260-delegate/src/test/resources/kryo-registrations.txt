@@ -2325,4 +2325,6 @@
 980026:io.harness.exception.runtime.serverless.ServerlessAwsLambdaRuntimeException
 980027:io.harness.exception.runtime.serverless.ServerlessCommandExecutionException
 980028:io.harness.exception.AzureAKSException
+980029:io.harness.delegate.task.git.NGGitOpsTaskParams
+980030:io.harness.delegate.task.git.NGGitOpsResponse
 9800001:io.harness.beans.RecasterMap
