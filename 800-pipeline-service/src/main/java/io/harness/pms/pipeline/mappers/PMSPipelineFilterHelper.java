@@ -28,7 +28,6 @@ public class PMSPipelineFilterHelper {
     update.set(PipelineEntityKeys.stageCount, pipelineEntity.getStageCount());
     update.set(PipelineEntityKeys.stageNames, pipelineEntity.getStageNames());
     update.set(PipelineEntityKeys.allowStageExecutions, pipelineEntity.getAllowStageExecutions());
-    update.set(PipelineEntityKeys.templateReference, pipelineEntity.getTemplateReference());
     return update;
   }
 
@@ -42,8 +41,7 @@ public class PMSPipelineFilterHelper {
         .withFilters(fieldsToUpdate.getFilters())
         .withStageCount(fieldsToUpdate.getStageCount())
         .withStageNames(fieldsToUpdate.getStageNames())
-        .withAllowStageExecutions(fieldsToUpdate.getAllowStageExecutions())
-        .withTemplateReference(fieldsToUpdate.getTemplateReference());
+        .withAllowStageExecutions(fieldsToUpdate.getAllowStageExecutions());
   }
 
   public Update getUpdateOperationsForOnboardingToInline() {
