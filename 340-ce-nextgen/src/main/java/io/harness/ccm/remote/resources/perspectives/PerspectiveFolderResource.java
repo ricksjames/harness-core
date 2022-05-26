@@ -15,6 +15,7 @@ import io.harness.accesscontrol.AccountIdentifier;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.ccm.utils.LogAccountIdentifier;
 import io.harness.ccm.views.dto.CreatePerspectiveFolderDTO;
+import io.harness.ccm.views.dto.MovePerspectiveDTO;
 import io.harness.ccm.views.entities.CEView;
 import io.harness.ccm.views.entities.CEViewFolder;
 import io.harness.ccm.views.entities.ViewType;
@@ -174,7 +175,7 @@ public class PerspectiveFolderResource {
   }
 
   @POST
-  @Path("movePerspectives/{newFolderId}")
+  @Path("movePerspectives")
   @Hidden
   @Timed
   @ExceptionMetered
@@ -191,10 +192,10 @@ public class PerspectiveFolderResource {
   public ResponseDTO<List<CEView>>
   movePerspectives(@Parameter(required = true, description = ACCOUNT_PARAM_MESSAGE) @QueryParam(
                        NGCommonEntityConstants.ACCOUNT_KEY) @AccountIdentifier @NotNull @Valid String accountId,
-      @Parameter(required = true, description = "Unique identifier for the Perspective folder") @PathParam(
-          "newFolderId") String newFolderId,
-      @RequestBody(required = true,
-          description = "Request body containing perspectiveIds to be moved") @Valid List<String> perspectiveIds) {
+                   @RequestBody(required = true,
+          description = "Request body containing perspectiveIds to be moved and newFolderId") @Valid MovePerspectiveDTO movePerspectiveDTO) {
+    List<String> perspectiveIds = movePerspectiveDTO.getPerspectiveIds();
+    String newFolderId = movePerspectiveDTO.getNewFolderId();
     return ResponseDTO.newResponse(ceViewFolderService.moveMultipleCEViews(accountId, perspectiveIds, newFolderId));
   }
 
