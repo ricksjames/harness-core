@@ -5,7 +5,7 @@
  * https://polyformproject.org/wp-content/uploads/2020/05/PolyForm-Free-Trial-1.0.0.txt.
  */
 
-package io.harness.ng.filestore.api.impl;
+package io.harness.filestore.service;
 
 import static io.harness.filestore.entities.NGFile.builder;
 import static io.harness.repositories.FileStoreRepositoryCriteriaCreator.createCriteriaByScopeAndParentIdentifier;
@@ -50,7 +50,6 @@ import io.harness.filestore.dto.mapper.FileDTOMapper;
 import io.harness.filestore.dto.node.FileNodeDTO;
 import io.harness.filestore.dto.node.FolderNodeDTO;
 import io.harness.filestore.entities.NGFile;
-import io.harness.filestore.service.FileFailsafeService;
 import io.harness.filestore.service.impl.FileReferenceServiceImpl;
 import io.harness.filestore.service.impl.FileStoreServiceImpl;
 import io.harness.ng.core.dto.EmbeddedUserDetailsDTO;
@@ -62,6 +61,7 @@ import io.harness.rule.Owner;
 
 import software.wings.service.intfc.FileService;
 
+import com.google.common.collect.Lists;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.InputStream;
@@ -70,7 +70,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import jersey.repackaged.com.google.common.collect.Lists;
 import org.bson.Document;
 import org.junit.Before;
 import org.junit.Test;

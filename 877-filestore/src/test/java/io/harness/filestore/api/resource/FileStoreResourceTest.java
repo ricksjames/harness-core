@@ -5,7 +5,7 @@
  * https://polyformproject.org/wp-content/uploads/2020/05/PolyForm-Free-Trial-1.0.0.txt.
  */
 
-package io.harness.ng.filestore.remote;
+package io.harness.filestore.api.resource;
 
 import static io.harness.EntityType.PIPELINES;
 import static io.harness.EntityType.PIPELINE_STEPS;
@@ -38,7 +38,6 @@ import io.harness.annotations.dev.OwnedBy;
 import io.harness.beans.SearchPageParams;
 import io.harness.category.element.UnitTests;
 import io.harness.exception.InvalidRequestException;
-import io.harness.filestore.api.resource.FileStoreResource;
 import io.harness.filestore.dto.filter.FilesFilterPropertiesDTO;
 import io.harness.filestore.dto.node.FolderNodeDTO;
 import io.harness.filestore.service.impl.FileStoreServiceImpl;
@@ -50,13 +49,13 @@ import io.harness.ng.core.filestore.dto.FileDTO;
 import io.harness.rule.Owner;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import javax.ws.rs.core.Response;
-import jersey.repackaged.com.google.common.collect.Sets;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;

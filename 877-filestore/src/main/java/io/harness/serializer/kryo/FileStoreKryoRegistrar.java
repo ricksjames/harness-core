@@ -12,8 +12,8 @@ import io.harness.serializer.KryoRegistrar;
 import com.esotericsoftware.kryo.Kryo;
 
 public class FileStoreKryoRegistrar implements KryoRegistrar {
-    @Override
-    public void register(Kryo kryo) {
-        // nothing to do
-    }
+  @Override
+  public void register(Kryo kryo) {
+    // nothing to do
+  }
 }
