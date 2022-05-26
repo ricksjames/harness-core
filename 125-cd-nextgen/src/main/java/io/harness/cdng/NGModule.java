@@ -47,6 +47,7 @@ import io.harness.cdng.servicenow.resources.service.ServiceNowResourceServiceImp
 import io.harness.cdng.usage.impl.CDLicenseUsageImpl;
 import io.harness.cdng.yaml.CdYamlSchemaService;
 import io.harness.cdng.yaml.CdYamlSchemaServiceImpl;
+import io.harness.filestore.NgFileStoreModule;
 import io.harness.filter.FilterType;
 import io.harness.filter.impl.FilterServiceImpl;
 import io.harness.filter.mapper.FilterPropertiesMapper;
@@ -83,6 +84,7 @@ public class NGModule extends AbstractModule {
   protected void configure() {
     install(NGCoreModule.getInstance());
     install(WalkTreeModule.getInstance());
+    install(NgFileStoreModule.getInstance());
 
     bind(ArtifactSourceService.class).to(ArtifactSourceServiceImpl.class);
     bind(DockerResourceService.class).to(DockerResourceServiceImpl.class);

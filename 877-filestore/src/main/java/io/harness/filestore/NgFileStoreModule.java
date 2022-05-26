@@ -7,8 +7,10 @@
 
 package io.harness.filestore;
 
+import com.google.inject.Inject;
 import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
+import io.harness.filestore.config.FileStoreConfiguration;
 import io.harness.filestore.dto.mapper.FilesFilterPropertiesMapper;
 import io.harness.filestore.service.FileActivityService;
 import io.harness.filestore.service.FileFailsafeService;
@@ -18,15 +20,28 @@ import io.harness.filestore.service.impl.FileFailsafeServiceImpl;
 import io.harness.filestore.service.impl.FileStoreServiceImpl;
 import io.harness.filter.FilterType;
 import io.harness.filter.mapper.FilterPropertiesMapper;
+import io.harness.ng.core.NGCoreModule;
 import io.harness.persistence.HPersistence;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.multibindings.MapBinder;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.concurrent.atomic.AtomicReference;
+
 @Slf4j
 @OwnedBy(HarnessTeam.CDP)
 public class NgFileStoreModule extends AbstractModule {
+
+  private static final AtomicReference<NgFileStoreModule> instanceRef = new AtomicReference<>();
+
+  public static NgFileStoreModule getInstance() {
+    if (instanceRef.get() == null) {
+      instanceRef.compareAndSet(null, new NgFileStoreModule());
+    }
+    return instanceRef.get();
+  }
+
   @Override
   protected void configure() {
     registerRequiredBindings();

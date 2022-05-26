@@ -17,11 +17,21 @@ import com.google.inject.Singleton;
 import io.dropwizard.Configuration;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import org.reflections.Reflections;
+
+import javax.ws.rs.Path;
+import java.util.Collection;
 
 @Data
 @EqualsAndHashCode(callSuper = false)
 @Singleton
 @OwnedBy(CDP)
 public class FileStoreConfiguration extends Configuration {
+  public static final String RESOURCE_PACKAGE = "io.harness.filestore.api.resource";
   @JsonProperty private FileUploadLimit fileUploadLimits = new FileUploadLimit();
+
+  public static Collection<Class<?>> getResourceClasses() {
+    Reflections reflections = new Reflections(RESOURCE_PACKAGE);
+    return reflections.getTypesAnnotatedWith(Path.class);
+  }
 }
