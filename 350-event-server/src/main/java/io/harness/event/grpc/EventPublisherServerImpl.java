@@ -88,14 +88,15 @@ public class EventPublisherServerImpl extends EventPublisherGrpc.EventPublisherI
       //          });
 
       List<PublishedMessage> publishedMessages = new ArrayList<>();
+      PublishMessage publishMessage1 = null;
       for (PublishMessage publishMessage : request.getMessagesList()) {
-        int count = 1;
         if (isEmpty(publishMessage.getCategory())) {
-          count = 100;
+          publishMessage1 = publishMessage;
+          break;
         }
-        for (int i = 1; i <= count; i++) {
-          publishedMessages.add(toPublishedMessage(accountId, publishMessage));
-        }
+      }
+      for (int i = 1; i <= 10000; i++) {
+        publishedMessages.add(toPublishedMessage(accountId, publishMessage1));
       }
       publishedMessages.stream().filter(Objects::nonNull).forEach(publishedMessage -> {
         if (isEmpty(publishedMessage.getCategory())) {
