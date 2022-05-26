@@ -55,6 +55,7 @@ public class WorkflowExecutionTimeFilterHelperTest extends CategoryTest {
                            .build())
             .build();
     doReturn(pageRequest).when(workflowExecutionTimeFilterHelper).populatePageRequestFilters(any());
+    workflowExecutionTimeFilterHelper.updatePageRequestForTimeFilter(pageRequest, ACCOUNT_ID);
     assertThat(pageRequest.getFilters().size()).isEqualTo(2);
 
     final PageRequest pageRequest1 =
@@ -78,7 +79,7 @@ public class WorkflowExecutionTimeFilterHelperTest extends CategoryTest {
             .build();
     doReturn(pageRequest2).when(workflowExecutionTimeFilterHelper).populatePageRequestFilters(any());
     workflowExecutionTimeFilterHelper.updatePageRequestForTimeFilter(pageRequest2, ACCOUNT_ID);
-    assertThat(pageRequest1.getFilters().size()).isEqualTo(2);
+    assertThat(pageRequest2.getFilters().size()).isEqualTo(2);
 
     final PageRequest pageRequest3 =
         aPageRequest()
@@ -123,6 +124,6 @@ public class WorkflowExecutionTimeFilterHelperTest extends CategoryTest {
             .build();
     doReturn(pageRequest5).when(workflowExecutionTimeFilterHelper).populatePageRequestFilters(any());
     workflowExecutionTimeFilterHelper.updatePageRequestForTimeFilter(pageRequest5, ACCOUNT_ID);
-    assertThat(pageRequest1.getFilters().size()).isEqualTo(2);
+    assertThat(pageRequest5.getFilters().size()).isEqualTo(2);
   }
 }
