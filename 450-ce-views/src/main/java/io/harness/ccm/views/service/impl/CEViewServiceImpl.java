@@ -40,6 +40,7 @@ import io.harness.ccm.views.helper.ViewTimeRangeHelper;
 import io.harness.ccm.views.service.CEViewService;
 import io.harness.ccm.views.service.ViewCustomFieldService;
 import io.harness.ccm.views.service.ViewsBillingService;
+import io.harness.ccm.views.utils.CEViewPreferenceUtils;
 import io.harness.exception.InvalidRequestException;
 
 import com.google.cloud.bigquery.BigQuery;
@@ -250,6 +251,7 @@ public class CEViewServiceImpl implements CEViewService {
     }
 
     ceView.setDataSources(new ArrayList<>(viewFieldIdentifierSet));
+    ceView.setViewPreferences(CEViewPreferenceUtils.getCEViewPreferences(ceView));
   }
 
   @Override
@@ -351,6 +353,7 @@ public class CEViewServiceImpl implements CEViewService {
                                               .build())
                                  .timeRange(view.getViewTimeRange().getViewTimeRangeType())
                                  .dataSources(view.getDataSources())
+                                 .viewPreferences(view.getViewPreferences())
                                  .isReportScheduledConfigured(!reportSchedules.isEmpty())
                                  .build());
     }
