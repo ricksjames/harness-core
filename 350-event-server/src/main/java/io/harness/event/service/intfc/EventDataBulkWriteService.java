@@ -14,4 +14,5 @@ import java.util.List;
 public interface EventDataBulkWriteService {
   boolean insertPublishedMessages(List<PublishedMessage> publishedMessages);
   void saveIgnoringDuplicateKeys(List<PublishedMessage> publishedMessages);
+  void saveBatch(List<PublishedMessage> publishedMessages);
 }

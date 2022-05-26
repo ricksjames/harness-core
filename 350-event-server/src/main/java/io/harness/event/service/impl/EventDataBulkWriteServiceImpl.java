@@ -63,6 +63,11 @@ public class EventDataBulkWriteServiceImpl implements EventDataBulkWriteService 
     hPersistence.saveIgnoringDuplicateKeys(publishedMessages);
   }
 
+  @Override
+  public void saveBatch(final List<PublishedMessage> publishedMessages) {
+    hPersistence.saveBatch(publishedMessages);
+  }
+
   private <T> boolean batchQueryExecutor(
       final List<T> itemsList, final EventBatchQueryFnFactory<T> eventBatchQueryFnFactory, final Class clazz) {
     final int bulkWriteLimit = eventServiceConfig.getBatchQueryConfig().getQueryBatchSize();
