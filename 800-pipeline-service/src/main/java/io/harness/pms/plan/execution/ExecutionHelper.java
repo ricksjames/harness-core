@@ -249,6 +249,9 @@ public class ExecutionHelper {
     pmsYamlSchemaService.validateYamlSchema(pipelineEntity.getAccountId(), pipelineEntity.getOrgIdentifier(),
         pipelineEntity.getProjectIdentifier(), pipelineYaml);
     if (pipelineEntity.getStoreType() == null || pipelineEntity.getStoreType() == StoreType.INLINE) {
+      // For REMOTE Pipelines, entity setup usage framework cannot be relied upon. That is because the setup usages can
+      // be outdated wrt the YAML we find on Git during execution. This means the fail fast approach that we have for
+      // RBAC checks can't be provided for remote pipelines
       pipelineRbacServiceImpl.extractAndValidateStaticallyReferredEntities(pipelineEntity.getAccountId(),
           pipelineEntity.getOrgIdentifier(), pipelineEntity.getProjectIdentifier(), pipelineEntity.getIdentifier(),
           pipelineYaml);
