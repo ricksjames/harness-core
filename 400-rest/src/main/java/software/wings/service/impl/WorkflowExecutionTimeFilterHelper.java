@@ -57,16 +57,20 @@ public class WorkflowExecutionTimeFilterHelper {
     if (searchFiltersForTime.size() == 1) {
       if (searchFiltersForTime.get(0).getOp().equals(Operator.GT)) {
         if (!checkTimeNotGreaterThanFourMonths(searchFiltersForTime)) {
-          final Long timeValueFromFilter = getTimeValueFromFilter(searchFiltersForTime);
-          pageRequest.addFilter(
-              WorkflowExecutionKeys.createdAt, Operator.LT, timeValueFromFilter + THREE_MONTHS_MILLIS);
+          final Long timeValueFromFilter = getTimeValueFromFilter(searchFiltersForTime.get(0).getFieldValues()[0]);
+          if (timeValueFromFilter != 0) {
+            pageRequest.addFilter(
+                WorkflowExecutionKeys.createdAt, Operator.LT, timeValueFromFilter + THREE_MONTHS_MILLIS);
+          }
           return;
         }
-      } else if (searchFiltersForTime.get(0).getOp().equals(LT)) {
-        final Long timeValueFromFilter = getTimeValueFromFilter(searchFiltersForTime);
-        pageRequest.addFilter(WorkflowExecutionKeys.createdAt, Operator.GT, timeValueFromFilter - THREE_MONTHS_MILLIS);
-        return;
       }
+    } else if (searchFiltersForTime.get(0).getOp().equals(LT)) {
+      final Long timeValueFromFilter = getTimeValueFromFilter(searchFiltersForTime.get(0).getFieldValues()[0]);
+      if (timeValueFromFilter != 0) {
+        pageRequest.addFilter(WorkflowExecutionKeys.createdAt, Operator.GT, timeValueFromFilter - THREE_MONTHS_MILLIS);
+      }
+      return;
     }
 
     if (searchFiltersForTime.size() == 2) {
