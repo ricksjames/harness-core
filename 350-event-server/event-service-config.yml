@@ -25,6 +25,6 @@ secretsConfiguration:
   gcpSecretManagerProject: ccm-play
 
 batchQueryConfig:
-  queryBatchSize: 4000
+  queryBatchSize: 10000
   instanceDataBatchSize: 5000
   syncJobDisabled: false
