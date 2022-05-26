@@ -1,6 +1,7 @@
 config:
   ignore:
     - "README.md"
+    - "jira-projects.txt"
     - ".ticonfig.yaml"
     - "jira-projects.txt"
     - "**/*.go"
