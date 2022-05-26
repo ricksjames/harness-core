@@ -12,8 +12,8 @@ import static io.harness.annotations.dev.HarnessTeam.PIPELINE;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.data.structure.EmptyPredicate;
 import io.harness.execution.StagesExecutionMetadata;
-import io.harness.gitsync.interceptor.GitSyncConstants;
 import io.harness.gitsync.sdk.EntityGitDetails;
+import io.harness.gitsync.sdk.EntityGitDetailsMapper;
 import io.harness.pms.execution.ExecutionStatus;
 import io.harness.pms.plan.execution.beans.PipelineExecutionSummaryEntity;
 import io.harness.pms.plan.execution.beans.dto.GraphLayoutNodeDTO;
@@ -142,20 +142,13 @@ public class PipelineExecutionSummaryDtoMapper {
     String objectId = entityGitDetails.getObjectId();
     String commitId = entityGitDetails.getCommitId();
     return EntityGitDetails.builder()
-        .rootFolder(nullIfDefault(rootFolder))
-        .filePath(nullIfDefault(filePath))
-        .repoIdentifier(nullIfDefault(repoIdentifier))
-        .repoName(nullIfDefault(repoName))
-        .branch(nullIfDefault(branch))
-        .objectId(nullIfDefault(objectId))
-        .commitId(nullIfDefault(commitId))
+        .rootFolder(EntityGitDetailsMapper.nullIfDefault(rootFolder))
+        .filePath(EntityGitDetailsMapper.nullIfDefault(filePath))
+        .repoIdentifier(EntityGitDetailsMapper.nullIfDefault(repoIdentifier))
+        .repoName(EntityGitDetailsMapper.nullIfDefault(repoName))
+        .branch(EntityGitDetailsMapper.nullIfDefault(branch))
+        .objectId(EntityGitDetailsMapper.nullIfDefault(objectId))
+        .commitId(EntityGitDetailsMapper.nullIfDefault(commitId))
         .build();
-  }
-
-  private String nullIfDefault(String val) {
-    if (EmptyPredicate.isEmpty(val) || val.equals(GitSyncConstants.DEFAULT)) {
-      return null;
-    }
-    return val;
   }
 }
