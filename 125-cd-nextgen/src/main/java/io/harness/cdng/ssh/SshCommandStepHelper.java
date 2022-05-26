@@ -14,6 +14,7 @@ import static io.harness.data.structure.EmptyPredicate.isEmpty;
 
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.cdng.CDStepHelper;
+import io.harness.cdng.artifact.outcome.ArtifactOutcome;
 import io.harness.cdng.infra.beans.InfrastructureOutcome;
 import io.harness.delegate.task.shell.SshCommandTaskParameters;
 import io.harness.delegate.task.shell.SshCommandTaskParameters.SshCommandTaskParametersBuilder;
@@ -35,6 +36,7 @@ import com.google.inject.Singleton;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 
@@ -47,6 +49,8 @@ public class SshCommandStepHelper extends CDStepHelper {
   public SshCommandTaskParameters buildSshCommandTaskParameters(
       @Nonnull Ambiance ambiance, @Nonnull CommandStepParameters executeCommandStepParameters) {
     InfrastructureOutcome infrastructure = getInfrastructureOutcome(ambiance);
+    Optional<ArtifactOutcome> artifactOutcome = resolveArtifactsOutcome(ambiance);
+
     Boolean onDelegate = getBooleanParameterFieldValue(executeCommandStepParameters.onDelegate);
     SshCommandTaskParametersBuilder<?, ?> builder = SshCommandTaskParameters.builder();
     return builder.accountId(AmbianceUtils.getAccountId(ambiance))
@@ -55,6 +59,9 @@ public class SshCommandStepHelper extends CDStepHelper {
         .environmentVariables(
             shellScriptHelperService.getEnvironmentVariables(executeCommandStepParameters.getEnvironmentVariables()))
         .sshInfraDelegateConfig(sshEntityHelper.getSshInfraDelegateConfig(infrastructure, ambiance))
+        .artifactDelegateConfig(artifactOutcome.isPresent()
+                ? sshEntityHelper.getArtifactDelegateConfigConfig(artifactOutcome.get(), ambiance)
+                : null)
         .commandUnits(mapCommandUnits(executeCommandStepParameters.getCommandUnits(), onDelegate))
         .host(executeCommandStepParameters.getHost())
         .build();

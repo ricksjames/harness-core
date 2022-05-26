@@ -19,6 +19,8 @@ import static org.mockito.Mockito.doReturn;
 import io.harness.CategoryTest;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.category.element.UnitTests;
+import io.harness.cdng.artifact.outcome.ArtifactoryGenericArtifactOutcome;
+import io.harness.cdng.artifact.outcome.ArtifactsOutcome;
 import io.harness.cdng.infra.beans.PdcInfrastructureOutcome;
 import io.harness.cdng.stepsdependency.constants.OutcomeExpressionConstants;
 import io.harness.delegate.task.shell.SshCommandTaskParameters;
@@ -26,6 +28,7 @@ import io.harness.delegate.task.ssh.NGCommandUnitType;
 import io.harness.delegate.task.ssh.NgCommandUnit;
 import io.harness.delegate.task.ssh.PdcSshInfraDelegateConfig;
 import io.harness.delegate.task.ssh.ScriptCommandUnit;
+import io.harness.delegate.task.ssh.artifact.ArtifactoryArtifactDelegateConfig;
 import io.harness.plancreator.steps.TaskSelectorYaml;
 import io.harness.pms.contracts.ambiance.Ambiance;
 import io.harness.pms.contracts.refobjects.RefObject;
@@ -68,6 +71,12 @@ public class SshCommandStepHelperTest extends CategoryTest {
                                       .setRefType(RefType.newBuilder().setType(OrchestrationRefType.OUTCOME).build())
                                       .build();
 
+  private final RefObject artifact = RefObject.newBuilder()
+                                         .setName(OutcomeExpressionConstants.ARTIFACTS)
+                                         .setKey(OutcomeExpressionConstants.ARTIFACTS)
+                                         .setRefType(RefType.newBuilder().setType(OrchestrationRefType.OUTCOME).build())
+                                         .build();
+
   private final PdcInfrastructureOutcome pdcInfrastructure =
       PdcInfrastructureOutcome.builder().connectorRef("pdcConnector").credentialsRef("sshKeyRef").build();
   private final OptionalOutcome pdcInfrastructureOutcome =
@@ -79,14 +88,29 @@ public class SshCommandStepHelperTest extends CategoryTest {
                        .build())
           .build();
 
+  private final ArtifactoryGenericArtifactOutcome artifactoryArtifact =
+      ArtifactoryGenericArtifactOutcome.builder().connectorRef("artifactoryConnector").repositoryName("test").build();
+
+  private final OptionalOutcome artifactOutcome =
+      OptionalOutcome.builder()
+          .found(true)
+          .outcome(ArtifactsOutcome.builder().primary(artifactoryArtifact).build())
+          .build();
+
   private final PdcSshInfraDelegateConfig pdcSshInfraDelegateConfig =
       PdcSshInfraDelegateConfig.builder().hosts(Arrays.asList("host1")).build();
+  private final ArtifactoryArtifactDelegateConfig artifactDelegateConfig =
+      ArtifactoryArtifactDelegateConfig.builder().build();
 
   @Before
   public void prepare() {
     MockitoAnnotations.initMocks(this);
     doReturn(pdcInfrastructureOutcome).when(outcomeService).resolveOptional(eq(ambiance), eq(infra));
     doReturn(pdcSshInfraDelegateConfig).when(sshEntityHelper).getSshInfraDelegateConfig(pdcInfrastructure, ambiance);
+    doReturn(artifactOutcome).when(outcomeService).resolveOptional(eq(ambiance), eq(artifact));
+    doReturn(artifactDelegateConfig)
+        .when(sshEntityHelper)
+        .getArtifactDelegateConfigConfig(artifactoryArtifact, ambiance);
   }
 
   @Test

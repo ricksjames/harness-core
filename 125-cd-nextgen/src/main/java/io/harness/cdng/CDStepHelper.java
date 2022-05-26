@@ -34,6 +34,8 @@ import static org.apache.commons.lang3.StringUtils.trimToEmpty;
 
 import io.harness.beans.DecryptableEntity;
 import io.harness.beans.FeatureName;
+import io.harness.cdng.artifact.outcome.ArtifactOutcome;
+import io.harness.cdng.artifact.outcome.ArtifactsOutcome;
 import io.harness.cdng.featureFlag.CDFeatureFlagHelper;
 import io.harness.cdng.infra.beans.InfrastructureOutcome;
 import io.harness.cdng.infra.beans.K8sAzureInfrastructureOutcome;
@@ -154,6 +156,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -886,4 +889,17 @@ public class CDStepHelper {
 
     return (InfrastructureOutcome) optionalOutcome.getOutcome();
   }
+
+  public Optional<ArtifactOutcome> resolveArtifactsOutcome(Ambiance ambiance) {
+    OptionalOutcome artifactsOutcomeOption = outcomeService.resolveOptional(
+            ambiance, RefObjectUtils.getOutcomeRefObject(OutcomeExpressionConstants.ARTIFACTS));
+    if (artifactsOutcomeOption.isFound()) {
+      ArtifactsOutcome artifactsOutcome = (ArtifactsOutcome) artifactsOutcomeOption.getOutcome();
+      if (artifactsOutcome.getPrimary() != null) {
+        return Optional.of(artifactsOutcome.getPrimary());
+      }
+    }
+    return Optional.empty();
+  }
+
 }

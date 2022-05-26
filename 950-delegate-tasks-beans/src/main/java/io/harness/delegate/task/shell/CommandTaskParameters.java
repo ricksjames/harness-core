@@ -13,6 +13,7 @@ import static io.harness.expression.Expression.ALLOW_SECRETS;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.delegate.task.TaskParameters;
 import io.harness.delegate.task.ssh.NgCommandUnit;
+import io.harness.delegate.task.ssh.artifact.SshWinRmArtifactDelegateConfig;
 import io.harness.expression.Expression;
 
 import java.util.HashMap;
@@ -34,4 +35,5 @@ public abstract class CommandTaskParameters implements TaskParameters {
   @Default @Expression(ALLOW_SECRETS) Map<String, String> environmentVariables = new HashMap<>();
   boolean executeOnDelegate;
   List<NgCommandUnit> commandUnits;
+  SshWinRmArtifactDelegateConfig artifactDelegateConfig;
 }

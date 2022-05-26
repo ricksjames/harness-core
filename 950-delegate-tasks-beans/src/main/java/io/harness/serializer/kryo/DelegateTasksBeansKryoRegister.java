@@ -537,6 +537,9 @@ import io.harness.delegate.task.ssh.NgCommandUnit;
 import io.harness.delegate.task.ssh.NgInitCommandUnit;
 import io.harness.delegate.task.ssh.PdcSshInfraDelegateConfig;
 import io.harness.delegate.task.ssh.ScriptCommandUnit;
+import io.harness.delegate.task.ssh.artifact.ArtifactoryArtifactDelegateConfig;
+import io.harness.delegate.task.ssh.artifact.SshWinRmArtifactDelegateConfig;
+import io.harness.delegate.task.ssh.artifact.SshWinRmArtifactType;
 import io.harness.delegate.task.stepstatus.StepExecutionStatus;
 import io.harness.delegate.task.stepstatus.StepMapOutput;
 import io.harness.delegate.task.stepstatus.StepStatus;
@@ -1488,6 +1491,10 @@ public class DelegateTasksBeansKryoRegister implements KryoRegistrar {
     kryo.register(CopyCommandUnit.class, 55313);
     kryo.register(NgInitCommandUnit.class, 55314);
     kryo.register(NgCleanupCommandUnit.class, 55315);
+    kryo.register(SshWinRmArtifactType.class, 55316);
+    kryo.register(SshWinRmArtifactDelegateConfig.class, 55317);
+    kryo.register(ArtifactoryArtifactDelegateConfig.class, 55318);
+
 
 
   }

@@ -1657,6 +1657,9 @@
 55308:io.harness.delegate.task.ssh.CopyCommandUnit
 55309:io.harness.delegate.task.ssh.NgInitCommandUnit
 55310:io.harness.delegate.task.ssh.NgCleanupCommandUnit
+55311:io.harness.delegate.task.ssh.artifact.SshWinRmArtifactType
+55312:io.harness.delegate.task.ssh.artifact.SshWinRmArtifactDelegateConfig
+55313:io.harness.delegate.task.ssh.artifact.ArtifactoryArtifactDelegateConfig
 70001:io.harness.accesscontrol.commons.exceptions.AccessDeniedErrorDTO
 70002:io.harness.accesscontrol.acl.api.PermissionCheckDTO
 70003:io.harness.accesscontrol.acl.api.ResourceScope
