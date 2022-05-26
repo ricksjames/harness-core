@@ -192,8 +192,8 @@ public class PerspectiveFolderResource {
   public ResponseDTO<List<CEView>>
   movePerspectives(@Parameter(required = true, description = ACCOUNT_PARAM_MESSAGE) @QueryParam(
                        NGCommonEntityConstants.ACCOUNT_KEY) @AccountIdentifier @NotNull @Valid String accountId,
-                   @RequestBody(required = true,
-          description = "Request body containing perspectiveIds to be moved and newFolderId") @Valid MovePerspectiveDTO movePerspectiveDTO) {
+      @RequestBody(required = true, description = "Request body containing perspectiveIds to be moved and newFolderId")
+      @Valid MovePerspectiveDTO movePerspectiveDTO) {
     List<String> perspectiveIds = movePerspectiveDTO.getPerspectiveIds();
     String newFolderId = movePerspectiveDTO.getNewFolderId();
     return ResponseDTO.newResponse(ceViewFolderService.moveMultipleCEViews(accountId, perspectiveIds, newFolderId));
