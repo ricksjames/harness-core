@@ -50,7 +50,7 @@ public class WorkflowExecutionTimeFilterHelperTest extends CategoryTest {
         aPageRequest()
             .addFilter(SearchFilter.builder()
                            .op(SearchFilter.Operator.GT)
-                           .fieldValues(new Object[] {System.currentTimeMillis() - FOUR_MONTHS_MILLIS})
+                           .fieldValues(new Object[] {System.currentTimeMillis() - SIX_MONTHS_MILLIS})
                            .fieldName(WorkflowExecutionKeys.createdAt)
                            .build())
             .build();
