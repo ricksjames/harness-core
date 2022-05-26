@@ -7,37 +7,6 @@
 
 package io.harness.delegate.cf;
 
-import static io.harness.delegate.cf.CfTestConstants.ACCOUNT_ID;
-import static io.harness.delegate.cf.CfTestConstants.NOT_MANIFEST_YML_ELEMENT;
-import static io.harness.delegate.cf.CfTestConstants.RELEASE_NAME;
-import static io.harness.delegate.cf.CfTestConstants.RUNNING;
-import static io.harness.pcf.model.PcfConstants.HARNESS__INACTIVE__IDENTIFIER;
-import static io.harness.pcf.model.PcfConstants.INSTANCE_MANIFEST_YML_ELEMENT;
-import static io.harness.pcf.model.PcfConstants.MEMORY_MANIFEST_YML_ELEMENT;
-import static io.harness.pcf.model.PcfConstants.NAME_MANIFEST_YML_ELEMENT;
-import static io.harness.pcf.model.PcfConstants.RANDOM_ROUTE_MANIFEST_YML_ELEMENT;
-import static io.harness.pcf.model.PcfConstants.ROUTES_MANIFEST_YML_ELEMENT;
-import static io.harness.pcf.model.PcfConstants.TIMEOUT_MANIFEST_YML_ELEMENT;
-import static io.harness.rule.OwnerRule.ADWAIT;
-import static io.harness.rule.OwnerRule.ANIL;
-import static io.harness.rule.OwnerRule.ARVIND;
-import static io.harness.rule.OwnerRule.IVAN;
-
-import static org.apache.commons.lang3.StringUtils.EMPTY;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyBoolean;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import io.harness.CategoryTest;
 import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
@@ -65,6 +34,19 @@ import io.harness.pcf.model.CfRenameRequest;
 import io.harness.pcf.model.CfRequestConfig;
 import io.harness.pcf.model.PcfConstants;
 import io.harness.rule.Owner;
+import org.cloudfoundry.operations.applications.ApplicationDetail;
+import org.cloudfoundry.operations.applications.ApplicationSummary;
+import org.cloudfoundry.operations.applications.InstanceDetail;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.experimental.categories.Category;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
+import org.mockito.Spy;
+import org.mockito.stubbing.Answer;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -81,19 +63,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.TreeMap;
-import org.cloudfoundry.operations.applications.ApplicationDetail;
-import org.cloudfoundry.operations.applications.ApplicationSummary;
-import org.cloudfoundry.operations.applications.InstanceDetail;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
-import org.mockito.Spy;
-import org.mockito.stubbing.Answer;
+
+import static io.harness.delegate.cf.CfTestConstants.*;
+import static io.harness.pcf.model.PcfConstants.*;
+import static io.harness.rule.OwnerRule.*;
+import static org.apache.commons.lang3.StringUtils.EMPTY;
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyBoolean;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.*;
 
 @OwnedBy(HarnessTeam.CDP)
 public class PcfCommandTaskBaseHelperTest extends CategoryTest {
@@ -247,6 +226,40 @@ public class PcfCommandTaskBaseHelperTest extends CategoryTest {
   }
 
   @Test
+  @Owner(developers = RISHABH)
+  @Category(UnitTests.class)
+  public void testDownSizeListOfInstances_failAutoscaler() throws Exception {
+    reset(pcfDeploymentManager);
+    ApplicationDetail detail = ApplicationDetail.builder()
+            .diskQuota(1)
+            .id("id")
+            .name("app")
+            .instances(0)
+            .memoryLimit(1)
+            .stack("stack")
+            .runningInstances(2)
+            .requestedState("RUNNING")
+            .build();
+
+    doReturn(detail).when(pcfDeploymentManager).getApplicationByName(any());
+    doReturn(detail).when(pcfDeploymentManager).resizeApplication(any());
+
+    List<CfServiceData> cfServiceDataListToBeUpdated = new ArrayList<>();
+    List<CfServiceData> cfServiceDataList = new ArrayList<>();
+    CfRequestConfig cfRequestConfig = CfRequestConfig.builder().build();
+    cfServiceDataList.add(CfServiceData.builder().name("test").desiredCount(2).build());
+    CfCommandRollbackRequest commandRollbackRequest = CfCommandRollbackRequest.builder().useAppAutoscalar(true).build();
+
+    doThrow(new PivotalClientApiException("#Throwing exception to test if flow stops or not")).when(pcfCommandTaskHelper).disableAutoscalar(any(),any());
+
+    pcfCommandTaskHelper.downSizeListOfInstances(executionLogCallback, cfServiceDataListToBeUpdated, cfRequestConfig,
+            cfServiceDataList, commandRollbackRequest,
+            CfAppAutoscalarRequestData.builder().applicationName(detail.getName()).applicationGuid(detail.getId()).build());
+    verify(pcfDeploymentManager, times(0)).changeAutoscalarState(any(), any(), anyBoolean());
+    assertThat(cfServiceDataListToBeUpdated.size()).isEqualTo(1);
+  }
+
+  @Test
   @Owner(developers = ADWAIT)
   @Category(UnitTests.class)
   public void testDownsizePreviousReleases() throws Exception {
@@ -353,58 +366,58 @@ public class PcfCommandTaskBaseHelperTest extends CategoryTest {
   @Category(UnitTests.class)
   public void testDownsizePreviousReleases_autoscalar() throws Exception {
     CfCommandDeployRequest request =
-        CfCommandDeployRequest.builder().accountId(ACCOUNT_ID).downsizeAppDetail(null).useAppAutoscalar(true).build();
+            CfCommandDeployRequest.builder().accountId(ACCOUNT_ID).downsizeAppDetail(null).useAppAutoscalar(true).build();
 
     CfRequestConfig cfRequestConfig = CfRequestConfig.builder().build();
     List<CfServiceData> cfServiceDataList = new ArrayList<>();
     List<CfInternalInstanceElement> pcfInstanceElements = new ArrayList<>();
 
     InstanceDetail instanceDetail0 = InstanceDetail.builder()
-                                         .cpu(0.0)
-                                         .index("0")
-                                         .diskQuota(0l)
-                                         .diskUsage(0l)
-                                         .memoryQuota(0l)
-                                         .memoryUsage(0l)
-                                         .state("RUNNING")
-                                         .build();
+            .cpu(0.0)
+            .index("0")
+            .diskQuota(0l)
+            .diskUsage(0l)
+            .memoryQuota(0l)
+            .memoryUsage(0l)
+            .state("RUNNING")
+            .build();
 
     InstanceDetail instanceDetail1 = InstanceDetail.builder()
-                                         .cpu(0.0)
-                                         .index("1")
-                                         .diskQuota(0l)
-                                         .diskUsage(0l)
-                                         .memoryQuota(0l)
-                                         .memoryUsage(0l)
-                                         .state("RUNNING")
-                                         .build();
+            .cpu(0.0)
+            .index("1")
+            .diskQuota(0l)
+            .diskUsage(0l)
+            .memoryQuota(0l)
+            .memoryUsage(0l)
+            .state("RUNNING")
+            .build();
     // old app exists, but downsize is not required.
     ApplicationDetail applicationDetail = ApplicationDetail.builder()
-                                              .diskQuota(1)
-                                              .id("id")
-                                              .name("app")
-                                              .instanceDetails(instanceDetail0, instanceDetail1)
-                                              .instances(2)
-                                              .memoryLimit(1)
-                                              .stack("stack")
-                                              .runningInstances(2)
-                                              .requestedState("RUNNING")
-                                              .build();
+            .diskQuota(1)
+            .id("id")
+            .name("app")
+            .instanceDetails(instanceDetail0, instanceDetail1)
+            .instances(2)
+            .memoryLimit(1)
+            .stack("stack")
+            .runningInstances(2)
+            .requestedState("RUNNING")
+            .build();
 
     ApplicationDetail applicationDetailAfterDownsize = ApplicationDetail.builder()
-                                                           .diskQuota(1)
-                                                           .id("id")
-                                                           .name("app")
-                                                           .instanceDetails(instanceDetail0)
-                                                           .instances(1)
-                                                           .memoryLimit(1)
-                                                           .stack("stack")
-                                                           .runningInstances(1)
-                                                           .requestedState("RUNNING")
-                                                           .build();
+            .diskQuota(1)
+            .id("id")
+            .name("app")
+            .instanceDetails(instanceDetail0)
+            .instances(1)
+            .memoryLimit(1)
+            .stack("stack")
+            .runningInstances(1)
+            .requestedState("RUNNING")
+            .build();
 
     request.setDownsizeAppDetail(
-        CfAppSetupTimeDetails.builder().applicationGuid("1").applicationName("app").initialInstanceCount(1).build());
+            CfAppSetupTimeDetails.builder().applicationGuid("1").applicationName("app").initialInstanceCount(1).build());
     doReturn(applicationDetail).when(pcfDeploymentManager).getApplicationByName(any());
 
     // Downsize application from 2 to 1
@@ -413,11 +426,11 @@ public class PcfCommandTaskBaseHelperTest extends CategoryTest {
     pcfInstanceElements.clear();
     cfServiceDataList.clear();
     pcfCommandTaskHelper.downsizePreviousReleases(request, cfRequestConfig, executionLogCallback, cfServiceDataList, 1,
-        pcfInstanceElements,
-        CfAppAutoscalarRequestData.builder()
-            .applicationName(applicationDetail.getName())
-            .applicationGuid(applicationDetail.getId())
-            .build());
+            pcfInstanceElements,
+            CfAppAutoscalarRequestData.builder()
+                    .applicationName(applicationDetail.getName())
+                    .applicationGuid(applicationDetail.getId())
+                    .build());
     verify(pcfDeploymentManager, times(1)).getApplicationByName(any());
     verify(pcfCommandTaskHelper, times(1)).downSize(any(), any(), any(), any());
     verify(pcfDeploymentManager, times(1)).changeAutoscalarState(any(), any(), anyBoolean());
@@ -427,6 +440,94 @@ public class PcfCommandTaskBaseHelperTest extends CategoryTest {
     assertThat(cfServiceDataList.get(0).getId()).isEqualTo("id");
     assertThat(cfServiceDataList.get(0).getName()).isEqualTo("app");
     assertThat(cfServiceDataList.get(0).isDisableAutoscalarPerformed()).isTrue();
+
+    assertThat(pcfInstanceElements.size()).isEqualTo(1);
+    assertThat(pcfInstanceElements.get(0).getApplicationId()).isEqualTo("id");
+    assertThat(pcfInstanceElements.get(0).getDisplayName()).isEqualTo("app");
+    assertThat(pcfInstanceElements.get(0).getInstanceIndex()).isEqualTo("0");
+  }
+
+  @Test
+  @Owner(developers = RISHABH)
+  @Category(UnitTests.class)
+  public void testDownsizePreviousReleases_failAutoscalar() throws Exception {
+    CfCommandDeployRequest request =
+            CfCommandDeployRequest.builder().accountId(ACCOUNT_ID).downsizeAppDetail(null).useAppAutoscalar(true).build();
+
+    CfRequestConfig cfRequestConfig = CfRequestConfig.builder().build();
+    List<CfServiceData> cfServiceDataList = new ArrayList<>();
+    List<CfInternalInstanceElement> pcfInstanceElements = new ArrayList<>();
+
+    InstanceDetail instanceDetail0 = InstanceDetail.builder()
+            .cpu(0.0)
+            .index("0")
+            .diskQuota(0L)
+            .diskUsage(0L)
+            .memoryQuota(0L)
+            .memoryUsage(0L)
+            .state("RUNNING")
+            .build();
+
+    InstanceDetail instanceDetail1 = InstanceDetail.builder()
+            .cpu(0.0)
+            .index("1")
+            .diskQuota(0L)
+            .diskUsage(0L)
+            .memoryQuota(0L)
+            .memoryUsage(0L)
+            .state("RUNNING")
+            .build();
+    // old app exists, but downsize is not required.
+    ApplicationDetail applicationDetail = ApplicationDetail.builder()
+            .diskQuota(1)
+            .id("id")
+            .name("app")
+            .instanceDetails(instanceDetail0, instanceDetail1)
+            .instances(2)
+            .memoryLimit(1)
+            .stack("stack")
+            .runningInstances(2)
+            .requestedState("RUNNING")
+            .build();
+
+    ApplicationDetail applicationDetailAfterDownsize = ApplicationDetail.builder()
+            .diskQuota(1)
+            .id("id")
+            .name("app")
+            .instanceDetails(instanceDetail0)
+            .instances(1)
+            .memoryLimit(1)
+            .stack("stack")
+            .runningInstances(1)
+            .requestedState("RUNNING")
+            .build();
+
+    request.setDownsizeAppDetail(
+            CfAppSetupTimeDetails.builder().applicationGuid("1").applicationName("app").initialInstanceCount(1).build());
+    doReturn(applicationDetail).when(pcfDeploymentManager).getApplicationByName(any());
+
+    // Downsize application from 2 to 1
+    doReturn(applicationDetailAfterDownsize).when(pcfDeploymentManager).resizeApplication(any());
+    doThrow(new PivotalClientApiException("Throwing exception to test if flow stops or not")).when(pcfCommandTaskHelper).disableAutoscalar(any(),any());
+
+    pcfInstanceElements.clear();
+    cfServiceDataList.clear();
+    pcfCommandTaskHelper.downsizePreviousReleases(request, cfRequestConfig, executionLogCallback, cfServiceDataList, 1,
+            pcfInstanceElements,
+            CfAppAutoscalarRequestData.builder()
+                    .applicationName(applicationDetail.getName())
+                    .applicationGuid(applicationDetail.getId())
+                    .build());
+    verify(pcfDeploymentManager, times(1)).getApplicationByName(any());
+    verify(pcfCommandTaskHelper, times(1)).downSize(any(), any(), any(), any());
+    verify(pcfCommandTaskHelper, times(1)).disableAutoscalar(any(),any());
+    verify(pcfDeploymentManager, times(0)).changeAutoscalarState(any(), any(), anyBoolean());
+    assertThat(cfServiceDataList.size()).isEqualTo(1);
+    assertThat(cfServiceDataList.get(0).getDesiredCount()).isEqualTo(1);
+    assertThat(cfServiceDataList.get(0).getPreviousCount()).isEqualTo(2);
+    assertThat(cfServiceDataList.get(0).getId()).isEqualTo("id");
+    assertThat(cfServiceDataList.get(0).getName()).isEqualTo("app");
+    assertThat(cfServiceDataList.get(0).isDisableAutoscalarPerformed()).isFalse();
 
     assertThat(pcfInstanceElements.size()).isEqualTo(1);
     assertThat(pcfInstanceElements.get(0).getApplicationId()).isEqualTo("id");

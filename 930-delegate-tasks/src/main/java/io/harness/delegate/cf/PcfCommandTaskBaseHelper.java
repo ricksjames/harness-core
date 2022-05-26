@@ -7,62 +7,14 @@
 
 package io.harness.delegate.cf;
 
-import static io.harness.annotations.dev.HarnessTeam.CDP;
-import static io.harness.data.structure.EmptyPredicate.isEmpty;
-import static io.harness.data.structure.EmptyPredicate.isNotEmpty;
-import static io.harness.eraro.ErrorCode.INVALID_INFRA_STATE;
-import static io.harness.exception.WingsException.USER;
-import static io.harness.exception.WingsException.USER_SRE;
-import static io.harness.filesystem.FileIo.createDirectoryIfDoesNotExist;
-import static io.harness.logging.LogLevel.ERROR;
-import static io.harness.pcf.PcfUtils.encodeColor;
-import static io.harness.pcf.PcfUtils.getRevisionFromServiceName;
-import static io.harness.pcf.model.PcfConstants.BUILDPACKS_MANIFEST_YML_ELEMENT;
-import static io.harness.pcf.model.PcfConstants.BUILDPACK_MANIFEST_YML_ELEMENT;
-import static io.harness.pcf.model.PcfConstants.COMMAND_MANIFEST_YML_ELEMENT;
-import static io.harness.pcf.model.PcfConstants.DISK_QUOTA_MANIFEST_YML_ELEMENT;
-import static io.harness.pcf.model.PcfConstants.DOCKER_MANIFEST_YML_ELEMENT;
-import static io.harness.pcf.model.PcfConstants.DOMAINS_MANIFEST_YML_ELEMENT;
-import static io.harness.pcf.model.PcfConstants.ENV_MANIFEST_YML_ELEMENT;
-import static io.harness.pcf.model.PcfConstants.HARNESS__INACTIVE__IDENTIFIER;
-import static io.harness.pcf.model.PcfConstants.HARNESS__STATUS__IDENTIFIER;
-import static io.harness.pcf.model.PcfConstants.HEALTH_CHECK_HTTP_ENDPOINT_MANIFEST_YML_ELEMENT;
-import static io.harness.pcf.model.PcfConstants.HEALTH_CHECK_TYPE_MANIFEST_YML_ELEMENT;
-import static io.harness.pcf.model.PcfConstants.HOSTS_MANIFEST_YML_ELEMENT;
-import static io.harness.pcf.model.PcfConstants.HOST_MANIFEST_YML_ELEMENT;
-import static io.harness.pcf.model.PcfConstants.INSTANCE_MANIFEST_YML_ELEMENT;
-import static io.harness.pcf.model.PcfConstants.MEMORY_MANIFEST_YML_ELEMENT;
-import static io.harness.pcf.model.PcfConstants.NAME_MANIFEST_YML_ELEMENT;
-import static io.harness.pcf.model.PcfConstants.NO_HOSTNAME_MANIFEST_YML_ELEMENT;
-import static io.harness.pcf.model.PcfConstants.NO_ROUTE_MANIFEST_YML_ELEMENT;
-import static io.harness.pcf.model.PcfConstants.PATH_MANIFEST_YML_ELEMENT;
-import static io.harness.pcf.model.PcfConstants.PCF_ARTIFACT_DOWNLOAD_DIR_PATH;
-import static io.harness.pcf.model.PcfConstants.RANDOM_ROUTE_MANIFEST_YML_ELEMENT;
-import static io.harness.pcf.model.PcfConstants.REPOSITORY_DIR_PATH;
-import static io.harness.pcf.model.PcfConstants.ROUTES_MANIFEST_YML_ELEMENT;
-import static io.harness.pcf.model.PcfConstants.ROUTE_PATH_MANIFEST_YML_ELEMENT;
-import static io.harness.pcf.model.PcfConstants.SERVICES_MANIFEST_YML_ELEMENT;
-import static io.harness.pcf.model.PcfConstants.STACK_MANIFEST_YML_ELEMENT;
-import static io.harness.pcf.model.PcfConstants.TIMEOUT_MANIFEST_YML_ELEMENT;
-
-import static software.wings.beans.LogColor.Gray;
-import static software.wings.beans.LogColor.White;
-import static software.wings.beans.LogHelper.color;
-import static software.wings.beans.LogWeight.Bold;
-
-import static java.lang.String.format;
-import static java.util.stream.Collectors.toList;
-import static org.apache.commons.lang3.StringUtils.isBlank;
-
+import com.google.common.annotations.VisibleForTesting;
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.data.structure.EmptyPredicate;
 import io.harness.data.structure.UUIDGenerator;
-import io.harness.delegate.beans.pcf.CfAppRenameInfo;
-import io.harness.delegate.beans.pcf.CfAppSetupTimeDetails;
+import io.harness.delegate.beans.pcf.*;
 import io.harness.delegate.beans.pcf.CfAppSetupTimeDetails.CfAppSetupTimeDetailsBuilder;
-import io.harness.delegate.beans.pcf.CfInBuiltVariablesUpdateValues;
-import io.harness.delegate.beans.pcf.CfInternalInstanceElement;
-import io.harness.delegate.beans.pcf.CfServiceData;
 import io.harness.delegate.cf.apprenaming.AppNamingStrategy;
 import io.harness.delegate.task.pcf.exception.InvalidPcfStateException;
 import io.harness.delegate.task.pcf.request.CfCommandDeployRequest;
@@ -75,30 +27,11 @@ import io.harness.exception.InvalidArgumentsException;
 import io.harness.exception.InvalidRequestException;
 import io.harness.exception.UnexpectedException;
 import io.harness.logging.LogCallback;
+import io.harness.logging.LogLevel;
 import io.harness.pcf.CfCliDelegateResolver;
 import io.harness.pcf.CfDeploymentManager;
 import io.harness.pcf.PivotalClientApiException;
-import io.harness.pcf.model.CfAppAutoscalarRequestData;
-import io.harness.pcf.model.CfCliVersion;
-import io.harness.pcf.model.CfCreateApplicationRequestData;
-import io.harness.pcf.model.CfRenameRequest;
-import io.harness.pcf.model.CfRequestConfig;
-import io.harness.pcf.model.PcfConstants;
-
-import com.google.common.annotations.VisibleForTesting;
-import com.google.inject.Inject;
-import com.google.inject.Singleton;
-import java.io.File;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Deque;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
-import javax.annotation.Nullable;
+import io.harness.pcf.model.*;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -106,6 +39,32 @@ import org.cloudfoundry.operations.applications.ApplicationDetail;
 import org.cloudfoundry.operations.applications.ApplicationSummary;
 import org.cloudfoundry.operations.applications.InstanceDetail;
 import org.jetbrains.annotations.NotNull;
+
+import javax.annotation.Nullable;
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static io.harness.annotations.dev.HarnessTeam.CDP;
+import static io.harness.data.structure.EmptyPredicate.isEmpty;
+import static io.harness.data.structure.EmptyPredicate.isNotEmpty;
+import static io.harness.eraro.ErrorCode.INVALID_INFRA_STATE;
+import static io.harness.exception.WingsException.USER;
+import static io.harness.exception.WingsException.USER_SRE;
+import static io.harness.filesystem.FileIo.createDirectoryIfDoesNotExist;
+import static io.harness.logging.LogLevel.ERROR;
+import static io.harness.pcf.PcfUtils.encodeColor;
+import static io.harness.pcf.PcfUtils.getRevisionFromServiceName;
+import static io.harness.pcf.model.PcfConstants.*;
+import static java.lang.String.format;
+import static java.util.stream.Collectors.toList;
+import static org.apache.commons.lang3.StringUtils.isBlank;
+import static software.wings.beans.LogColor.Gray;
+import static software.wings.beans.LogColor.White;
+import static software.wings.beans.LogHelper.color;
+import static software.wings.beans.LogWeight.Bold;
 
 /**
  * Stateles helper class
@@ -273,7 +232,12 @@ public class PcfCommandTaskBaseHelper {
       appAutoscalarRequestData.setApplicationName(applicationDetail.getName());
       appAutoscalarRequestData.setApplicationGuid(applicationDetail.getId());
       appAutoscalarRequestData.setExpectedEnabled(true);
-      boolean autoscalarStateChanged = disableAutoscalar(appAutoscalarRequestData, executionLogCallback);
+      boolean autoscalarStateChanged = false;
+      try {
+        autoscalarStateChanged = disableAutoscalar(appAutoscalarRequestData, executionLogCallback);
+      } catch (PivotalClientApiException e) {
+        executionLogCallback.saveExecutionLog(new StringBuilder().append("# Error while disabling autoscaling for: ").append(encodeColor(applicationDetail.getName())).append(",").append(e).toString(), LogLevel.ERROR);
+      }
       cfServiceData.setDisableAutoscalarPerformed(autoscalarStateChanged);
     }
 
@@ -330,7 +294,11 @@ public class PcfCommandTaskBaseHelper {
         appAutoscalarRequestData.setApplicationName(applicationDetail.getName());
         appAutoscalarRequestData.setApplicationGuid(applicationDetail.getId());
         appAutoscalarRequestData.setExpectedEnabled(true);
-        disableAutoscalar(appAutoscalarRequestData, executionLogCallback);
+        try {
+          disableAutoscalar(appAutoscalarRequestData, executionLogCallback);
+        } catch (PivotalClientApiException e) {
+          executionLogCallback.saveExecutionLog(new StringBuilder().append("# Error while disabling autoscaling for: ").append(encodeColor(applicationDetail.getName())).append(",").append(e).toString(), LogLevel.ERROR);
+        }
       }
 
       downSize(cfServiceData, executionLogCallback, cfRequestConfig, pcfDeploymentManager);

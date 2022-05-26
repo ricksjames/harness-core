@@ -7,29 +7,9 @@
 
 package software.wings.delegatetasks.pcf.pcftaskhandler;
 
-import static io.harness.data.structure.EmptyPredicate.isEmpty;
-import static io.harness.data.structure.EmptyPredicate.isNotEmpty;
-import static io.harness.delegate.cf.PcfCommandTaskBaseHelper.constructInActiveAppName;
-import static io.harness.delegate.cf.PcfCommandTaskBaseHelper.getMaxVersion;
-import static io.harness.delegate.cf.PcfCommandTaskBaseHelper.getVersionChangeMessage;
-import static io.harness.logging.CommandExecutionStatus.SUCCESS;
-import static io.harness.logging.LogLevel.ERROR;
-import static io.harness.logging.LogLevel.INFO;
-import static io.harness.pcf.CfCommandUnitConstants.CheckExistingApps;
-import static io.harness.pcf.CfCommandUnitConstants.PcfSetup;
-import static io.harness.pcf.CfCommandUnitConstants.Wrapup;
-import static io.harness.pcf.PcfUtils.encodeColor;
-import static io.harness.pcf.PcfUtils.getRevisionFromServiceName;
-import static io.harness.pcf.model.PcfConstants.HARNESS__INACTIVE__IDENTIFIER;
-import static io.harness.pcf.model.PcfConstants.INACTIVE_APP_NAME_SUFFIX;
-import static io.harness.pcf.model.PcfConstants.PIVOTAL_CLOUD_FOUNDRY_LOG_PREFIX;
-
-import static software.wings.beans.LogColor.White;
-import static software.wings.beans.LogHelper.color;
-import static software.wings.beans.LogWeight.Bold;
-
-import static java.util.stream.Collectors.toList;
-
+import com.google.common.annotations.VisibleForTesting;
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import io.harness.annotations.dev.HarnessModule;
 import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
@@ -57,36 +37,8 @@ import io.harness.logging.LogLevel;
 import io.harness.logging.Misc;
 import io.harness.pcf.PcfUtils;
 import io.harness.pcf.PivotalClientApiException;
-import io.harness.pcf.model.CfAppAutoscalarRequestData;
-import io.harness.pcf.model.CfCreateApplicationRequestData;
-import io.harness.pcf.model.CfManifestFileData;
-import io.harness.pcf.model.CfRenameRequest;
-import io.harness.pcf.model.CfRequestConfig;
-import io.harness.pcf.model.PcfConstants;
+import io.harness.pcf.model.*;
 import io.harness.security.encryption.EncryptedDataDetail;
-
-import software.wings.annotation.EncryptableSetting;
-import software.wings.beans.artifact.ArtifactStreamAttributes;
-import software.wings.delegatetasks.pcf.PcfCommandTaskHelper;
-import software.wings.helpers.ext.pcf.request.CfCommandSetupRequest;
-import software.wings.settings.SettingValue;
-import software.wings.utils.ServiceVersionConvention;
-
-import com.google.common.annotations.VisibleForTesting;
-import com.google.inject.Inject;
-import com.google.inject.Singleton;
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
@@ -94,6 +46,34 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.cloudfoundry.operations.applications.ApplicationDetail;
 import org.cloudfoundry.operations.applications.ApplicationSummary;
+import software.wings.annotation.EncryptableSetting;
+import software.wings.beans.artifact.ArtifactStreamAttributes;
+import software.wings.delegatetasks.pcf.PcfCommandTaskHelper;
+import software.wings.helpers.ext.pcf.request.CfCommandSetupRequest;
+import software.wings.settings.SettingValue;
+import software.wings.utils.ServiceVersionConvention;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+
+import static io.harness.data.structure.EmptyPredicate.isEmpty;
+import static io.harness.data.structure.EmptyPredicate.isNotEmpty;
+import static io.harness.delegate.cf.PcfCommandTaskBaseHelper.*;
+import static io.harness.logging.CommandExecutionStatus.SUCCESS;
+import static io.harness.logging.LogLevel.ERROR;
+import static io.harness.logging.LogLevel.INFO;
+import static io.harness.pcf.CfCommandUnitConstants.*;
+import static io.harness.pcf.PcfUtils.encodeColor;
+import static io.harness.pcf.PcfUtils.getRevisionFromServiceName;
+import static io.harness.pcf.model.PcfConstants.*;
+import static java.util.stream.Collectors.toList;
+import static software.wings.beans.LogColor.White;
+import static software.wings.beans.LogHelper.color;
+import static software.wings.beans.LogWeight.Bold;
 
 @NoArgsConstructor
 @Singleton
@@ -691,7 +671,7 @@ public class PcfSetupCommandTaskHandler extends PcfCommandTaskHandler {
   void deleteOlderApplications(List<ApplicationSummary> previousReleases, CfRequestConfig cfRequestConfig,
       CfCommandSetupRequest cfCommandSetupRequest, CfAppAutoscalarRequestData appAutoscalarRequestData,
       ApplicationSummary activeApplication, CfAppSetupTimeDetails inactiveAppVersionDetails,
-      LogCallback executionLogCallback) throws PivotalClientApiException {
+      LogCallback executionLogCallback) {
     if (EmptyPredicate.isEmpty(previousReleases)) {
       return;
     }
@@ -760,7 +740,7 @@ public class PcfSetupCommandTaskHandler extends PcfCommandTaskHandler {
   @VisibleForTesting
   void downsizeApplicationToZero(ApplicationSummary applicationSummary, CfRequestConfig cfRequestConfig,
       CfCommandSetupRequest cfCommandSetupRequest, CfAppAutoscalarRequestData appAutoscalarRequestData,
-      LogCallback executionLogCallback) throws PivotalClientApiException {
+      LogCallback executionLogCallback) {
     executionLogCallback.saveExecutionLog(new StringBuilder()
                                               .append("# Application Being Downsized To 0: ")
                                               .append(encodeColor(applicationSummary.getName()))
@@ -771,7 +751,12 @@ public class PcfSetupCommandTaskHandler extends PcfCommandTaskHandler {
       appAutoscalarRequestData.setApplicationName(applicationSummary.getName());
       appAutoscalarRequestData.setApplicationGuid(applicationSummary.getId());
       appAutoscalarRequestData.setExpectedEnabled(true);
-      pcfCommandTaskBaseHelper.disableAutoscalar(appAutoscalarRequestData, executionLogCallback);
+
+      try {
+        pcfCommandTaskBaseHelper.disableAutoscalar(appAutoscalarRequestData, executionLogCallback);
+      } catch (PivotalClientApiException e) {
+        executionLogCallback.saveExecutionLog(new StringBuilder().append("# Error while disabling autoscaling for: ").append(encodeColor(applicationSummary.getName())).append(",").append(e).toString(),LogLevel.ERROR);
+      }
     }
 
     cfRequestConfig.setApplicationName(applicationSummary.getName());
