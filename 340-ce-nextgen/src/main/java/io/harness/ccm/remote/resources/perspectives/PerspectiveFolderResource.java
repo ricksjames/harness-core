@@ -7,9 +7,9 @@
 
 package io.harness.ccm.remote.resources.perspectives;
 
-import com.codahale.metrics.annotation.ExceptionMetered;
-import com.codahale.metrics.annotation.Timed;
-import com.google.inject.Inject;
+import static io.harness.NGCommonEntityConstants.ACCOUNT_PARAM_MESSAGE;
+import static io.harness.annotations.dev.HarnessTeam.CE;
+
 import io.harness.NGCommonEntityConstants;
 import io.harness.accesscontrol.AccountIdentifier;
 import io.harness.annotations.dev.OwnedBy;
@@ -27,6 +27,10 @@ import io.harness.ng.core.dto.ErrorDTO;
 import io.harness.ng.core.dto.FailureDTO;
 import io.harness.ng.core.dto.ResponseDTO;
 import io.harness.security.annotations.NextGenManagerAuth;
+
+import com.codahale.metrics.annotation.ExceptionMetered;
+import com.codahale.metrics.annotation.Timed;
+import com.google.inject.Inject;
 import io.jsonwebtoken.lang.Collections;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -37,19 +41,15 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import static io.harness.NGCommonEntityConstants.ACCOUNT_PARAM_MESSAGE;
-import static io.harness.annotations.dev.HarnessTeam.CE;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
 
 @Api("perspectiveFolders")
 @Path("perspectiveFolders")
@@ -83,8 +83,7 @@ public class PerspectiveFolderResource {
   @ApiOperation(value = "Create perspective folder", nickname = "createPerspectiveFolder")
   @FeatureRestrictionCheck(FeatureRestrictionName.PERSPECTIVES)
   @LogAccountIdentifier
-  @Operation(operationId = "createPerspectiveFolder",
-      description = "Create a Perspective Folder.",
+  @Operation(operationId = "createPerspectiveFolder", description = "Create a Perspective Folder.",
       summary = "Create a Perspective folder",
       responses =
       {
@@ -95,15 +94,17 @@ public class PerspectiveFolderResource {
   public ResponseDTO<CEViewFolder>
   create(@Parameter(required = true, description = ACCOUNT_PARAM_MESSAGE) @QueryParam(
              NGCommonEntityConstants.ACCOUNT_KEY) @AccountIdentifier @NotNull @Valid String accountId,
-      @RequestBody(
-          required = true, description = "Request body containing Perspective's CEViewFolder object") @Valid CreatePerspectiveFolderDTO createPerspectiveFolderDTO) {
+      @RequestBody(required = true, description = "Request body containing Perspective's CEViewFolder object")
+      @Valid CreatePerspectiveFolderDTO createPerspectiveFolderDTO) {
     CEViewFolder ceViewFolder = createPerspectiveFolderDTO.getCeViewFolder();
     ceViewFolder.setAccountId(accountId);
     ceViewFolder.setPinned(false);
     ceViewFolder.setViewType(ViewType.CUSTOMER);
     ceViewFolder = ceViewFolderService.save(ceViewFolder);
-    if (createPerspectiveFolderDTO.getPerspectiveIds() != null && !createPerspectiveFolderDTO.getPerspectiveIds().isEmpty()) {
-      ceViewFolderService.moveMultipleCEViews(accountId, createPerspectiveFolderDTO.getPerspectiveIds(), ceViewFolder.getUuid());
+    if (createPerspectiveFolderDTO.getPerspectiveIds() != null
+        && !createPerspectiveFolderDTO.getPerspectiveIds().isEmpty()) {
+      ceViewFolderService.moveMultipleCEViews(
+          accountId, createPerspectiveFolderDTO.getPerspectiveIds(), ceViewFolder.getUuid());
     }
     return ResponseDTO.newResponse(ceViewFolder);
   }
@@ -114,14 +115,11 @@ public class PerspectiveFolderResource {
   @ApiOperation(value = "Get folders for account", nickname = "getFolders")
   @LogAccountIdentifier
   @Produces(MediaType.APPLICATION_JSON)
-  @Operation(operationId = "getFolders",
-      description = "Fetch folders given an accountId",
+  @Operation(operationId = "getFolders", description = "Fetch folders given an accountId",
       summary = "Fetch folders for an account",
       responses =
       {
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            description =
-                "Returns List of CEViewFolders",
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(description = "Returns List of CEViewFolders",
             content = { @Content(mediaType = MediaType.APPLICATION_JSON) })
       })
   public ResponseDTO<List<CEViewFolder>>
@@ -149,8 +147,9 @@ public class PerspectiveFolderResource {
       })
   public ResponseDTO<List<QLCEView>>
   getPerspectives(@Parameter(required = true, description = ACCOUNT_PARAM_MESSAGE) @QueryParam(
-      NGCommonEntityConstants.ACCOUNT_KEY) @AccountIdentifier @NotNull @Valid String accountId,
-                  @Parameter(required = true, description = "Unique identifier for folder") @PathParam("folderId") String folderId) {
+                      NGCommonEntityConstants.ACCOUNT_KEY) @AccountIdentifier @NotNull @Valid String accountId,
+      @Parameter(required = true, description = "Unique identifier for folder") @PathParam(
+          "folderId") String folderId) {
     return ResponseDTO.newResponse(ceViewService.getAllViews(accountId, folderId, true));
   }
 
@@ -160,20 +159,17 @@ public class PerspectiveFolderResource {
   @Consumes(MediaType.APPLICATION_JSON)
   @ApiOperation(value = "Update a folder", nickname = "updateFolder")
   @LogAccountIdentifier
-  @Operation(operationId = "updateFolder",
-      description =
-          "Update a folder",
-      summary = "Update a folder",
+  @Operation(operationId = "updateFolder", description = "Update a folder", summary = "Update a folder",
       responses =
-          {
-              @io.swagger.v3.oas.annotations.responses.
-                  ApiResponse(description = "CEViewFolder object",
-                  content = { @Content(mediaType = MediaType.APPLICATION_JSON) })
-          })
+      {
+        @io.swagger.v3.oas.annotations.responses.
+        ApiResponse(description = "CEViewFolder object", content = { @Content(mediaType = MediaType.APPLICATION_JSON) })
+      })
   public ResponseDTO<CEViewFolder>
   rename(@Parameter(required = true, description = ACCOUNT_PARAM_MESSAGE) @QueryParam(
-      NGCommonEntityConstants.ACCOUNT_KEY) @AccountIdentifier @NotNull @Valid String accountId,
-         @RequestBody(required = true, description = "Request body containing ceViewFolder object") @Valid CEViewFolder ceViewFolder) {
+             NGCommonEntityConstants.ACCOUNT_KEY) @AccountIdentifier @NotNull @Valid String accountId,
+      @RequestBody(required = true,
+          description = "Request body containing ceViewFolder object") @Valid CEViewFolder ceViewFolder) {
     return ResponseDTO.newResponse(ceViewFolderService.updateFolder(accountId, ceViewFolder));
   }
 
@@ -188,17 +184,17 @@ public class PerspectiveFolderResource {
   @Operation(operationId = "movePerspectives", description = "Move a perspective from a folder to another.",
       summary = "Move a Perspective",
       responses =
-          {
-              @io.swagger.v3.oas.annotations.responses.
-                  ApiResponse(description = "Returns the new CEView object",
-                  content = { @Content(mediaType = MediaType.APPLICATION_JSON) })
-          })
+      {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(description = "Returns the new CEView object",
+            content = { @Content(mediaType = MediaType.APPLICATION_JSON) })
+      })
   public ResponseDTO<List<CEView>>
   movePerspectives(@Parameter(required = true, description = ACCOUNT_PARAM_MESSAGE) @QueryParam(
-      NGCommonEntityConstants.ACCOUNT_KEY) @AccountIdentifier @NotNull @Valid String accountId,
-         @Parameter(required = true, description = "Unique identifier for the Perspective folder") @PathParam(
-             "newFolderId") String newFolderId,
-         @RequestBody(required = true, description = "Request body containing perspectiveIds to be moved") @Valid List<String> perspectiveIds) {
+                       NGCommonEntityConstants.ACCOUNT_KEY) @AccountIdentifier @NotNull @Valid String accountId,
+      @Parameter(required = true, description = "Unique identifier for the Perspective folder") @PathParam(
+          "newFolderId") String newFolderId,
+      @RequestBody(required = true,
+          description = "Request body containing perspectiveIds to be moved") @Valid List<String> perspectiveIds) {
     return ResponseDTO.newResponse(ceViewFolderService.moveMultipleCEViews(accountId, perspectiveIds, newFolderId));
   }
 

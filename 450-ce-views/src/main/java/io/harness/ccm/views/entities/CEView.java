@@ -7,7 +7,6 @@
 
 package io.harness.ccm.views.entities;
 
-import com.google.common.collect.ImmutableList;
 import io.harness.annotation.StoreIn;
 import io.harness.beans.EmbeddedUser;
 import io.harness.mongo.index.CompoundMongoIndex;
@@ -21,6 +20,7 @@ import io.harness.persistence.UpdatedAtAware;
 import io.harness.persistence.UpdatedByAware;
 import io.harness.persistence.UuidAware;
 
+import com.google.common.collect.ImmutableList;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 import javax.validation.constraints.Size;
@@ -45,10 +45,10 @@ public final class CEView implements PersistentEntity, UuidAware, CreatedAtAware
   public static List<MongoIndex> mongoIndexes() {
     return ImmutableList.<MongoIndex>builder()
         .add(CompoundMongoIndex.builder()
-            .name("accountId_folderId")
-            .field(CEViewKeys.accountId)
-            .field(CEViewKeys.folderId)
-            .build())
+                 .name("accountId_folderId")
+                 .field(CEViewKeys.accountId)
+                 .field(CEViewKeys.folderId)
+                 .build())
         .build();
   }
   @Id String uuid;

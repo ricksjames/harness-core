@@ -315,8 +315,8 @@ public class CEViewServiceImpl implements CEViewService {
     List<CEView> viewList = ceViewDao.findByAccountIdAndFolderId(accountId, folderId);
     if (!includeDefault) {
       viewList = viewList.stream()
-          .filter(view -> ImmutableSet.of(ViewType.SAMPLE, ViewType.CUSTOMER).contains(view.getViewType()))
-          .collect(Collectors.toList());
+                     .filter(view -> ImmutableSet.of(ViewType.SAMPLE, ViewType.CUSTOMER).contains(view.getViewType()))
+                     .collect(Collectors.toList());
     }
     return getQLCEViewsFromCEViews(viewList);
   }
@@ -333,26 +333,26 @@ public class CEViewServiceImpl implements CEViewService {
       }
       ViewField groupBy = view.getViewVisualization().getGroupBy();
       graphQLViewObjList.add(QLCEView.builder()
-          .id(view.getUuid())
-          .name(view.getName())
-          .folderId(view.getFolderId())
-          .totalCost(view.getTotalCost())
-          .createdBy(null != view.getCreatedBy() ? view.getCreatedBy().getEmail() : "")
-          .createdAt(view.getCreatedAt())
-          .lastUpdatedAt(view.getLastUpdatedAt())
-          .chartType(vChartType)
-          .viewType(view.getViewType())
-          .viewState(view.getViewState())
-          .groupBy(QLCEViewField.builder()
-              .fieldId(groupBy.getFieldId())
-              .fieldName(groupBy.getFieldName())
-              .identifier(groupBy.getIdentifier())
-              .identifierName(groupBy.getIdentifier().getDisplayName())
-              .build())
-          .timeRange(view.getViewTimeRange().getViewTimeRangeType())
-          .dataSources(view.getDataSources())
-          .isReportScheduledConfigured(!reportSchedules.isEmpty())
-          .build());
+                                 .id(view.getUuid())
+                                 .name(view.getName())
+                                 .folderId(view.getFolderId())
+                                 .totalCost(view.getTotalCost())
+                                 .createdBy(null != view.getCreatedBy() ? view.getCreatedBy().getEmail() : "")
+                                 .createdAt(view.getCreatedAt())
+                                 .lastUpdatedAt(view.getLastUpdatedAt())
+                                 .chartType(vChartType)
+                                 .viewType(view.getViewType())
+                                 .viewState(view.getViewState())
+                                 .groupBy(QLCEViewField.builder()
+                                              .fieldId(groupBy.getFieldId())
+                                              .fieldName(groupBy.getFieldName())
+                                              .identifier(groupBy.getIdentifier())
+                                              .identifierName(groupBy.getIdentifier().getDisplayName())
+                                              .build())
+                                 .timeRange(view.getViewTimeRange().getViewTimeRangeType())
+                                 .dataSources(view.getDataSources())
+                                 .isReportScheduledConfigured(!reportSchedules.isEmpty())
+                                 .build());
     }
     return graphQLViewObjList;
   }

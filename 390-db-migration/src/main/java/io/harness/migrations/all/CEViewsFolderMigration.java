@@ -7,9 +7,6 @@
 
 package io.harness.migrations.all;
 
-import com.google.common.collect.ImmutableList;
-import com.google.inject.Inject;
-import com.google.inject.Singleton;
 import io.harness.ccm.views.dao.CEViewFolderDao;
 import io.harness.ccm.views.entities.CEView;
 import io.harness.ccm.views.entities.CEView.CEViewKeys;
@@ -17,12 +14,15 @@ import io.harness.ccm.views.entities.CEViewFolder;
 import io.harness.ccm.views.entities.ViewType;
 import io.harness.migrations.Migration;
 import io.harness.persistence.HPersistence;
+
+import com.google.common.collect.ImmutableList;
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
+import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
 import org.mongodb.morphia.query.Query;
 import org.mongodb.morphia.query.UpdateOperations;
-
-import java.util.List;
 
 @Slf4j
 @Singleton
@@ -36,7 +36,7 @@ public class CEViewsFolderMigration implements Migration {
       log.info("Starting migration of all CCM Perspectives");
 
       List<String> accountIds = hPersistence.createQuery(CEView.class).getCollection().distinct("accountId");
-      for (String accountId: accountIds) {
+      for (String accountId : accountIds) {
         if (StringUtils.isEmpty(accountId)) {
           continue;
         }
@@ -48,12 +48,12 @@ public class CEViewsFolderMigration implements Migration {
           defaultFolderId = defaultFolder.getUuid();
         }
         Query<CEView> query = hPersistence.createQuery(CEView.class)
-            .field(CEViewKeys.accountId)
-            .equal(accountId)
-            .field(CEViewKeys.viewType)
-            .equal(ViewType.CUSTOMER);
-        UpdateOperations<CEView> updateOperations = hPersistence.createUpdateOperations(CEView.class)
-            .set(CEViewKeys.folderId, defaultFolderId);
+                                  .field(CEViewKeys.accountId)
+                                  .equal(accountId)
+                                  .field(CEViewKeys.viewType)
+                                  .equal(ViewType.CUSTOMER);
+        UpdateOperations<CEView> updateOperations =
+            hPersistence.createUpdateOperations(CEView.class).set(CEViewKeys.folderId, defaultFolderId);
         hPersistence.update(query, updateOperations);
 
         CEViewFolder sampleFolder = ceViewFolderDao.getSampleFolder(accountId);
@@ -64,12 +64,11 @@ public class CEViewsFolderMigration implements Migration {
           sampleFolderId = sampleFolder.getUuid();
         }
         query = hPersistence.createQuery(CEView.class)
-            .field(CEViewKeys.accountId)
-            .equal(accountId)
-            .field(CEViewKeys.viewType)
-            .in(ImmutableList.of(ViewType.DEFAULT, ViewType.DEFAULT_AZURE, ViewType.SAMPLE));
-        updateOperations = hPersistence.createUpdateOperations(CEView.class)
-            .set(CEViewKeys.folderId, sampleFolderId);
+                    .field(CEViewKeys.accountId)
+                    .equal(accountId)
+                    .field(CEViewKeys.viewType)
+                    .in(ImmutableList.of(ViewType.DEFAULT, ViewType.DEFAULT_AZURE, ViewType.SAMPLE));
+        updateOperations = hPersistence.createUpdateOperations(CEView.class).set(CEViewKeys.folderId, sampleFolderId);
         hPersistence.update(query, updateOperations);
       }
     } catch (Exception e) {

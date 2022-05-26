@@ -19,7 +19,6 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import java.util.List;
 import java.util.stream.Collectors;
-
 import lombok.extern.slf4j.Slf4j;
 import org.mongodb.morphia.query.Query;
 import org.mongodb.morphia.query.UpdateOperations;
@@ -131,10 +130,10 @@ public class CEViewDao {
 
   public List<CEView> moveMultiplePerspectiveFolder(String accountId, List<String> uuids, String toFolderId) {
     Query<CEView> query = hPersistence.createQuery(CEView.class)
-        .field(CEViewKeys.accountId)
-        .equal(accountId)
-        .field(CEViewKeys.uuid)
-        .in(uuids);
+                              .field(CEViewKeys.accountId)
+                              .equal(accountId)
+                              .field(CEViewKeys.uuid)
+                              .in(uuids);
     UpdateOperations<CEView> updateOperations =
         hPersistence.createUpdateOperations(CEView.class).set(CEViewKeys.folderId, toFolderId);
     hPersistence.update(query, updateOperations);

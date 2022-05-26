@@ -7,14 +7,17 @@
 
 package io.harness.ccm.views.entities;
 
-import com.google.common.collect.ImmutableList;
 import io.harness.annotation.StoreIn;
 import io.harness.beans.EmbeddedUser;
 import io.harness.mongo.index.CompoundMongoIndex;
 import io.harness.mongo.index.MongoIndex;
 import io.harness.ng.DbAliases;
 import io.harness.persistence.*;
+
+import com.google.common.collect.ImmutableList;
 import io.swagger.v3.oas.annotations.media.Schema;
+import java.util.List;
+import javax.validation.constraints.Size;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Data;
@@ -24,9 +27,6 @@ import org.hibernate.validator.constraints.NotBlank;
 import org.mongodb.morphia.annotations.Entity;
 import org.mongodb.morphia.annotations.Id;
 
-import javax.validation.constraints.Size;
-import java.util.List;
-
 @Data
 @Builder
 @StoreIn(DbAliases.CENG)
@@ -35,13 +35,10 @@ import java.util.List;
 @Entity(value = "ceViewFolder", noClassnameStored = true)
 @Schema(description = "This object will contain the complete definition of a Cloud Cost Perspective")
 public final class CEViewFolder implements PersistentEntity, UuidAware, CreatedAtAware, UpdatedAtAware, AccountAccess,
-                                     CreatedByAware, UpdatedByAware {
+                                           CreatedByAware, UpdatedByAware {
   public static List<MongoIndex> mongoIndexes() {
     return ImmutableList.<MongoIndex>builder()
-        .add(CompoundMongoIndex.builder()
-            .name("accountId")
-            .field(CEViewFolderKeys.accountId)
-            .build())
+        .add(CompoundMongoIndex.builder().name("accountId").field(CEViewFolderKeys.accountId).build())
         .build();
   }
   @Id String uuid;

@@ -7,18 +7,18 @@
 
 package io.harness.ccm.views.dao;
 
-import com.google.inject.Inject;
-import com.google.inject.Singleton;
 import io.harness.ccm.views.entities.CEViewFolder;
 import io.harness.ccm.views.entities.CEViewFolder.CEViewFolderKeys;
 import io.harness.ccm.views.entities.ViewType;
 import io.harness.persistence.HPersistence;
+
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
+import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.mongodb.morphia.query.Query;
 import org.mongodb.morphia.query.Sort;
 import org.mongodb.morphia.query.UpdateOperations;
-
-import java.util.List;
 
 @Slf4j
 @Singleton
@@ -27,17 +27,11 @@ public class CEViewFolderDao {
 
   public CEViewFolder save(CEViewFolder ceViewFolder) {
     String id = hPersistence.save(ceViewFolder);
-    return hPersistence.createQuery(CEViewFolder.class)
-        .field(CEViewFolderKeys.uuid)
-        .equal(id)
-        .get();
+    return hPersistence.createQuery(CEViewFolder.class).field(CEViewFolderKeys.uuid).equal(id).get();
   }
 
   public long getNumberOfFolders(String accountId) {
-    return hPersistence.createQuery(CEViewFolder.class)
-        .field(CEViewFolderKeys.accountId)
-        .equal(accountId)
-        .count();
+    return hPersistence.createQuery(CEViewFolder.class).field(CEViewFolderKeys.accountId).equal(accountId).count();
   }
 
   public long getNumberOfFolders(String accountId, List<String> folderIds) {
@@ -86,22 +80,25 @@ public class CEViewFolderDao {
   }
 
   public String createDefaultOrSampleFolder(String accountId, ViewType viewType) {
-    CEViewFolder ceViewFolder = CEViewFolder.builder()
-        .accountId(accountId)
-        .name((viewType.equals(ViewType.DEFAULT)) ? "Default Folder": "Out of the box Folder")
-        .pinned(true)
-        .viewType(viewType)
-        .description((viewType.equals(ViewType.DEFAULT)) ? "Contains all the custom perspectives not belonging to any folder": "Contains all the perspectives created by Harness")
-        .build();
+    CEViewFolder ceViewFolder =
+        CEViewFolder.builder()
+            .accountId(accountId)
+            .name((viewType.equals(ViewType.DEFAULT)) ? "Default Folder" : "Out of the box Folder")
+            .pinned(true)
+            .viewType(viewType)
+            .description((viewType.equals(ViewType.DEFAULT))
+                    ? "Contains all the custom perspectives not belonging to any folder"
+                    : "Contains all the perspectives created by Harness")
+            .build();
     return hPersistence.save(ceViewFolder);
   }
 
   public CEViewFolder updateFolder(String accountId, CEViewFolder ceViewFolder) {
     Query<CEViewFolder> query = hPersistence.createQuery(CEViewFolder.class)
-        .field(CEViewFolderKeys.accountId)
-        .equal(accountId)
-        .field(CEViewFolderKeys.uuid)
-        .equal(ceViewFolder.getUuid());
+                                    .field(CEViewFolderKeys.accountId)
+                                    .equal(accountId)
+                                    .field(CEViewFolderKeys.uuid)
+                                    .equal(ceViewFolder.getUuid());
 
     UpdateOperations<CEViewFolder> updateOperations = hPersistence.createUpdateOperations(CEViewFolder.class);
     if (ceViewFolder.getName() != null) {
@@ -124,10 +121,10 @@ public class CEViewFolderDao {
 
   public boolean delete(String accountId, String uuid) {
     Query<CEViewFolder> query = hPersistence.createQuery(CEViewFolder.class)
-        .field(CEViewFolderKeys.accountId)
-        .equal(accountId)
-        .field(CEViewFolderKeys.uuid)
-        .equal(uuid);
+                                    .field(CEViewFolderKeys.accountId)
+                                    .equal(accountId)
+                                    .field(CEViewFolderKeys.uuid)
+                                    .equal(uuid);
     return hPersistence.delete(query);
   }
 }
