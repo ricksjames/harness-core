@@ -178,6 +178,7 @@ public class ConnectorUtils {
       Ambiance ambiance, ExecutionSweepingOutputService executionSweepingOutputResolver) {
     String accountID = AmbianceUtils.getAccountId(ambiance);
     if (featureFlagService.isEnabled(FeatureName.DISABLE_CI_STAGE_DEL_SELECTOR, accountID)) {
+      log.info("DISABLE_CI_STAGE_DEL_SELECTOR Feature flag is enabled for account {}", accountID);
       return Collections.emptyList();
     }
 
