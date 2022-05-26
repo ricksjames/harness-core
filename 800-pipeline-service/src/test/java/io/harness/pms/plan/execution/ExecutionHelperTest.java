@@ -295,8 +295,7 @@ public class ExecutionHelperTest extends CategoryTest {
     assertThat(planExecutionMetadata.getProcessedYaml()).isEqualTo(YamlUtils.injectUuid(mergedPipelineYaml));
 
     verify(principalInfoHelper, times(1)).getPrincipalInfoFromSecurityContext();
-    verify(pmsGitSyncHelper, times(1)).getGitSyncBranchContextBytesThreadLocal(entityWithTemplateReference, null, null);
-    verify(pmsGitSyncHelper, times(1)).getGitSyncBranchContextBytesThreadLocal(pipelineEntity);
+    verify(pmsGitSyncHelper, times(1)).getGitSyncBranchContextBytesThreadLocal(pipelineEntity, null, null);
     verify(pmsYamlSchemaService, times(0)).validateYamlSchema(accountId, orgId, projectId, pipelineYaml);
     verify(pmsYamlSchemaService, times(1)).validateYamlSchema(accountId, orgId, projectId, mergedPipelineYaml);
     verify(pipelineRbacServiceImpl, times(1))
