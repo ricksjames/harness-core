@@ -1,6 +1,7 @@
 package software.wings.service.impl;
 
 import static io.harness.beans.FeatureName.ENABLE_DEFAULT_TIMEFRAME_IN_DEPLOYMENTS;
+import static io.harness.beans.SearchFilter.Operator;
 import static io.harness.beans.SearchFilter.Operator.LT;
 import static io.harness.data.structure.CollectionUtils.emptyIfNull;
 import static io.harness.data.structure.EmptyPredicate.isEmpty;
@@ -41,24 +42,29 @@ public class WorkflowExecutionTimeFilterHelper {
             .stream()
             .filter(searchFilter -> searchFilter.getFieldName().equals(WorkflowExecutionKeys.createdAt))
             .collect(Collectors.toList());
+
     if (isEmpty(searchFiltersForTime)) {
       log.info("Automatically adding search filter of 3 months");
       Object[] threeMonthsOldTime = new Object[] {System.currentTimeMillis() - THREE_MONTHS_MILLIS};
-      pageRequest.addFilter(SearchFilter.builder()
-                                .fieldName(WorkflowExecutionKeys.createdAt)
-                                .op(SearchFilter.Operator.GT)
-                                .fieldValues(threeMonthsOldTime)
-                                .build());
+      pageRequest.addFilter(WorkflowExecutionKeys.createdAt, Operator.GT, threeMonthsOldTime);
+      return;
     }
+
     if (searchFiltersForTime.size() > 2) {
       throw new InvalidRequestException("Cannot have more than two time filters.");
     }
 
-    if (searchFiltersForTime.size() == 1
-        && !(searchFiltersForTime.get(0).getOp().equals(SearchFilter.Operator.GT)
-            && checkTimeGreaterThanFourMonths(searchFiltersForTime))
-        && searchFiltersForTime.get(0).getOp().equals(LT)) {
-      throw new InvalidRequestException("Time filter not selected correctly");
+    if (searchFiltersForTime.size() == 1) {
+      if (searchFiltersForTime.get(0).getOp().equals(Operator.GT)) {
+        if (checkTimeNotGreaterThanFourMonths(searchFiltersForTime)) {
+          final Long timeValueFromFilter = getTimeValueFromFilter(searchFiltersForTime);
+          pageRequest.addFilter(
+              WorkflowExecutionKeys.createdAt, Operator.LT, timeValueFromFilter + THREE_MONTHS_MILLIS);
+        }
+      } else if (searchFiltersForTime.get(0).getOp().equals(LT)) {
+        final Long timeValueFromFilter = getTimeValueFromFilter(searchFiltersForTime);
+        pageRequest.addFilter(WorkflowExecutionKeys.createdAt, Operator.GT, timeValueFromFilter - THREE_MONTHS_MILLIS);
+      }
     }
 
     if (searchFiltersForTime.size() == 2) {
@@ -87,11 +93,11 @@ public class WorkflowExecutionTimeFilterHelper {
     return copiedPageRequest;
   }
 
-  private boolean checkTimeGreaterThanFourMonths(List<SearchFilter> searchFiltersForTime) {
+  private boolean checkTimeNotGreaterThanFourMonths(List<SearchFilter> searchFiltersForTime) {
     Object timeFilter = searchFiltersForTime.get(0).getFieldValues()[0];
     final Long timeInFilter = getTimeValueFromFilter(timeFilter);
     if (timeInFilter < System.currentTimeMillis() - FOUR_MONTHS_MILLIS) {
-      throw new InvalidRequestException("Max three months of executions can be searched.");
+      return false;
     }
     // returning default as true
     return true;

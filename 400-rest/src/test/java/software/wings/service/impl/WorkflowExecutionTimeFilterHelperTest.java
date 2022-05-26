@@ -5,6 +5,7 @@ import static io.harness.rule.OwnerRule.ABHINAV;
 
 import static software.wings.beans.WorkflowExecution.WorkflowExecutionKeys;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.doReturn;
@@ -76,8 +77,8 @@ public class WorkflowExecutionTimeFilterHelperTest extends CategoryTest {
                            .build())
             .build();
     doReturn(pageRequest2).when(workflowExecutionTimeFilterHelper).populatePageRequestFilters(any());
-    assertThatThrownBy(
-        () -> workflowExecutionTimeFilterHelper.updatePageRequestForTimeFilter(pageRequest2, ACCOUNT_ID));
+    workflowExecutionTimeFilterHelper.updatePageRequestForTimeFilter(pageRequest2, ACCOUNT_ID);
+    assertThat(pageRequest1.getFilters().size()).isEqualTo(2);
 
     final PageRequest pageRequest3 =
         aPageRequest()
@@ -111,5 +112,17 @@ public class WorkflowExecutionTimeFilterHelperTest extends CategoryTest {
     doReturn(pageRequest4).when(workflowExecutionTimeFilterHelper).populatePageRequestFilters(any());
     assertThatThrownBy(
         () -> workflowExecutionTimeFilterHelper.updatePageRequestForTimeFilter(pageRequest4, ACCOUNT_ID));
+
+    final PageRequest pageRequest5 =
+        aPageRequest()
+            .addFilter(SearchFilter.builder()
+                           .op(SearchFilter.Operator.LT)
+                           .fieldValues(new Object[] {System.currentTimeMillis() - SIX_MONTHS_MILLIS})
+                           .fieldName(WorkflowExecutionKeys.createdAt)
+                           .build())
+            .build();
+    doReturn(pageRequest5).when(workflowExecutionTimeFilterHelper).populatePageRequestFilters(any());
+    workflowExecutionTimeFilterHelper.updatePageRequestForTimeFilter(pageRequest5, ACCOUNT_ID);
+    assertThat(pageRequest1.getFilters().size()).isEqualTo(2);
   }
 }
