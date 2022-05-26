@@ -110,7 +110,7 @@ public class FailDelegateTaskIterator implements MongoPersistenceIterator.Handle
         PersistenceIteratorFactory.PumpExecutorOptions.builder()
             .interval(Duration.ofSeconds(DELEGATE_TASK_FAIL_TIMEOUT))
             .poolSize(threadPoolSize)
-            .name("DelegateTaskFail")
+            .name("DelegateTaskFailIterator")
             .build();
     persistenceIteratorFactory.createPumpIteratorWithDedicatedThreadPool(options, FailDelegateTaskIterator.class,
         MongoPersistenceIterator.<Account, MorphiaFilterExpander<Account>>builder()

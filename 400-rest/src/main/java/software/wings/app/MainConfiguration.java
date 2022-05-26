@@ -228,6 +228,8 @@ public class MainConfiguration extends Configuration implements AssetsBundleConf
   @JsonProperty("eventListenersCountConfig") private EventListenersCountConfig eventListenersCountConfig;
   @JsonProperty(value = "useGlobalKMSAsBaseAlgo", defaultValue = "false") private boolean useGlobalKMSAsBaseAlgo;
   @JsonProperty("totp") private TotpConfig totpConfig;
+  @JsonProperty(value = "enableDelegateTaskIterator", defaultValue = "true")
+  private boolean enableDelegateTaskIterator;
 
   private int applicationPort;
   private boolean sslEnabled;

@@ -197,9 +197,9 @@ public class MongoPersistenceIterator<T extends PersistentIterable, F extends Fi
       } catch (Throwable exception) {
         log.error("Exception occurred while processing iterator", exception);
         iteratorMetricsService.recordIteratorMetrics(iteratorName, ITERATOR_ERROR);
-        if (iteratorName.equals("DelegateTaskFail")){
+        if (iteratorName.equals("DelegateTaskFailIterator")){
           err_count++;
-          log.info("Working on entity DelegateTaskFail ERROR_1 {}",err_count);
+          log.info("Working on entity DelegateTaskFailIterator ERROR_1 {}",err_count);
         }
         sleep(ofSeconds(1));
       }
@@ -240,11 +240,11 @@ public class MongoPersistenceIterator<T extends PersistentIterable, F extends Fi
       } catch (InterruptedException e) {
         log.info("Working on entity was interrupted", e);
         iteratorMetricsService.recordIteratorMetrics(iteratorName, ITERATOR_ERROR);
-        if (iteratorName.equals("DelegateTaskFail")){
+        if (iteratorName.equals("DelegateTaskFailIterator")){
           err_count++;
-          log.info("Working on entity DelegateTaskFail ERROR_2 {}",err_count);
+          log.info("Working on entity DelegateTaskFailIterator ERROR_2 {}",err_count);
         }
-        log.info("Working on entity DelegateTaskFail Error count {}",err_count);
+        log.info("Working on entity DelegateTaskFailIterator Error count {}",err_count);
         Thread.currentThread().interrupt();
         return;
       }
@@ -261,9 +261,9 @@ public class MongoPersistenceIterator<T extends PersistentIterable, F extends Fi
 
         long delay = nextIteration == null || nextIteration == 0 ? 0 : startTime - nextIteration;
         try (DelayLogContext ignore2 = new DelayLogContext(delay, OVERRIDE_ERROR)) {
-          if (iteratorName.equals("DelegateTaskFail")){
+          if (iteratorName.equals("DelegateTaskFailIterator")){
             count++;
-            log.info("Working on entity DelegateTaskFail {}",count);
+            log.info("Working on entity DelegateTaskFailIterator {}",count);
           }
           log.info("Working on entity");
           iteratorMetricsService.recordIteratorMetrics(iteratorName, ITERATOR_WORKING_ON_ENTITY);
@@ -274,9 +274,9 @@ public class MongoPersistenceIterator<T extends PersistentIterable, F extends Fi
             log.error(
                 "Working on entity but the delay is more than the acceptable {}", acceptableNoAlertDelay.toMillis());
           }
-          if (iteratorName.equals("DelegateTaskFail")){
+          if (iteratorName.equals("DelegateTaskFailIterator")){
             del_count++;
-            log.info("Working on entity DelegateTaskFail delay 1 {} with delay of {}",del_count, delay);
+            log.info("Working on entity DelegateTaskFailIterator delay 1 {} with delay of {}",del_count, delay);
           }
         }
 
@@ -285,17 +285,17 @@ public class MongoPersistenceIterator<T extends PersistentIterable, F extends Fi
         } catch (RuntimeException exception) {
           log.error("Catch and handle all exceptions in the entity handler", exception);
           iteratorMetricsService.recordIteratorMetrics(iteratorName, ITERATOR_ERROR);
-          if (iteratorName.equals("DelegateTaskFail")){
+          if (iteratorName.equals("DelegateTaskFailIterator")){
             err_count++;
-            log.info("Working on entity DelegateTaskFail ERROR_3 {}",err_count);
+            log.info("Working on entity DelegateTaskFailIterator ERROR_3 {}",err_count);
           }
         }
       } catch (Throwable exception) {
         log.error("Exception while processing entity", exception);
         iteratorMetricsService.recordIteratorMetrics(iteratorName, ITERATOR_ERROR);
-        if (iteratorName.equals("DelegateTaskFail")){
+        if (iteratorName.equals("DelegateTaskFailIterator")){
           err_count++;
-          log.info("Working on entity DelegateTaskFail ERROR_4 {}",err_count);
+          log.info("Working on entity DelegateTaskFailIterator ERROR_4 {}",err_count);
         }
       } finally {
         semaphore.release();
@@ -308,17 +308,17 @@ public class MongoPersistenceIterator<T extends PersistentIterable, F extends Fi
         try (ProcessTimeLogContext ignore2 = new ProcessTimeLogContext(processTime, OVERRIDE_ERROR)) {
           if (acceptableExecutionTime != null && processTime > acceptableExecutionTime.toMillis()) {
             log.error("Done with entity but took too long acceptable {}", acceptableExecutionTime.toMillis());
-            if (iteratorName.equals("DelegateTaskFail")){
+            if (iteratorName.equals("DelegateTaskFailIterator")){
               del_count++;
-              log.info("Working on entity DelegateTaskFail delay 2 {} with process time {} ",del_count,processTime );
+              log.info("Working on entity DelegateTaskFailIterator delay 2 {} with process time {} ",del_count,processTime );
             }
           }
         } catch (Throwable exception) {
           log.error("Exception while recording the processing of entity", exception);
           iteratorMetricsService.recordIteratorMetrics(iteratorName, ITERATOR_ERROR);
-          if (iteratorName.equals("DelegateTaskFail")){
+          if (iteratorName.equals("DelegateTaskFailIterator")){
             err_count++;
-            log.info("Working on entity DelegateTaskFail ERROR_5 {}",err_count);
+            log.info("Working on entity DelegateTaskFailIterator ERROR_5 {}",err_count);
           }
         }
       }

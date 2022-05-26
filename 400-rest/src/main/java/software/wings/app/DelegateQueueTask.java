@@ -108,7 +108,7 @@ public class DelegateQueueTask implements Runnable {
                                                    .doesNotExist();
 
     try (HIterator<DelegateTask> iterator = new HIterator<>(unassignedTasksQuery.fetch())) {
-      int count = 0;
+
       while (iterator.hasNext()) {
         DelegateTask delegateTask = iterator.next();
         Query<DelegateTask> query = persistence.createQuery(DelegateTask.class, excludeAuthority)
@@ -171,7 +171,6 @@ public class DelegateQueueTask implements Runnable {
               delegateTask.getBroadcastToDelegateIds());
           delegateMetricsService.recordDelegateTaskMetrics(delegateTask, DELEGATE_TASK_REBROADCAST);
           broadcastHelper.rebroadcastDelegateTask(delegateTask);
-          count++;
         }
       }
     }

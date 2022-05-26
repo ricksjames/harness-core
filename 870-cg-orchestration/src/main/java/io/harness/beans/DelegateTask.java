@@ -20,6 +20,7 @@ import io.harness.delegate.beans.executioncapability.ExecutionCapability;
 import io.harness.delegate.task.HDelegateTask;
 import io.harness.iterator.PersistentIterable;
 import io.harness.mongo.index.CompoundMongoIndex;
+import io.harness.mongo.index.FdIndex;
 import io.harness.mongo.index.FdTtlIndex;
 import io.harness.mongo.index.MongoIndex;
 import io.harness.persistence.AccountAccess;
@@ -177,6 +178,10 @@ public class DelegateTask
   @Transient Map<String, List<String>> nonAssignableDelegates;
 
   @FdTtlIndex @Default private Date validUntil = Date.from(OffsetDateTime.now().plusDays(2).toInstant());
+
+  @FdIndex private long delegateTaskFailIteration;
+  @FdIndex private long delegateTaskFailValidationIteration;
+  @FdIndex private long delegateTaskRebroadcastIteration;
 
   public Long fetchExtraTimeoutForForceExecution() {
     if (forceExecute) {
