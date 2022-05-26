@@ -109,13 +109,13 @@ public class EventPublisherServerImpl extends EventPublisherGrpc.EventPublisherI
       if (isNotEmpty(withoutCategory)) {
         try {
           long startTime = System.currentTimeMillis();
-          //          eventDataBulkWriteService.insertPublishedMessages(withoutCategory);
-          eventDataBulkWriteService.saveIgnoringDuplicateKeys(withoutCategory);
+          eventDataBulkWriteService.insertPublishedMessages(withoutCategory);
+          //          eventDataBulkWriteService.saveIgnoringDuplicateKeys(withoutCategory);
           long endTime = System.currentTimeMillis();
-          log.info("saveIgnoringDuplicateKeys, startTime: {}", startTime);
-          log.info("saveIgnoringDuplicateKeys, endTime: {}", endTime);
-          log.info("saveIgnoringDuplicateKeys, Total time: {}", endTime - startTime);
-          log.info("saveIgnoringDuplicateKeys, withoutCategory size: {}", withoutCategory.size());
+          log.info("insertPublishedMessages, startTime: {}", startTime);
+          log.info("insertPublishedMessages, endTime: {}", endTime);
+          log.info("insertPublishedMessages, Total time: {}", endTime - startTime);
+          log.info("insertPublishedMessages, withoutCategory size: {}", withoutCategory.size());
         } catch (Exception e) {
           log.warn("Encountered error while persisting messages", e);
           responseObserver.onError(Status.INTERNAL.withCause(e).asException());
