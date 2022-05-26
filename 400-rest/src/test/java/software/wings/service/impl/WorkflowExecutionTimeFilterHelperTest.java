@@ -55,7 +55,7 @@ public class WorkflowExecutionTimeFilterHelperTest extends CategoryTest {
                            .build())
             .build();
     doReturn(pageRequest).when(workflowExecutionTimeFilterHelper).populatePageRequestFilters(any());
-    assertThatThrownBy(() -> workflowExecutionTimeFilterHelper.updatePageRequestForTimeFilter(pageRequest, ACCOUNT_ID));
+    assertThat(pageRequest.getFilters().size()).isEqualTo(2);
 
     final PageRequest pageRequest1 =
         aPageRequest()

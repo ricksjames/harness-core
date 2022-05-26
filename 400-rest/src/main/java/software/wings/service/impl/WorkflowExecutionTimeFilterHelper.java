@@ -56,14 +56,16 @@ public class WorkflowExecutionTimeFilterHelper {
 
     if (searchFiltersForTime.size() == 1) {
       if (searchFiltersForTime.get(0).getOp().equals(Operator.GT)) {
-        if (checkTimeNotGreaterThanFourMonths(searchFiltersForTime)) {
+        if (!checkTimeNotGreaterThanFourMonths(searchFiltersForTime)) {
           final Long timeValueFromFilter = getTimeValueFromFilter(searchFiltersForTime);
           pageRequest.addFilter(
               WorkflowExecutionKeys.createdAt, Operator.LT, timeValueFromFilter + THREE_MONTHS_MILLIS);
+          return;
         }
       } else if (searchFiltersForTime.get(0).getOp().equals(LT)) {
         final Long timeValueFromFilter = getTimeValueFromFilter(searchFiltersForTime);
         pageRequest.addFilter(WorkflowExecutionKeys.createdAt, Operator.GT, timeValueFromFilter - THREE_MONTHS_MILLIS);
+        return;
       }
     }
 
@@ -96,11 +98,8 @@ public class WorkflowExecutionTimeFilterHelper {
   private boolean checkTimeNotGreaterThanFourMonths(List<SearchFilter> searchFiltersForTime) {
     Object timeFilter = searchFiltersForTime.get(0).getFieldValues()[0];
     final Long timeInFilter = getTimeValueFromFilter(timeFilter);
-    if (timeInFilter < System.currentTimeMillis() - FOUR_MONTHS_MILLIS) {
-      return false;
-    }
+    return timeInFilter >= System.currentTimeMillis() - FOUR_MONTHS_MILLIS;
     // returning default as true
-    return true;
   }
 
   private Long getTimeValueFromFilter(Object timeFilter) {
