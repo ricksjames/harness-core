@@ -21,6 +21,8 @@ import io.harness.ccm.communication.entities.CESlackWebhook;
 import io.harness.ccm.config.GcpBillingAccount;
 import io.harness.ccm.config.GcpOrganization;
 import io.harness.ccm.config.GcpServiceAccount;
+import io.harness.ccm.views.entities.CEView;
+import io.harness.ccm.views.entities.CEViewFolder;
 import io.harness.dashboard.DashboardSettings;
 import io.harness.event.reconciliation.deployment.DeploymentReconRecord;
 import io.harness.execution.export.request.ExportExecutionsRequest;
@@ -696,6 +698,8 @@ public class ManagerMorphiaRegistrar implements MorphiaRegistrar {
     set.add(CECloudAccountOld.class);
     set.add(CECommunications.class);
     set.add(CESlackWebhook.class);
+    set.add(CEView.class);
+    set.add(CEViewFolder.class);
     set.add(CloudFormationInfrastructureProvisioner.class);
     set.add(CloudFormationRollbackConfig.class);
     set.add(CloudWatchCVServiceConfiguration.class);
