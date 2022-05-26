@@ -70,7 +70,8 @@ def get_disks(instance):
     disks = []
     if 'disks' in instance and instance['disks'] is not None:
         for disk in instance['disks']:
-            disks.append(disk['source'].split('/')[-1])
+            if 'source' in disk:
+                disks.append(disk['source'].split('/')[-1])
 
     if len(disks) == 0:
         return None
@@ -141,8 +142,6 @@ def get_data_to_insert(instance, zone, region, project_id):
 
 
 def insert_data_in_table(client, rows, table_name):
-    # todo: remove below log
-    print(f"Inserting {len(rows)} rows in {table_name}")
     job_config = bigquery.LoadJobConfig(
         write_disposition=bigquery.WriteDisposition.WRITE_TRUNCATE,
         source_format=bigquery.SourceFormat.NEWLINE_DELIMITED_JSON,
@@ -202,14 +201,6 @@ def main(event, context):
             if 'items' in response:
                 for instance in response['items']:
                     data.append(get_data_to_insert(instance, zone, STATIC_ZONES_MAPPING[zone], jsonData["projectId"]))
-                    # todo: remove below log
-                    print("Adding an instance")
-                    print(instance.get('id'))
-                    print(instance.get('name'))
-                    print(zone)
-                    print(get_status(instance))
-                    print("Instance was added successfully.")
-
-        request = service.instances().list_next(previous_request=request, previous_response=response)
+            request = service.instances().list_next(previous_request=request, previous_response=response)
 
     insert_data_in_table(client, data, gcp_instance_inventory_temp_table_name)
