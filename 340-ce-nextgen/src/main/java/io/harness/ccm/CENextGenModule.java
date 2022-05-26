@@ -98,6 +98,7 @@ import io.harness.mongo.MongoConfig;
 import io.harness.mongo.MongoPersistence;
 import io.harness.morphia.MorphiaRegistrar;
 import io.harness.ng.core.event.MessageListener;
+import io.harness.notification.module.NotificationClientModule;
 import io.harness.persistence.HPersistence;
 import io.harness.persistence.NoopUserProvider;
 import io.harness.persistence.UserProvider;
@@ -253,6 +254,8 @@ public class CENextGenModule extends AbstractModule {
     install(FeatureFlagModule.getInstance());
     install(new EventsFrameworkModule(configuration.getEventsFrameworkConfiguration()));
     install(JooqModule.getInstance());
+    install(new NotificationClientModule(configuration.getNotificationClientConfiguration()));
+
     bind(HPersistence.class).to(MongoPersistence.class);
     bind(CENextGenConfiguration.class).toInstance(configuration);
     bind(SQLConverter.class).to(SQLConverterImpl.class);
