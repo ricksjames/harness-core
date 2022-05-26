@@ -175,6 +175,7 @@ public class PMSPipelineServiceHelper {
     }
   }
 
+  // todo: change method name
   public GovernanceMetadata validatePipelineYamlAndSetTemplateRefIfAny(
       PipelineEntity pipelineEntity, boolean checkAgainstOPAPolicies) {
     try {
@@ -188,10 +189,10 @@ public class PMSPipelineServiceHelper {
                                    .build())
                 .build();
         try (PmsGitSyncBranchContextGuard ignored = new PmsGitSyncBranchContextGuard(gitSyncBranchContext, true)) {
-          return validatePipelineYamlAndSetTemplateRefIfAnyInternal(pipelineEntity, checkAgainstOPAPolicies);
+          return validatePipelineYamlInternal(pipelineEntity, checkAgainstOPAPolicies);
         }
       } else {
-        return validatePipelineYamlAndSetTemplateRefIfAnyInternal(pipelineEntity, checkAgainstOPAPolicies);
+        return validatePipelineYamlInternal(pipelineEntity, checkAgainstOPAPolicies);
       }
     } catch (io.harness.yaml.validator.InvalidYamlException ex) {
       ex.setYaml(pipelineEntity.getData());
@@ -207,7 +208,7 @@ public class PMSPipelineServiceHelper {
     }
   }
 
-  private GovernanceMetadata validatePipelineYamlAndSetTemplateRefIfAnyInternal(
+  private GovernanceMetadata validatePipelineYamlInternal(
       PipelineEntity pipelineEntity, boolean checkAgainstOPAPolicies) {
     String accountId = pipelineEntity.getAccountId();
     String orgIdentifier = pipelineEntity.getOrgIdentifier();
@@ -219,8 +220,6 @@ public class PMSPipelineServiceHelper {
     pmsYamlSchemaService.validateYamlSchema(accountId, orgIdentifier, projectIdentifier, resolveTemplateRefsInPipeline);
     // validate unique fqn in resolveTemplateRefsInPipeline
     pmsYamlSchemaService.validateUniqueFqn(resolveTemplateRefsInPipeline);
-    pipelineEntity.setTemplateReference(
-        EmptyPredicate.isNotEmpty(templateMergeResponseDTO.getTemplateReferenceSummaries()));
     if (checkAgainstOPAPolicies) {
       String expandedPipelineJSON =
           fetchExpandedPipelineJSONFromYaml(accountId, orgIdentifier, projectIdentifier, resolveTemplateRefsInPipeline);
