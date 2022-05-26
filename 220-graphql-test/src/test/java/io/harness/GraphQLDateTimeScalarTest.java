@@ -28,7 +28,7 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.ExpectedException;
 
-public class GraphQLDateTimeScalarTest extends WingsBaseTest {
+public class GraphQLDateTimeScalarTest extends CategoryTest {
   @Rule public ExpectedException thrown = ExpectedException.none();
 
   @Test
