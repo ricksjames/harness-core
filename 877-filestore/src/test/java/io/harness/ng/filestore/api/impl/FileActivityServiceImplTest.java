@@ -19,12 +19,12 @@ import io.harness.CategoryTest;
 import io.harness.EntityType;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.category.element.UnitTests;
+import io.harness.filestore.service.impl.FileActivityServiceImpl;
 import io.harness.ng.core.activityhistory.NGActivityStatus;
 import io.harness.ng.core.activityhistory.dto.NGActivityDTO;
 import io.harness.ng.core.activityhistory.service.NGActivityService;
 import io.harness.ng.core.filestore.NGFileType;
 import io.harness.ng.core.filestore.dto.FileDTO;
-import io.harness.ng.filestore.api.impl.FileActivityServiceImpl;
 import io.harness.rule.Owner;
 
 import org.junit.Test;

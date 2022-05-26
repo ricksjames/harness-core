@@ -21,17 +21,9 @@ import io.harness.ng.core.api.impl.AggregateProjectServiceImpl;
 import io.harness.ng.core.api.impl.AggregateUserGroupServiceImpl;
 import io.harness.ng.core.service.services.ServiceEntityManagementService;
 import io.harness.ng.core.service.services.ServiceEntityManagementServiceImpl;
-import io.harness.ng.filestore.api.FileActivityService;
-import io.harness.ng.filestore.api.FileFailsafeService;
-import io.harness.ng.filestore.api.FileStoreService;
-import io.harness.ng.filestore.api.impl.FileActivityServiceImpl;
-import io.harness.ng.filestore.api.impl.FileFailsafeServiceImpl;
-import io.harness.ng.filestore.api.impl.FileStoreServiceImpl;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.name.Names;
-import io.harness.ng.filestore.module.NgFileStoreModule;
-
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 

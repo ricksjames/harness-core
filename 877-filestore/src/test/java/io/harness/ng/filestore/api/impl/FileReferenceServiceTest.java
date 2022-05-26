@@ -23,13 +23,13 @@ import io.harness.beans.IdentifierRef;
 import io.harness.beans.SearchPageParams;
 import io.harness.category.element.UnitTests;
 import io.harness.exception.ReferencedEntityException;
+import io.harness.filestore.entities.NGFile;
+import io.harness.filestore.service.impl.FileReferenceServiceImpl;
 import io.harness.ng.core.entitysetupusage.dto.EntitySetupUsageDTO;
 import io.harness.ng.core.entitysetupusage.entity.EntitySetupUsage.EntitySetupUsageKeys;
 import io.harness.ng.core.entitysetupusage.service.EntitySetupUsageService;
 import io.harness.ng.core.filestore.NGFileType;
-import io.harness.ng.filestore.api.impl.FileReferenceServiceImpl;
-import io.harness.ng.filestore.entities.NGFile;
-import io.harness.ng.filestore.repositories.spring.FileStoreRepository;
+import io.harness.repositories.spring.FileStoreRepository;
 import io.harness.rule.Owner;
 
 import java.util.Arrays;
@@ -52,7 +52,7 @@ public class FileReferenceServiceTest extends CategoryTest {
   @Mock private EntitySetupUsageService entitySetupUsageService;
   @Mock private FileStoreRepository fileStoreRepository;
 
-  @InjectMocks private io.harness.ng.filestore.api.impl.FileReferenceServiceImpl fileReferenceService;
+  @InjectMocks private FileReferenceServiceImpl fileReferenceService;
 
   @Test
   @Owner(developers = VLAD)

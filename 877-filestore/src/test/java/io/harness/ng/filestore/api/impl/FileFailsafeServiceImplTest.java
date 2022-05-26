@@ -8,7 +8,7 @@
 package io.harness.ng.filestore.api.impl;
 
 import static io.harness.annotations.dev.HarnessTeam.CDP;
-import static io.harness.ng.filestore.entities.NGFile.builder;
+import static io.harness.filestore.entities.NGFile.builder;
 import static io.harness.rule.OwnerRule.IVAN;
 
 import static java.lang.String.format;
@@ -21,11 +21,11 @@ import io.harness.CategoryTest;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.category.element.UnitTests;
 import io.harness.exception.DuplicateFieldException;
+import io.harness.filestore.dto.mapper.FileDTOMapper;
+import io.harness.filestore.entities.NGFile;
+import io.harness.filestore.service.impl.FileFailsafeServiceImpl;
 import io.harness.ng.core.filestore.NGFileType;
 import io.harness.ng.core.filestore.dto.FileDTO;
-import io.harness.ng.filestore.api.impl.FileFailsafeServiceImpl;
-import io.harness.ng.filestore.dto.mapper.FileDTOMapper;
-import io.harness.ng.filestore.entities.NGFile;
 import io.harness.rule.Owner;
 
 import org.junit.Test;

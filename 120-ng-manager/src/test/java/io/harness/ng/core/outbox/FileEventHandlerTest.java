@@ -34,12 +34,12 @@ import io.harness.category.element.UnitTests;
 import io.harness.context.GlobalContext;
 import io.harness.eventsframework.api.Producer;
 import io.harness.eventsframework.producer.Message;
+import io.harness.filestore.events.FileCreateEvent;
+import io.harness.filestore.events.FileDeleteEvent;
+import io.harness.filestore.events.FileUpdateEvent;
+import io.harness.filestore.outbox.FileEventHandler;
 import io.harness.ng.core.filestore.dto.FileDTO;
 import io.harness.ng.core.filestore.dto.FileStoreRequest;
-import io.harness.ng.filestore.events.FileCreateEvent;
-import io.harness.ng.filestore.events.FileDeleteEvent;
-import io.harness.ng.filestore.events.FileUpdateEvent;
-import io.harness.ng.filestore.outbox.FileEventHandler;
 import io.harness.outbox.OutboxEvent;
 import io.harness.rule.Owner;
 

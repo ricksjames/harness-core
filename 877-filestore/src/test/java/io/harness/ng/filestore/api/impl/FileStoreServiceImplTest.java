@@ -7,10 +7,10 @@
 
 package io.harness.ng.filestore.api.impl;
 
-import static io.harness.ng.filestore.entities.NGFile.builder;
-import static io.harness.ng.filestore.repositories.FileStoreRepositoryCriteriaCreator.createCriteriaByScopeAndParentIdentifier;
-import static io.harness.ng.filestore.repositories.FileStoreRepositoryCriteriaCreator.createFilesFilterCriteria;
-import static io.harness.ng.filestore.repositories.FileStoreRepositoryCriteriaCreator.createSortByLastModifiedAtDesc;
+import static io.harness.filestore.entities.NGFile.builder;
+import static io.harness.repositories.FileStoreRepositoryCriteriaCreator.createCriteriaByScopeAndParentIdentifier;
+import static io.harness.repositories.FileStoreRepositoryCriteriaCreator.createFilesFilterCriteria;
+import static io.harness.repositories.FileStoreRepositoryCriteriaCreator.createSortByLastModifiedAtDesc;
 import static io.harness.rule.OwnerRule.BOJAN;
 import static io.harness.rule.OwnerRule.FILIP;
 import static io.harness.rule.OwnerRule.IVAN;
@@ -44,20 +44,20 @@ import io.harness.exception.InvalidArgumentsException;
 import io.harness.exception.InvalidRequestException;
 import io.harness.exception.ReferencedEntityException;
 import io.harness.file.beans.NGBaseFile;
+import io.harness.filestore.config.FileStoreConfiguration;
+import io.harness.filestore.dto.filter.FilesFilterPropertiesDTO;
+import io.harness.filestore.dto.mapper.FileDTOMapper;
+import io.harness.filestore.dto.node.FileNodeDTO;
+import io.harness.filestore.dto.node.FolderNodeDTO;
+import io.harness.filestore.entities.NGFile;
+import io.harness.filestore.service.FileFailsafeService;
+import io.harness.filestore.service.impl.FileReferenceServiceImpl;
+import io.harness.filestore.service.impl.FileStoreServiceImpl;
 import io.harness.ng.core.dto.EmbeddedUserDetailsDTO;
 import io.harness.ng.core.filestore.NGFileType;
 import io.harness.ng.core.filestore.dto.FileDTO;
 import io.harness.ng.core.filestore.dto.FileFilterDTO;
-import io.harness.ng.filestore.api.FileFailsafeService;
-import io.harness.ng.filestore.api.impl.FileReferenceServiceImpl;
-import io.harness.ng.filestore.api.impl.FileStoreServiceImpl;
-import io.harness.ng.filestore.config.FileStoreConfiguration;
-import io.harness.ng.filestore.dto.filter.FilesFilterPropertiesDTO;
-import io.harness.ng.filestore.dto.mapper.FileDTOMapper;
-import io.harness.ng.filestore.dto.node.FileNodeDTO;
-import io.harness.ng.filestore.dto.node.FolderNodeDTO;
-import io.harness.ng.filestore.entities.NGFile;
-import io.harness.ng.filestore.repositories.spring.FileStoreRepository;
+import io.harness.repositories.spring.FileStoreRepository;
 import io.harness.rule.Owner;
 
 import software.wings.service.intfc.FileService;
