@@ -62,5 +62,7 @@ public class EnvironmentPlanCreatorConfig implements Visitable {
   List<NGServiceOverrides> serviceOverrides;
 
   // linked Infra Info
+  boolean deployToAll;
   List<InfrastructurePlanCreatorConfig> infrastructureDefinitions;
+  List<String> gitOpsClusterRefs;
 }

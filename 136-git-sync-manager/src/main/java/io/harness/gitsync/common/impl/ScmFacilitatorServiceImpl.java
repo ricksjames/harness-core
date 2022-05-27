@@ -27,6 +27,7 @@ import io.harness.gitsync.common.dtos.ScmCreateFileRequestDTO;
 import io.harness.gitsync.common.dtos.ScmCreatePRRequestDTO;
 import io.harness.gitsync.common.dtos.ScmCreatePRResponseDTO;
 import io.harness.gitsync.common.dtos.ScmGetFileByBranchRequestDTO;
+import io.harness.gitsync.common.dtos.ScmGetFileByCommitIdRequestDTO;
 import io.harness.gitsync.common.dtos.ScmGetFileResponseDTO;
 import io.harness.gitsync.common.dtos.ScmUpdateFileRequestDTO;
 import io.harness.gitsync.common.dtos.UpdateGitFileRequestDTO;
@@ -78,8 +79,8 @@ public class ScmFacilitatorServiceImpl implements ScmFacilitatorService {
             PageRequestDTO.builder().pageIndex(pageRequest.getPageIndex()).pageSize(pageRequest.getPageSize()).build()),
         scmConnector);
     if (isFailureResponse(response.getStatus())) {
-      ScmApiErrorHandlingHelper.processAndThrowError(
-          ScmApis.LIST_REPOSITORIES, scmConnector.getConnectorType(), response.getStatus(), response.getError());
+      ScmApiErrorHandlingHelper.processAndThrowError(ScmApis.LIST_REPOSITORIES, scmConnector.getConnectorType(),
+          scmConnector.getUrl(), response.getStatus(), response.getError());
     }
 
     return prepareListRepoResponse(scmConnector, response);
@@ -102,7 +103,8 @@ public class ScmFacilitatorServiceImpl implements ScmFacilitatorService {
 
     if (isFailureResponse(listBranchesWithDefaultResponse.getStatus())) {
       ScmApiErrorHandlingHelper.processAndThrowError(ScmApis.LIST_BRANCHES, scmConnector.getConnectorType(),
-          listBranchesWithDefaultResponse.getStatus(), listBranchesWithDefaultResponse.getError());
+          scmConnector.getUrl(), listBranchesWithDefaultResponse.getStatus(),
+          listBranchesWithDefaultResponse.getError());
     }
 
     List<GitBranchDetailsDTO> gitBranches =
@@ -113,6 +115,37 @@ public class ScmFacilitatorServiceImpl implements ScmFacilitatorService {
     return GitBranchesResponseDTO.builder()
         .branches(gitBranches)
         .defaultBranch(GitBranchDetailsDTO.builder().name(listBranchesWithDefaultResponse.getDefaultBranch()).build())
+        .build();
+  }
+
+  @Override
+  public ScmGetFileResponseDTO getFileByBranch(ScmGetFileByBranchRequestDTO scmGetFileByBranchRequestDTO) {
+    Scope scope = scmGetFileByBranchRequestDTO.getScope();
+    String branchName = isEmpty(scmGetFileByBranchRequestDTO.getBranchName())
+        ? getDefaultBranch(scope.getAccountIdentifier(), scope.getOrgIdentifier(), scope.getProjectIdentifier(),
+            scmGetFileByBranchRequestDTO.getConnectorRef(), scmGetFileByBranchRequestDTO.getRepoName())
+        : scmGetFileByBranchRequestDTO.getBranchName();
+
+    ScmConnector scmConnector = gitSyncConnectorHelper.getScmConnectorForGivenRepo(scope.getAccountIdentifier(),
+        scope.getOrgIdentifier(), scope.getProjectIdentifier(), scmGetFileByBranchRequestDTO.getConnectorRef(),
+        scmGetFileByBranchRequestDTO.getRepoName());
+
+    FileContent fileContent = scmOrchestratorService.processScmRequestUsingConnectorSettings(scmClientFacilitatorService
+        -> scmClientFacilitatorService.getFile(scope.getAccountIdentifier(), scope.getOrgIdentifier(),
+            scope.getProjectIdentifier(), scmGetFileByBranchRequestDTO.getConnectorRef(),
+            scmGetFileByBranchRequestDTO.getRepoName(), branchName, scmGetFileByBranchRequestDTO.getFilePath(), null),
+        scmConnector);
+
+    if (isFailureResponse(fileContent.getStatus())) {
+      ScmApiErrorHandlingHelper.processAndThrowError(ScmApis.GET_FILE, scmConnector.getConnectorType(),
+          scmConnector.getUrl(), fileContent.getStatus(), fileContent.getError());
+    }
+
+    return ScmGetFileResponseDTO.builder()
+        .fileContent(fileContent.getContent())
+        .blobId(fileContent.getBlobId())
+        .commitId(fileContent.getCommitId())
+        .branchName(branchName)
         .build();
   }
 
@@ -143,7 +176,7 @@ public class ScmFacilitatorServiceImpl implements ScmFacilitatorService {
 
     if (isFailureResponse(createFileResponse.getStatus())) {
       ScmApiErrorHandlingHelper.processAndThrowError(ScmApis.CREATE_FILE, scmConnector.getConnectorType(),
-          createFileResponse.getStatus(), createFileResponse.getError());
+          scmConnector.getUrl(), createFileResponse.getStatus(), createFileResponse.getError());
     }
 
     return ScmCommitFileResponseDTO.builder()
@@ -181,7 +214,7 @@ public class ScmFacilitatorServiceImpl implements ScmFacilitatorService {
 
     if (isFailureResponse(updateFileResponse.getStatus())) {
       ScmApiErrorHandlingHelper.processAndThrowError(ScmApis.UPDATE_FILE, scmConnector.getConnectorType(),
-          updateFileResponse.getStatus(), updateFileResponse.getError());
+          scmConnector.getUrl(), updateFileResponse.getStatus(), updateFileResponse.getError());
     }
 
     return ScmCommitFileResponseDTO.builder()
@@ -206,33 +239,30 @@ public class ScmFacilitatorServiceImpl implements ScmFacilitatorService {
 
     if (isFailureResponse(createPRResponse.getStatus())) {
       ScmApiErrorHandlingHelper.processAndThrowError(ScmApis.CREATE_PULL_REQUEST, scmConnector.getConnectorType(),
-          createPRResponse.getStatus(), createPRResponse.getError());
+          scmConnector.getUrl(), createPRResponse.getStatus(), createPRResponse.getError());
     }
 
     return ScmCreatePRResponseDTO.builder().prNumber(createPRResponse.getNumber()).build();
   }
 
   @Override
-  public ScmGetFileResponseDTO getFileByBranch(ScmGetFileByBranchRequestDTO scmGetFileByBranchRequestDTO) {
-    Scope scope = scmGetFileByBranchRequestDTO.getScope();
-    String branchName = isEmpty(scmGetFileByBranchRequestDTO.getBranchName())
-        ? getDefaultBranch(scope.getAccountIdentifier(), scope.getOrgIdentifier(), scope.getProjectIdentifier(),
-            scmGetFileByBranchRequestDTO.getConnectorRef(), scmGetFileByBranchRequestDTO.getRepoName())
-        : scmGetFileByBranchRequestDTO.getBranchName();
+  public ScmGetFileResponseDTO getFileByCommitId(ScmGetFileByCommitIdRequestDTO scmGetFileByCommitIdRequestDTO) {
+    Scope scope = scmGetFileByCommitIdRequestDTO.getScope();
 
     ScmConnector scmConnector = gitSyncConnectorHelper.getScmConnectorForGivenRepo(scope.getAccountIdentifier(),
-        scope.getOrgIdentifier(), scope.getProjectIdentifier(), scmGetFileByBranchRequestDTO.getConnectorRef(),
-        scmGetFileByBranchRequestDTO.getRepoName());
+        scope.getOrgIdentifier(), scope.getProjectIdentifier(), scmGetFileByCommitIdRequestDTO.getConnectorRef(),
+        scmGetFileByCommitIdRequestDTO.getRepoName());
 
     FileContent fileContent = scmOrchestratorService.processScmRequestUsingConnectorSettings(scmClientFacilitatorService
         -> scmClientFacilitatorService.getFile(scope.getAccountIdentifier(), scope.getOrgIdentifier(),
-            scope.getProjectIdentifier(), scmGetFileByBranchRequestDTO.getConnectorRef(),
-            scmGetFileByBranchRequestDTO.getRepoName(), branchName, scmGetFileByBranchRequestDTO.getFilePath(), null),
+            scope.getProjectIdentifier(), scmGetFileByCommitIdRequestDTO.getConnectorRef(),
+            scmGetFileByCommitIdRequestDTO.getRepoName(), null, scmGetFileByCommitIdRequestDTO.getFilePath(),
+            scmGetFileByCommitIdRequestDTO.getCommitId()),
         scmConnector);
 
     if (isFailureResponse(fileContent.getStatus())) {
-      ScmApiErrorHandlingHelper.processAndThrowError(
-          ScmApis.GET_FILE, scmConnector.getConnectorType(), fileContent.getStatus(), fileContent.getError());
+      ScmApiErrorHandlingHelper.processAndThrowError(ScmApis.GET_FILE, scmConnector.getConnectorType(),
+          scmConnector.getUrl(), fileContent.getStatus(), fileContent.getError());
     }
 
     return ScmGetFileResponseDTO.builder()
@@ -255,7 +285,7 @@ public class ScmFacilitatorServiceImpl implements ScmFacilitatorService {
 
     if (isFailureResponse(getUserRepoResponse.getStatus())) {
       ScmApiErrorHandlingHelper.processAndThrowError(ScmApis.GET_DEFAULT_BRANCH, scmConnector.getConnectorType(),
-          getUserRepoResponse.getStatus(), getUserRepoResponse.getError());
+          scmConnector.getUrl(), getUserRepoResponse.getStatus(), getUserRepoResponse.getError());
     }
     return getUserRepoResponse.getRepo().getBranch();
   }
@@ -292,7 +322,7 @@ public class ScmFacilitatorServiceImpl implements ScmFacilitatorService {
 
     if (isFailureResponse(createBranchResponse.getStatus())) {
       ScmApiErrorHandlingHelper.processAndThrowError(ScmApis.CREATE_BRANCH, scmConnector.getConnectorType(),
-          createBranchResponse.getStatus(), createBranchResponse.getError());
+          scmConnector.getUrl(), createBranchResponse.getStatus(), createBranchResponse.getError());
     }
   }
 }
