@@ -151,6 +151,8 @@ public class PMSPipelineRepositoryCustomImpl implements PMSPipelineRepositoryCus
       pipelineToSave.setFilePath(gitEntityInfo.getFilePath());
 
       gitAwareEntityHelper.createEntityOnGit(pipelineToSave, yamlToPush, scope);
+    } else {
+      pipelineToSave.setStoreType(StoreType.INLINE);
     }
     supplier.get();
     return mongoTemplate.save(pipelineToSave);
