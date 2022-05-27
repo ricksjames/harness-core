@@ -670,7 +670,7 @@ public class InputSetResourcePMS {
       @RequestBody(required = true,
           description = "The invalid Input Set Yaml to be sanitized") @NotNull String invalidInputSetYaml) {
     String pipelineYaml = validateAndMergeHelper.getPipelineYaml(
-        accountId, orgIdentifier, projectIdentifier, pipelineIdentifier, pipelineBranch, pipelineRepoID);
+        accountId, orgIdentifier, projectIdentifier, pipelineIdentifier, pipelineBranch, pipelineRepoID, false);
     String sanitizedRuntimeInputYaml = InputSetSanitizer.sanitizeInputSet(pipelineYaml, invalidInputSetYaml);
     if (EmptyPredicate.isEmpty(sanitizedRuntimeInputYaml)) {
       return ResponseDTO.newResponse(InputSetSanitiseResponseDTO.builder().shouldDeleteInputSet(true).build());
