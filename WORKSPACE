@@ -4940,7 +4940,7 @@ plain_artifacts = [
     "org.lz4:lz4-java:1.6.0",
     "org.lz4:lz4-java:1.6.0",
     "org.mindrot:jbcrypt:0.3m",
-    "org.modelmapper:modelmapper:3.0.0",
+    "org.modelmapper:modelmapper:0.7.5",
     "org.mongodb.morphia:morphia-logging-slf4j:1.3.2",
     "org.mongodb.morphia:morphia:1.3.2",
     "org.mongodb:mongo-java-driver:3.12.2",
