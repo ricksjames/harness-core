@@ -97,6 +97,6 @@ public class InitiateNodeHandlerTest extends OrchestrationTestBase {
                                   .setRuntimeId(generateUuid())
                                   .build();
     initiateNodeHandler.handleEventWithContext(event);
-    verify(engine).initiateNode(eq(ambiance), eq(event.getNodeId()), eq(event.getRuntimeId()), eq(null));
+    verify(engine).initiateNode(eq(ambiance), eq(event.getNodeId()), eq(event.getRuntimeId()), eq(null), null, true);
   }
 }

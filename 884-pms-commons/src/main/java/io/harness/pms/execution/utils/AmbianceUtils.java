@@ -191,6 +191,16 @@ public class AmbianceUtils {
     throw new InvalidRequestException("Stage not present");
   }
 
+  public Optional<Level> getStrategyLevelFromAmbiance(Ambiance ambiance) {
+    Optional<Level> stageLevel = Optional.empty();
+    for (Level level : ambiance.getLevelsList()) {
+      if (level.getStepType().getStepCategory() == StepCategory.STRATEGY) {
+        stageLevel = Optional.of(level);
+      }
+    }
+    return stageLevel;
+  }
+
   public static boolean isRetry(Ambiance ambiance) {
     Level level = Objects.requireNonNull(obtainCurrentLevel(ambiance));
     return level.getRetryIndex() != 0;

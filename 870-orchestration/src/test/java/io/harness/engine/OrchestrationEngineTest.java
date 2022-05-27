@@ -260,7 +260,7 @@ public class OrchestrationEngineTest extends OrchestrationTestBase {
 
     when(planService.fetchNode(eq(planId), eq(planNodeId))).thenReturn(planNode);
 
-    orchestrationEngine.initiateNode(ambiance, planNode.getUuid(), runtimeId, null);
+    orchestrationEngine.initiateNode(ambiance, planNode.getUuid(), runtimeId, null, null, true);
 
     ArgumentCaptor<Ambiance> ambianceCaptor = ArgumentCaptor.forClass(Ambiance.class);
     verify(planNodeExecutionStrategy).runNode(ambianceCaptor.capture(), eq(planNode), eq(null));

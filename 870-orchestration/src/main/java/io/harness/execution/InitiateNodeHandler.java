@@ -46,6 +46,7 @@ public class InitiateNodeHandler extends PmsBaseEventHandler<InitiateNodeEvent> 
 
   @Override
   protected void handleEventWithContext(InitiateNodeEvent event) {
-    engine.initiateNode(event.getAmbiance(), event.getNodeId(), event.getRuntimeId(), null);
+    engine.initiateNode(
+        event.getAmbiance(), event.getNodeId(), event.getRuntimeId(), null, event.getStrategyMetadata(), true);
   }
 }

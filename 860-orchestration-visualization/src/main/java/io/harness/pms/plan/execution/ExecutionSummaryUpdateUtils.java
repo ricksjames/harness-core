@@ -17,6 +17,7 @@ import io.harness.plan.NodeType;
 import io.harness.pms.contracts.ambiance.Level;
 import io.harness.pms.execution.ExecutionStatus;
 import io.harness.pms.execution.utils.AmbianceUtils;
+import io.harness.pms.execution.utils.LevelUtils;
 import io.harness.pms.plan.execution.beans.PipelineExecutionSummaryEntity;
 import io.harness.steps.StepSpecTypeConstants;
 
@@ -35,6 +36,7 @@ public class ExecutionSummaryUpdateUtils {
     Level level = Objects.requireNonNull(AmbianceUtils.obtainCurrentLevel(nodeExecution.getAmbiance()));
     ExecutionStatus status = ExecutionStatus.getExecutionStatus(nodeExecution.getStatus());
     if (Objects.equals(level.getStepType().getType(), StepSpecTypeConstants.BARRIER)) {
+      // Todo: Change here
       Optional<Level> stage = AmbianceUtils.getStageLevelFromAmbiance(nodeExecution.getAmbiance());
       stage.ifPresent(stageNode
           -> update.set(PipelineExecutionSummaryEntity.PlanExecutionSummaryKeys.layoutNodeMap + "."
@@ -46,7 +48,9 @@ public class ExecutionSummaryUpdateUtils {
     }
     // If the nodes is of type Identity, there is no need to update the status. We want to update the status only when
     // there is a PlanNode
-    String stageUuid = level.getSetupId();
+    String stageUuid = AmbianceUtils.getStrategyLevelFromAmbiance(nodeExecution.getAmbiance()).isPresent()
+        ? nodeExecution.getUuid()
+        : nodeExecution.getNodeId();
     if (!level.getNodeType().equals(NodeType.IDENTITY_PLAN_NODE.toString())) {
       update.set(
           PipelineExecutionSummaryEntity.PlanExecutionSummaryKeys.layoutNodeMap + "." + stageUuid + ".status", status);
