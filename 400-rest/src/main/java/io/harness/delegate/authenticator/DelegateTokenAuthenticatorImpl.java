@@ -106,10 +106,6 @@ public class DelegateTokenAuthenticatorImpl implements DelegateTokenAuthenticato
       return;
     }
 
-    //    log.debug(
-    //        "Not able to validate DelegateJWT from cache. Falling back to older method of validating from delegate
-    //        token cache.");
-
     DelegateToken delegateTokenFromCache = delegateTokenCacheHelper.getDelegateToken(delegateId);
     boolean decryptedWithTokenFromCache =
         decryptWithTokenFromCache(encryptedJWT, delegateTokenFromCache, shouldSetTokenNameInGlobalContext);
@@ -136,7 +132,7 @@ public class DelegateTokenAuthenticatorImpl implements DelegateTokenAuthenticato
       } catch (ParseException e) {
         log.warn("Couldn't parse token", e);
       }
-      delegateJWTCacheHelper.setDelegateJWTCache(tokenHash, false);
+      delegateJWTCacheHelper.setDelegateJWTCache(tokenHash, false, 0);
       log.error("Delegate {} is using REVOKED delegate token. DelegateId: {}", delegateHostName, delegateId);
       throw new RevokedTokenException("Invalid delegate token. Delegate is using revoked token", USER_ADMIN);
     }
@@ -147,16 +143,18 @@ public class DelegateTokenAuthenticatorImpl implements DelegateTokenAuthenticato
 
     try {
       JWTClaimsSet jwtClaimsSet = encryptedJWT.getJWTClaimsSet();
-      if (System.currentTimeMillis() > jwtClaimsSet.getExpirationTime().getTime()) {
+      long validUntil = jwtClaimsSet.getExpirationTime().getTime();
+      if (System.currentTimeMillis() > validUntil) {
         log.error("Delegate {} is using EXPIRED delegate token. DelegateId: {}", jwtClaimsSet.getIssuer(), delegateId);
-        delegateJWTCacheHelper.setDelegateJWTCache(tokenHash, false);
+        delegateJWTCacheHelper.setDelegateJWTCache(tokenHash, false, 0);
         throw new InvalidRequestException("Unauthorized", EXPIRED_TOKEN, null);
+      } else {
+        delegateJWTCacheHelper.setDelegateJWTCache(tokenHash, true, validUntil);
       }
     } catch (Exception ex) {
+      delegateJWTCacheHelper.setDelegateJWTCache(tokenHash, false, 0);
       throw new InvalidRequestException("Unauthorized", ex, EXPIRED_TOKEN, null);
     }
-
-    delegateJWTCacheHelper.setDelegateJWTCache(tokenHash, true);
   }
 
   @Override
