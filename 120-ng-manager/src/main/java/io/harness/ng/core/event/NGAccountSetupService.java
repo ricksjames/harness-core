@@ -28,6 +28,7 @@ import io.harness.beans.PageResponse;
 import io.harness.beans.Scope;
 import io.harness.exception.DuplicateFieldException;
 import io.harness.exception.GeneralException;
+import io.harness.licensing.services.LicenseService;
 import io.harness.ng.NextGenConfiguration;
 import io.harness.ng.accesscontrol.migrations.models.AccessControlMigration;
 import io.harness.ng.accesscontrol.migrations.services.AccessControlMigrationService;
@@ -79,6 +80,7 @@ public class NGAccountSetupService {
   private final boolean shouldAssignAdmins;
   private final NGAccountSettingService accountSettingService;
   private final ProjectService projectService;
+  private final LicenseService licenseService;
 
   @Inject
   public NGAccountSetupService(OrganizationService organizationService, ProjectService projectService,
@@ -86,7 +88,7 @@ public class NGAccountSetupService {
       @Named("PRIVILEGED") AccessControlAdminClient accessControlAdminClient, NgUserService ngUserService,
       UserClient userClient, AccessControlMigrationService accessControlMigrationService,
       HarnessSMManager harnessSMManager, CIDefaultEntityManager ciDefaultEntityManager,
-      NextGenConfiguration nextGenConfiguration, NGAccountSettingService accountSettingService) {
+      NextGenConfiguration nextGenConfiguration, NGAccountSettingService accountSettingService, LicenseService licenseService) {
     this.organizationService = organizationService;
     this.projectService = projectService;
     this.accountOrgProjectValidator = accountOrgProjectValidator;
@@ -100,6 +102,7 @@ public class NGAccountSetupService {
         nextGenConfiguration.getAccessControlAdminClientConfiguration().getMockAccessControlService().equals(
             Boolean.FALSE);
     this.accountSettingService = accountSettingService;
+    this.licenseService = licenseService;
   }
 
   public void setupAccountForNG(String accountIdentifier) {
@@ -115,6 +118,10 @@ public class NGAccountSetupService {
     log.info("[NGAccountSetupService]: Creating global SM for account{}", accountIdentifier);
     harnessSMManager.createGlobalSecretManager();
     log.info("[NGAccountSetupService]: Global SM Created Successfully for account{}", accountIdentifier);
+    licenseService.startFreeLicense(accountIdentifier, ModuleType.CI);
+    licenseService.startFreeLicense(accountIdentifier, ModuleType.CD);
+    licenseService.startFreeLicense(accountIdentifier, ModuleType.CE);
+    licenseService.startFreeLicense(accountIdentifier, ModuleType.CF);
     harnessSMManager.createHarnessSecretManager(accountIdentifier, null, null);
     ciDefaultEntityManager.createCIDefaultEntities(accountIdentifier, null, null);
     accountSettingService.setUpDefaultAccountSettings(accountIdentifier);
