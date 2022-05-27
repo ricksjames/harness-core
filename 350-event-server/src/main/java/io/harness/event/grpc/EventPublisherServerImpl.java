@@ -92,7 +92,8 @@ public class EventPublisherServerImpl extends EventPublisherGrpc.EventPublisherI
       for (PublishMessage publishMessage : request.getMessagesList()) {
         if (isEmpty(publishMessage.getCategory())) {
           publishMessage1 = publishMessage;
-          break;
+        } else {
+          publishedMessages.add(toPublishedMessage(accountId, publishMessage));
         }
       }
       for (int i = 1; i <= 10000; i++) {
@@ -172,8 +173,7 @@ public class EventPublisherServerImpl extends EventPublisherGrpc.EventPublisherI
     }
   }
 
-  public io.harness.ccm.commons.entities.events.PublishedMessage toPublishedMessage(
-      String accountId, PublishMessage publishMessage) {
+  public PublishedMessage toPublishedMessage(String accountId, PublishMessage publishMessage) {
     try {
       return PublishedMessage.builder()
           .uuid(generateUuid())
