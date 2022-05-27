@@ -23,9 +23,11 @@ import io.harness.annotations.dev.HarnessModule;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.annotations.dev.TargetModule;
 import io.harness.beans.ExecutionInterruptType;
+import io.harness.category.element.UnitTests;
 import io.harness.mongo.iterator.provider.MorphiaPersistenceProvider;
 import io.harness.rule.Owner;
 
+import org.junit.experimental.categories.Category;
 import software.wings.beans.WorkflowExecution;
 import software.wings.dl.WingsPersistence;
 import software.wings.service.intfc.WorkflowExecutionService;
@@ -62,6 +64,7 @@ public class WorkflowExecutionZombieMonitorHandlerTest {
   @Mock private WorkflowExecutionService workflowExecutionService;
 
   @Test
+  @Category(UnitTests.class)
   @Owner(developers = FERNANDOD)
   public void shouldNotProcessEntityWhenCreatedNotIsMoreThanMaxMinutes() {
     WorkflowExecution entity = WorkflowExecution.builder().createdAt(System.currentTimeMillis()).build();
@@ -69,6 +72,7 @@ public class WorkflowExecutionZombieMonitorHandlerTest {
   }
 
   @Test
+  @Category(UnitTests.class)
   @Owner(developers = FERNANDOD)
   public void shouldProcessEntityWhenCreatedMoreThanMaxMinutes() {
     WorkflowExecution entity =
@@ -77,6 +81,7 @@ public class WorkflowExecutionZombieMonitorHandlerTest {
   }
 
   @Test
+  @Category(UnitTests.class)
   @Owner(developers = FERNANDOD)
   public void shouldHandleWorkflowExecutionWhenNotFoundStateExecutionInstances() {
     WorkflowExecution wfExecution = WorkflowExecution.builder().workflowId(WORKFLOW_ID).uuid(EXECUTION_UUID).build();
@@ -92,6 +97,7 @@ public class WorkflowExecutionZombieMonitorHandlerTest {
   }
 
   @Test
+  @Category(UnitTests.class)
   @Owner(developers = FERNANDOD)
   public void shouldHandleWorkflowExecutionWhenNotNotZombieState() {
     WorkflowExecution wfExecution = WorkflowExecution.builder().workflowId(WORKFLOW_ID).uuid(EXECUTION_UUID).build();
@@ -108,6 +114,7 @@ public class WorkflowExecutionZombieMonitorHandlerTest {
   }
 
   @Test
+  @Category(UnitTests.class)
   @Owner(developers = FERNANDOD)
   public void shouldHandleWorkflowExecutionAndTriggerInterruptWhenZombieState() {
     WorkflowExecution wfExecution = WorkflowExecution.builder().workflowId(WORKFLOW_ID).uuid(EXECUTION_UUID).build();
@@ -134,6 +141,7 @@ public class WorkflowExecutionZombieMonitorHandlerTest {
   }
 
   @Test
+  @Category(UnitTests.class)
   @Owner(developers = FERNANDOD)
   public void shouldVerifyNotZombieStateType() {
     Set<StateType> types = new HashSet(Arrays.asList(StateType.values()));
@@ -151,6 +159,7 @@ public class WorkflowExecutionZombieMonitorHandlerTest {
   }
 
   @Test
+  @Category(UnitTests.class)
   @Owner(developers = FERNANDOD)
   public void shouldSortStateExecutionInstances() {
     List<StateExecutionInstance> instances = new ArrayList<>();
