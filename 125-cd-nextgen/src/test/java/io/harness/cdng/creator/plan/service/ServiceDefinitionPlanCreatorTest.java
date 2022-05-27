@@ -30,7 +30,6 @@ import io.harness.cdng.service.beans.ServiceDefinition;
 import io.harness.cdng.service.beans.ServiceUseFromStage;
 import io.harness.cdng.service.beans.StageOverridesConfig;
 import io.harness.cdng.visitor.YamlTypes;
-import io.harness.data.structure.UUIDGenerator;
 import io.harness.ng.core.k8s.ServiceSpecType;
 import io.harness.pms.sdk.core.plan.creation.beans.PlanCreationResponse;
 import io.harness.pms.yaml.YamlField;
@@ -39,7 +38,6 @@ import io.harness.rule.Owner;
 import io.harness.serializer.KryoSerializer;
 
 import com.google.inject.Inject;
-import com.google.protobuf.ByteString;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -177,17 +175,6 @@ public class ServiceDefinitionPlanCreatorTest extends CDNGTestBase {
             .build();
     result = serviceDefinitionPlanCreator.validateCreatePlanNodeForArtifacts(stageOverrideServiceConfig4);
     assertThat(result).isEqualTo(true);
-  }
-
-  @Test
-  @Owner(developers = PRASHANTSHARMA)
-  @Category(UnitTests.class)
-  public void testPrepareMetadataForArtifactsPlanCreator() {
-    String uuid = UUIDGenerator.generateUuid();
-    ServiceConfig serviceConfig = ServiceConfig.builder().build();
-    Map<String, ByteString> metadataDependency = serviceDefinitionPlanCreator.prepareMetadata(uuid, serviceConfig);
-    assertThat(metadataDependency.size()).isEqualTo(2);
-    assertThat(metadataDependency.containsKey(YamlTypes.UUID)).isEqualTo(true);
   }
 
   @Test

@@ -38,27 +38,41 @@ public class ArtifactsUtility {
   }
 
   public YamlField fetchArtifactYamlFieldAndSetYamlUpdates(
-      YamlNode serviceConfigNode, Boolean isUseFromStage, YamlUpdates.Builder yamlUpdates) {
-    if (!isUseFromStage) {
+      YamlNode serviceConfigNode, Boolean isUseFromStage, YamlUpdates.Builder yamlUpdates, boolean isServiceV2) {
+    if (!isServiceV2) {
+      if (!isUseFromStage) {
+        return serviceConfigNode.getField(YamlTypes.SERVICE_DEFINITION)
+            .getNode()
+            .getField(YamlTypes.SPEC)
+            .getNode()
+            .getField(YamlTypes.ARTIFACT_LIST_CONFIG);
+      }
+      YamlField stageOverrideField = serviceConfigNode.getField(YamlTypes.STAGE_OVERRIDES_CONFIG);
+
+      if (stageOverrideField == null) {
+        YamlField stageOverridesYamlField = fetchOverridesYamlField(serviceConfigNode);
+        PlanCreatorUtils.setYamlUpdate(stageOverridesYamlField, yamlUpdates);
+        return stageOverridesYamlField.getNode().getField(YamlTypes.ARTIFACT_LIST_CONFIG);
+      }
+      if (stageOverrideField.getNode().getField(YamlTypes.ARTIFACT_LIST_CONFIG) == null) {
+        YamlField artifactsYamlField = fetchArtifactYamlFieldUnderStageOverride(stageOverrideField);
+        PlanCreatorUtils.setYamlUpdate(artifactsYamlField, yamlUpdates);
+        return artifactsYamlField;
+      }
+      return stageOverrideField.getNode().getField(YamlTypes.ARTIFACT_LIST_CONFIG);
+    } else {
+      // given input is serviceV2Node
       return serviceConfigNode.getField(YamlTypes.SERVICE_DEFINITION)
           .getNode()
           .getField(YamlTypes.SPEC)
           .getNode()
           .getField(YamlTypes.ARTIFACT_LIST_CONFIG);
     }
-    YamlField stageOverrideField = serviceConfigNode.getField(YamlTypes.STAGE_OVERRIDES_CONFIG);
+  }
 
-    if (stageOverrideField == null) {
-      YamlField stageOverridesYamlField = fetchOverridesYamlField(serviceConfigNode);
-      PlanCreatorUtils.setYamlUpdate(stageOverridesYamlField, yamlUpdates);
-      return stageOverridesYamlField.getNode().getField(YamlTypes.ARTIFACT_LIST_CONFIG);
-    }
-    if (stageOverrideField.getNode().getField(YamlTypes.ARTIFACT_LIST_CONFIG) == null) {
-      YamlField artifactsYamlField = fetchArtifactYamlFieldUnderStageOverride(stageOverrideField);
-      PlanCreatorUtils.setYamlUpdate(artifactsYamlField, yamlUpdates);
-      return artifactsYamlField;
-    }
-    return stageOverrideField.getNode().getField(YamlTypes.ARTIFACT_LIST_CONFIG);
+  public YamlField fetchArtifactYamlFieldAndSetYamlUpdates(
+      YamlNode serviceConfigNode, Boolean isUseFromStage, YamlUpdates.Builder yamlUpdates) {
+    return fetchArtifactYamlFieldAndSetYamlUpdates(serviceConfigNode, isUseFromStage, yamlUpdates, false);
   }
 
   private YamlField fetchArtifactYamlFieldUnderStageOverride(YamlField stageOverride) {

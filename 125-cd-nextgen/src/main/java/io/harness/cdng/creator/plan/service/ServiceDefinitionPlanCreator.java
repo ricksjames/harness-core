@@ -27,6 +27,7 @@ import io.harness.data.structure.EmptyPredicate;
 import io.harness.data.structure.UUIDGenerator;
 import io.harness.exception.InvalidRequestException;
 import io.harness.ng.core.k8s.ServiceSpecType;
+import io.harness.ng.core.service.yaml.NGServiceV2InfoConfig;
 import io.harness.pms.contracts.facilitators.FacilitatorObtainment;
 import io.harness.pms.contracts.facilitators.FacilitatorType;
 import io.harness.pms.contracts.plan.Dependency;
@@ -76,29 +77,13 @@ public class ServiceDefinitionPlanCreator extends ChildrenPlanCreator<YamlField>
 
     try {
       YamlNode serviceConfigNode = YamlUtils.findParentNode(serviceDefField.getNode(), YamlTypes.SERVICE_CONFIG);
-      ServiceConfig serviceConfig = YamlUtils.read(serviceConfigNode.toString(), ServiceConfig.class);
-
-      List<String> serviceSpecChildrenIds = new ArrayList<>();
-      boolean createPlanForArtifacts = validateCreatePlanNodeForArtifacts(serviceConfig);
-      if (createPlanForArtifacts) {
-        String artifactNodeId = addDependenciesForArtifacts(serviceConfigNode, planCreationResponseMap, serviceConfig);
-        serviceSpecChildrenIds.add(artifactNodeId);
+      // Adding children for v1 service
+      if (serviceConfigNode != null) {
+        addChildrenForServiceV1(planCreationResponseMap, serviceConfigNode);
+      } else {
+        YamlNode serviceV2Node = YamlUtils.findParentNode(serviceDefField.getNode(), YamlTypes.SERVICE_ENTITY);
+        addChildrenForServiceV2(planCreationResponseMap, serviceV2Node);
       }
-
-      if (shouldCreatePlanNodeForManifests(serviceConfig)) {
-        String manifestPlanNodeId =
-            addDependenciesForManifests(serviceConfigNode, planCreationResponseMap, serviceConfig);
-        serviceSpecChildrenIds.add(manifestPlanNodeId);
-      }
-
-      if (shouldCreatePlanNodeForConfigFiles(serviceConfig)) {
-        String configFilesPlanNodeId =
-            addDependenciesForConfigFiles(serviceConfigNode, planCreationResponseMap, serviceConfig);
-        serviceSpecChildrenIds.add(configFilesPlanNodeId);
-      }
-
-      // Add serviceSpec node
-      addServiceSpecNode(serviceConfig, planCreationResponseMap, serviceSpecChildrenIds);
 
       return planCreationResponseMap;
     } catch (IOException e) {
@@ -129,8 +114,63 @@ public class ServiceDefinitionPlanCreator extends ChildrenPlanCreator<YamlField>
         .build();
   }
 
+  private void addChildrenForServiceV1(
+      Map<String, PlanCreationResponse> planCreationResponseMap, YamlNode serviceConfigNode) throws IOException {
+    ServiceConfig serviceConfig = YamlUtils.read(serviceConfigNode.toString(), ServiceConfig.class);
+
+    List<String> serviceSpecChildrenIds = new ArrayList<>();
+    boolean createPlanForArtifacts =
+        ServiceDefinitionPlanCreatorHelper.validateCreatePlanNodeForArtifacts(serviceConfig);
+    if (createPlanForArtifacts) {
+      String artifactNodeId = addDependenciesForArtifacts(serviceConfigNode, planCreationResponseMap, serviceConfig);
+      serviceSpecChildrenIds.add(artifactNodeId);
+    }
+
+    if (ServiceDefinitionPlanCreatorHelper.shouldCreatePlanNodeForManifests(serviceConfig)) {
+      String manifestPlanNodeId =
+          addDependenciesForManifests(serviceConfigNode, planCreationResponseMap, serviceConfig);
+      serviceSpecChildrenIds.add(manifestPlanNodeId);
+    }
+
+    if (shouldCreatePlanNodeForConfigFiles(serviceConfig)) {
+      String configFilesPlanNodeId =
+          addDependenciesForConfigFiles(serviceConfigNode, planCreationResponseMap, serviceConfig);
+      serviceSpecChildrenIds.add(configFilesPlanNodeId);
+    }
+
+    // Add serviceSpec node
+    addServiceSpecNode(serviceConfig, planCreationResponseMap, serviceSpecChildrenIds);
+  }
+
+  private void addChildrenForServiceV2(
+      Map<String, PlanCreationResponse> planCreationResponseMap, YamlNode serviceV2Node) throws IOException {
+    NGServiceV2InfoConfig config = YamlUtils.read(serviceV2Node.toString(), NGServiceV2InfoConfig.class);
+
+    //    List<String> serviceSpecChildrenIds = new ArrayList<>();
+    //    boolean createPlanForArtifacts =
+    //    ServiceDefinitionPlanCreatorHelper.validateCreatePlanNodeForArtifactsV2(config); if (createPlanForArtifacts) {
+    //      String artifactNodeId = addDependenciesForArtifactsV2(serviceV2Node, planCreationResponseMap, config);
+    //      serviceSpecChildrenIds.add(artifactNodeId);
+    //    }
+    //
+    //    if (ServiceDefinitionPlanCreatorHelper.shouldCreatePlanNodeForManifestsV2(config)) {
+    //      String manifestPlanNodeId =
+    //          addDependenciesForManifests(serviceConfigNode, planCreationResponseMap, serviceConfig);
+    //      serviceSpecChildrenIds.add(manifestPlanNodeId);
+    //    }
+    //
+    //    if (shouldCreatePlanNodeForConfigFiles(serviceConfig)) {
+    //      String configFilesPlanNodeId =
+    //          addDependenciesForConfigFiles(serviceConfigNode, planCreationResponseMap, serviceConfig);
+    //      serviceSpecChildrenIds.add(configFilesPlanNodeId);
+    //    }
+    //
+    //    // Add serviceSpec node
+    //    addServiceSpecNode(serviceConfig, planCreationResponseMap, serviceSpecChildrenIds);
+  }
+
   private String addServiceSpecNode(ServiceConfig serviceConfig,
-      LinkedHashMap<String, PlanCreationResponse> planCreationResponseMap, List<String> serviceSpecChildrenIds) {
+      Map<String, PlanCreationResponse> planCreationResponseMap, List<String> serviceSpecChildrenIds) {
     ServiceSpec serviceSpec = serviceConfig.getServiceDefinition().getServiceSpec();
     ServiceSpecStepParameters stepParameters =
         ServiceSpecStepParameters.builder()
@@ -159,15 +199,16 @@ public class ServiceDefinitionPlanCreator extends ChildrenPlanCreator<YamlField>
     return node.getUuid();
   }
 
-  public String addDependenciesForArtifacts(YamlNode serviceConfigNode,
-      LinkedHashMap<String, PlanCreationResponse> planCreationResponseMap, ServiceConfig actualServiceConfig) {
+  String addDependenciesForArtifacts(YamlNode serviceConfigNode,
+      Map<String, PlanCreationResponse> planCreationResponseMap, ServiceConfig actualServiceConfig) {
     YamlUpdates.Builder yamlUpdates = YamlUpdates.newBuilder();
     boolean isUseFromStage = actualServiceConfig.getUseFromStage() != null;
     YamlField artifactYamlField =
         ArtifactsUtility.fetchArtifactYamlFieldAndSetYamlUpdates(serviceConfigNode, isUseFromStage, yamlUpdates);
     String artifactsPlanNodeId = UUIDGenerator.generateUuid();
 
-    Map<String, ByteString> metadataDependency = prepareMetadata(artifactsPlanNodeId, actualServiceConfig);
+    Map<String, ByteString> metadataDependency =
+        ServiceDefinitionPlanCreatorHelper.prepareMetadata(artifactsPlanNodeId, actualServiceConfig, kryoSerializer);
 
     Map<String, YamlField> dependenciesMap = new HashMap<>();
     dependenciesMap.put(artifactsPlanNodeId, artifactYamlField);
@@ -184,15 +225,41 @@ public class ServiceDefinitionPlanCreator extends ChildrenPlanCreator<YamlField>
     return artifactsPlanNodeId;
   }
 
-  public String addDependenciesForManifests(YamlNode serviceConfigNode,
-      LinkedHashMap<String, PlanCreationResponse> planCreationResponseMap, ServiceConfig actualServiceConfig) {
+  String addDependenciesForArtifactsV2(YamlNode serviceV2Node,
+      Map<String, PlanCreationResponse> planCreationResponseMap, NGServiceV2InfoConfig serviceV2Config) {
+    YamlUpdates.Builder yamlUpdates = YamlUpdates.newBuilder();
+    YamlField artifactYamlField =
+        ArtifactsUtility.fetchArtifactYamlFieldAndSetYamlUpdates(serviceV2Node, false, yamlUpdates, true);
+    String artifactsPlanNodeId = UUIDGenerator.generateUuid();
+
+    Map<String, ByteString> metadataDependency =
+        ServiceDefinitionPlanCreatorHelper.prepareMetadataV2(artifactsPlanNodeId, serviceV2Config, kryoSerializer);
+
+    Map<String, YamlField> dependenciesMap = new HashMap<>();
+    dependenciesMap.put(artifactsPlanNodeId, artifactYamlField);
+    PlanCreationResponseBuilder artifactPlanCreationResponse = PlanCreationResponse.builder().dependencies(
+        DependenciesUtils.toDependenciesProto(dependenciesMap)
+            .toBuilder()
+            .putDependencyMetadata(
+                artifactsPlanNodeId, Dependency.newBuilder().putAllMetadata(metadataDependency).build())
+            .build());
+    if (yamlUpdates.getFqnToYamlCount() > 0) {
+      artifactPlanCreationResponse.yamlUpdates(yamlUpdates.build());
+    }
+    planCreationResponseMap.put(artifactsPlanNodeId, artifactPlanCreationResponse.build());
+    return artifactsPlanNodeId;
+  }
+
+  String addDependenciesForManifests(YamlNode serviceConfigNode,
+      Map<String, PlanCreationResponse> planCreationResponseMap, ServiceConfig actualServiceConfig) {
     YamlUpdates.Builder yamlUpdates = YamlUpdates.newBuilder();
     boolean isUseFromStage = actualServiceConfig.getUseFromStage() != null;
     YamlField manifestsYamlField =
         ManifestsUtility.fetchManifestsYamlFieldAndSetYamlUpdates(serviceConfigNode, isUseFromStage, yamlUpdates);
     String manifestsPlanNodeId = "manifests-" + UUIDGenerator.generateUuid();
 
-    Map<String, ByteString> metadataDependency = prepareMetadata(manifestsPlanNodeId, actualServiceConfig);
+    Map<String, ByteString> metadataDependency =
+        ServiceDefinitionPlanCreatorHelper.prepareMetadata(manifestsPlanNodeId, actualServiceConfig, kryoSerializer);
 
     Map<String, YamlField> dependenciesMap = new HashMap<>();
     dependenciesMap.put(manifestsPlanNodeId, manifestsYamlField);
@@ -209,15 +276,16 @@ public class ServiceDefinitionPlanCreator extends ChildrenPlanCreator<YamlField>
     return manifestsPlanNodeId;
   }
 
-  public String addDependenciesForConfigFiles(YamlNode serviceConfigNode,
-      LinkedHashMap<String, PlanCreationResponse> planCreationResponseMap, ServiceConfig serviceConfig) {
+  String addDependenciesForConfigFiles(YamlNode serviceConfigNode,
+      Map<String, PlanCreationResponse> planCreationResponseMap, ServiceConfig serviceConfig) {
     YamlUpdates.Builder yamlUpdates = YamlUpdates.newBuilder();
     boolean isUseFromStage = serviceConfig.getUseFromStage() != null;
     YamlField configFilesYamlField =
         ConfigFileUtility.fetchConfigFilesYamlFieldAndSetYamlUpdates(serviceConfigNode, isUseFromStage, yamlUpdates);
     String configFilesPlanNodeId = "configFiles-" + UUIDGenerator.generateUuid();
 
-    Map<String, ByteString> metadataDependency = prepareMetadata(configFilesPlanNodeId, serviceConfig);
+    Map<String, ByteString> metadataDependency =
+        ServiceDefinitionPlanCreatorHelper.prepareMetadata(configFilesPlanNodeId, serviceConfig, kryoSerializer);
 
     Map<String, YamlField> dependenciesMap = new HashMap<>();
     dependenciesMap.put(configFilesPlanNodeId, configFilesYamlField);
@@ -234,7 +302,7 @@ public class ServiceDefinitionPlanCreator extends ChildrenPlanCreator<YamlField>
     return configFilesPlanNodeId;
   }
 
-  public boolean validateCreatePlanNodeForArtifacts(ServiceConfig actualServiceConfig) {
+  boolean validateCreatePlanNodeForArtifacts(ServiceConfig actualServiceConfig) {
     ArtifactListConfig artifactListConfig = actualServiceConfig.getServiceDefinition().getServiceSpec().getArtifacts();
 
     // Contains either primary artifacts or side-car artifacts
@@ -253,11 +321,11 @@ public class ServiceDefinitionPlanCreator extends ChildrenPlanCreator<YamlField>
     return false;
   }
 
-  public boolean shouldCreatePlanNodeForManifests(ServiceConfig actualServiceConfig) {
+  boolean shouldCreatePlanNodeForManifests(ServiceConfig actualServiceConfig) {
     List<ManifestConfigWrapper> manifests = actualServiceConfig.getServiceDefinition().getServiceSpec().getManifests();
 
-    // Contains either primary artifacts or side-car artifacts
-    if (manifests != null && EmptyPredicate.isNotEmpty(manifests)) {
+    // Contains either manifests or overrides or nothing.
+    if (EmptyPredicate.isNotEmpty(manifests)) {
       return true;
     }
 
@@ -266,7 +334,7 @@ public class ServiceDefinitionPlanCreator extends ChildrenPlanCreator<YamlField>
         && EmptyPredicate.isNotEmpty(actualServiceConfig.getStageOverrides().getManifests());
   }
 
-  public boolean shouldCreatePlanNodeForConfigFiles(ServiceConfig actualServiceConfig) {
+  boolean shouldCreatePlanNodeForConfigFiles(ServiceConfig actualServiceConfig) {
     List<ConfigFileWrapper> configFiles = actualServiceConfig.getServiceDefinition().getServiceSpec().getConfigFiles();
 
     if (EmptyPredicate.isNotEmpty(configFiles)) {
@@ -276,15 +344,6 @@ public class ServiceDefinitionPlanCreator extends ChildrenPlanCreator<YamlField>
     return actualServiceConfig.getStageOverrides() != null
         && actualServiceConfig.getStageOverrides().getConfigFiles() != null
         && EmptyPredicate.isNotEmpty(actualServiceConfig.getStageOverrides().getConfigFiles());
-  }
-
-  public Map<String, ByteString> prepareMetadata(String planNodeId, ServiceConfig actualServiceConfig) {
-    Map<String, ByteString> metadataDependency = new HashMap<>();
-    metadataDependency.put(YamlTypes.UUID, ByteString.copyFrom(kryoSerializer.asDeflatedBytes(planNodeId)));
-    // TODO: Find an efficient way to not pass whole service config
-    metadataDependency.put(
-        YamlTypes.SERVICE_CONFIG, ByteString.copyFrom(kryoSerializer.asDeflatedBytes(actualServiceConfig)));
-    return metadataDependency;
   }
 
   @Override
