@@ -1,4 +1,4 @@
-FROM us.gcr.io/platform-205701/alpine:safe-alpine3.15.4-bt1276
+FROM harness/java-docker-base:smp_jdk11
 
 COPY --chown=65534:65534 keystore.jks /opt/harness/
 COPY --chown=65534:65534 newrelic.yml /opt/harness/
