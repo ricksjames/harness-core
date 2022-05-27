@@ -155,6 +155,10 @@ public class PMSPipelineRepositoryCustomImpl implements PMSPipelineRepositoryCus
 
       gitAwareEntityHelper.createEntityOnGit(pipelineToSave, yamlToPush, scope);
     } else {
+      log.info(String.format(
+          "Marking storeType as INLINE for Pipeline with ID [%s] because Git simplification was not enabled for Project [%s] in Account [%s]",
+          pipelineToSave.getIdentifier(), pipelineToSave.getProjectIdentifier(),
+          pipelineToSave.getAccountIdentifier()));
       pipelineToSave.setStoreType(StoreType.INLINE);
     }
     supplier.get();
