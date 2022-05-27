@@ -61,7 +61,8 @@ public class HarnessToGitPushInfoGrpcService extends HarnessToGitPushInfoService
   @Inject KryoSerializer kryoSerializer;
   @Inject EntityDetailProtoToRestMapper entityDetailProtoToRestMapper;
   @Inject ExceptionManager exceptionManager;
-  private String errorFormat = "Unexpected error occurred while %s git operation. Please contact Harness Support.";
+  private String errorFormat =
+      "Unexpected error occurred while performing %s git operation. Please contact Harness Support.";
 
   @Override
   public void pushFromHarness(PushInfo request, StreamObserver<PushResponse> responseObserver) {
@@ -114,7 +115,7 @@ public class HarnessToGitPushInfoGrpcService extends HarnessToGitPushInfoService
         getFileResponse = harnessToGitHelperService.getFileByBranch(request);
         log.info("Git Sync Service getFile ops response : {}", getFileResponse);
       } catch (Exception ex) {
-        final String errorMessage = String.format(errorFormat, "get file");
+        final String errorMessage = String.format(errorFormat, GitOperation.GET_FILE.name());
         log.error(errorMessage, ex);
         getFileResponse = GetFileResponse.newBuilder()
                               .setStatusCode(HTTP_500)
@@ -140,7 +141,7 @@ public class HarnessToGitPushInfoGrpcService extends HarnessToGitPushInfoService
         createFileResponse = harnessToGitHelperService.createFile(request);
         log.info("Git Sync Service createFile ops response : {}", createFileResponse);
       } catch (Exception ex) {
-        final String errorMessage = String.format(errorFormat, "create file");
+        final String errorMessage = String.format(errorFormat, GitOperation.CREATE_FILE.name());
         log.error(errorMessage, ex);
         createFileResponse = CreateFileResponse.newBuilder()
                                  .setStatusCode(HTTP_500)
@@ -166,7 +167,7 @@ public class HarnessToGitPushInfoGrpcService extends HarnessToGitPushInfoService
         updateFileResponse = harnessToGitHelperService.updateFile(request);
         log.info("Git Sync Service updateFile ops response : {}", updateFileResponse);
       } catch (Exception ex) {
-        final String errorMessage = String.format(errorFormat, "update file");
+        final String errorMessage = String.format(errorFormat, GitOperation.UPDATE_FILE.name());
         log.error(errorMessage, ex);
         updateFileResponse = UpdateFileResponse.newBuilder()
                                  .setStatusCode(HTTP_500)
