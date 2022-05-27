@@ -145,7 +145,9 @@ public class ServerlessAwsLambdaDeployCommandTaskHandlerTest extends CategoryTes
         .when(serverlessAwsCommandTaskHelper)
         .parseServerlessManifest(
             initLogCallback, ((ServerlessDeployRequest) serverlessCommandRequest).getManifestContent());
-
+    doReturn(true)
+        .when(serverlessAwsCommandTaskHelper)
+        .cloudFormationTemplateExists(prepareRollbackLogCallback, serverlessCommandRequest, manifestContent);
     ServerlessClient serverlessClient = ServerlessClient.client(serverlessDelegateTaskParams.getServerlessClientPath());
 
     doReturn(intiServerlessCliResponse)
@@ -186,7 +188,7 @@ public class ServerlessAwsLambdaDeployCommandTaskHandlerTest extends CategoryTes
             .region(region)
             .stage(stage)
             .previousVersionTimeStamp(previousVersionTimeStamp)
-                .isFirstDeployment(true)
+            .isFirstDeployment(false)
             .functions(serverlessAwsLambdaFunctionsList)
             .build();
 
