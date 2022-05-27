@@ -13,9 +13,6 @@ import static io.harness.data.structure.EmptyPredicate.isNotEmpty;
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
 
-import com.amazonaws.services.cloudformation.model.AmazonCloudFormationException;
-import com.amazonaws.services.cloudformation.model.DescribeStacksRequest;
-import com.amazonaws.services.ec2.model.ValidationError;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.aws.beans.AwsInternalConfig;
 import io.harness.exception.ExceptionUtils;
@@ -36,6 +33,8 @@ import com.amazonaws.AmazonServiceException;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.cloudformation.AmazonCloudFormationClient;
 import com.amazonaws.services.cloudformation.AmazonCloudFormationClientBuilder;
+import com.amazonaws.services.cloudformation.model.AmazonCloudFormationException;
+import com.amazonaws.services.cloudformation.model.DescribeStacksRequest;
 import com.amazonaws.services.cloudformation.model.GetTemplateRequest;
 import com.amazonaws.services.cloudformation.model.GetTemplateResult;
 import com.amazonaws.services.cloudformation.model.GetTemplateSummaryRequest;
@@ -107,13 +106,13 @@ public class AwsCFHelperServiceDelegateImpl
   @Override
   public Boolean stackExists(AwsInternalConfig awsConfig, String region, String stackId) {
     try (CloseableAmazonWebServiceClient<AmazonCloudFormationClient> closeableAmazonCloudFormationClient =
-                 new CloseableAmazonWebServiceClient(getAmazonCloudFormationClient(Regions.fromName(region), awsConfig))) {
+             new CloseableAmazonWebServiceClient(getAmazonCloudFormationClient(Regions.fromName(region), awsConfig))) {
       DescribeStacksRequest describeStacksRequest = new DescribeStacksRequest().withStackName(stackId);
       tracker.trackCFCall("Describe Stacks");
       closeableAmazonCloudFormationClient.getClient().describeStacks(describeStacksRequest);
       return true;
     } catch (AmazonCloudFormationException amazonCloudFormationException) {
-      if(amazonCloudFormationException.getErrorCode().equals("ValidationError")) {
+      if (amazonCloudFormationException.getErrorCode().equals("ValidationError")) {
         return false;
       } else {
         handleAmazonClientException(amazonCloudFormationException);
@@ -128,7 +127,6 @@ public class AwsCFHelperServiceDelegateImpl
     }
     return true;
   }
-
 
   @Override
   public String getStackBody(AwsInternalConfig awsConfig, String region, String stackId) {

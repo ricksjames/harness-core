@@ -125,14 +125,13 @@ public class ServerlessAwsCommandTaskHelper {
   }
 
   public boolean cloudFormationTemplateExists(
-          LogCallback executionLogCallback, ServerlessCommandRequest serverlessCommandRequest, String manifestContent) {
-
+      LogCallback executionLogCallback, ServerlessCommandRequest serverlessCommandRequest, String manifestContent) {
     ServerlessAwsLambdaManifestSchema serverlessManifestSchema =
-            parseServerlessManifest(executionLogCallback, manifestContent);
+        parseServerlessManifest(executionLogCallback, manifestContent);
     ServerlessAwsLambdaInfraConfig serverlessAwsLambdaInfraConfig =
-            (ServerlessAwsLambdaInfraConfig) serverlessCommandRequest.getServerlessInfraConfig();
+        (ServerlessAwsLambdaInfraConfig) serverlessCommandRequest.getServerlessInfraConfig();
     String cloudFormationStackName =
-            serverlessManifestSchema.getService() + "-" + serverlessAwsLambdaInfraConfig.getStage();
+        serverlessManifestSchema.getService() + "-" + serverlessAwsLambdaInfraConfig.getStage();
     String region = serverlessAwsLambdaInfraConfig.getRegion();
 
     return awsCFHelperServiceDelegate.stackExists(

@@ -177,7 +177,7 @@ public class ServerlessAwsLambdaDeployStep
     serverlessRollbackDataOutcomeBuilder.previousVersionTimeStamp(
         serverlessAwsLambdaStepHelper.getPreviousVersion(serverlessDeployResponse));
     serverlessRollbackDataOutcomeBuilder.isFirstDeployment(
-            serverlessAwsLambdaStepHelper.getIsFirstDeployment(serverlessDeployResponse));
+        serverlessAwsLambdaStepHelper.getIsFirstDeployment(serverlessDeployResponse));
     executionSweepingOutputService.consume(ambiance,
         OutcomeExpressionConstants.SERVERLESS_AWS_LAMBDA_ROLLBACK_DATA_OUTCOME,
         serverlessRollbackDataOutcomeBuilder.build(), StepOutcomeGroup.STEP.name());

@@ -121,7 +121,7 @@ public class ServerlessAwsLambdaRollbackStep extends TaskExecutableWithRollbackA
     ServerlessAwsLambdaRollbackConfig serverlessAwsLambdaRollbackConfig =
         ServerlessAwsLambdaRollbackConfig.builder()
             .previousVersionTimeStamp(rollbackDataOutcome.getPreviousVersionTimeStamp())
-                .isFirstDeployment(rollbackDataOutcome.getIsFirstDeployment())
+            .isFirstDeployment(rollbackDataOutcome.getIsFirstDeployment())
             .build();
     final String accountId = AmbianceUtils.getAccountId(ambiance);
     ServerlessRollbackRequest serverlessRollbackRequest =
