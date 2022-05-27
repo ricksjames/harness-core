@@ -71,6 +71,7 @@ import io.harness.cdng.manifest.yaml.kinds.ValuesManifest;
 import io.harness.cdng.manifest.yaml.storeConfig.StoreConfig;
 import io.harness.cdng.manifest.yaml.storeConfig.StoreConfigType;
 import io.harness.cdng.manifest.yaml.storeConfig.StoreConfigWrapper;
+import io.harness.cdng.service.beans.GitOpsServiceSpec;
 import io.harness.cdng.service.beans.KubernetesServiceSpec;
 import io.harness.cdng.service.beans.NativeHelmServiceSpec;
 import io.harness.cdng.service.beans.ServerlessAwsLambdaServiceSpec;
@@ -95,6 +96,7 @@ import com.esotericsoftware.kryo.Kryo;
 public class NGEntitiesKryoRegistrar implements KryoRegistrar {
   @Override
   public void register(Kryo kryo) {
+    kryo.register(GitOpsServiceSpec.class, 262626);
     kryo.register(ServiceEntity.class, 22002);
     kryo.register(K8sDirectInfrastructureOutcome.class, 8105);
     kryo.register(ManifestsOutcome.class, 8031);

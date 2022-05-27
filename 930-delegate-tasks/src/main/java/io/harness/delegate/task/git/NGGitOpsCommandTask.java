@@ -1,6 +1,7 @@
 package io.harness.delegate.task.git;
 
 import static io.harness.annotations.dev.HarnessTeam.CDP;
+import static io.harness.git.model.ChangeType.MODIFY;
 import static io.harness.logging.LogLevel.INFO;
 
 import static software.wings.beans.LogHelper.color;
@@ -8,7 +9,6 @@ import static software.wings.beans.LogHelper.color;
 import static java.lang.String.format;
 
 import io.harness.annotations.dev.OwnedBy;
-import io.harness.beans.gitsync.GitFileDetails;
 import io.harness.beans.gitsync.GitPRCreateRequest;
 import io.harness.connector.helper.GitApiAccessDecryptionHelper;
 import io.harness.connector.service.git.NGGitService;
@@ -29,12 +29,17 @@ import io.harness.delegate.beans.storeconfig.GitStoreDelegateConfig;
 import io.harness.delegate.task.AbstractDelegateRunnableTask;
 import io.harness.delegate.task.TaskParameters;
 import io.harness.exception.sanitizer.ExceptionMessageSanitizer;
+import io.harness.git.model.CommitAndPushRequest;
+import io.harness.git.model.CommitAndPushResult;
 import io.harness.git.model.FetchFilesResult;
 import io.harness.git.model.GitFile;
+import io.harness.git.model.GitFileChange;
 import io.harness.logging.CommandExecutionStatus;
 import io.harness.logging.LogCallback;
 import io.harness.logging.LogLevel;
+import io.harness.ng.core.dto.secrets.SSHKeySpecDTO;
 import io.harness.product.ci.scm.proto.CreatePRResponse;
+import io.harness.security.encryption.EncryptedDataDetail;
 import io.harness.security.encryption.SecretDecryptionService;
 import io.harness.shell.SshSessionConfig;
 
@@ -122,13 +127,11 @@ public class NGGitOpsCommandTask extends AbstractDelegateRunnableTask {
       ScmConnector scmConnector =
           gitOpsTaskParams.getGitFetchFilesConfig().getGitStoreDelegateConfig().getGitConfigDTO();
 
-      commitAndPush(fetchFilesResult, gitOpsTaskParams.getTargetBranch(), scmConnector);
+      CommitAndPushResult gitCommitAndPushResult = commit(gitOpsTaskParams, fetchFilesResult);
 
       logCallback = markDoneAndStartNew(logCallback, CreatePR, commandUnitsProgress);
 
-      String sourceBranch = gitOpsTaskParams.getGitFetchFilesConfig().getGitStoreDelegateConfig().getBranch();
-
-      CreatePRResponse createPRResponse = createPullRequest(scmConnector, sourceBranch,
+      CreatePRResponse createPRResponse = createPullRequest(scmConnector, gitOpsTaskParams.getSourceBranch(),
           gitOpsTaskParams.getTargetBranch(), gitOpsTaskParams.getPrTitle(), gitOpsTaskParams.getAccountId());
 
       logCallback.saveExecutionLog("Done.", INFO, CommandExecutionStatus.SUCCESS);
@@ -146,6 +149,43 @@ public class NGGitOpsCommandTask extends AbstractDelegateRunnableTask {
     return null;
   }
 
+  public CommitAndPushResult commit(NGGitOpsTaskParams gitOpsTaskParams, FetchFilesResult fetchFilesResult) {
+    ScmConnector scmConnector = gitOpsTaskParams.getGitFetchFilesConfig().getGitStoreDelegateConfig().getGitConfigDTO();
+    SSHKeySpecDTO sshKeySpecDTO =
+        gitOpsTaskParams.getGitFetchFilesConfig().getGitStoreDelegateConfig().getSshKeySpecDTO();
+    GitConfigDTO gitConfig = ScmConnectorMapper.toGitConfigDTO(scmConnector);
+    gitConfig.setBranchName(gitOpsTaskParams.getSourceBranch());
+    List<EncryptedDataDetail> encryptionDetails =
+        gitOpsTaskParams.getGitFetchFilesConfig().getGitStoreDelegateConfig().getEncryptedDataDetails();
+    String commitId = gitOpsTaskParams.getGitFetchFilesConfig().getGitStoreDelegateConfig().getCommitId();
+
+    gitDecryptionHelper.decryptGitConfig(gitConfig, encryptionDetails);
+    SshSessionConfig sshSessionConfig = gitDecryptionHelper.getSSHSessionConfig(sshKeySpecDTO, encryptionDetails);
+
+    List<GitFileChange> gitFileChanges = new ArrayList<>();
+    for (int i = 0; i < fetchFilesResult.getFiles().size(); i++) {
+      gitFileChanges.add(GitFileChange.builder()
+                             .changeType(MODIFY)
+                             .filePath(fetchFilesResult.getFiles().get(i).getFilePath())
+                             .fileContent(fetchFilesResult.getFiles().get(i).getFileContent())
+                             .build());
+    }
+
+    CommitAndPushRequest gitCommitRequest = CommitAndPushRequest.builder()
+                                                .gitFileChanges(gitFileChanges)
+                                                .branch(gitOpsTaskParams.getSourceBranch())
+                                                .commitId(commitId)
+                                                .repoUrl(gitConfig.getUrl())
+                                                .accountId(gitOpsTaskParams.getAccountId())
+                                                .connectorId(gitOpsTaskParams.getConnectorInfoDTO().getName())
+                                                .pushOnlyIfHeadSeen(false)
+                                                .forcePush(true)
+                                                .commitMessage("commitMsg")
+                                                .build();
+
+    return ngGitService.commitAndPush(gitConfig, gitCommitRequest, getAccountId(), sshSessionConfig);
+  }
+
   private LogCallback markDoneAndStartNew(
       LogCallback logCallback, String newName, CommandUnitsProgress commandUnitsProgress) {
     logCallback.saveExecutionLog("\nDone", LogLevel.INFO, CommandExecutionStatus.SUCCESS);
@@ -155,6 +195,7 @@ public class NGGitOpsCommandTask extends AbstractDelegateRunnableTask {
 
   public CreatePRResponse createPullRequest(
       ScmConnector scmConnector, String sourceBranch, String targetBranch, String title, String accountId) {
+    // TODO: ensure scmConnector is BitBucket, GitLab or GitHub
     return scmFetchFilesHelper.createPR(scmConnector,
         GitPRCreateRequest.builder()
             .title(title)
@@ -162,30 +203,6 @@ public class NGGitOpsCommandTask extends AbstractDelegateRunnableTask {
             .targetBranch(targetBranch)
             .accountIdentifier(accountId)
             .build());
-  }
-
-  public void commitAndPush(FetchFilesResult fetchFilesResult, String branch, ScmConnector scmConnector) {
-    List<GitFileDetails> gitFileDetailsList = new ArrayList<>();
-
-    for (GitFile gitFile : fetchFilesResult.getFiles()) {
-      gitFileDetailsList.add(GitFileDetails.builder()
-                                 .fileContent(gitFile.getFileContent())
-                                 .filePath(gitFile.getFilePath())
-                                 .commitId(fetchFilesResult.getCommitResult().getCommitId())
-                                 .commitMessage(fetchFilesResult.getCommitResult().getCommitMessage())
-                                 .branch(branch)
-                                 /*
-                                   TODO: change this -- AbstractScmClientFacilitatorServiceImpl.java line #154
-                                   String scmUserName = getScmUserName(accountId, scmType);
-                                  */
-                                 .userName("usrName")
-                                 .userEmail("xyz@abc.com")
-                                 .build());
-    }
-
-    for (GitFileDetails gitFileDetails : gitFileDetailsList) {
-      scmFetchFilesHelper.commitAndPush(false, gitFileDetails, branch, scmConnector);
-    }
   }
 
   public void updateFiles(NGGitOpsTaskParams gitOpsTaskParams, FetchFilesResult fetchFilesResult)

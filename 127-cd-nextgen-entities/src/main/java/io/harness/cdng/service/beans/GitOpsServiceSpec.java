@@ -4,6 +4,7 @@ import io.harness.annotation.RecasterAlias;
 import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.cdng.artifact.bean.yaml.ArtifactListConfig;
+import io.harness.cdng.configfile.ConfigFileWrapper;
 import io.harness.cdng.manifest.yaml.ManifestConfigWrapper;
 import io.harness.cdng.service.ServiceSpec;
 import io.harness.cdng.visitor.helpers.serviceconfig.GitOpsServiceSpecVisitorHelper;
@@ -27,7 +28,7 @@ import org.springframework.data.annotation.TypeAlias;
 
 @Value
 @Builder
-@JsonTypeName(ServiceSpecType.KUBERNETES)
+@JsonTypeName(ServiceSpecType.GITOPS)
 @SimpleVisitorHelper(helperClass = GitOpsServiceSpecVisitorHelper.class)
 @TypeAlias("gitopsServiceSpec")
 @RecasterAlias("io.harness.cdng.service.beans.GitOpsServiceSpec")
@@ -41,6 +42,7 @@ public class GitOpsServiceSpec implements ServiceSpec, Visitable {
   List<NGVariable> variables;
   ArtifactListConfig artifacts;
   List<ManifestConfigWrapper> manifests;
+  List<ConfigFileWrapper> configFiles;
 
   @Override
   public String getType() {

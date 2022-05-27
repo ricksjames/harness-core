@@ -73,7 +73,6 @@ import io.harness.cdng.serverless.ServerlessStepPassThroughData;
 import io.harness.cdng.serverless.beans.ServerlessExecutionPassThroughData;
 import io.harness.cdng.serverless.beans.ServerlessGitFetchFailurePassThroughData;
 import io.harness.cdng.serverless.beans.ServerlessStepExceptionPassThroughData;
-import io.harness.cdng.service.beans.GitOpsServiceSpec;
 import io.harness.cdng.service.steps.ServiceStepParameters;
 import io.harness.cdng.tasks.manifestFetch.step.ManifestFetchOutcome;
 import io.harness.cdng.tasks.manifestFetch.step.ManifestFetchParameters;
@@ -85,7 +84,6 @@ import com.esotericsoftware.kryo.Kryo;
 public class NGKryoRegistrar implements KryoRegistrar {
   @Override
   public void register(Kryo kryo) {
-    kryo.register(GitOpsServiceSpec.class, 13006);
     kryo.register(CreatePRStepInfo.class, 13007);
     kryo.register(CreatePRStepParams.class, 13008);
     kryo.register(CreatePRPassThroughData.class, 13009);

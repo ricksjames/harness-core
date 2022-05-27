@@ -51,6 +51,7 @@ import io.harness.cdng.creator.plan.steps.TerraformRollbackStepPlanCreator;
 import io.harness.cdng.creator.plan.steps.serverless.ServerlessAwsLambdaDeployStepPlanCreator;
 import io.harness.cdng.creator.plan.steps.serverless.ServerlessAwsLambdaRollbackStepPlanCreator;
 import io.harness.cdng.creator.variables.DeploymentStageVariableCreator;
+import io.harness.cdng.creator.variables.GitOpsCreatePRStepVariableCreator;
 import io.harness.cdng.creator.variables.HelmDeployStepVariableCreator;
 import io.harness.cdng.creator.variables.HelmRollbackStepVariableCreator;
 import io.harness.cdng.creator.variables.K8sApplyStepVariableCreator;
@@ -99,7 +100,7 @@ public class CDNGPlanCreatorProvider implements PipelineServiceInfoProvider {
   private static final List<String> CLOUDFORMATION_CATEGORY =
       Arrays.asList("Kubernetes", "Provisioner", "Cloudformation");
   private static final String CLOUDFORMATION_STEP_METADATA = "Cloudformation";
-  private static final List<String> TERRAFORM_CATEGORY = Arrays.asList("Kubernetes", "Provisioner");
+  private static final List<String> TERRAFORM_CATEGORY = Arrays.asList("Kubernetes", "Provisioner", "Helm");
 
   @Inject InjectorUtils injectorUtils;
   @Override
@@ -164,6 +165,7 @@ public class CDNGPlanCreatorProvider implements PipelineServiceInfoProvider {
   @Override
   public List<VariableCreator> getVariableCreators() {
     List<VariableCreator> variableCreators = new ArrayList<>();
+    variableCreators.add(new GitOpsCreatePRStepVariableCreator());
     variableCreators.add(new DeploymentStageVariableCreator());
     variableCreators.add(new ExecutionVariableCreator());
     variableCreators.add(new K8sApplyStepVariableCreator());

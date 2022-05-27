@@ -95,22 +95,25 @@ public class CreatePRStep extends TaskChainExecutableWithRollbackAndRbac {
     gitFetchFilesConfig.add(
         getGitFetchFilesConfig(ambiance, store, ValuesManifestOutcome.builder().identifier("dummy").build()));
 
-    NGGitOpsTaskParams ngGitOpsTaskParams = NGGitOpsTaskParams.builder()
-                                                .gitFetchFilesConfig(gitFetchFilesConfig.get(0))
-                                                .accountId(AmbianceUtils.getAccountId(ambiance))
-                                                .stringMap(stringMap)
-                                                .prTitle("new PR")
-                                                .targetBranch("master")
-                                                .build();
+    NGGitOpsTaskParams ngGitOpsTaskParams =
+        NGGitOpsTaskParams.builder()
+            .gitFetchFilesConfig(gitFetchFilesConfig.get(0))
+            .accountId(AmbianceUtils.getAccountId(ambiance))
+            .stringMap(stringMap)
+            .prTitle("new PR")
+            .connectorInfoDTO(cdStepHelper.getConnector(store.getConnectorReference().getValue(), ambiance))
+            .sourceBranch(gitFetchFilesConfig.get(0).getGitStoreDelegateConfig().getBranch())
+            .targetBranch("master")
+            .build();
 
     final TaskData taskData = TaskData.builder()
                                   .async(true)
                                   .timeout(CDStepHelper.getTimeoutInMillis(stepParameters))
-                                  .taskType(TaskType.GIT_FETCH_NEXT_GEN_TASK.name())
+                                  .taskType(TaskType.GITOPS_TASK_NG.name())
                                   .parameters(new Object[] {ngGitOpsTaskParams})
                                   .build();
 
-    String taskName = TaskType.GIT_FETCH_NEXT_GEN_TASK.getDisplayName();
+    String taskName = TaskType.GITOPS_TASK_NG.getDisplayName();
 
     final TaskRequest taskRequest = prepareCDTaskRequest(ambiance, taskData, kryoSerializer,
         gitOpsSpecParams.getCommandUnits(), taskName,
@@ -120,7 +123,7 @@ public class CreatePRStep extends TaskChainExecutableWithRollbackAndRbac {
     return TaskChainResponse.builder()
         .chainEnd(true)
         .taskRequest(taskRequest)
-        // .passThroughData(passThroughDataBuilder.build())
+        .passThroughData(CreatePRPassThroughData.builder().build())
         .build();
   }
 
