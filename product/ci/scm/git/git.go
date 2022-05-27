@@ -598,9 +598,9 @@ func GetLatestCommitOnFile(ctx context.Context, request *pb.GetLatestCommitOnFil
 	log.Infow("GetLatestCommitOnFile", "response", response, "error", err)
 	if err != nil {
 		return &pb.GetLatestCommitOnFileResponse{
-        			CommitId: "",
-        			Error: err.Error(),
-        		}, nil
+			CommitId: "",
+			Error:    err.Error(),
+		}, nil
 	}
 
 	if response.CommitIds != nil && len(response.CommitIds) != 0 {
