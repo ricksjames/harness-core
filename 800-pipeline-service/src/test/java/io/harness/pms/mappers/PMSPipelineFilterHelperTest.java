@@ -49,7 +49,6 @@ public class PMSPipelineFilterHelperTest extends CategoryTest {
     fieldsToBeUpdated.add(PipelineEntityKeys.stageCount);
     fieldsToBeUpdated.add(PipelineEntityKeys.stageNames);
     fieldsToBeUpdated.add(PipelineEntityKeys.allowStageExecutions);
-    fieldsToBeUpdated.add(PipelineEntityKeys.templateReference);
 
     for (String field : fieldsToBeUpdated) {
       assertThat(true).isEqualTo(PMSPipelineFilterHelper.getUpdateOperations(pipelineEntity, 0L).modifies(field));
@@ -77,7 +76,6 @@ public class PMSPipelineFilterHelperTest extends CategoryTest {
                                 .stageCount(1)
                                 .stageNames(Collections.singletonList("s1"))
                                 .allowStageExecutions(true)
-                                .templateReference(true)
                                 .build();
     PipelineEntity fieldsToUpdate = PipelineEntity.builder()
                                         .accountId("acc")
@@ -92,7 +90,6 @@ public class PMSPipelineFilterHelperTest extends CategoryTest {
                                         .stageCount(2)
                                         .stageNames(Arrays.asList("s11", "s12"))
                                         .allowStageExecutions(false)
-                                        .templateReference(false)
                                         .build();
     long timeOfUpdate = 10L;
     PipelineEntity pipelineEntity = PMSPipelineFilterHelper.updateFieldsInDBEntry(fromDB, fieldsToUpdate, timeOfUpdate);
@@ -103,7 +100,6 @@ public class PMSPipelineFilterHelperTest extends CategoryTest {
     assertThat(pipelineEntity.getStageCount()).isEqualTo(2);
     assertThat(pipelineEntity.getStageNames()).containsExactly("s11", "s12");
     assertThat(pipelineEntity.getAllowStageExecutions()).isFalse();
-    assertThat(pipelineEntity.getTemplateReference()).isFalse();
   }
 
   @Test

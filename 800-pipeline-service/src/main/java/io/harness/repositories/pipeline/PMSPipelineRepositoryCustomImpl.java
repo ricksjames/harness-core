@@ -312,7 +312,7 @@ public class PMSPipelineRepositoryCustomImpl implements PMSPipelineRepositoryCus
   @Override
   public PipelineEntity updatePipelineMetadata(
       String accountId, String orgIdentifier, String projectIdentifier, Criteria criteria, Update update) {
-    if (GitAwareContextHelper.isOldFlow()) {
+    if (gitSyncSdkService.isGitSyncEnabled(accountId, orgIdentifier, projectIdentifier)) {
       criteria = gitAwarePersistence.makeCriteriaGitAware(
           accountId, orgIdentifier, projectIdentifier, PipelineEntity.class, criteria);
     }
