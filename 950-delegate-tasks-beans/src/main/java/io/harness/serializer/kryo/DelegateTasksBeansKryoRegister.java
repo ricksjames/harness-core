@@ -912,9 +912,9 @@ public class DelegateTasksBeansKryoRegister implements KryoRegistrar {
     kryo.register(AzureVMSSSwitchRoutesResponse.class, 19322);
     kryo.register(AzureVMSSSwitchRouteTaskParameters.class, 19323);
     kryo.register(GitFetchRequest.class, 19324);
-    kryo.register(NGGitOpsTaskParams.class, 9324);
-    kryo.register(NGGitOpsResponse.class, 9325);
-    kryo.register(GitOpsTaskType.class, 9326);
+    kryo.register(NGGitOpsTaskParams.class, 9107);
+    kryo.register(NGGitOpsResponse.class, 9108);
+    kryo.register(GitOpsTaskType.class, 9109);
     kryo.register(GitFetchFilesConfig.class, 19325);
     kryo.register(GitFetchResponse.class, 19326);
     kryo.register(TaskStatus.class, 19327);
