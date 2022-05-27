@@ -48,9 +48,7 @@ public class EnvironmentPlanCreatorConfig implements Visitable {
   @ApiModelProperty(hidden = true)
   private String uuid;
 
-  @NotNull
-  @ApiModelProperty(dataType = SwaggerConstants.STRING_CLASSPATH)
-  private ParameterField<String> environmentRef;
+  @NotNull ParameterField<String> environmentRef;
 
   // Environment Basic Info
   String orgIdentifier;
@@ -64,5 +62,7 @@ public class EnvironmentPlanCreatorConfig implements Visitable {
   List<NGServiceOverrides> serviceOverrides;
 
   // linked Infra Info
+  boolean deployToAll;
   List<InfrastructurePlanCreatorConfig> infrastructureDefinitions;
+  List<String> gitOpsClusterRefs;
 }
