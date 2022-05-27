@@ -25,6 +25,7 @@ public class IteratorsConfig {
   IteratorConfig artifactCollectionIteratorConfig;
   IteratorConfig eventDeliveryIteratorConfig;
   IteratorConfig workflowExecutionMonitorIteratorConfig;
+  IteratorConfig workflowExecutionZombieMonitorIteratorConfig;
   IteratorConfig blockingCapabilityPermissionsRecordHandlerIteratorConfig;
   IteratorConfig vaultSecretManagerRenewalIteratorConfig;
   IteratorConfig delegateTaskExpiryCheckIteratorConfig;

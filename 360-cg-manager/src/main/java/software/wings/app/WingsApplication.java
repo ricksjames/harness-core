@@ -1465,7 +1465,8 @@ public class WingsApplication extends Application<MainConfiguration> {
         .registerIterators(iteratorsConfig.getResourceConstraintBackupIteratorConfig().getThreadPoolSize());
     injector.getInstance(WorkflowExecutionMonitorHandler.class)
         .registerIterators(iteratorsConfig.getWorkflowExecutionMonitorIteratorConfig().getThreadPoolSize());
-    injector.getInstance(WorkflowZombieMonitorHandler.class).registerIterators(1);
+    injector.getInstance(WorkflowExecutionZombieMonitorHandler.class)
+        .registerIterators(iteratorsConfig.getWorkflowExecutionZombieMonitorIteratorConfig().getThreadPoolSize());
     injector.getInstance(SettingAttributeValidateConnectivityHandler.class)
         .registerIterators(iteratorsConfig.getSettingAttributeValidateConnectivityIteratorConfig().getThreadPoolSize());
     injector.getInstance(VaultSecretManagerRenewalHandler.class)
