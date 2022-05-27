@@ -56,7 +56,6 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.collections.ListUtils;
 import org.springframework.stereotype.Service;
 
 @Api("perspectiveFolders")
@@ -110,7 +109,7 @@ public class PerspectiveFolderResource {
     ceViewFolder.setViewType(ViewType.CUSTOMER);
     ceViewFolder = ceViewFolderService.save(ceViewFolder);
     if (createPerspectiveFolderDTO.getPerspectiveIds() != null
-          && CollectionUtils.isNotEmpty(createPerspectiveFolderDTO.getPerspectiveIds())) {
+        && CollectionUtils.isNotEmpty(createPerspectiveFolderDTO.getPerspectiveIds())) {
       ceViewFolderService.moveMultipleCEViews(
           accountId, createPerspectiveFolderDTO.getPerspectiveIds(), ceViewFolder.getUuid());
     }
