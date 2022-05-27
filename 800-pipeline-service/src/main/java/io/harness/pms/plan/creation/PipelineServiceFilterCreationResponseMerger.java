@@ -7,12 +7,23 @@
 
 package io.harness.pms.plan.creation;
 
+import io.harness.data.structure.EmptyPredicate;
+import io.harness.plancreator.PipelineServiceFilter;
 import io.harness.pms.filter.creation.FilterCreationResponse;
 import io.harness.pms.sdk.core.pipeline.filters.FilterCreationResponseMerger;
+
+import java.util.ArrayList;
 
 public class PipelineServiceFilterCreationResponseMerger implements FilterCreationResponseMerger {
   @Override
   public void mergeFilterCreationResponse(FilterCreationResponse finalResponse, FilterCreationResponse current) {
-    // nothing to do
+    if (finalResponse.getPipelineFilter() == null) {
+      finalResponse.setPipelineFilter(PipelineServiceFilter.builder().moduleNames(new ArrayList<>()).build());
+    }
+    PipelineServiceFilter finalFilter = (PipelineServiceFilter) finalResponse.getPipelineFilter();
+    PipelineServiceFilter currentFilter = (PipelineServiceFilter) current.getPipelineFilter();
+    if (currentFilter != null && EmptyPredicate.isNotEmpty(currentFilter.getModuleNames())) {
+      finalFilter.addModuleNames(currentFilter);
+    }
   }
 }
