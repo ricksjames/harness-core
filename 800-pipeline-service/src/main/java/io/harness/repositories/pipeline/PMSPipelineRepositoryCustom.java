@@ -34,8 +34,8 @@ public interface PMSPipelineRepositoryCustom {
    */
   PipelineEntity save(PipelineEntity pipelineToSave);
 
-  Optional<PipelineEntity> findForOldGitSync(String accountId, String orgIdentifier, String projectIdentifier,
-      String pipelineIdentifier, boolean notDeleted, boolean getMetadataOnly);
+  Optional<PipelineEntity> findForOldGitSync(
+      String accountId, String orgIdentifier, String projectIdentifier, String pipelineIdentifier, boolean notDeleted);
 
   /**
    * this method is to be used for new git experience, and for all pipelines that are not git synced in both old and new
