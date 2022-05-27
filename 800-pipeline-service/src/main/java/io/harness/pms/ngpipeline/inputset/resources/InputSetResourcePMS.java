@@ -171,6 +171,7 @@ public class InputSetResourcePMS {
     InputSetResponseDTOPMS inputSet = PMSInputSetElementMapper.toInputSetResponseDTOPMS(inputSetEntity);
 
     if (inputSetEntity.getStoreType() == StoreType.REMOTE) {
+      // todo: remove dependency of validateAndMergeHelper on inputSetService and add this validation into service layer
       InputSetErrorWrapperDTOPMS errorWrapperDTOPMS = validateAndMergeHelper.validateInputSet(
           accountId, orgIdentifier, projectIdentifier, pipelineIdentifier, inputSetEntity.getYaml(), null, null);
       if (errorWrapperDTOPMS != null) {
@@ -221,6 +222,7 @@ public class InputSetResourcePMS {
         PMSInputSetElementMapper.toOverlayInputSetResponseDTOPMS(inputSetEntity);
 
     if (inputSetEntity.getStoreType() == StoreType.REMOTE) {
+      // todo: remove dependency of validateAndMergeHelper on inputSetService and add this validation into service layer
       Map<String, String> overlayInputSetErrorResponse = validateAndMergeHelper.validateOverlayInputSet(
           accountId, orgIdentifier, projectIdentifier, pipelineIdentifier, inputSetEntity.getYaml());
       if (!overlayInputSetErrorResponse.isEmpty()) {
