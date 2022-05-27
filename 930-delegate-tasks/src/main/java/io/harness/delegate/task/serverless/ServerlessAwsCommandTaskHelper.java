@@ -125,15 +125,19 @@ public class ServerlessAwsCommandTaskHelper {
   }
 
   public boolean cloudFormationTemplateExists(
-      ServerlessCommandRequest serverlessCommandRequest, String cloudFormationStackName) {
+          LogCallback executionLogCallback, ServerlessCommandRequest serverlessCommandRequest, String manifestContent) {
+
+    ServerlessAwsLambdaManifestSchema serverlessManifestSchema =
+            parseServerlessManifest(executionLogCallback, manifestContent);
     ServerlessAwsLambdaInfraConfig serverlessAwsLambdaInfraConfig =
-        (ServerlessAwsLambdaInfraConfig) serverlessCommandRequest.getServerlessInfraConfig();
+            (ServerlessAwsLambdaInfraConfig) serverlessCommandRequest.getServerlessInfraConfig();
+    String cloudFormationStackName =
+            serverlessManifestSchema.getService() + "-" + serverlessAwsLambdaInfraConfig.getStage();
     String region = serverlessAwsLambdaInfraConfig.getRegion();
 
-    awsCFHelperServiceDelegate.getStackBody(
+    return awsCFHelperServiceDelegate.stackExists(
         awsNgConfigMapper.createAwsInternalConfig(serverlessAwsLambdaInfraConfig.getAwsConnectorDTO()), region,
         cloudFormationStackName);
-    return true;
   }
 
   public String getCurrentCloudFormationTemplate(
@@ -322,24 +326,6 @@ public class ServerlessAwsCommandTaskHelper {
             .collect(Collectors.toList());
 
     return timeStamps;
-  }
-
-  public boolean isFirstDeployment(
-      LogCallback executionLogCallback, ServerlessCommandRequest serverlessCommandRequest, String manifestContent) {
-    ServerlessAwsLambdaManifestSchema serverlessManifestSchema =
-        parseServerlessManifest(executionLogCallback, manifestContent);
-    ServerlessAwsLambdaInfraConfig serverlessAwsLambdaInfraConfig =
-        (ServerlessAwsLambdaInfraConfig) serverlessCommandRequest.getServerlessInfraConfig();
-    String cloudFormationStackName =
-        serverlessManifestSchema.getService() + "-" + serverlessAwsLambdaInfraConfig.getStage();
-    try {
-      cloudFormationTemplateExists(serverlessCommandRequest, cloudFormationStackName);
-    } catch (Exception e) {
-      if (e.getMessage().contains("Stack with id " + cloudFormationStackName + " does not exist")) {
-        return true;
-      }
-    }
-    return false;
   }
 
   public Optional<String> getPreviousVersionTimeStamp(

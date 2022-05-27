@@ -32,7 +32,6 @@ import io.harness.delegate.task.serverless.ServerlessAwsCommandTaskHelper;
 import io.harness.delegate.task.serverless.ServerlessAwsLambdaDeployConfig;
 import io.harness.delegate.task.serverless.ServerlessAwsLambdaInfraConfig;
 import io.harness.delegate.task.serverless.ServerlessAwsLambdaManifestConfig;
-import io.harness.delegate.task.serverless.ServerlessFirstDeploymentTimestamp;
 import io.harness.delegate.task.serverless.ServerlessInfraConfigHelper;
 import io.harness.delegate.task.serverless.ServerlessTaskHelperBase;
 import io.harness.delegate.task.serverless.request.ServerlessCommandRequest;
@@ -80,6 +79,7 @@ public class ServerlessAwsLambdaDeployCommandTaskHandler extends ServerlessComma
   private ServerlessAwsLambdaInfraConfig serverlessAwsLambdaInfraConfig;
   private long timeoutInMillis;
   private String previousDeployTimeStamp;
+  private Boolean firstDeployment;
 
   @Override
   protected ServerlessCommandResponse executeTaskInternal(ServerlessCommandRequest serverlessCommandRequest,
@@ -170,7 +170,7 @@ public class ServerlessAwsLambdaDeployCommandTaskHandler extends ServerlessComma
     } catch (Exception ex) {
       deployLogCallback.saveExecutionLog(color(format("%n Deployment failed."), LogColor.Red, LogWeight.Bold),
           LogLevel.ERROR, CommandExecutionStatus.FAILURE);
-      throw new ServerlessNGException(ex, previousDeployTimeStamp);
+      throw new ServerlessNGException(ex, previousDeployTimeStamp, firstDeployment);
     }
   }
 
@@ -212,12 +212,12 @@ public class ServerlessAwsLambdaDeployCommandTaskHandler extends ServerlessComma
   private void prepareRollbackData(ServerlessDeployRequest serverlessDeployRequest, LogCallback executionLogCallback,
       ServerlessDelegateTaskParams serverlessDelegateTaskParams) throws Exception {
     executionLogCallback.saveExecutionLog(format("Preparing Rollback Data..%n%n"));
-    boolean isFirstDeployment = serverlessAwsCommandTaskHelper.isFirstDeployment(
-        executionLogCallback, serverlessDeployRequest, serverlessDeployRequest.getManifestContent());
-    if (isFirstDeployment) {
-      previousDeployTimeStamp = ServerlessFirstDeploymentTimestamp.SERVERLESS_FIRST_DEPLOYMENT_TIMESTAMP.toString();
+    firstDeployment = false;
+    if (!serverlessAwsCommandTaskHelper.cloudFormationTemplateExists(
+            executionLogCallback, serverlessDeployRequest, serverlessDeployRequest.getManifestContent())) {
+      firstDeployment = true;
       executionLogCallback.saveExecutionLog(
-          format("Deploy List command skipped..%n"), LogLevel.INFO, CommandExecutionStatus.SUCCESS);
+          format("Skipping as there are no previous Deployments..%n"), LogLevel.INFO, CommandExecutionStatus.SUCCESS);
       return;
     }
     ServerlessCliResponse response =
@@ -270,6 +270,7 @@ public class ServerlessAwsLambdaDeployCommandTaskHandler extends ServerlessComma
     serverlessAwsLambdaDeployResultBuilder.region(serverlessAwsLambdaInfraConfig.getRegion());
     serverlessAwsLambdaDeployResultBuilder.stage(serverlessAwsLambdaInfraConfig.getStage());
     serverlessAwsLambdaDeployResultBuilder.previousVersionTimeStamp(previousDeployTimeStamp);
+    serverlessAwsLambdaDeployResultBuilder.isFirstDeployment(firstDeployment);
     ServerlessDeployResponseBuilder serverlessDeployResponseBuilder = ServerlessDeployResponse.builder();
 
     if (response.getCommandExecutionStatus() == CommandExecutionStatus.SUCCESS) {
