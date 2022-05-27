@@ -7,18 +7,24 @@
 
 package io.harness.gitsync.common.scmerrorhandling.handlers.bitbucketserver;
 
-import com.google.inject.Inject;
+import static io.harness.rule.OwnerRule.DEEPAK;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
 import io.harness.category.element.UnitTests;
-import io.harness.exception.*;
+import io.harness.exception.ExceptionUtils;
+import io.harness.exception.ScmBadRequestException;
+import io.harness.exception.ScmUnauthorizedException;
+import io.harness.exception.ScmUnexpectedException;
+import io.harness.exception.WingsException;
 import io.harness.gitsync.GitSyncTestBase;
 import io.harness.rule.Owner;
+
+import com.google.inject.Inject;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.mockito.MockitoAnnotations;
-
-import static io.harness.rule.OwnerRule.DEEPAK;
-import static org.assertj.core.api.Assertions.assertThat;
 
 public class BitbucketServerCreateBranchScmApiErrorHandlerTest extends GitSyncTestBase {
   @Inject BitbucketServerCreateBranchScmApiErrorHandler bitbucketServerCreateBranchScmApiErrorHandler;

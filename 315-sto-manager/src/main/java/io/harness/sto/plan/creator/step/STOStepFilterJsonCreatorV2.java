@@ -5,15 +5,19 @@
  * https://polyformproject.org/wp-content/uploads/2020/05/PolyForm-Free-Trial-1.0.0.txt.
  */
 
-package io.harness.exception;
+package io.harness.sto.plan.creator.step;
 
 import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
-import io.harness.eraro.ErrorCode;
+import io.harness.filters.GenericStepPMSFilterJsonCreatorV2;
+import io.harness.sto.plan.creator.STOCreatorUtils;
 
-@OwnedBy(HarnessTeam.PL)
-public class ScmUnprocessableEntityException extends ScmException {
-  public ScmUnprocessableEntityException(String errorMessage) {
-    super(errorMessage, ErrorCode.SCM_UNPROCESSABLE_ENTITY);
+import java.util.Set;
+
+@OwnedBy(HarnessTeam.STO)
+public class STOStepFilterJsonCreatorV2 extends GenericStepPMSFilterJsonCreatorV2 {
+  @Override
+  public Set<String> getSupportedStepTypes() {
+    return STOCreatorUtils.getSupportedStepsV2();
   }
 }

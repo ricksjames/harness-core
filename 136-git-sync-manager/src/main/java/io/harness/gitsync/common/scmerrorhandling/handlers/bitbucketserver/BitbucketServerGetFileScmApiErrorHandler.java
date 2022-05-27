@@ -12,7 +12,12 @@ import static io.harness.gitsync.common.scmerrorhandling.handlers.bitbucketcloud
 import static io.harness.gitsync.common.scmerrorhandling.handlers.bitbucketcloud.ScmErrorHints.INVALID_CREDENTIALS;
 
 import io.harness.annotations.dev.OwnedBy;
-import io.harness.exception.*;
+import io.harness.exception.NestedExceptionUtils;
+import io.harness.exception.SCMExceptionErrorMessages;
+import io.harness.exception.ScmBadRequestException;
+import io.harness.exception.ScmUnauthorizedException;
+import io.harness.exception.ScmUnexpectedException;
+import io.harness.exception.WingsException;
 import io.harness.gitsync.common.scmerrorhandling.handlers.ScmApiErrorHandler;
 
 @OwnedBy(PL)
@@ -25,11 +30,11 @@ public class BitbucketServerGetFileScmApiErrorHandler implements ScmApiErrorHand
       case 401:
       case 403:
         throw NestedExceptionUtils.hintWithExplanationException(INVALID_CREDENTIALS,
-                GET_FILE_REQUEST_FAILURE + ScmErrorExplanations.INVALID_CONNECTOR_CREDS,
-                new ScmUnauthorizedException(errorMessage));
+            GET_FILE_REQUEST_FAILURE + ScmErrorExplanations.INVALID_CONNECTOR_CREDS,
+            new ScmUnauthorizedException(errorMessage));
       case 404:
         throw NestedExceptionUtils.hintWithExplanationException(FILE_NOT_FOUND, ScmErrorExplanations.FILE_NOT_FOUND,
-                new ScmBadRequestException(SCMExceptionErrorMessages.FILE_NOT_FOUND_ERROR));
+            new ScmBadRequestException(SCMExceptionErrorMessages.FILE_NOT_FOUND_ERROR));
       default:
         throw new ScmUnexpectedException(errorMessage);
     }
