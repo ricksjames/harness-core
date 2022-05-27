@@ -27,6 +27,7 @@ import io.harness.delegate.beans.DelegateToken;
 import io.harness.delegate.beans.DelegateToken.DelegateTokenKeys;
 import io.harness.delegate.beans.DelegateTokenStatus;
 import io.harness.delegate.utils.DelegateJWTCacheHelper;
+import io.harness.delegate.utils.DelegateJWTCacheValueObject;
 import io.harness.delegate.utils.DelegateTokenCacheHelper;
 import io.harness.exception.InvalidRequestException;
 import io.harness.exception.InvalidTokenException;
@@ -93,17 +94,17 @@ public class DelegateTokenAuthenticatorImpl implements DelegateTokenAuthenticato
   @Override
   public void validateDelegateToken(
       String accountId, String tokenString, String delegateId, boolean shouldSetTokenNameInGlobalContext) {
+    final String tokenHash = DigestUtils.md5Hex(tokenString);
+    // first validate it from DelegateJWTCache
+    if (validateDelegateJWTFromCache(tokenHash)) {
+      return;
+    }
+
     EncryptedJWT encryptedJWT;
     try {
       encryptedJWT = EncryptedJWT.parse(tokenString);
     } catch (ParseException e) {
       throw new InvalidTokenException("Invalid delegate token format", USER_ADMIN);
-    }
-
-    String tokenHash = DigestUtils.md5Hex(tokenString);
-    // first validate it from DelegateJWTCache
-    if (delegateJWTCacheHelper.validateDelegateJWTString(tokenHash)) {
-      return;
     }
 
     DelegateToken delegateTokenFromCache = delegateTokenCacheHelper.getDelegateToken(delegateId);
@@ -143,13 +144,13 @@ public class DelegateTokenAuthenticatorImpl implements DelegateTokenAuthenticato
 
     try {
       JWTClaimsSet jwtClaimsSet = encryptedJWT.getJWTClaimsSet();
-      long validUntil = jwtClaimsSet.getExpirationTime().getTime();
-      if (System.currentTimeMillis() > validUntil) {
+      final long expiryInMillis = jwtClaimsSet.getExpirationTime().getTime();
+      if (System.currentTimeMillis() > expiryInMillis) {
         log.error("Delegate {} is using EXPIRED delegate token. DelegateId: {}", jwtClaimsSet.getIssuer(), delegateId);
         delegateJWTCacheHelper.setDelegateJWTCache(tokenHash, false, 0);
         throw new InvalidRequestException("Unauthorized", EXPIRED_TOKEN, null);
       } else {
-        delegateJWTCacheHelper.setDelegateJWTCache(tokenHash, true, validUntil);
+        delegateJWTCacheHelper.setDelegateJWTCache(tokenHash, true, expiryInMillis);
       }
     } catch (Exception ex) {
       delegateJWTCacheHelper.setDelegateJWTCache(tokenHash, false, 0);
@@ -322,6 +323,21 @@ public class DelegateTokenAuthenticatorImpl implements DelegateTokenAuthenticato
     } catch (JOSEException e) {
       throw new InvalidTokenException("Invalid delegate token", USER_ADMIN);
     }
+  }
+
+  private boolean validateDelegateJWTFromCache(String tokenHash) {
+    DelegateJWTCacheValueObject delegateJWTCacheValueObject = delegateJWTCacheHelper.getDelegateJWTCache(tokenHash);
+
+    // cache miss
+    if (delegateJWTCacheValueObject == null) {
+      return false;
+    } else if (!delegateJWTCacheValueObject.isValid()) {
+      throw new RevokedTokenException("Invalid delegate token. Delegate is using invalid token", USER_ADMIN);
+    } else if (delegateJWTCacheValueObject.getExpiryInMillis() < System.currentTimeMillis()) {
+      throw new InvalidRequestException("Unauthorized", EXPIRED_TOKEN, null);
+    }
+
+    return true;
   }
 
   private void setTokenNameInGlobalContext(boolean shouldSetTokenNameInGlobalContext, DelegateToken delegateToken) {

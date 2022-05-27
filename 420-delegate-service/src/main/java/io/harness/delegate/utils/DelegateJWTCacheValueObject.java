@@ -16,5 +16,5 @@ import lombok.Data;
 @OwnedBy(HarnessTeam.DEL)
 public class DelegateJWTCacheValueObject {
   private final boolean isValid;
-  private final long validUntil;
+  private final long expiryInMillis;
 }
