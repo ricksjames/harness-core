@@ -471,6 +471,10 @@ public class EnvironmentResourceV2 {
     environmentValidationHelper.checkThatEnvExists(serviceOverridesEntity.getAccountId(),
         serviceOverridesEntity.getOrgIdentifier(), serviceOverridesEntity.getProjectIdentifier(),
         serviceOverridesEntity.getEnvironmentRef());
+    accessControlClient.checkForAccessOrThrow(ResourceScope.of(accountId, serviceOverrideRequestDTO.getOrgIdentifier(),
+                                                  serviceOverrideRequestDTO.getProjectIdentifier()),
+        Resource.of(ENVIRONMENT, serviceOverrideRequestDTO.getEnvironmentRef()), ENVIRONMENT_UPDATE_PERMISSION);
+    // todo: service rbac
     NGServiceOverridesEntity createdServiceOverride = serviceOverrideService.upsert(serviceOverridesEntity);
     return ResponseDTO.newResponse(ServiceOverridesMapper.toResponseWrapper(createdServiceOverride));
   }
