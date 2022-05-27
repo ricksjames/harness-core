@@ -24,6 +24,7 @@ import io.harness.migration.utils.NoopMigration;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.apache.commons.lang3.tuple.Pair;
+import io.harness.accesscontrol.roleassignments.migration.AccountBasicRoleAssignmentAdditionMigration;
 
 @OwnedBy(PL)
 public class AccessControlMongoBackgroundMigrationDetails implements MigrationDetails {
@@ -49,6 +50,7 @@ public class AccessControlMongoBackgroundMigrationDetails implements MigrationDe
         .add(Pair.of(8, RoleAssignmentResourceGroupMigration.class))
         .add(Pair.of(9, SuperAdminViaAllResourcesMigration.class))
         .add(Pair.of(10, RoleAssignmentPrincipalScopeLevelMigration.class))
+        .add(Pair.of(11, AccountBasicRoleAssignmentAdditionMigration.class))
         .build();
   }
 }
