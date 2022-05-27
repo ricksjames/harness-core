@@ -195,6 +195,7 @@ import software.wings.beans.ApiKeyEntry;
 import software.wings.beans.Application;
 import software.wings.beans.ApprovalAuthorization;
 import software.wings.beans.ApprovalDetails;
+import software.wings.beans.ApprovalRejectionAction;
 import software.wings.beans.ArtifactStreamMetadata;
 import software.wings.beans.ArtifactVariable;
 import software.wings.beans.AwsLambdaExecutionSummary;
@@ -617,26 +618,26 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
   public boolean approveOrRejectExecution(
       String appId, List<String> userGroupIds, ApprovalDetails approvalDetails, ApiKeyEntry apiEntryKey) {
     if (apiEntryKey == null) {
-      return approveOrRejectExecution(appId, userGroupIds, approvalDetails);
+      return approveOrRejectExecution(appId, userGroupIds, approvalDetails, (ApprovalStateExecutionData) null);
     }
     if (apiEntryKey != null && isNotEmpty(userGroupIds)
         && !verifyAuthorizedToAcceptOrReject(userGroupIds, apiEntryKey.getUserGroupIds(), appId, null)) {
       throw new InvalidRequestException("User not authorized to accept or reject the approval");
     }
 
-    return approveOrRejectExecution(appId, approvalDetails);
+    return approveOrRejectExecution(appId, approvalDetails, null);
   }
 
   @Override
-  public boolean approveOrRejectExecution(String appId, List<String> userGroupIds, ApprovalDetails approvalDetails) {
+  public boolean approveOrRejectExecution(String appId, List<String> userGroupIds, ApprovalDetails approvalDetails, ApprovalStateExecutionData approvalStateExecutionData) {
     if (isNotEmpty(userGroupIds) && !verifyAuthorizedToAcceptOrReject(userGroupIds, appId, null)) {
       throw new InvalidRequestException("User not authorized to accept or reject the approval");
     }
 
-    return approveOrRejectExecution(appId, approvalDetails);
+    return approveOrRejectExecution(appId, approvalDetails, approvalStateExecutionData);
   }
 
-  private boolean approveOrRejectExecution(String appId, ApprovalDetails approvalDetails) {
+  private boolean approveOrRejectExecution(String appId, ApprovalDetails approvalDetails, ApprovalStateExecutionData approvalStateExecutionData) {
     User user = UserThreadLocal.get();
     if (user != null && approvalDetails.getApprovedBy() == null) {
       approvalDetails.setApprovedBy(
@@ -660,6 +661,13 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
     if (approvalDetails.getAction() == APPROVE) {
       executionData.setStatus(SUCCESS);
     } else if (approvalDetails.getAction() == REJECT) {
+      if (approvalStateExecutionData != null) {
+        if (approvalStateExecutionData.getApprovalRejectionAction() == ApprovalRejectionAction.ROLLBACK_WORKFLOW) {
+          WorkflowExecution workflowExecution = fetchWorkflowExecution(appId, approvalStateExecutionData.getExecutionUuid());
+          triggerRollbackExecutionWorkflow(appId, workflowExecution);
+        }
+      }
+
       executionData.setStatus(ExecutionStatus.REJECTED);
     }
 
@@ -6322,7 +6330,7 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
       String stateExecutionId, ApprovalDetails approvalDetails, PreviousApprovalDetails previousApprovalDetails) {
     ApprovalStateExecutionData stateExecutionData = fetchApprovalStateExecutionDataFromWorkflowExecution(
         appId, workflowExecutionId, stateExecutionId, approvalDetails);
-    boolean success = approveOrRejectExecution(appId, stateExecutionData.getUserGroups(), approvalDetails);
+    boolean success = approveOrRejectExecution(appId, stateExecutionData.getUserGroups(), approvalDetails, (ApprovalStateExecutionData) null);
     List<String> previousApprovalIds = new ArrayList<>();
     if (previousApprovalDetails.getPreviousApprovals() != null) {
       previousApprovalIds =
@@ -6349,7 +6357,7 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
                 ? "Pipeline rejected when the following execution was approved: " + executionUrl
                 : approvalDetails.getComments());
         rejectionDetails.setAction(REJECT);
-        approveOrRejectExecution(appId, rejectionDetails);
+        approveOrRejectExecution(appId, rejectionDetails, null);
       }
     }
   }

@@ -81,6 +81,7 @@ import software.wings.beans.Activity;
 import software.wings.beans.Activity.ActivityBuilder;
 import software.wings.beans.Activity.Type;
 import software.wings.beans.Application;
+import software.wings.beans.ApprovalRejectionAction;
 import software.wings.beans.Environment;
 import software.wings.beans.ExecutionScope;
 import software.wings.beans.InformationNotification;
@@ -194,6 +195,8 @@ public class ApprovalState extends State implements SweepingOutputStateMixin {
 
   public enum ApprovalStateType { JIRA, USER_GROUP, SHELL_SCRIPT, SERVICENOW }
 
+  @Getter @Setter private ApprovalRejectionAction approvalRejectionAction;
+
   public static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
 
   @Inject private AlertService alertService;
@@ -257,6 +260,7 @@ public class ApprovalState extends State implements SweepingOutputStateMixin {
                                                    .variables(getVariables())
                                                    .stageName(getStageName())
                                                    .triggeredBy(workflowStandardParams.getCurrentUser())
+        .approvalRejectionAction(approvalRejectionAction)
                                                    .build();
     if (disableAssertion != null) {
       ExecutionResponse skipResponse = handleSkipCondition(context, executionData);
