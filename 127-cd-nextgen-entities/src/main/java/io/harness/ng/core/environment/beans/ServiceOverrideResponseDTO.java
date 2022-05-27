@@ -21,7 +21,8 @@ import lombok.experimental.FieldDefaults;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @JsonIgnoreProperties(ignoreUnknown = true)
-@Schema(name = "ServiceOverrideResponse", description = "This is the Service Override entity defined in Harness")
+@Schema(
+    name = "ServiceOverrideResponse", description = "This is the Service Override Response entity defined in Harness")
 public class ServiceOverrideResponseDTO {
   String accountId;
   String orgIdentifier;

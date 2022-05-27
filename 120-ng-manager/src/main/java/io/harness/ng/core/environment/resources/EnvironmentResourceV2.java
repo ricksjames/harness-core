@@ -38,6 +38,7 @@ import io.harness.annotations.dev.OwnedBy;
 import io.harness.data.structure.EmptyPredicate;
 import io.harness.exception.InvalidRequestException;
 import io.harness.ng.beans.PageResponse;
+import io.harness.ng.core.EnvironmentValidationHelper;
 import io.harness.ng.core.OrgAndProjectValidationHelper;
 import io.harness.ng.core.dto.ErrorDTO;
 import io.harness.ng.core.dto.FailureDTO;
@@ -139,6 +140,7 @@ public class EnvironmentResourceV2 {
   private final AccessControlClient accessControlClient;
   private final OrgAndProjectValidationHelper orgAndProjectValidationHelper;
   private final ServiceOverrideService serviceOverrideService;
+  private final EnvironmentValidationHelper environmentValidationHelper;
 
   public static final String ENVIRONMENT_PARAM_MESSAGE = "Environment Identifier for the entity";
 
@@ -466,7 +468,9 @@ public class EnvironmentResourceV2 {
         ServiceOverridesMapper.toServiceOverridesEntity(accountId, serviceOverrideRequestDTO);
     orgAndProjectValidationHelper.checkThatTheOrganizationAndProjectExists(serviceOverridesEntity.getOrgIdentifier(),
         serviceOverridesEntity.getProjectIdentifier(), serviceOverridesEntity.getAccountId());
-    // todo: env, service validation
+    environmentValidationHelper.checkThatEnvExists(serviceOverridesEntity.getAccountId(),
+        serviceOverridesEntity.getOrgIdentifier(), serviceOverridesEntity.getProjectIdentifier(),
+        serviceOverridesEntity.getEnvironmentRef());
     NGServiceOverridesEntity createdServiceOverride = serviceOverrideService.upsert(serviceOverridesEntity);
     return ResponseDTO.newResponse(ServiceOverridesMapper.toResponseWrapper(createdServiceOverride));
   }
@@ -494,8 +498,7 @@ public class EnvironmentResourceV2 {
 
   private void throwExceptionForNoRequestDTO(ServiceOverrideRequestDTO dto) {
     if (dto == null) {
-      throw new InvalidRequestException(
-          "No request body sent in the API. Following fields are required: name, orgIdentifier, projectIdentifier, environmentRef, serviceRef");
+      throw new InvalidRequestException("No request body for Service overrides sent in the API");
     }
   }
 }

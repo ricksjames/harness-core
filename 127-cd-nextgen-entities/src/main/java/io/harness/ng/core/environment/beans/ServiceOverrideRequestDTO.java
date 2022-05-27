@@ -32,7 +32,7 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @JsonInclude(NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-@Schema(name = "ServiceOverrideRequest", description = "This is the Service Override entity defined in Harness")
+@Schema(name = "ServiceOverrideRequest", description = "This is the Service Override Request entity defined in Harness")
 public class ServiceOverrideRequestDTO {
   @Schema(description = NGCommonEntityConstants.ORG_PARAM_MESSAGE) String orgIdentifier;
   @Schema(description = NGCommonEntityConstants.PROJECT_PARAM_MESSAGE) String projectIdentifier;

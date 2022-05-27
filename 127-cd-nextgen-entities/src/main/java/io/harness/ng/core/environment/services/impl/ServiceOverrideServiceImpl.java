@@ -21,13 +21,17 @@ import io.harness.ng.core.environment.beans.NGServiceOverridesEntity.NGServiceOv
 import io.harness.ng.core.environment.services.ServiceOverrideService;
 import io.harness.outbox.api.OutboxService;
 import io.harness.repositories.environment.spring.ServiceOverrideRepository;
+import io.harness.yaml.core.variables.NGVariable;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import net.jodah.failsafe.Failsafe;
 import net.jodah.failsafe.RetryPolicy;
@@ -70,6 +74,7 @@ public class ServiceOverrideServiceImpl implements ServiceOverrideService {
     validatePresenceOfRequiredFields(requestServiceOverride.getAccountId(), requestServiceOverride.getOrgIdentifier(),
         requestServiceOverride.getProjectIdentifier(), requestServiceOverride.getEnvironmentRef(),
         requestServiceOverride.getServiceRef());
+    validateOverrideValues(requestServiceOverride);
     Criteria criteria = getServiceOverrideEqualityCriteria(requestServiceOverride);
     NGServiceOverridesEntity updatedResult =
         Failsafe.with(transactionRetryPolicy).get(() -> transactionTemplate.execute(status -> {
@@ -85,6 +90,20 @@ public class ServiceOverrideServiceImpl implements ServiceOverrideService {
         }));
 
     return updatedResult;
+  }
+
+  void validateOverrideValues(NGServiceOverridesEntity requestServiceOverride) {
+    Set<String> variableKeys = new HashSet<>();
+    Set<String> duplicates = new HashSet<>();
+    for (NGVariable variableOverride : requestServiceOverride.getVariableOverrides()) {
+      if (!variableKeys.add(variableOverride.getName())) {
+        duplicates.add(variableOverride.getName());
+      }
+    }
+    if (!duplicates.isEmpty()) {
+      throw new InvalidRequestException(String.format("Duplicate Service overrides provided: [%s] for service: [%s]",
+          Joiner.on(",").skipNulls().join(duplicates), requestServiceOverride.getServiceRef()));
+    }
   }
 
   @Override
