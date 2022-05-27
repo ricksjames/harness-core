@@ -268,7 +268,7 @@ public class ScmFacilitatorResource {
   @ApiOperation(value = "get file by branch", nickname = "getFileByBranch")
   @Hidden
   @Operation(operationId = "getFile", summary = "get file",
-      responses = { @io.swagger.v3.oas.annotations.responses.ApiResponse(description = "Successfully created a PR") },
+      responses = { @io.swagger.v3.oas.annotations.responses.ApiResponse(description = "Get file by branch") },
       hidden = true)
   public ResponseDTO<GetFileResponseDTO>
   getFileByBranch(@Parameter(description = ACCOUNT_PARAM_MESSAGE) @NotBlank @NotNull @QueryParam(
