@@ -498,7 +498,7 @@ roles:
         - chaos_chaoshub_view
       allowedScopeLevels:
         - account
-      managed: false
+      managed: true
     - identifier: _pipeline_executor
       name: Pipeline Executor
       description: Execute a pipeline
