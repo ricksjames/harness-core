@@ -186,6 +186,7 @@ public class ServerlessAwsLambdaDeployCommandTaskHandlerTest extends CategoryTes
             .region(region)
             .stage(stage)
             .previousVersionTimeStamp(previousVersionTimeStamp)
+                .isFirstDeployment(true)
             .functions(serverlessAwsLambdaFunctionsList)
             .build();
 

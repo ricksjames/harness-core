@@ -16,6 +16,7 @@ import static java.lang.String.format;
 
 import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
+import io.harness.data.structure.EmptyPredicate;
 import io.harness.delegate.beans.logstreaming.CommandUnitsProgress;
 import io.harness.delegate.beans.logstreaming.ILogStreamingTaskClient;
 import io.harness.delegate.beans.serverless.ServerlessAwsLambdaManifestSchema;
@@ -190,7 +191,7 @@ public class ServerlessAwsLambdaRollbackCommandTaskHandler extends ServerlessCom
       if (!serverlessAwsCommandTaskHelper.cloudFormationTemplateExists(
               executionLogCallback, serverlessRollbackRequest, serverlessRollbackRequest.getManifestContent())) {
         executionLogCallback.saveExecutionLog(
-            format("Nothing to Rollback or Remove..%n"), LogLevel.INFO, CommandExecutionStatus.SUCCESS);
+            format("Nothing to Remove..%n"), LogLevel.INFO, CommandExecutionStatus.SUCCESS);
         serverlessRollbackResponseBuilder.commandExecutionStatus(CommandExecutionStatus.SUCCESS);
         serverlessRollbackResponseBuilder.serverlessRollbackResult(serverlessAwsLambdaRollbackResultBuilder.build());
         return serverlessRollbackResponseBuilder.build();
@@ -200,9 +201,17 @@ public class ServerlessAwsLambdaRollbackCommandTaskHandler extends ServerlessCom
         addTimestampToResponse = false;
       }
     } else {
-      response = serverlessAwsCommandTaskHelper.rollback(serverlessClient, serverlessDelegateTaskParams,
-          executionLogCallback, serverlessAwsLambdaRollbackConfig, timeoutInMillis, serverlessManifestConfig,
-          serverlessAwsLambdaInfraConfig);
+      if (EmptyPredicate.isEmpty(serverlessAwsLambdaRollbackConfig.getPreviousVersionTimeStamp())) {
+        executionLogCallback.saveExecutionLog(
+            format("Nothing to Rollback..%n"), LogLevel.INFO, CommandExecutionStatus.SUCCESS);
+        serverlessRollbackResponseBuilder.commandExecutionStatus(CommandExecutionStatus.SUCCESS);
+        serverlessRollbackResponseBuilder.serverlessRollbackResult(serverlessAwsLambdaRollbackResultBuilder.build());
+        return serverlessRollbackResponseBuilder.build();
+      } else {
+        response = serverlessAwsCommandTaskHelper.rollback(serverlessClient, serverlessDelegateTaskParams,
+            executionLogCallback, serverlessAwsLambdaRollbackConfig, timeoutInMillis, serverlessManifestConfig,
+            serverlessAwsLambdaInfraConfig);
+      }
     }
 
     if (response.getCommandExecutionStatus() == CommandExecutionStatus.SUCCESS) {

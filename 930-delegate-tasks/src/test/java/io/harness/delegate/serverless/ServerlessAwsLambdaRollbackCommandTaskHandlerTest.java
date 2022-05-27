@@ -79,7 +79,8 @@ public class ServerlessAwsLambdaRollbackCommandTaskHandlerTest extends CategoryT
   private ServerlessInfraConfig serverlessInfraConfig =
       ServerlessAwsLambdaInfraConfig.builder().region(region).stage(stage).build();
   private ServerlessManifestConfig serverlessManifestConfig = ServerlessAwsLambdaManifestConfig.builder().build();
-  private ServerlessRollbackConfig serverlessRollbackConfig = ServerlessAwsLambdaRollbackConfig.builder().build();
+  private ServerlessRollbackConfig serverlessRollbackConfig =
+      ServerlessAwsLambdaRollbackConfig.builder().isFirstDeployment(false).build();
   private ServerlessCommandRequest serverlessCommandRequest = ServerlessRollbackRequest.builder()
                                                                   .timeoutIntervalInMin(timeout)
                                                                   .serverlessInfraConfig(serverlessInfraConfig)
