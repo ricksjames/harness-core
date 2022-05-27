@@ -11,6 +11,7 @@ import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.gitsync.common.dtos.GitBranchesResponseDTO;
 import io.harness.gitsync.common.dtos.GitRepositoryResponseDTO;
+import io.harness.gitsync.common.dtos.UserRepoResponse;
 import io.harness.ng.beans.PageRequest;
 
 import java.util.List;
@@ -22,6 +23,9 @@ public interface ScmFacilitatorService {
 
   List<GitRepositoryResponseDTO> listReposByRefConnector(String accountIdentifier, String orgIdentifier,
       String projectIdentifier, String connectorRef, PageRequest pageRequest, String searchTerm);
+
+  List<UserRepoResponse> listAllReposByRefConnector(String accountIdentifier, String orgIdentifier,
+                                                    String projectIdentifier, String connectorRef);
 
   GitBranchesResponseDTO listBranchesV2(String accountIdentifier, String orgIdentifier, String projectIdentifier,
       String connectorRef, String repoName, PageRequest pageRequest, String searchTerm);
