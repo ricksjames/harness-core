@@ -44,6 +44,7 @@ import io.grpc.stub.StreamObserver;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
@@ -117,6 +118,8 @@ public class EventPublisherServerImpl extends EventPublisherGrpc.EventPublisherI
           eventDataBulkWriteService.saveBatch(withoutCategory);
           //          eventDataBulkWriteService.saveIgnoringDuplicateKeys(withoutCategory);
           long endTime = System.currentTimeMillis();
+          List<String> uuids = withoutCategory.stream().map(PublishedMessage::getUuid).collect(Collectors.toList());
+          log.info("saveBatch, uuids: {}", uuids);
           log.info("saveBatch, startTime: {}", startTime);
           log.info("saveBatch, endTime: {}", endTime);
           log.info("saveBatch, Total time: {}", endTime - startTime);
