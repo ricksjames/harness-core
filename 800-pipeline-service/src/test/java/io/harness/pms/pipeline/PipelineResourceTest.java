@@ -20,6 +20,7 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 
 import io.harness.CategoryTest;
+import io.harness.accesscontrol.clients.AccessControlClient;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.category.element.UnitTests;
 import io.harness.dto.OrchestrationAdjacencyListDTO;
@@ -38,6 +39,7 @@ import io.harness.ng.core.dto.ResponseDTO;
 import io.harness.ng.core.template.TemplateMergeResponseDTO;
 import io.harness.pms.contracts.governance.GovernanceMetadata;
 import io.harness.pms.governance.PipelineSaveResponse;
+import io.harness.pms.helpers.PipelineCloneHelper;
 import io.harness.pms.pipeline.PipelineEntity.PipelineEntityKeys;
 import io.harness.pms.pipeline.mappers.NodeExecutionToExecutioNodeMapper;
 import io.harness.pms.pipeline.service.PMSPipelineService;
@@ -76,6 +78,8 @@ public class PipelineResourceTest extends CategoryTest {
   @Mock NodeExecutionToExecutioNodeMapper nodeExecutionToExecutioNodeMapper;
   @Mock PMSPipelineTemplateHelper pipelineTemplateHelper;
   @Mock VariableCreatorMergeService variableCreatorMergeService;
+  @Mock AccessControlClient accessControlClient;
+  @Mock PipelineCloneHelper pipelineCloneHelper;
 
   private final String ACCOUNT_ID = "account_id";
   private final String ORG_IDENTIFIER = "orgId";
@@ -93,7 +97,8 @@ public class PipelineResourceTest extends CategoryTest {
   public void setUp() throws IOException {
     MockitoAnnotations.initMocks(this);
     pipelineResource = new PipelineResource(pmsPipelineService, pmsPipelineServiceHelper, nodeExecutionService,
-        nodeExecutionToExecutioNodeMapper, pipelineTemplateHelper, null, variableCreatorMergeService);
+        nodeExecutionToExecutioNodeMapper, pipelineTemplateHelper, null, variableCreatorMergeService,
+        pipelineCloneHelper);
     ClassLoader classLoader = this.getClass().getClassLoader();
     String filename = "failure-strategy.yaml";
     yaml = Resources.toString(Objects.requireNonNull(classLoader.getResource(filename)), StandardCharsets.UTF_8);
