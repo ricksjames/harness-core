@@ -262,7 +262,7 @@ public class PMSPipelineServiceImpl implements PMSPipelineService {
     }
     Optional<PipelineEntity> optionalOriginalEntity =
         pmsPipelineRepository.findForOldGitSync(pipelineEntity.getAccountId(), pipelineEntity.getOrgIdentifier(),
-            pipelineEntity.getProjectIdentifier(), pipelineEntity.getIdentifier(), true, false);
+            pipelineEntity.getProjectIdentifier(), pipelineEntity.getIdentifier(), true);
     if (!optionalOriginalEntity.isPresent()) {
       throw new InvalidRequestException(PipelineCRUDErrorResponse.errorMessageForPipelineNotFound(
           pipelineEntity.getOrgIdentifier(), pipelineEntity.getProjectIdentifier(), pipelineEntity.getIdentifier()));
