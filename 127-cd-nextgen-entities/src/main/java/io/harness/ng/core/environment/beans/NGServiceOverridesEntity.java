@@ -41,7 +41,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @Entity(value = "serviceOverridesNG", noClassnameStored = true)
 @FieldNameConstants(innerTypeName = "NGServiceOverridesEntityKeys")
 @Document("serviceOverridesNG")
-@TypeAlias("nGServiceOverridesEntity")
+@TypeAlias("io.harness.ng.core.environment.beans.NGServiceOverridesEntity")
 @RecasterAlias("io.harness.ng.core.environment.beans.NGServiceOverridesEntity")
 @StoreIn(DbAliases.NG_MANAGER)
 @OwnedBy(CDC)

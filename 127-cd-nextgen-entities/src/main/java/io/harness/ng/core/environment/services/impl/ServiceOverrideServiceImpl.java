@@ -76,20 +76,18 @@ public class ServiceOverrideServiceImpl implements ServiceOverrideService {
         requestServiceOverride.getServiceRef());
     validateOverrideValues(requestServiceOverride);
     Criteria criteria = getServiceOverrideEqualityCriteria(requestServiceOverride);
-    NGServiceOverridesEntity updatedResult =
-        Failsafe.with(transactionRetryPolicy).get(() -> transactionTemplate.execute(status -> {
-          NGServiceOverridesEntity tempResult = serviceOverrideRepository.upsert(criteria, requestServiceOverride);
-          if (tempResult == null) {
-            throw new InvalidRequestException(String.format(
-                "NGServiceOverridesEntity under Project[%s], Organization [%s], Environment [%s] and Service [%s] couldn't be upserted or doesn't exist.",
-                requestServiceOverride.getProjectIdentifier(), requestServiceOverride.getOrgIdentifier(),
-                requestServiceOverride.getEnvironmentRef(), requestServiceOverride.getServiceRef()));
-          }
-          // todo: events for outbox service
-          return tempResult;
-        }));
 
-    return updatedResult;
+    return Failsafe.with(transactionRetryPolicy).get(() -> transactionTemplate.execute(status -> {
+      NGServiceOverridesEntity tempResult = serviceOverrideRepository.upsert(criteria, requestServiceOverride);
+      if (tempResult == null) {
+        throw new InvalidRequestException(String.format(
+            "NGServiceOverridesEntity under Project[%s], Organization [%s], Environment [%s] and Service [%s] couldn't be upserted or doesn't exist.",
+            requestServiceOverride.getProjectIdentifier(), requestServiceOverride.getOrgIdentifier(),
+            requestServiceOverride.getEnvironmentRef(), requestServiceOverride.getServiceRef()));
+      }
+      // todo: events for outbox service
+      return tempResult;
+    }));
   }
 
   void validateOverrideValues(NGServiceOverridesEntity requestServiceOverride) {
