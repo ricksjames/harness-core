@@ -41,7 +41,8 @@ public class PMSPipelineFilterHelper {
         .withFilters(fieldsToUpdate.getFilters())
         .withStageCount(fieldsToUpdate.getStageCount())
         .withStageNames(fieldsToUpdate.getStageNames())
-        .withAllowStageExecutions(fieldsToUpdate.getAllowStageExecutions());
+        .withAllowStageExecutions(fieldsToUpdate.getAllowStageExecutions())
+        .withVersion(entityFromDB.getVersion() + 1);
   }
 
   public Update getUpdateOperationsForOnboardingToInline() {
