@@ -44,6 +44,7 @@ public class ResourceGroupSerializer {
           .add(DelegateTasksKryoRegistrar.class)
           .addAll(CvNextGenBeansRegistrars.kryoRegistrars)
           .add(DelegateServiceBeansKryoRegistrar.class)
+          .addAll(ProjectAndOrgRegistrars.kryoRegistrars)
           .build();
 
   public final ImmutableSet<Class<? extends MorphiaRegistrar>> morphiaRegistrars =
@@ -55,5 +56,6 @@ public class ResourceGroupSerializer {
           .addAll(DelegateTaskRegistrars.morphiaRegistrars)
           .addAll(GitSyncSdkRegistrar.morphiaRegistrars)
           .add(ResourceGroupMorphiaRegistrar.class)
+          .addAll(ProjectAndOrgRegistrars.morphiaRegistrars)
           .build();
 }

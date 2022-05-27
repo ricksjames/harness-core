@@ -39,6 +39,7 @@ public class NotificationRegistrars {
           .add(NGCoreKryoRegistrar.class)
           .add(DelegateTasksKryoRegistrar.class)
           .add(DelegateServiceBeansKryoRegistrar.class)
+          .addAll(ProjectAndOrgRegistrars.kryoRegistrars)
           .build();
 
   public static final ImmutableSet<Class<? extends MorphiaRegistrar>> morphiaRegistrars =
@@ -49,6 +50,7 @@ public class NotificationRegistrars {
           .addAll(NGCoreClientRegistrars.morphiaRegistrars)
           .addAll(SMCoreRegistrars.morphiaRegistrars)
           .addAll(io.harness.serializer.DelegateTaskRegistrars.morphiaRegistrars)
+          .addAll(ProjectAndOrgRegistrars.morphiaRegistrars)
           .build();
 
   public static final ImmutableSet<Class<? extends TypeConverter>> morphiaConverters =
