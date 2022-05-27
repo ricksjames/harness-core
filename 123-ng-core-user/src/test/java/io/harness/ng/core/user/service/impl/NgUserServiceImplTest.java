@@ -108,6 +108,7 @@ public class NgUserServiceImplTest extends CategoryTest {
   private static final String ACCOUNT_VIEWER = "_account_viewer";
   private static final String ORGANIZATION_VIEWER = "_organization_viewer";
   private static final String PROJECT_VIEWER = "_project_viewer";
+  private static final String ACCOUNT_BASIC = "_account_basic";
 
   @Before
   public void setup() throws NoSuchFieldException {
@@ -350,13 +351,13 @@ public class NgUserServiceImplTest extends CategoryTest {
         .thenReturn(Optional.of(UserMetadata.builder().userId(userId).build()));
     doNothing()
         .when(ngUserService)
-        .addUserToScopeInternal(userId, UserMembershipUpdateSource.USER, scope, getDefaultRoleIdentifier(scope));
+        .addUserToScopeInternal(userId, UserMembershipUpdateSource.USER, scope, getDefaultManagedRoleIdentifier(scope), true);
 
     parentScopes.forEach(parentScope
         -> doNothing()
                .when(ngUserService)
                .addUserToScopeInternal(
-                   userId, UserMembershipUpdateSource.USER, parentScope, getDefaultRoleIdentifier(parentScope)));
+                   userId, UserMembershipUpdateSource.USER, parentScope, getDefaultManagedRoleIdentifier(parentScope), true));
     doNothing()
         .when(ngUserService)
         .createRoleAssignments(userId, scope, createRoleAssignmentDTOs(roleBindings, userId, scope));
@@ -379,13 +380,13 @@ public class NgUserServiceImplTest extends CategoryTest {
     doNothing().when(userGroupService).addUserToUserGroups(scope, userId, userGroups);
   }
 
-  private String getDefaultRoleIdentifier(Scope scope) {
+  private String getDefaultManagedRoleIdentifier(Scope scope) {
     if (isNotEmpty(scope.getProjectIdentifier())) {
       return PROJECT_VIEWER;
     } else if (isNotEmpty(scope.getOrgIdentifier())) {
       return ORGANIZATION_VIEWER;
     }
-    return ACCOUNT_VIEWER;
+    return ACCOUNT_BASIC;
   }
 
   private int getRank(Scope scope) {
@@ -406,7 +407,7 @@ public class NgUserServiceImplTest extends CategoryTest {
 
   private void assertAddUserToScope(Scope scope, List<String> userIds, List<String> userGroups) {
     verify(userMetadataRepository, times(userIds.size())).findDistinctByUserId(any());
-    verify(ngUserService, times(userIds.size() * getRank(scope))).addUserToScopeInternal(any(), any(), any(), any());
+    verify(ngUserService, times(userIds.size() * getRank(scope))).addUserToScopeInternal(any(), any(), any(), any(), any());
     verify(ngUserService, times(userIds.size())).createRoleAssignments(any(), any(), any());
     verify(userGroupService, times(isEmpty(userGroups) ? 0 : userIds.size())).list(any(UserGroupFilterDTO.class));
     verify(userGroupService, times(userIds.size())).addUserToUserGroups(any(Scope.class), any(), any());

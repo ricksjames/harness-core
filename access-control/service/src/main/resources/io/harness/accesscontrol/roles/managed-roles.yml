@@ -571,3 +571,12 @@ roles:
         - account
         - organization
         - project
+    - identifier: _account_basic
+      name: Account Basic
+      description: Account Basicd
+      permissions:
+        - core_account_view
+        - core_license_view
+      allowedScopeLevels:
+        - account
+      managed: true

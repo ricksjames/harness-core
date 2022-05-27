@@ -138,6 +138,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 public class NgUserServiceImpl implements NgUserService {
   private static final String ACCOUNT_ADMIN = "_account_admin";
   private static final String ACCOUNT_VIEWER = "_account_viewer";
+  private static final String ACCOUNT_BASIC = "_account_basic";
   private static final String ORGANIZATION_VIEWER = "_organization_viewer";
   private static final String ORG_ADMIN = "_organization_admin";
   private static final String PROJECT_ADMIN = "_project_admin";
@@ -539,10 +540,18 @@ public class NgUserServiceImpl implements NgUserService {
   public void addUserToScope(String userId, Scope scope, List<RoleBinding> roleBindings, List<String> userGroups,
       UserMembershipUpdateSource source) {
     ensureUserMetadata(userId);
-    addUserToScopeInternal(userId, source, scope, getDefaultRoleIdentifier(scope));
+    addUserToScopeInternal(userId, source, scope, getDefaultManagedRoleIdentifier(scope), true);
     addUserToParentScope(userId, scope, source);
+    //assign Account admin assigned Default Role
+    addUserToNonManagedDefaultRole(userId, source, scope);
     createRoleAssignments(userId, scope, createRoleAssignmentDTOs(roleBindings, userId, scope));
     userGroupService.addUserToUserGroups(scope, userId, getValidUserGroups(scope, userGroups));
+  }
+
+  private void addUserToNonManagedDefaultRole(String userId, UserMembershipUpdateSource source, Scope scope) {
+      if (isBlank(scope.getOrgIdentifier()) && isBlank(scope.getProjectIdentifier())) {
+        addUserToScopeInternal(userId, source, scope,  ACCOUNT_VIEWER, false);
+      }
   }
 
   private List<String> getValidUserGroups(Scope scope, List<String> userGroupIdentifiers) {
@@ -600,13 +609,13 @@ public class NgUserServiceImpl implements NgUserService {
             resourceGroupIdentifier -> resourceGroupIdentifier.equals(roleAssignmentDTO.getResourceGroupIdentifier()));
   }
 
-  private String getDefaultRoleIdentifier(Scope scope) {
+  private String getDefaultManagedRoleIdentifier(Scope scope) {
     if (!isBlank(scope.getProjectIdentifier())) {
       return PROJECT_VIEWER;
     } else if (!isBlank(scope.getOrgIdentifier())) {
       return ORGANIZATION_VIEWER;
     }
-    return ACCOUNT_VIEWER;
+    return ACCOUNT_BASIC;
   }
 
   private void ensureUserMetadata(String userId) {
@@ -642,18 +651,18 @@ public class NgUserServiceImpl implements NgUserService {
                            .accountIdentifier(scope.getAccountIdentifier())
                            .orgIdentifier(scope.getOrgIdentifier())
                            .build();
-      addUserToScopeInternal(userId, source, orgScope, ORGANIZATION_VIEWER);
+      addUserToScopeInternal(userId, source, orgScope, ORGANIZATION_VIEWER, true);
     }
 
     if (!isBlank(scope.getOrgIdentifier())) {
       Scope accountScope = Scope.builder().accountIdentifier(scope.getAccountIdentifier()).build();
-      addUserToScopeInternal(userId, source, accountScope, ACCOUNT_VIEWER);
+      addUserToScopeInternal(userId, source, accountScope, ACCOUNT_VIEWER, false);
     }
   }
 
   @VisibleForTesting
   protected void addUserToScopeInternal(
-      String userId, UserMembershipUpdateSource source, Scope scope, String roleIdentifier) {
+      String userId, UserMembershipUpdateSource source, Scope scope, String roleIdentifier, boolean isManaged) {
     Optional<UserMetadata> userMetadata = userMetadataRepository.findDistinctByUserId(userId);
     String publicIdentifier = userMetadata.map(UserMetadata::getEmail).orElse(userId);
 
@@ -680,7 +689,7 @@ public class NgUserServiceImpl implements NgUserService {
                                                 .roleIdentifier(roleIdentifier)
                                                 .build();
       NGRestUtils.getResponse(accessControlAdminClient.createMultiRoleAssignment(scope.getAccountIdentifier(),
-          scope.getOrgIdentifier(), scope.getProjectIdentifier(), true,
+          scope.getOrgIdentifier(), scope.getProjectIdentifier(), isManaged,
           RoleAssignmentCreateRequestDTO.builder().roleAssignments(singletonList(roleAssignmentDTO)).build()));
     } catch (Exception e) {
       /**
