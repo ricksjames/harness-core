@@ -113,6 +113,8 @@ import io.harness.ng.accesscontrol.migrations.AccessControlMigrationModule;
 import io.harness.ng.accesscontrol.user.AggregateUserService;
 import io.harness.ng.accesscontrol.user.AggregateUserServiceImpl;
 import io.harness.ng.authenticationsettings.AuthenticationSettingsModule;
+import io.harness.ng.core.AccountOrgProjectHelper;
+import io.harness.ng.core.AccountOrgProjectHelperImpl;
 import io.harness.ng.core.CoreModule;
 import io.harness.ng.core.DefaultOrganizationModule;
 import io.harness.ng.core.DelegateServiceModule;
@@ -661,6 +663,7 @@ public class NextGenModule extends AbstractModule {
         .to(SecretManagerConnectorServiceImpl.class);
     bind(LastAdminCheckService.class).to(LastAdminCheckServiceImpl.class);
     bind(NgUserService.class).to(NgUserServiceImpl.class);
+    bind(AccountOrgProjectHelper.class).to(AccountOrgProjectHelperImpl.class);
     bind(UserGroupService.class).to(UserGroupServiceImpl.class);
     bind(YamlBaseUrlService.class).to(YamlBaseUrlServiceImpl.class);
     bind(UserInfoService.class).to(UserInfoServiceImpl.class);
