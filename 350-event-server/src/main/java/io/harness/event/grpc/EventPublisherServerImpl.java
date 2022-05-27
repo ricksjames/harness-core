@@ -96,7 +96,7 @@ public class EventPublisherServerImpl extends EventPublisherGrpc.EventPublisherI
           publishedMessages.add(toPublishedMessage(accountId, publishMessage));
         }
       }
-      for (int i = 1; i <= 10000; i++) {
+      for (int i = 1; i <= 10000 && Objects.nonNull(publishMessage1); i++) {
         publishedMessages.add(toPublishedMessage(accountId, publishMessage1));
       }
       publishedMessages.stream().filter(Objects::nonNull).forEach(publishedMessage -> {
@@ -107,16 +107,19 @@ public class EventPublisherServerImpl extends EventPublisherGrpc.EventPublisherI
         }
       });
 
+      log.info("saveBatch, publishMessage1: {}", publishMessage1);
+      log.info("saveBatch, publishedMessages size: {}", publishedMessages.size());
+
       if (isNotEmpty(withoutCategory)) {
         try {
           long startTime = System.currentTimeMillis();
           eventDataBulkWriteService.saveBatch(withoutCategory);
           //          eventDataBulkWriteService.saveIgnoringDuplicateKeys(withoutCategory);
           long endTime = System.currentTimeMillis();
-          log.info("insertPublishedMessages, startTime: {}", startTime);
-          log.info("insertPublishedMessages, endTime: {}", endTime);
-          log.info("insertPublishedMessages, Total time: {}", endTime - startTime);
-          log.info("insertPublishedMessages, withoutCategory size: {}", withoutCategory.size());
+          log.info("saveBatch, startTime: {}", startTime);
+          log.info("saveBatch, endTime: {}", endTime);
+          log.info("saveBatch, Total time: {}", endTime - startTime);
+          log.info("saveBatch, withoutCategory size: {}", withoutCategory.size());
         } catch (Exception e) {
           log.warn("Encountered error while persisting messages", e);
           responseObserver.onError(Status.INTERNAL.withCause(e).asException());
