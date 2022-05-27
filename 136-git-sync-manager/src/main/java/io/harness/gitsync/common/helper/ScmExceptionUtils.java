@@ -58,6 +58,6 @@ public class ScmExceptionUtils {
     if (isNotEmpty(responseMessageList)) {
       return responseMessageList.get(responseMessageList.size() - 1).getMessage();
     }
-    return "";
+    return "Unexpected error occurred while performing scm operation.";
   }
 }
