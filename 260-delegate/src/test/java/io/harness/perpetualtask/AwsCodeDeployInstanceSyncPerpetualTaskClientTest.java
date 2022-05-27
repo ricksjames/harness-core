@@ -29,7 +29,6 @@ import static software.wings.service.impl.instance.InstanceSyncTestConstants.US_
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Matchers.anyObject;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.eq;
@@ -118,7 +117,7 @@ public class AwsCodeDeployInstanceSyncPerpetualTaskClientTest extends CategoryTe
         Environment.Builder.anEnvironment().accountId(ACCOUNT_ID).uuid(ENV_ID).appId(APP_ID).name(ENV_NAME).build())
         .when(environmentService)
         .get(any(), any());
-    when(kryoSerializer.asBytes(anyObject()))
+    when(kryoSerializer.asBytes(any()))
         .thenAnswer(invocationOnMock -> String.valueOf(invocationOnMock.hashCode()).getBytes());
   }
 

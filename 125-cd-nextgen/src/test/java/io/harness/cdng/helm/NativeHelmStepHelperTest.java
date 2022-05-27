@@ -25,7 +25,7 @@ import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.Matchers.anyBoolean;
-import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
@@ -172,13 +172,13 @@ public class NativeHelmStepHelperTest extends CategoryTest {
 
   @Before
   public void setup() {
-    doReturn(mockLogCallback).when(nativeHelmStepHelper).getLogCallback(anyString(), eq(ambiance), anyBoolean());
+    doReturn(mockLogCallback).when(nativeHelmStepHelper).getLogCallback(any(), eq(ambiance), anyBoolean());
     doReturn(true)
         .when(cdFeatureFlagHelper)
         .isEnabled(AmbianceUtils.getAccountId(ambiance), FeatureName.USE_LATEST_CHARTMUSEUM_VERSION);
     doAnswer(invocation -> invocation.getArgument(1, String.class))
         .when(engineExpressionService)
-        .renderExpression(eq(ambiance), anyString());
+        .renderExpression(eq(ambiance), any());
   }
 
   @Test
@@ -224,7 +224,7 @@ public class NativeHelmStepHelperTest extends CategoryTest {
                         .connector(ConnectorInfoDTO.builder().connectorConfig(GitConfigDTO.builder().build()).build())
                         .build()))
         .when(connectorService)
-        .get(anyString(), anyString(), anyString(), anyString());
+        .get(any(), any(), any(), any());
 
     ManifestDelegateConfig delegateConfig = nativeHelmStepHelper.getManifestDelegateConfig(manifestOutcome, ambiance);
     assertThat(delegateConfig.getManifestType()).isEqualTo(ManifestType.HELM_CHART);
@@ -262,7 +262,7 @@ public class NativeHelmStepHelperTest extends CategoryTest {
                                             .build())
                              .build()))
         .when(connectorService)
-        .get(anyString(), anyString(), anyString(), anyString());
+        .get(any(), any(), any(), any());
 
     ManifestDelegateConfig delegateConfig = nativeHelmStepHelper.getManifestDelegateConfig(manifestOutcome, ambiance);
     assertThat(delegateConfig.getManifestType()).isEqualTo(ManifestType.HELM_CHART);
@@ -305,7 +305,7 @@ public class NativeHelmStepHelperTest extends CategoryTest {
                 .connector(ConnectorInfoDTO.builder().connectorType(AWS).connectorConfig(awsConnectorConfig).build())
                 .build()))
         .when(connectorService)
-        .get(anyString(), anyString(), anyString(), anyString());
+        .get(any(), any(), any(), any());
 
     ManifestDelegateConfig delegateConfig = nativeHelmStepHelper.getManifestDelegateConfig(manifestOutcome, ambiance);
     assertThat(delegateConfig.getManifestType()).isEqualTo(ManifestType.HELM_CHART);
@@ -352,7 +352,7 @@ public class NativeHelmStepHelperTest extends CategoryTest {
                      .connector(ConnectorInfoDTO.builder().connectorType(GCP).connectorConfig(gcpConnectorDTO).build())
                      .build()))
         .when(connectorService)
-        .get(anyString(), anyString(), anyString(), anyString());
+        .get(any(), any(), any(), any());
 
     ManifestDelegateConfig delegateConfig =
         nativeHelmStepHelper.getManifestDelegateConfig(helmChartManifestOutcome, ambiance);
@@ -410,7 +410,7 @@ public class NativeHelmStepHelperTest extends CategoryTest {
                                        .build())
                         .build()))
         .when(connectorService)
-        .get(anyString(), anyString(), anyString(), anyString());
+        .get(any(), any(), any(), any());
 
     TaskChainResponse taskChainResponse =
         nativeHelmStepHelper.startChainLink(nativeHelmStepExecutor, ambiance, stepElementParameters);
@@ -492,7 +492,7 @@ public class NativeHelmStepHelperTest extends CategoryTest {
                                     .build())
                      .build()))
         .when(connectorService)
-        .get(anyString(), anyString(), anyString(), anyString());
+        .get(any(), any(), any(), any());
 
     TaskChainResponse taskChainResponse =
         nativeHelmStepHelper.startChainLink(nativeHelmStepExecutor, ambiance, stepElementParameters);
@@ -569,7 +569,7 @@ public class NativeHelmStepHelperTest extends CategoryTest {
                                     .build())
                      .build()))
         .when(connectorService)
-        .get(anyString(), anyString(), anyString(), anyString());
+        .get(any(), any(), any(), any());
 
     TaskChainResponse taskChainResponse =
         nativeHelmStepHelper.startChainLink(nativeHelmStepExecutor, ambiance, stepElementParameters);
@@ -642,7 +642,7 @@ public class NativeHelmStepHelperTest extends CategoryTest {
                         .build())
                 .build()))
         .when(connectorService)
-        .get(anyString(), anyString(), anyString(), anyString());
+        .get(any(), any(), any(), any());
 
     TaskChainResponse taskChainResponse =
         nativeHelmStepHelper.startChainLink(nativeHelmStepExecutor, ambiance, stepElementParameters);

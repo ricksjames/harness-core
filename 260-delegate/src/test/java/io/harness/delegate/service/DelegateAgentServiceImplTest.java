@@ -18,7 +18,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.powermock.api.mockito.PowerMockito.doReturn;
 import static org.powermock.api.mockito.PowerMockito.mockStatic;
 
 import io.harness.CategoryTest;
@@ -147,7 +146,7 @@ public class DelegateAgentServiceImplTest extends CategoryTest {
   @Category(UnitTests.class)
   public void whenClientToolsEnabledAndInstalledThenTrue() throws Exception {
     mockStatic(InstallUtils.class, CALLS_REAL_METHODS);
-    doReturn(true).when(InstallUtils.class, "areClientToolsInstalled");
+    when(InstallUtils.areClientToolsInstalled()).thenAnswer(invocationOnMock -> true);
 
     final DelegateConfiguration delegateConfig = mock(DelegateConfiguration.class);
     final DelegateAgentServiceImpl underTest = mock(DelegateAgentServiceImpl.class);

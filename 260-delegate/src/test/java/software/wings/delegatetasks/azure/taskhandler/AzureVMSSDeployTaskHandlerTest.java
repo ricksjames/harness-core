@@ -14,7 +14,6 @@ import static io.harness.rule.OwnerRule.ANIL;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
-import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
@@ -110,7 +109,7 @@ public class AzureVMSSDeployTaskHandlerTest extends WingsBaseTest {
 
     doReturn(Collections.emptyList())
         .when(deployTaskHandler)
-        .getExistingInstanceIds(any(AzureConfig.class), anyString(), eq(deployTaskParameters));
+        .getExistingInstanceIds(any(AzureConfig.class), any(), eq(deployTaskParameters));
   }
 
   private void mockOldVirtualMachineScaleSetCapacity(VirtualMachineScaleSet oldVirtualMachineScaleSet) {
