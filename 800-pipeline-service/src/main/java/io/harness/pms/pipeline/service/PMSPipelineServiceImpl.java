@@ -178,6 +178,8 @@ public class PMSPipelineServiceImpl implements PMSPipelineService {
       throw new InvalidRequestException(
           PipelineCRUDErrorResponse.errorMessageForPipelineNotFound(orgId, projectId, pipelineId));
     }
+    // Non Git synced Pipelines are being marked as INLINE. Marking storeType as null here so that pipelines in old git
+    // sync don't have any value for storeType.
     return makePipelineUpdateCall(
         optionalPipelineEntity.get().withStoreType(null), optionalPipelineEntity.get(), ChangeType.ADD);
   }
