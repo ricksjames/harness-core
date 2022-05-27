@@ -18,7 +18,6 @@ import static java.util.stream.Collectors.toList;
 
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.beans.FileContentBatchResponse;
-import io.harness.beans.gitsync.GitFileDetails;
 import io.harness.beans.gitsync.GitPRCreateRequest;
 import io.harness.connector.service.scm.ScmDelegateClient;
 import io.harness.delegate.beans.connector.scm.ScmConnector;
@@ -39,7 +38,6 @@ import io.harness.logging.LogCallback;
 import io.harness.product.ci.scm.proto.CreatePRResponse;
 import io.harness.product.ci.scm.proto.FileContent;
 import io.harness.product.ci.scm.proto.SCMGrpc;
-import io.harness.product.ci.scm.proto.UpdateFileResponse;
 import io.harness.service.ScmServiceClient;
 
 import com.google.inject.Inject;
@@ -211,17 +209,6 @@ public class ScmFetchFilesHelperNG {
   }
 
   // GitOps methods
-  public UpdateFileResponse commitAndPush(
-      boolean isNewBranch, GitFileDetails gitFileDetails, String baseBranch, ScmConnector scmConnector) {
-    return scmDelegateClient.processScmRequest(c -> {
-      final SCMGrpc.SCMBlockingStub scmBlockingStub = SCMGrpc.newBlockingStub(c);
-      if (isNewBranch) {
-        scmServiceClient.createNewBranch(scmConnector, gitFileDetails.getBranch(), baseBranch, scmBlockingStub);
-      }
-      return scmServiceClient.updateFile(scmConnector, gitFileDetails, scmBlockingStub);
-    });
-  }
-
   public CreatePRResponse createPR(ScmConnector scmConnector, GitPRCreateRequest gitPRCreateRequest) {
     CreatePRResponse createPRResponse = scmDelegateClient.processScmRequest(
         c -> scmServiceClient.createPullRequest(scmConnector, gitPRCreateRequest, SCMGrpc.newBlockingStub(c)));

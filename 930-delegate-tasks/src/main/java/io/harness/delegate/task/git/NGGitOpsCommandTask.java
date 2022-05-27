@@ -17,6 +17,7 @@ import io.harness.data.structure.EmptyPredicate;
 import io.harness.delegate.beans.DelegateResponseData;
 import io.harness.delegate.beans.DelegateTaskPackage;
 import io.harness.delegate.beans.DelegateTaskResponse;
+import io.harness.delegate.beans.connector.ConnectorType;
 import io.harness.delegate.beans.connector.scm.ScmConnector;
 import io.harness.delegate.beans.connector.scm.adapter.ScmConnectorMapper;
 import io.harness.delegate.beans.connector.scm.genericgitconnector.GitConfigDTO;
@@ -89,22 +90,23 @@ public class NGGitOpsCommandTask extends AbstractDelegateRunnableTask {
 
   @Override
   public DelegateResponseData run(TaskParameters parameters) throws IOException, JoseException {
-    /*
-        TODO:
-        II. Merge PR
-        DONE (?):
-        I. Create PR
-            1. Fetch Files from Git
-            2. Modify/Update them
-            3. Commit and Push
-            4. Create a PR
-     */
+    NGGitOpsTaskParams gitOpsTaskParams = (NGGitOpsTaskParams) parameters;
 
+    switch (gitOpsTaskParams.getGitOpsTaskType()) {
+      case MERGE_PR: // TODO
+      case CREATE_PR:
+        return handleCreatePR(gitOpsTaskParams);
+      default:
+        return NGGitOpsResponse.builder()
+            .taskStatus(TaskStatus.FAILURE)
+            .errorMessage("Failed GitOps task: " + gitOpsTaskParams.getGitOpsTaskType())
+            .build();
+    }
+  }
+
+  public DelegateResponseData handleCreatePR(NGGitOpsTaskParams gitOpsTaskParams) {
     CommandUnitsProgress commandUnitsProgress = CommandUnitsProgress.builder().build();
-
     try {
-      NGGitOpsTaskParams gitOpsTaskParams = (NGGitOpsTaskParams) parameters;
-
       log.info("Running Create PR Task for activityId {}", gitOpsTaskParams.getActivityId());
 
       LogCallback logCallback =
@@ -138,15 +140,29 @@ public class NGGitOpsCommandTask extends AbstractDelegateRunnableTask {
 
       return NGGitOpsResponse.builder()
           .prNumber(createPRResponse.getNumber())
+          .prLink(getPRLink(createPRResponse.getNumber(), scmConnector.getConnectorType(), scmConnector.getUrl()))
           .taskStatus(TaskStatus.SUCCESS)
           .unitProgressData(UnitProgressDataMapper.toUnitProgressData(commandUnitsProgress))
           .build();
 
     } catch (Exception e) {
-      // TODO: Handle aptly
+      return NGGitOpsResponse.builder()
+          .taskStatus(TaskStatus.FAILURE)
+          .errorMessage(e.getMessage())
+          .unitProgressData(UnitProgressDataMapper.toUnitProgressData(commandUnitsProgress))
+          .build();
     }
+  }
 
-    return null;
+  public String getPRLink(int prNumber, ConnectorType connectorType, String url) {
+    switch (connectorType) {
+      // TODO: GITLAB, BITBUCKET
+      case GITHUB:
+        return url + "/"
+            + "pull/" + prNumber + "/";
+      default:
+        return "";
+    }
   }
 
   public CommitAndPushResult commit(NGGitOpsTaskParams gitOpsTaskParams, FetchFilesResult fetchFilesResult) {
@@ -195,7 +211,6 @@ public class NGGitOpsCommandTask extends AbstractDelegateRunnableTask {
 
   public CreatePRResponse createPullRequest(
       ScmConnector scmConnector, String sourceBranch, String targetBranch, String title, String accountId) {
-    // TODO: ensure scmConnector is BitBucket, GitLab or GitHub
     return scmFetchFilesHelper.createPR(scmConnector,
         GitPRCreateRequest.builder()
             .title(title)

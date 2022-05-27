@@ -5,6 +5,8 @@ import static io.harness.common.ParameterFieldHelper.getParameterFieldValue;
 import static io.harness.data.structure.CollectionUtils.emptyIfNull;
 import static io.harness.steps.StepUtils.prepareCDTaskRequest;
 
+import static java.lang.String.format;
+
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.cdng.CDStepHelper;
 import io.harness.cdng.expressions.CDExpressionResolveFunctor;
@@ -12,23 +14,32 @@ import io.harness.cdng.manifest.yaml.GitStoreConfig;
 import io.harness.cdng.manifest.yaml.ManifestOutcome;
 import io.harness.cdng.manifest.yaml.ValuesManifestOutcome;
 import io.harness.cdng.manifest.yaml.storeConfig.StoreConfig;
+import io.harness.cdng.stepsdependency.constants.OutcomeExpressionConstants;
 import io.harness.connector.ConnectorInfoDTO;
 import io.harness.delegate.beans.TaskData;
+import io.harness.delegate.beans.connector.ConnectorType;
+import io.harness.delegate.beans.connector.scm.ScmConnector;
 import io.harness.delegate.beans.storeconfig.GitStoreDelegateConfig;
 import io.harness.delegate.task.git.GitFetchFilesConfig;
+import io.harness.delegate.task.git.GitOpsTaskType;
 import io.harness.delegate.task.git.NGGitOpsResponse;
 import io.harness.delegate.task.git.NGGitOpsTaskParams;
+import io.harness.delegate.task.git.TaskStatus;
 import io.harness.executions.steps.ExecutionNodeType;
 import io.harness.expression.ExpressionEvaluatorUtils;
 import io.harness.plancreator.steps.TaskSelectorYaml;
 import io.harness.plancreator.steps.common.StepElementParameters;
 import io.harness.plancreator.steps.common.rollback.TaskChainExecutableWithRollbackAndRbac;
 import io.harness.pms.contracts.ambiance.Ambiance;
+import io.harness.pms.contracts.execution.Status;
+import io.harness.pms.contracts.execution.failure.FailureInfo;
 import io.harness.pms.contracts.execution.tasks.TaskRequest;
 import io.harness.pms.contracts.steps.StepCategory;
 import io.harness.pms.contracts.steps.StepType;
 import io.harness.pms.execution.utils.AmbianceUtils;
 import io.harness.pms.expression.EngineExpressionService;
+import io.harness.pms.sdk.core.plan.creation.yaml.StepOutcomeGroup;
+import io.harness.pms.sdk.core.resolver.outputs.ExecutionSweepingOutputService;
 import io.harness.pms.sdk.core.steps.executables.TaskChainResponse;
 import io.harness.pms.sdk.core.steps.io.PassThroughData;
 import io.harness.pms.sdk.core.steps.io.StepInputPackage;
@@ -40,10 +51,12 @@ import io.harness.tasks.ResponseData;
 
 import software.wings.beans.TaskType;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.inject.Inject;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 
 @OwnedBy(CDP)
@@ -58,6 +71,10 @@ public class CreatePRStep extends TaskChainExecutableWithRollbackAndRbac {
   @Inject private KryoSerializer kryoSerializer;
   @Inject private CDStepHelper cdStepHelper;
   @Inject private StepHelper stepHelper;
+  @Inject ExecutionSweepingOutputService executionSweepingOutputService;
+
+  private final Set<ConnectorType> validConnectorTypes =
+      ImmutableSet.of(ConnectorType.GITHUB, ConnectorType.GITLAB, ConnectorType.BITBUCKET);
 
   @Override
   public void validateResources(Ambiance ambiance, StepElementParameters stepParameters) {}
@@ -74,15 +91,44 @@ public class CreatePRStep extends TaskChainExecutableWithRollbackAndRbac {
       PassThroughData passThroughData, ThrowingSupplier<ResponseData> responseDataSupplier) throws Exception {
     ResponseData responseData = responseDataSupplier.get();
 
-    if (responseData instanceof NGGitOpsResponse) {
-      // TODO: Handle aptly
+    NGGitOpsResponse ngGitOpsResponse = (NGGitOpsResponse) responseData;
+
+    if (TaskStatus.SUCCESS.equals(ngGitOpsResponse.getTaskStatus())) {
+      CreatePROutcome createPROutcome = CreatePROutcome.builder()
+                                            .changedFiles(((CreatePRPassThroughData) passThroughData).getFilePaths())
+                                            .prLink(ngGitOpsResponse.getPrLink())
+                                            .build();
+
+      executionSweepingOutputService.consume(
+          ambiance, OutcomeExpressionConstants.CREATE_PR_OUTCOME, createPROutcome, StepOutcomeGroup.STEP.name());
+
+      return StepResponse.builder()
+          .unitProgressList(ngGitOpsResponse.getUnitProgressData().getUnitProgresses())
+          .status(Status.SUCCEEDED)
+          .stepOutcome(StepResponse.StepOutcome.builder()
+                           .name(OutcomeExpressionConstants.CREATE_PR_OUTCOME)
+                           .outcome(createPROutcome)
+                           .build())
+          .build();
     }
-    return null;
+
+    return StepResponse.builder()
+        .unitProgressList(ngGitOpsResponse.getUnitProgressData().getUnitProgresses())
+        .status(Status.FAILED)
+        .failureInfo(FailureInfo.newBuilder().setErrorMessage(ngGitOpsResponse.getErrorMessage()).build())
+        .build();
   }
 
   @Override
   public TaskChainResponse startChainLinkAfterRbac(
       Ambiance ambiance, StepElementParameters stepParameters, StepInputPackage inputPackage) {
+    /*
+    TODO:
+     1. Add a new field in stepParams (target branch?)
+     2. Handle the case when PR already exists
+     3. Handle case when branch doesn't exist
+     4. Publish commitId in step outcome
+     */
     CreatePRStepParams gitOpsSpecParams = (CreatePRStepParams) stepParameters.getSpec();
     StoreConfig store = gitOpsSpecParams.getStore().getValue().getSpec();
     Map<String, String> stringMap = gitOpsSpecParams.getStringMap().getValue();
@@ -97,6 +143,7 @@ public class CreatePRStep extends TaskChainExecutableWithRollbackAndRbac {
 
     NGGitOpsTaskParams ngGitOpsTaskParams =
         NGGitOpsTaskParams.builder()
+            .gitOpsTaskType(GitOpsTaskType.CREATE_PR)
             .gitFetchFilesConfig(gitFetchFilesConfig.get(0))
             .accountId(AmbianceUtils.getAccountId(ambiance))
             .stringMap(stringMap)
@@ -123,7 +170,10 @@ public class CreatePRStep extends TaskChainExecutableWithRollbackAndRbac {
     return TaskChainResponse.builder()
         .chainEnd(true)
         .taskRequest(taskRequest)
-        .passThroughData(CreatePRPassThroughData.builder().build())
+        .passThroughData(CreatePRPassThroughData.builder()
+                             .filePaths(gitFetchFilesConfig.get(0).getGitStoreDelegateConfig().getPaths())
+                             .stringMap(stringMap)
+                             .build())
         .build();
   }
 
@@ -143,6 +193,14 @@ public class CreatePRStep extends TaskChainExecutableWithRollbackAndRbac {
 
     GitStoreDelegateConfig gitStoreDelegateConfig =
         cdStepHelper.getGitStoreDelegateConfig(gitStoreConfig, connectorDTO, manifestOutcome, gitFilePaths, ambiance);
+
+    ScmConnector scmConnector = gitStoreDelegateConfig.getGitConfigDTO();
+
+    if (!validConnectorTypes.contains(scmConnector.getConnectorType())) {
+      // TODO: Handle in case this exception is thrown
+      throw new UnsupportedOperationException(
+          format("Create PR step is not supported for connector type: [%s]", scmConnector.getConnectorType()));
+    }
 
     return GitFetchFilesConfig.builder()
         .identifier(manifestOutcome.getIdentifier())

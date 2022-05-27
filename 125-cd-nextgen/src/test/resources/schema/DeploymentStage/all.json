@@ -6726,6 +6726,22 @@
           "if": {
             "properties": {
               "type": {
+                "const": "CreatePR"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "spec": {
+                "$ref": "#/definitions/CreatePRStepInfo"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
                 "const": "CreateStack"
               }
             }
@@ -6766,22 +6782,6 @@
             "properties": {
               "spec": {
                 "$ref": "#/definitions/FlagConfigurationStepInfo"
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "type": {
-                "const": "GitOpsCreatePR"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "spec": {
-                "$ref": "#/definitions/CreatePRStepInfo"
               }
             }
           }

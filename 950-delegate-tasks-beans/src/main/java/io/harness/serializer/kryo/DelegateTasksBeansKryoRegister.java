@@ -394,6 +394,7 @@ import io.harness.delegate.task.gcp.response.GcpValidationTaskResponse;
 import io.harness.delegate.task.git.GitFetchFilesConfig;
 import io.harness.delegate.task.git.GitFetchRequest;
 import io.harness.delegate.task.git.GitFetchResponse;
+import io.harness.delegate.task.git.GitOpsTaskType;
 import io.harness.delegate.task.git.NGGitOpsResponse;
 import io.harness.delegate.task.git.NGGitOpsTaskParams;
 import io.harness.delegate.task.git.TaskStatus;
@@ -913,6 +914,7 @@ public class DelegateTasksBeansKryoRegister implements KryoRegistrar {
     kryo.register(GitFetchRequest.class, 19324);
     kryo.register(NGGitOpsTaskParams.class, 9324);
     kryo.register(NGGitOpsResponse.class, 9325);
+    kryo.register(GitOpsTaskType.class, 9326);
     kryo.register(GitFetchFilesConfig.class, 19325);
     kryo.register(GitFetchResponse.class, 19326);
     kryo.register(TaskStatus.class, 19327);

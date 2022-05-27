@@ -2138,4 +2138,5 @@
 980028:io.harness.exception.AzureAKSException
 980029:io.harness.delegate.task.git.NGGitOpsTaskParams
 980030:io.harness.delegate.task.git.NGGitOpsResponse
+980031:io.harness.delegate.task.git.GitOpsTaskType
 9800001:io.harness.beans.RecasterMap

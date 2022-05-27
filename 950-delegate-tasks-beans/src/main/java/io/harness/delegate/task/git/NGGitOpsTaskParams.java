@@ -24,7 +24,6 @@ import lombok.Data;
 @Builder
 public class NGGitOpsTaskParams implements TaskParameters, ExecutionCapabilityDemander {
   private GitFetchFilesConfig gitFetchFilesConfig; // will have ScmConnector
-  // List<EncryptedDataDetail> encryptedDataDetails; // will be there in gitFetchFilesConfig
   Map<String, String> stringMap;
   String sourceBranch;
   String targetBranch;
@@ -32,7 +31,7 @@ public class NGGitOpsTaskParams implements TaskParameters, ExecutionCapabilityDe
   private String prTitle;
   private String activityId;
   ConnectorInfoDTO connectorInfoDTO;
-  // TODO: set orgId, projId etc.. -- (is it required? is this related to RBAC?)
+  GitOpsTaskType gitOpsTaskType;
 
   @Override
   public List<ExecutionCapability> fetchRequiredExecutionCapabilities(ExpressionEvaluator maskingEvaluator) {
