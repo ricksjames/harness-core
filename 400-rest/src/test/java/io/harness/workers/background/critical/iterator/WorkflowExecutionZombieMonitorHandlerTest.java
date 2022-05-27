@@ -27,7 +27,6 @@ import io.harness.category.element.UnitTests;
 import io.harness.mongo.iterator.provider.MorphiaPersistenceProvider;
 import io.harness.rule.Owner;
 
-import org.junit.experimental.categories.Category;
 import software.wings.beans.WorkflowExecution;
 import software.wings.dl.WingsPersistence;
 import software.wings.service.intfc.WorkflowExecutionService;
@@ -43,6 +42,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
