@@ -15,4 +15,5 @@ import io.harness.annotations.dev.OwnedBy;
 public interface NgCommandUnit {
   String getName();
   String getCommandUnitType();
+  String getWorkingDirectory();
 }

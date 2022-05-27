@@ -327,7 +327,7 @@ public class CDNGPlanCreatorProvider implements PipelineServiceInfoProvider {
         StepInfo.newBuilder()
             .setName("Command")
             .setType(StepSpecTypeConstants.COMMAND)
-            //                    .setFeatureRestrictionName(FeatureRestrictionName.SSH.name())
+            .setFeatureRestrictionName(FeatureRestrictionName.COMMAND.name())
             .setFeatureFlag(FeatureName.SSH_NG.name())
             .setStepMetaData(StepMetaData.newBuilder().addCategory("Ssh").addFolderPaths("Ssh").build())
             .build();

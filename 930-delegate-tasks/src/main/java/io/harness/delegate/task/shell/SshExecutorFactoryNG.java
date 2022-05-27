@@ -25,7 +25,7 @@ public class SshExecutorFactoryNG {
         sshSessionConfig);
   }
 
-  public FileBasedScriptExecutorNG getFileBasedExecutor(SshSessionConfig sshSessionConfig,
+  public FileBasedSshScriptExecutorNG getFileBasedExecutor(SshSessionConfig sshSessionConfig,
       ILogStreamingTaskClient logStreamingTaskClient, CommandUnitsProgress commandUnitsProgress) {
     return new FileBasedSshScriptExecutorNG(
         getExecutionLogCallback(sshSessionConfig, logStreamingTaskClient, commandUnitsProgress), true,

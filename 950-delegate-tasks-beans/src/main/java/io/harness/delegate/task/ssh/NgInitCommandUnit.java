@@ -28,4 +28,9 @@ public class NgInitCommandUnit implements NgCommandUnit {
   public String getCommandUnitType() {
     return NGCommandUnitType.INIT;
   }
+
+  @Override
+  public String getWorkingDirectory() {
+    return null;
+  }
 }

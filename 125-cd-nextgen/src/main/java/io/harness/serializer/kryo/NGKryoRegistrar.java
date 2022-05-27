@@ -158,6 +158,6 @@ public class NGKryoRegistrar implements KryoRegistrar {
     kryo.register(ServerlessAwsLambdaRollbackDataOutcome.class, 12583);
     kryo.register(CloudformationRollbackStepInfo.class, 12584);
     kryo.register(ConfigFileStepParameters.class, 12585);
-    kryo.register(CommandStepInfo.class, 12586);
+    kryo.register(CommandStepInfo.class, 12592);
   }
 }

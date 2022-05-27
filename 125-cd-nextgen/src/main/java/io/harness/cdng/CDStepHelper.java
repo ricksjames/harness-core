@@ -892,7 +892,7 @@ public class CDStepHelper {
 
   public Optional<ArtifactOutcome> resolveArtifactsOutcome(Ambiance ambiance) {
     OptionalOutcome artifactsOutcomeOption = outcomeService.resolveOptional(
-            ambiance, RefObjectUtils.getOutcomeRefObject(OutcomeExpressionConstants.ARTIFACTS));
+        ambiance, RefObjectUtils.getOutcomeRefObject(OutcomeExpressionConstants.ARTIFACTS));
     if (artifactsOutcomeOption.isFound()) {
       ArtifactsOutcome artifactsOutcome = (ArtifactsOutcome) artifactsOutcomeOption.getOutcome();
       if (artifactsOutcome.getPrimary() != null) {
@@ -901,5 +901,4 @@ public class CDStepHelper {
     }
     return Optional.empty();
   }
-
 }

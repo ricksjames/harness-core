@@ -28,7 +28,7 @@ public class ShellExecutorFactoryNG {
         shellExecutorConfig);
   }
 
-  public FileBasedScriptExecutorNG getFileBasedExecutor(ShellExecutorConfig shellExecutorConfig,
+  public FileBasedProcessScriptExecutorNG getFileBasedExecutor(ShellExecutorConfig shellExecutorConfig,
       ILogStreamingTaskClient logStreamingTaskClient, CommandUnitsProgress commandUnitsProgress) {
     return new FileBasedProcessScriptExecutorNG(
         getExecutionLogCallback(shellExecutorConfig, logStreamingTaskClient, commandUnitsProgress), true);

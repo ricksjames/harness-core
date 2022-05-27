@@ -26,7 +26,7 @@ public class ScriptCommandUnit implements NgCommandUnit {
   String name;
   ScriptType scriptType;
   @Expression(ALLOW_SECRETS) String script;
-  String workingDirectory;
+  @Expression(ALLOW_SECRETS) String workingDirectory;
   List<TailFilePatternDto> tailFilePatterns;
   @Expression(ALLOW_SECRETS) String command;
 

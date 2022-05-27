@@ -13,17 +13,16 @@ import static io.harness.rule.OwnerRule.VITALIE;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyList;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.when;
 
 import io.harness.CategoryTest;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.category.element.UnitTests;
-import io.harness.connector.task.shell.SshSessionConfigMapper;
 import io.harness.delegate.beans.logstreaming.CommandUnitsProgress;
 import io.harness.delegate.beans.logstreaming.ILogStreamingTaskClient;
 import io.harness.delegate.task.shell.ssh.SshInitCommandHandler;
+import io.harness.delegate.task.shell.ssh.SshScriptExecutorFactory;
 import io.harness.delegate.task.ssh.NGCommandUnitType;
 import io.harness.delegate.task.ssh.NgCommandUnit;
 import io.harness.delegate.task.ssh.NgInitCommandUnit;
@@ -33,7 +32,6 @@ import io.harness.logging.CommandExecutionStatus;
 import io.harness.rule.Owner;
 import io.harness.shell.ScriptProcessExecutor;
 import io.harness.shell.ScriptSshExecutor;
-import io.harness.shell.SshSessionConfig;
 
 import com.google.inject.Inject;
 import java.util.Arrays;
@@ -52,12 +50,10 @@ import org.mockito.runners.MockitoJUnitRunner;
 public class SshInitCommandHandlerTest extends CategoryTest {
   static final String PRE_INIT_CMD = "mkdir -p /tmp/test";
 
-  @Mock SshExecutorFactoryNG sshExecutorFactoryNG;
-  @Mock ShellExecutorFactoryNG shellExecutorFactory;
-  @Mock SshSessionConfigMapper sshSessionConfigMapper;
   @Mock ILogStreamingTaskClient logStreamingTaskClient;
   @Mock ScriptSshExecutor scriptSshExecutor;
   @Mock ScriptProcessExecutor scriptProcessExecutor;
+  @Mock SshScriptExecutorFactory sshScriptExecutorFactory;
 
   @Inject @InjectMocks static final SshInitCommandHandler sshInitCommandHandler = new SshInitCommandHandler();
 
@@ -73,12 +69,10 @@ public class SshInitCommandHandlerTest extends CategoryTest {
   final NgCommandUnit scriptWithTailFileCommandUnit =
       ScriptCommandUnit.builder().script("test").workingDirectory("/test").tailFilePatterns(tailFilePatterns).build();
   final CommandUnitsProgress commandUnitsProgress = CommandUnitsProgress.builder().build();
-  SshSessionConfig sshSessionConfig = SshSessionConfig.Builder.aSshSessionConfig().build();
 
   @Before
   public void setup() {
     MockitoAnnotations.initMocks(this);
-    doReturn(sshSessionConfig).when(sshSessionConfigMapper).getSSHSessionConfig(any(), anyList());
   }
 
   @Test
@@ -92,7 +86,7 @@ public class SshInitCommandHandlerTest extends CategoryTest {
                                            .commandUnits(Arrays.asList(initCommandUnit))
                                            .build();
 
-    doReturn(scriptSshExecutor).when(sshExecutorFactoryNG).getExecutor(any(), any(), any());
+    doReturn(scriptSshExecutor).when(sshScriptExecutorFactory).getExecutor(any());
     when(scriptSshExecutor.executeCommandString(PRE_INIT_CMD, true)).thenReturn(CommandExecutionStatus.FAILURE);
 
     CommandExecutionStatus status =
@@ -111,7 +105,7 @@ public class SshInitCommandHandlerTest extends CategoryTest {
                                            .commandUnits(Arrays.asList(initCommandUnit))
                                            .build();
 
-    doReturn(scriptProcessExecutor).when(shellExecutorFactory).getExecutor(any(), any(), any());
+    doReturn(scriptProcessExecutor).when(sshScriptExecutorFactory).getExecutor(any());
     when(scriptProcessExecutor.executeCommandString(PRE_INIT_CMD, true)).thenReturn(CommandExecutionStatus.FAILURE);
 
     CommandExecutionStatus status =
@@ -130,7 +124,7 @@ public class SshInitCommandHandlerTest extends CategoryTest {
                                               .commandUnits(Arrays.asList(initCommandUnit, scriptNoTailCommandUnit))
                                               .build();
 
-    doReturn(scriptSshExecutor).when(sshExecutorFactoryNG).getExecutor(any(), any(), any());
+    doReturn(scriptSshExecutor).when(sshScriptExecutorFactory).getExecutor(any());
     when(scriptSshExecutor.executeCommandString(PRE_INIT_CMD, true)).thenReturn(CommandExecutionStatus.SUCCESS);
 
     CommandExecutionStatus status =
@@ -158,7 +152,7 @@ public class SshInitCommandHandlerTest extends CategoryTest {
                                               .commandUnits(Arrays.asList(initCommandUnit, scriptNoTailCommandUnit))
                                               .build();
 
-    doReturn(scriptProcessExecutor).when(shellExecutorFactory).getExecutor(any(), any(), any());
+    doReturn(scriptProcessExecutor).when(sshScriptExecutorFactory).getExecutor(any());
     when(scriptProcessExecutor.executeCommandString(PRE_INIT_CMD, true)).thenReturn(CommandExecutionStatus.SUCCESS);
 
     CommandExecutionStatus status =
@@ -186,7 +180,7 @@ public class SshInitCommandHandlerTest extends CategoryTest {
                                               .commandUnits(Arrays.asList(initCommandUnit, scriptWithTailCommandUnit))
                                               .build();
 
-    doReturn(scriptSshExecutor).when(sshExecutorFactoryNG).getExecutor(any(), any(), any());
+    doReturn(scriptSshExecutor).when(sshScriptExecutorFactory).getExecutor(any());
     when(scriptSshExecutor.executeCommandString(PRE_INIT_CMD, true)).thenReturn(CommandExecutionStatus.SUCCESS);
 
     CommandExecutionStatus status =
@@ -216,7 +210,7 @@ public class SshInitCommandHandlerTest extends CategoryTest {
                                               .commandUnits(Arrays.asList(initCommandUnit, scriptWithTailCommandUnit))
                                               .build();
 
-    doReturn(scriptProcessExecutor).when(shellExecutorFactory).getExecutor(any(), any(), any());
+    doReturn(scriptProcessExecutor).when(sshScriptExecutorFactory).getExecutor(any());
     when(scriptProcessExecutor.executeCommandString(PRE_INIT_CMD, true)).thenReturn(CommandExecutionStatus.SUCCESS);
 
     CommandExecutionStatus status =
@@ -247,7 +241,7 @@ public class SshInitCommandHandlerTest extends CategoryTest {
             .commandUnits(Arrays.asList(initCommandUnit, scriptWithTailFileCommandUnit))
             .build();
 
-    doReturn(scriptSshExecutor).when(sshExecutorFactoryNG).getExecutor(any(), any(), any());
+    doReturn(scriptSshExecutor).when(sshScriptExecutorFactory).getExecutor(any());
     when(scriptSshExecutor.executeCommandString(PRE_INIT_CMD, true)).thenReturn(CommandExecutionStatus.SUCCESS);
 
     CommandExecutionStatus status =
@@ -278,7 +272,7 @@ public class SshInitCommandHandlerTest extends CategoryTest {
             .commandUnits(Arrays.asList(initCommandUnit, scriptWithTailFileCommandUnit))
             .build();
 
-    doReturn(scriptProcessExecutor).when(shellExecutorFactory).getExecutor(any(), any(), any());
+    doReturn(scriptProcessExecutor).when(sshScriptExecutorFactory).getExecutor(any());
     when(scriptProcessExecutor.executeCommandString(PRE_INIT_CMD, true)).thenReturn(CommandExecutionStatus.SUCCESS);
 
     CommandExecutionStatus status =

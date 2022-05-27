@@ -8,8 +8,10 @@
 package io.harness.delegate.task.ssh;
 
 import static io.harness.annotations.dev.HarnessTeam.CDP;
+import static io.harness.expression.Expression.ALLOW_SECRETS;
 
 import io.harness.annotations.dev.OwnedBy;
+import io.harness.expression.Expression;
 import io.harness.ssh.FileSourceType;
 
 import lombok.Builder;
@@ -20,11 +22,16 @@ import lombok.Value;
 @OwnedBy(CDP)
 public class CopyCommandUnit implements NgCommandUnit {
   String name;
-  String destinationPath;
+  @Expression(ALLOW_SECRETS) String destinationPath;
   FileSourceType sourceType;
 
   @Override
   public String getCommandUnitType() {
     return NGCommandUnitType.COPY;
+  }
+
+  @Override
+  public String getWorkingDirectory() {
+    return destinationPath;
   }
 }

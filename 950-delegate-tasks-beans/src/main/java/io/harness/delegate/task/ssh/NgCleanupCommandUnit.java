@@ -28,4 +28,9 @@ public class NgCleanupCommandUnit implements NgCommandUnit {
   public String getCommandUnitType() {
     return NGCommandUnitType.CLEANUP;
   }
+
+  @Override
+  public String getWorkingDirectory() {
+    return null;
+  }
 }

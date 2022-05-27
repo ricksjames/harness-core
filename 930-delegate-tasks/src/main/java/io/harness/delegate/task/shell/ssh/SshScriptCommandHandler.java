@@ -9,24 +9,15 @@ package io.harness.delegate.task.shell.ssh;
 
 import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
-import io.harness.connector.task.shell.SshSessionConfigMapper;
 import io.harness.delegate.beans.logstreaming.CommandUnitsProgress;
 import io.harness.delegate.beans.logstreaming.ILogStreamingTaskClient;
 import io.harness.delegate.task.shell.CommandTaskParameters;
-import io.harness.delegate.task.shell.ShellExecutorFactoryNG;
 import io.harness.delegate.task.shell.SshCommandTaskParameters;
-import io.harness.delegate.task.shell.SshExecutorFactoryNG;
 import io.harness.delegate.task.ssh.NgCommandUnit;
 import io.harness.delegate.task.ssh.ScriptCommandUnit;
-import io.harness.delegate.utils.SshUtils;
 import io.harness.exception.InvalidRequestException;
 import io.harness.logging.CommandExecutionStatus;
 import io.harness.shell.AbstractScriptExecutor;
-import io.harness.shell.ScriptProcessExecutor;
-import io.harness.shell.ScriptSshExecutor;
-import io.harness.shell.ScriptType;
-import io.harness.shell.ShellExecutorConfig;
-import io.harness.shell.SshSessionConfig;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
@@ -34,9 +25,7 @@ import com.google.inject.Singleton;
 @OwnedBy(HarnessTeam.CDP)
 @Singleton
 public class SshScriptCommandHandler implements CommandHandler {
-  @Inject private SshExecutorFactoryNG sshExecutorFactoryNG;
-  @Inject private ShellExecutorFactoryNG shellExecutorFactory;
-  @Inject private SshSessionConfigMapper sshSessionConfigMapper;
+  @Inject private SshScriptExecutorFactory sshScriptExecutorFactory;
 
   @Override
   public CommandExecutionStatus handle(CommandTaskParameters parameters, NgCommandUnit commandUnit,
@@ -49,43 +38,25 @@ public class SshScriptCommandHandler implements CommandHandler {
     if (!(commandUnit instanceof ScriptCommandUnit)) {
       throw new InvalidRequestException("Bad command unit handler specified.");
     }
+
     ScriptCommandUnit scriptCommandUnit = (ScriptCommandUnit) commandUnit;
-    AbstractScriptExecutor executor =
-        getExecutor(sshCommandTaskParameters, scriptCommandUnit, commandUnitsProgress, logStreamingTaskClient);
+    SshExecutorFactoryContext context =
+        SshExecutorFactoryContext.builder()
+            .accountId(sshCommandTaskParameters.getAccountId())
+            .executionId(sshCommandTaskParameters.getExecutionId())
+            .workingDirectory(scriptCommandUnit.getWorkingDirectory())
+            .commandUnitName(scriptCommandUnit.getName())
+            .commandUnitsProgress(commandUnitsProgress)
+            .environment(sshCommandTaskParameters.getEnvironmentVariables())
+            .encryptedDataDetailList(sshCommandTaskParameters.getSshInfraDelegateConfig().getEncryptionDataDetails())
+            .sshKeySpecDTO(sshCommandTaskParameters.getSshInfraDelegateConfig().getSshKeySpecDto())
+            .iLogStreamingTaskClient(logStreamingTaskClient)
+            .executeOnDelegate(sshCommandTaskParameters.isExecuteOnDelegate())
+            .host(sshCommandTaskParameters.getHost())
+            .build();
+
+    AbstractScriptExecutor executor = sshScriptExecutorFactory.getExecutor(context);
 
     return executor.executeCommandString(scriptCommandUnit.getCommand());
-  }
-
-  private ScriptSshExecutor getScriptSshExecutor(SshCommandTaskParameters parameters, ScriptCommandUnit commandUnit,
-      CommandUnitsProgress commandUnitsProgress, ILogStreamingTaskClient logStreamingTaskClient) {
-    SshSessionConfig sshSessionConfig = SshUtils.generateSshSessionConfig(
-        sshSessionConfigMapper, parameters, commandUnit.getName(), commandUnit.getWorkingDirectory());
-    return sshExecutorFactoryNG.getExecutor(sshSessionConfig, logStreamingTaskClient, commandUnitsProgress);
-  }
-
-  private ScriptProcessExecutor getScriptProcessExecutor(SshCommandTaskParameters parameters,
-      ScriptCommandUnit commandUnit, CommandUnitsProgress commandUnitsProgress,
-      ILogStreamingTaskClient logStreamingTaskClient) {
-    ShellExecutorConfig config = getShellExecutorConfig(parameters, commandUnit);
-    return shellExecutorFactory.getExecutor(config, logStreamingTaskClient, commandUnitsProgress);
-  }
-
-  private ShellExecutorConfig getShellExecutorConfig(
-      SshCommandTaskParameters taskParameters, ScriptCommandUnit commandUnit) {
-    return ShellExecutorConfig.builder()
-        .accountId(taskParameters.getAccountId())
-        .executionId(taskParameters.getExecutionId())
-        .commandUnitName(commandUnit.getName())
-        .workingDirectory(commandUnit.getWorkingDirectory())
-        .environment(taskParameters.getEnvironmentVariables())
-        .scriptType(ScriptType.BASH)
-        .build();
-  }
-
-  private AbstractScriptExecutor getExecutor(SshCommandTaskParameters parameters, ScriptCommandUnit commandUnit,
-      CommandUnitsProgress commandUnitsProgress, ILogStreamingTaskClient logStreamingTaskClient) {
-    return parameters.isExecuteOnDelegate()
-        ? getScriptProcessExecutor(parameters, commandUnit, commandUnitsProgress, logStreamingTaskClient)
-        : getScriptSshExecutor(parameters, commandUnit, commandUnitsProgress, logStreamingTaskClient);
   }
 }

@@ -11,7 +11,6 @@ import static io.harness.annotations.dev.HarnessTeam.CDP;
 
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.connector.task.shell.SshSessionConfigMapper;
-import io.harness.delegate.task.shell.SshCommandTaskParameters;
 import io.harness.delegate.task.shell.SshSessionConfigMapperFields;
 import io.harness.shell.SshSessionConfig;
 
@@ -31,21 +30,6 @@ public final class SshUtils {
     sshSessionConfig.setHost(fields.getHost());
     sshSessionConfig.setWorkingDirectory(fields.getWorkingDirectory());
     sshSessionConfig.setCommandUnitName(commandUnit);
-    return sshSessionConfig;
-  }
-
-  public static SshSessionConfig generateSshSessionConfig(SshSessionConfigMapper sshSessionConfigMapper,
-      SshCommandTaskParameters taskParameters, String commandUnitName, String workingDir) {
-    SshSessionConfig sshSessionConfig =
-        sshSessionConfigMapper.getSSHSessionConfig(taskParameters.getSshInfraDelegateConfig().getSshKeySpecDto(),
-            taskParameters.getSshInfraDelegateConfig().getEncryptionDataDetails());
-
-    sshSessionConfig.setAccountId(taskParameters.getAccountId());
-    sshSessionConfig.setExecutionId(taskParameters.getExecutionId());
-    sshSessionConfig.setHost(taskParameters.getHost());
-    sshSessionConfig.setWorkingDirectory(workingDir);
-    sshSessionConfig.setCommandUnitName(commandUnitName);
-
     return sshSessionConfig;
   }
 }

@@ -20,8 +20,6 @@ import io.harness.annotations.dev.OwnedBy;
 import io.harness.category.element.UnitTests;
 import io.harness.connector.task.shell.SshSessionConfigMapper;
 import io.harness.delegate.task.shell.ShellScriptTaskParametersNG;
-import io.harness.delegate.task.shell.SshCommandTaskParameters;
-import io.harness.delegate.task.ssh.PdcSshInfraDelegateConfig;
 import io.harness.rule.Owner;
 import io.harness.shell.SshSessionConfig;
 
@@ -44,29 +42,6 @@ public class SshUtilsTest extends CategoryTest {
   @Before
   public void prepare() throws IOException {
     MockitoAnnotations.initMocks(this);
-  }
-
-  @Test
-  @Owner(developers = ACASIAN)
-  @Category(UnitTests.class)
-  public void testGenerateSshConfigFromSshCommandParams() {
-    SshSessionConfig sessionConfig = SshSessionConfig.Builder.aSshSessionConfig().build();
-    doReturn(sessionConfig).when(sshSessionConfigMapper).getSSHSessionConfig(any(), anyList());
-
-    SshCommandTaskParameters commandTaskParameters =
-        SshCommandTaskParameters.builder()
-            .accountId(accountId)
-            .executionId(executionId)
-            .sshInfraDelegateConfig(PdcSshInfraDelegateConfig.builder().build())
-            .host(host)
-            .build();
-
-    SshUtils.generateSshSessionConfig(sshSessionConfigMapper, commandTaskParameters, commandUnitName, workingDir);
-    assertThat(sessionConfig.getAccountId()).isEqualTo(accountId);
-    assertThat(sessionConfig.getExecutionId()).isEqualTo(executionId);
-    assertThat(sessionConfig.getWorkingDirectory()).isEqualTo(workingDir);
-    assertThat(sessionConfig.getCommandUnitName()).isEqualTo(commandUnitName);
-    assertThat(sessionConfig.getHost()).isEqualTo(host);
   }
 
   @Test
