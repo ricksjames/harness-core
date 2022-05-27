@@ -678,6 +678,8 @@ iteratorsConfig:
     threadPoolSize: ${EVENT_DELIVERY_ITERATOR_THREAD_COUNT:-25}
   workflowExecutionMonitorIteratorConfig:
     threadPoolSize: ${WORKFLOW_EXECUTION_MONITOR_ITERATOR_THREAD_COUNT:-5}
+  workflowExecutionZombieMonitorIteratorConfig:
+    threadPoolSize: ${WORKFLOW_EXECUTION_ZOMBIE_MONITOR_ITERATOR_THREAD_COUNT:-5}
   blockingCapabilityPermissionsRecordHandlerIteratorConfig:
     threadPoolSize: ${BLOCKING_CAPABILITY_PERMISSIONS_RECORD_ITERATOR_THREAD_COUNT:-5}
   vaultSecretManagerRenewalIteratorConfig:
