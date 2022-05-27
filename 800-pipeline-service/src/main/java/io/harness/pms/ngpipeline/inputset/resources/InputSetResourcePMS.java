@@ -171,6 +171,7 @@ public class InputSetResourcePMS {
     InputSetResponseDTOPMS inputSet = PMSInputSetElementMapper.toInputSetResponseDTOPMS(inputSetEntity);
 
     if (inputSetEntity.getStoreType() == StoreType.REMOTE) {
+      // todo: remove dependency of validateAndMergeHelper on inputSetService and add this validation into service layer
       InputSetErrorWrapperDTOPMS errorWrapperDTOPMS = validateAndMergeHelper.validateInputSet(
           accountId, orgIdentifier, projectIdentifier, pipelineIdentifier, inputSetEntity.getYaml(), null, null);
       if (errorWrapperDTOPMS != null) {
@@ -221,6 +222,7 @@ public class InputSetResourcePMS {
         PMSInputSetElementMapper.toOverlayInputSetResponseDTOPMS(inputSetEntity);
 
     if (inputSetEntity.getStoreType() == StoreType.REMOTE) {
+      // todo: remove dependency of validateAndMergeHelper on inputSetService and add this validation into service layer
       Map<String, String> overlayInputSetErrorResponse = validateAndMergeHelper.validateOverlayInputSet(
           accountId, orgIdentifier, projectIdentifier, pipelineIdentifier, inputSetEntity.getYaml());
       if (!overlayInputSetErrorResponse.isEmpty()) {
@@ -670,7 +672,7 @@ public class InputSetResourcePMS {
       @RequestBody(required = true,
           description = "The invalid Input Set Yaml to be sanitized") @NotNull String invalidInputSetYaml) {
     String pipelineYaml = validateAndMergeHelper.getPipelineYaml(
-        accountId, orgIdentifier, projectIdentifier, pipelineIdentifier, pipelineBranch, pipelineRepoID);
+        accountId, orgIdentifier, projectIdentifier, pipelineIdentifier, pipelineBranch, pipelineRepoID, false);
     String sanitizedRuntimeInputYaml = InputSetSanitizer.sanitizeInputSet(pipelineYaml, invalidInputSetYaml);
     if (EmptyPredicate.isEmpty(sanitizedRuntimeInputYaml)) {
       return ResponseDTO.newResponse(InputSetSanitiseResponseDTO.builder().shouldDeleteInputSet(true).build());

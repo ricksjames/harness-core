@@ -184,8 +184,8 @@ public class PMSPipelineRepositoryCustomImpl implements PMSPipelineRepositoryCus
   }
 
   @Override
-  public Optional<PipelineEntity> findForOldGitSync(String accountId, String orgIdentifier, String projectIdentifier,
-      String pipelineIdentifier, boolean notDeleted, boolean getMetadataOnly) {
+  public Optional<PipelineEntity> findForOldGitSync(
+      String accountId, String orgIdentifier, String projectIdentifier, String pipelineIdentifier, boolean notDeleted) {
     Criteria criteria = Criteria.where(PipelineEntityKeys.deleted)
                             .is(!notDeleted)
                             .and(PipelineEntityKeys.identifier)
@@ -330,7 +330,7 @@ public class PMSPipelineRepositoryCustomImpl implements PMSPipelineRepositoryCus
     String orgIdentifier = pipelineToUpdate.getOrgIdentifier();
     String projectIdentifier = pipelineToUpdate.getProjectIdentifier();
     Optional<PipelineEntity> pipelineEntityOptional =
-        findForOldGitSync(accountId, orgIdentifier, projectIdentifier, pipelineToUpdate.getIdentifier(), true, false);
+        findForOldGitSync(accountId, orgIdentifier, projectIdentifier, pipelineToUpdate.getIdentifier(), true);
     if (pipelineEntityOptional.isPresent()) {
       PipelineEntity pipelineEntity = gitAwarePersistence.save(
           pipelineToUpdate, pipelineToUpdate.getYaml(), ChangeType.DELETE, PipelineEntity.class, null);

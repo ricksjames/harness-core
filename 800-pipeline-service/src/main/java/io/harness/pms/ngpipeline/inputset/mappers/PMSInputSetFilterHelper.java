@@ -104,7 +104,10 @@ public class PMSInputSetFilterHelper {
         .withDescription(fieldsToUpdate.getDescription())
         .withTags(fieldsToUpdate.getTags())
         .withInputSetReferences(fieldsToUpdate.getInputSetReferences())
-        .withLastUpdatedAt(timeOfUpdate);
+        .withLastUpdatedAt(timeOfUpdate)
+        .withDeleted(false)
+        .withIsInvalid(false)
+        .withVersion(entityFromDB.getVersion() + 1);
   }
 
   public Update getUpdateOperationsForOnboardingToInline() {

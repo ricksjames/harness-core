@@ -222,8 +222,8 @@ public class PMSPipelineServiceImpl implements PMSPipelineService {
     Optional<PipelineEntity> optionalPipelineEntity;
     try {
       if (gitSyncSdkService.isGitSyncEnabled(accountId, orgIdentifier, projectIdentifier)) {
-        optionalPipelineEntity = pmsPipelineRepository.findForOldGitSync(
-            accountId, orgIdentifier, projectIdentifier, identifier, !deleted, false);
+        optionalPipelineEntity =
+            pmsPipelineRepository.findForOldGitSync(accountId, orgIdentifier, projectIdentifier, identifier, !deleted);
       } else {
         optionalPipelineEntity =
             pmsPipelineRepository.find(accountId, orgIdentifier, projectIdentifier, identifier, !deleted, false);
@@ -262,7 +262,7 @@ public class PMSPipelineServiceImpl implements PMSPipelineService {
     }
     Optional<PipelineEntity> optionalOriginalEntity =
         pmsPipelineRepository.findForOldGitSync(pipelineEntity.getAccountId(), pipelineEntity.getOrgIdentifier(),
-            pipelineEntity.getProjectIdentifier(), pipelineEntity.getIdentifier(), true, false);
+            pipelineEntity.getProjectIdentifier(), pipelineEntity.getIdentifier(), true);
     if (!optionalOriginalEntity.isPresent()) {
       throw new InvalidRequestException(PipelineCRUDErrorResponse.errorMessageForPipelineNotFound(
           pipelineEntity.getOrgIdentifier(), pipelineEntity.getProjectIdentifier(), pipelineEntity.getIdentifier()));
@@ -391,8 +391,8 @@ public class PMSPipelineServiceImpl implements PMSPipelineService {
 
   private boolean deleteForOldGitSync(
       String accountId, String orgIdentifier, String projectIdentifier, String pipelineIdentifier) {
-    Optional<PipelineEntity> optionalPipelineEntity = pmsPipelineRepository.findForOldGitSync(
-        accountId, orgIdentifier, projectIdentifier, pipelineIdentifier, true, true);
+    Optional<PipelineEntity> optionalPipelineEntity =
+        pmsPipelineRepository.findForOldGitSync(accountId, orgIdentifier, projectIdentifier, pipelineIdentifier, true);
     if (!optionalPipelineEntity.isPresent()) {
       throw new InvalidRequestException(PipelineCRUDErrorResponse.errorMessageForPipelineNotFound(
           orgIdentifier, projectIdentifier, pipelineIdentifier));
@@ -467,7 +467,7 @@ public class PMSPipelineServiceImpl implements PMSPipelineService {
       YamlUtils.setStringValueForField(
           YAMLFieldNameConstants.DESCRIPTION, pipelineImportRequest.getPipelineDescription(), pipelineInnerField);
       try {
-        return YamlUtils.writeYamlString(pipelineYamlField).replace("---\n", "");
+        importedPipeline = YamlUtils.writeYamlString(pipelineYamlField).replace("---\n", "");
       } catch (IOException e) {
         throw new UnexpectedException("Unexpected error when trying to set description");
       }
@@ -548,8 +548,13 @@ public class PMSPipelineServiceImpl implements PMSPipelineService {
 
     Page<PipelineEntity> pipelineEntities =
         pmsPipelineRepository.findAll(criteria, pageRequest, accountId, orgId, projectId, false);
+    boolean isOldGitSyncEnabled = gitSyncSdkService.isGitSyncEnabled(accountId, orgId, projectId);
     for (PipelineEntity pipelineEntity : pipelineEntities) {
-      pmsPipelineRepository.deleteForOldGitSync(pipelineEntity.withDeleted(true));
+      if (isOldGitSyncEnabled) {
+        pmsPipelineRepository.deleteForOldGitSync(pipelineEntity.withDeleted(true));
+      } else {
+        pmsPipelineRepository.delete(accountId, orgId, projectId, pipelineEntity.getIdentifier());
+      }
     }
     return true;
   }

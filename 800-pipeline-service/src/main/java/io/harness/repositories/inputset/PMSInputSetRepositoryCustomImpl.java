@@ -128,6 +128,8 @@ public class PMSInputSetRepositoryCustomImpl implements PMSInputSetRepositoryCus
       entityToSave.setRepo(gitEntityInfo.getRepoName());
       entityToSave.setFilePath(gitEntityInfo.getFilePath());
       gitAwareEntityHelper.createEntityOnGit(entityToSave, yamlToPush, scope);
+    } else {
+      entityToSave.setStoreType(StoreType.INLINE);
     }
     InputSetEntity savedInputSetEntity = mongoTemplate.save(entityToSave);
     functor.get();
