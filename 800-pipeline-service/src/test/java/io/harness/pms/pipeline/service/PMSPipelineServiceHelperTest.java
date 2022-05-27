@@ -241,7 +241,7 @@ public class PMSPipelineServiceHelperTest extends CategoryTest {
   @Category(UnitTests.class)
   public void testFormCriteria() {
     Criteria form = pmsPipelineServiceHelper.formCriteria(
-        accountIdentifier, orgIdentifier, projectIdentifier, null, null, false, null, null);
+        accountIdentifier, orgIdentifier, projectIdentifier, null, null, false, null, null, false);
 
     assertThat(form.getCriteriaObject().get("accountId").toString().contentEquals(accountIdentifier)).isEqualTo(true);
     assertThat(form.getCriteriaObject().get("orgIdentifier").toString().contentEquals(orgIdentifier)).isEqualTo(true);

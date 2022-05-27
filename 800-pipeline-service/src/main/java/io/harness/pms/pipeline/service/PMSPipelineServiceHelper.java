@@ -13,6 +13,7 @@ import static io.harness.telemetry.Destination.AMPLITUDE;
 
 import static org.springframework.data.mongodb.core.query.Criteria.where;
 
+import io.harness.ModuleType;
 import io.harness.NGResourceFilterConstants;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.beans.FeatureName;
@@ -243,7 +244,8 @@ public class PMSPipelineServiceHelper {
   }
 
   public Criteria formCriteria(String accountId, String orgId, String projectId, String filterIdentifier,
-      PipelineFilterPropertiesDto filterProperties, boolean deleted, String module, String searchTerm) {
+      PipelineFilterPropertiesDto filterProperties, boolean deleted, String module, String searchTerm,
+      boolean ignoreCommonModules) {
     Criteria criteria = new Criteria();
     if (isNotEmpty(accountId)) {
       criteria.and(PipelineEntityKeys.accountId).is(accountId);
@@ -267,10 +269,24 @@ public class PMSPipelineServiceHelper {
 
     Criteria moduleCriteria = new Criteria();
     if (EmptyPredicate.isNotEmpty(module)) {
-      // Check for pipeline with no filters also - empty pipeline or pipelines with only approval stage
-      // criteria = { "$or": [ { "filters": {} } , { "filters.MODULE": { $exists: true } } ] }
-      moduleCriteria.orOperator(where(PipelineEntityKeys.filters).is(new Document()),
-          where(String.format("%s.%s", PipelineEntityKeys.filters, module)).exists(true));
+      Criteria approvalStageCriteria = Criteria
+                                           .where(String.format("%s.%s.%s", PipelineEntityKeys.filters,
+                                               ModuleType.PMS.name().toLowerCase(), "approval"))
+                                           .exists(true);
+      Criteria embeddedModuleStageCriteria =
+          Criteria
+              .where(String.format("%s.%s.%s", PipelineEntityKeys.filters, ModuleType.PMS.name().toLowerCase(), module))
+              .exists(true);
+      if (!ignoreCommonModules) {
+        // Check for pipeline with no filters also - empty pipeline or pipelines with only approval stage
+        // criteria = { "$or": [ { "filters": {} } , { "filters.MODULE": { $exists: true } } ] }
+        moduleCriteria.orOperator(where(PipelineEntityKeys.filters).is(new Document()),
+            where(String.format("%s.%s", PipelineEntityKeys.filters, module)).exists(true), approvalStageCriteria,
+            embeddedModuleStageCriteria);
+      } else {
+        moduleCriteria.orOperator(where(String.format("%s.%s", PipelineEntityKeys.filters, module)).exists(true),
+            embeddedModuleStageCriteria);
+      }
     }
 
     Criteria searchCriteria = new Criteria();

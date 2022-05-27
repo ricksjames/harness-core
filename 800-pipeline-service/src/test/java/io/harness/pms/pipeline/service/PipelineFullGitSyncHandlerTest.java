@@ -78,7 +78,7 @@ public class PipelineFullGitSyncHandlerTest extends CategoryTest {
   @Category(UnitTests.class)
   public void testGetFileChangesForFullSync() {
     Criteria criteria = Criteria.where("myKey").is("myValue");
-    doReturn(criteria).when(pipelineServiceHelper).formCriteria(acc, org, proj, null, null, false, null, null);
+    doReturn(criteria).when(pipelineServiceHelper).formCriteria(acc, org, proj, null, null, false, null, null, false);
     Criteria actualCriteria = criteria.and(PipelineEntityKeys.yamlGitConfigRef).is(null);
     PageRequest pageRequest = PageRequest.of(0, 200, Sort.by(Sort.Direction.DESC, PipelineEntityKeys.lastUpdatedAt));
     Page<PipelineEntity> pipelinesPage = new PageImpl<>(Collections.singletonList(pipelineEntity), pageRequest, 1);

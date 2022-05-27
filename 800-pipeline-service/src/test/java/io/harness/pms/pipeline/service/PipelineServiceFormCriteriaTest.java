@@ -104,7 +104,7 @@ public class PipelineServiceFormCriteriaTest extends PipelineServiceTestBase {
     pmsPipelineService.create(pipelineEntity);
 
     Criteria criteria = pmsPipelineServiceHelper.formCriteria(
-        accountId, ORG_IDENTIFIER, PROJ_IDENTIFIER, null, null, false, "cd", "my");
+        accountId, ORG_IDENTIFIER, PROJ_IDENTIFIER, null, null, false, "cd", "my", false);
 
     Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, PipelineEntityKeys.createdAt));
 

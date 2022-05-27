@@ -73,7 +73,8 @@ public class PipelineFullGitSyncHandler {
   }
 
   private Criteria getCriteriaForFullSync(String accountId, String orgId, String projectId) {
-    Criteria criteria = pipelineServiceHelper.formCriteria(accountId, orgId, projectId, null, null, false, null, null);
+    Criteria criteria =
+        pipelineServiceHelper.formCriteria(accountId, orgId, projectId, null, null, false, null, null, false);
     return criteria.and(PipelineEntityKeys.yamlGitConfigRef).is(null);
   }
 

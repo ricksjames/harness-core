@@ -464,16 +464,20 @@ public class PipelineResource implements YamlSchemaResource {
       @Parameter(description = NGCommonEntityConstants.SIZE_PARAM_MESSAGE) @QueryParam(
           NGCommonEntityConstants.SIZE) @DefaultValue("25") int size,
       @QueryParam("sort") @Parameter(description = NGCommonEntityConstants.SORT_PARAM_MESSAGE) List<String> sort,
-      @Parameter(description = PipelineResourceConstants.PIPELINE_SEARCH_TERM_PARAM_MESSAGE)
-      @QueryParam(NGResourceFilterConstants.SEARCH_TERM_KEY) String searchTerm, @QueryParam("module") String module,
+      @Parameter(description = PipelineResourceConstants.PIPELINE_SEARCH_TERM_PARAM_MESSAGE) @QueryParam(
+          NGResourceFilterConstants.SEARCH_TERM_KEY) String searchTerm,
+      @QueryParam("module") String module, @QueryParam("ignoreCommonModules") Boolean ignoreCommonModules,
       @QueryParam("filterIdentifier") String filterIdentifier, @BeanParam GitEntityFindInfoDTO gitEntityBasicInfo,
       @RequestBody(description = "This is the body for the filter properties for listing pipelines.")
       PipelineFilterPropertiesDto filterProperties,
       @Parameter(description = "Boolean flag to get distinct pipelines from all branches.") @QueryParam(
           "getDistinctFromBranches") Boolean getDistinctFromBranches) {
     log.info(String.format("Get List of pipelines in project %s, org %s, account %s", projectId, orgId, accountId));
-    Criteria criteria = pipelineServiceHelper.formCriteria(
-        accountId, orgId, projectId, filterIdentifier, filterProperties, false, module, searchTerm);
+    if (ignoreCommonModules == null) {
+      ignoreCommonModules = false;
+    }
+    Criteria criteria = pipelineServiceHelper.formCriteria(accountId, orgId, projectId, filterIdentifier,
+        filterProperties, false, module, searchTerm, ignoreCommonModules);
 
     Pageable pageRequest =
         PageUtils.getPageRequest(page, size, sort, Sort.by(Sort.Direction.DESC, PipelineEntityKeys.lastUpdatedAt));

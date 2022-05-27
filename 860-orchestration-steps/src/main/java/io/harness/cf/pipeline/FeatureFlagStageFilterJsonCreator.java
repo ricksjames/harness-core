@@ -7,8 +7,10 @@
 
 package io.harness.cf.pipeline;
 
+import io.harness.ModuleType;
 import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
+import io.harness.plancreator.PipelineServiceFilter;
 import io.harness.plancreator.stages.stage.StageElementConfig;
 import io.harness.pms.filter.creation.FilterCreationResponse;
 import io.harness.pms.filter.creation.FilterCreationResponse.FilterCreationResponseBuilder;
@@ -35,7 +37,8 @@ public class FeatureFlagStageFilterJsonCreator implements FilterJsonCreator<Stag
 
   @Override
   public FilterCreationResponse handleNode(FilterCreationContext filterCreationContext, StageElementConfig yamlField) {
-    FilterCreationResponseBuilder creationResponse = FilterCreationResponse.builder();
-    return creationResponse.build();
+    return FilterCreationResponse.builder()
+        .pipelineFilter(PipelineServiceFilter.builder().moduleName(ModuleType.CF.name().toLowerCase()).build())
+        .build();
   }
 }

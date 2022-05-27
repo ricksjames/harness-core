@@ -340,7 +340,7 @@ public class PMSPipelineServiceImpl implements PMSPipelineService {
   @Override
   public boolean deleteAllPipelinesInAProject(String accountId, String orgId, String projectId) {
     Criteria criteria = pmsPipelineServiceHelper.formCriteria(
-        accountId, orgId, projectId, null, PipelineFilterPropertiesDto.builder().build(), false, null, null);
+        accountId, orgId, projectId, null, PipelineFilterPropertiesDto.builder().build(), false, null, null, false);
     Pageable pageRequest = PageRequest.of(0, 1000, Sort.by(Sort.Direction.DESC, PipelineEntityKeys.lastUpdatedAt));
 
     Page<PipelineEntity> pipelineEntities =
