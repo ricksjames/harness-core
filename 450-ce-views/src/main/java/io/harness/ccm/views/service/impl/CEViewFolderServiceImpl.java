@@ -12,12 +12,14 @@ import static io.harness.annotations.dev.HarnessTeam.CE;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.ccm.views.dao.CEViewDao;
 import io.harness.ccm.views.dao.CEViewFolderDao;
-import io.harness.ccm.views.entities.*;
+import io.harness.ccm.views.entities.CEView;
+import io.harness.ccm.views.entities.CEViewFolder;
+import io.harness.ccm.views.entities.ViewType;
 import io.harness.ccm.views.service.CEViewFolderService;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import java.util.*;
+import java.util.List;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 
