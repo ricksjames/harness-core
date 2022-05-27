@@ -108,6 +108,7 @@ public class EventPublisherServerImpl extends EventPublisherGrpc.EventPublisherI
       });
 
       log.info("saveBatch, publishMessage1: {}", publishMessage1);
+      log.info("saveBatch, withoutCategory size: {}", withoutCategory.size());
       log.info("saveBatch, publishedMessages size: {}", publishedMessages.size());
 
       if (isNotEmpty(withoutCategory)) {
