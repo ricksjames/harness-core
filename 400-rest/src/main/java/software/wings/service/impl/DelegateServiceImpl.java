@@ -3920,7 +3920,6 @@ public class DelegateServiceImpl implements DelegateService {
           true);
 
       File yaml = File.createTempFile(HARNESS_DELEGATE, YAML);
-      log.info("Anupam calling API to generate k8 yaml path {} ", yaml.getAbsolutePath());
       String templateName = obtainK8sTemplateNameFromConfig(delegateSetupDetails.getK8sConfigDetails(), accountId);
       saveProcessedTemplate(scriptParams, yaml, templateName);
       yaml = new File(yaml.getAbsolutePath());
@@ -3998,11 +3997,8 @@ public class DelegateServiceImpl implements DelegateService {
             .build(),
         true);
 
-    log.info("Anupam Param map is built, creating file next");
     File yaml = File.createTempFile(HARNESS_NG_DELEGATE, YAML);
-    log.info("Anupam file created {} ", yaml.getAbsolutePath());
     saveProcessedTemplate(scriptParams, yaml, "delegate-ng-helm-values.yaml.ftl");
-    log.info("Anupam file processed  {} ", yaml.toString());
     delegateTelemetryPublisher.sendTelemetryTrackEvents(accountId, HELM_DELEGATE, true, DELEGATE_CREATED_EVENT);
     return yaml;
   }

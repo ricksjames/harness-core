@@ -11,7 +11,18 @@
 # To install the chart with the release name my-release and this values.yaml
 # helm install --name my-release harness/harness-delegate -f harness-delegate-values.yaml
 
-<@helmValues.common />
+# Account Id to which the delegate will be connecting
+accountId: ${accountId}
+
+# Secret identifier associated with the account
+delegateToken: ${delegateToken}
+
+# Short 6 character identifier of the account
+accountIdShort: ${kubernetesAccountLabel}
+delegateName: ${delegateName}
+delegateType: ${delegateType}
+delegateDockerImage: ${delegateDockerImage}
+managerHostAndPort: ${managerHostAndPort}
 
 <@helmValues.cgSpecific />
 
