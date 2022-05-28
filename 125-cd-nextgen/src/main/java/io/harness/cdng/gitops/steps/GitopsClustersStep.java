@@ -1,12 +1,11 @@
 package io.harness.cdng.gitops.steps;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static io.harness.data.structure.EmptyPredicate.isEmpty;
 import static io.harness.data.structure.EmptyPredicate.isNotEmpty;
 import static io.harness.pms.execution.utils.AmbianceUtils.getAccountId;
 import static io.harness.pms.execution.utils.AmbianceUtils.getOrgIdentifier;
 import static io.harness.pms.execution.utils.AmbianceUtils.getProjectIdentifier;
-
-import static com.google.common.base.Preconditions.checkArgument;
 import static java.lang.String.format;
 
 import io.harness.accesscontrol.clients.AccessControlClient;
@@ -14,7 +13,6 @@ import io.harness.cdng.envGroup.beans.EnvironmentGroupEntity;
 import io.harness.cdng.envGroup.services.EnvironmentGroupService;
 import io.harness.cdng.gitops.service.ClusterService;
 import io.harness.cdng.gitops.steps.ClusterStepParameters.EnvClusterRefs;
-import io.harness.data.structure.EmptyPredicate;
 import io.harness.exception.InvalidRequestException;
 import io.harness.executions.steps.ExecutionNodeType;
 import io.harness.gitops.models.Cluster;
@@ -37,13 +35,15 @@ import com.google.inject.Inject;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import lombok.Builder;
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import retrofit2.Response;
 
@@ -70,8 +70,8 @@ public class GitopsClustersStep implements SyncExecutableWithRbac<ClusterStepPar
   public StepResponse executeSyncAfterRbac(Ambiance ambiance, ClusterStepParameters stepParameters,
       StepInputPackage inputPackage, PassThroughData passThroughData) {
     log.info("Starting execution for GitopsClustersStep [{}]", stepParameters);
-    List<Cluster> validatedClusters = validatedClusterRefs(ambiance, stepParameters);
-    GitopsClustersOutcome outcome = toOutCome(stepParameters, validatedClusters);
+    Map<String, IndividualClusterInternal> validatedClusters = validatedClusters(ambiance, stepParameters);
+    GitopsClustersOutcome outcome = toOutCome(validatedClusters);
     executionSweepingOutputResolver.consume(ambiance, GITOPS_SWEEPING_OUTCOME, outcome, StepOutcomeGroup.STAGE.name());
     return StepResponse.builder().status(Status.SUCCEEDED).build();
   }
@@ -81,11 +81,11 @@ public class GitopsClustersStep implements SyncExecutableWithRbac<ClusterStepPar
     return null;
   }
 
-  private List<Cluster> validatedClusterRefs(Ambiance ambiance, ClusterStepParameters params) {
+  private Map<String, IndividualClusterInternal> validatedClusters(Ambiance ambiance, ClusterStepParameters params) {
     final Collection<EnvClusterRefs> envClusterRefs;
     if (params.isDeployToAllEnvs()) {
-      checkArgument(EmptyPredicate.isNotEmpty(params.getEnvGroupRef()),
-          "environment group must be provided when deploying to all environments");
+      checkArgument(
+          isNotEmpty(params.getEnvGroupRef()), "environment group must be provided when deploying to all environments");
       Optional<EnvironmentGroupEntity> egEntity = environmentGroupService.get(getAccountId(ambiance),
           getOrgIdentifier(ambiance), getProjectIdentifier(ambiance), params.getEnvGroupRef(), false);
       List<String> envs = egEntity.map(EnvironmentGroupEntity::getEnvIdentifiers).orElse(new ArrayList<>());
@@ -97,24 +97,34 @@ public class GitopsClustersStep implements SyncExecutableWithRbac<ClusterStepPar
     }
 
     if (isEmpty(envClusterRefs)) {
-      return new ArrayList<>();
+      return new HashMap<>();
     }
 
-    final Collection<String> clusterRefs = fetchClusterRefs(ambiance, envClusterRefs);
+    // clusterId -> IndividualClusterInternal
+    final Map<String, IndividualClusterInternal> individualClusters =
+        fetchClusterRefs(params.getEnvGroupRef(), ambiance, envClusterRefs);
+    final Set<String> clusterIdentifiers = individualClusters.keySet();
 
-    Map<String, Object> filter = ImmutableMap.of("identifier", ImmutableMap.of("$in", clusterRefs));
+    Map<String, Object> filter = ImmutableMap.of("identifier", ImmutableMap.of("$in", clusterIdentifiers));
     try {
       final ClusterQuery query = ClusterQuery.builder()
                                      .accountId(getAccountId(ambiance))
                                      .orgIdentifier(getOrgIdentifier(ambiance))
                                      .projectIdentifier(getProjectIdentifier(ambiance))
                                      .pageIndex(0)
-                                     .pageSize(clusterRefs.size())
+                                     .pageSize(clusterIdentifiers.size())
                                      .filter(filter)
                                      .build();
       final Response<PageResponse<Cluster>> response = gitopsResourceClient.listClusters(query).execute();
       if (response.isSuccessful() && response.body() != null) {
-        return response.body().getContent();
+        List<Cluster> content = response.body().getContent();
+        content.forEach(c -> {
+          if (individualClusters.containsKey(c.getIdentifier())) {
+            individualClusters.get(c.getIdentifier()).setOriginalCluster(c);
+          }
+        });
+        individualClusters.values().removeIf(c -> c.getOriginalCluster() == null);
+        return individualClusters;
       }
       throw new InvalidRequestException(format("Failed to fetch clusters from gitops. %s",
           response.errorBody() != null ? response.errorBody().string() : ""));
@@ -123,13 +133,23 @@ public class GitopsClustersStep implements SyncExecutableWithRbac<ClusterStepPar
     }
   }
 
-  private Set<String> fetchClusterRefs(Ambiance ambiance, Collection<EnvClusterRefs> envClusterRefs) {
-    Set<String> clusterRefs = new HashSet<>();
+  private Map<String, IndividualClusterInternal> fetchClusterRefs(
+      String envGroupRef, Ambiance ambiance, Collection<EnvClusterRefs> envClusterRefs) {
+    List<IndividualClusterInternal> clusterRefs = new ArrayList<>();
     clusterRefs.addAll(envClusterRefs.stream()
                            .filter(ec -> !ec.isDeployToAll())
-                           .map(EnvClusterRefs::getClusterRefs)
-                           .flatMap(Collection::stream)
-                           .collect(Collectors.toSet()));
+                           .map(ec
+                               -> ec.getClusterRefs()
+                                      .stream()
+                                      .map(c
+                                          -> IndividualClusterInternal.builder()
+                                                 .envGroupRef(envGroupRef)
+                                                 .envRef(ec.getEnvRef())
+                                                 .clusterRef(c)
+                                                 .build())
+                                      .collect(Collectors.toList()))
+                           .flatMap(List::stream)
+                           .collect(Collectors.toList()));
 
     final Set<String> envsWithAllClustersAsTarget = envClusterRefs.stream()
                                                         .filter(EnvClusterRefs::isDeployToAll)
@@ -137,35 +157,45 @@ public class GitopsClustersStep implements SyncExecutableWithRbac<ClusterStepPar
                                                         .collect(Collectors.toSet());
 
     // Todo: Proper handling for large number of clusters
-    clusterRefs.addAll(clusterService
-                           .listAcrossEnv(0, UNLIMITED_SIZE, getAccountId(ambiance), getOrgIdentifier(ambiance),
-                               getProjectIdentifier(ambiance), envsWithAllClustersAsTarget)
-                           .stream()
-                           .map(io.harness.cdng.gitops.entity.Cluster::getClusterRef)
-                           .collect(Collectors.toSet()));
-    return clusterRefs;
-  }
-  private GitopsClustersOutcome toOutCome(ClusterStepParameters params, List<Cluster> validatedClusters) {
-    final GitopsClustersOutcome outcome = new GitopsClustersOutcome(new ArrayList<>());
-    final Map<String, Cluster> clusterMap =
-        validatedClusters.stream().collect(Collectors.toMap(Cluster::getIdentifier, Function.identity()));
-    final Set<String> skippedClusters = new HashSet<>();
-
-    if (isNotEmpty(params.getEnvGroupRef())) {
-      // Handle env groups
-    } else if (isNotEmpty(params.getEnvClusterRefs())) {
-      for (EnvClusterRefs env : params.getEnvClusterRefs()) {
-        for (String clusterRef : env.getClusterRefs()) {
-          if (clusterMap.containsKey(clusterRef)) {
-            outcome.appendCluster(env.getEnvRef(), clusterMap.get(clusterRef).getName(), null);
-          } else {
-            skippedClusters.add(clusterRef);
-          }
-        }
-      }
+    if (isNotEmpty(envsWithAllClustersAsTarget)) {
+      clusterRefs.addAll(clusterService
+                             .listAcrossEnv(0, UNLIMITED_SIZE, getAccountId(ambiance), getOrgIdentifier(ambiance),
+                                 getProjectIdentifier(ambiance), envsWithAllClustersAsTarget)
+                             .stream()
+                             .map(c
+                                 -> IndividualClusterInternal.builder()
+                                        .envGroupRef(envGroupRef)
+                                        .envRef(c.getEnvRef())
+                                        .clusterRef(c.getClusterRef())
+                                        .build())
+                             .collect(Collectors.toSet()));
     }
-    log.info("{} clusters {} were processed", outcome.getClustersData().size(), outcome.getClustersData());
-    log.warn("{} clusters {} were skipped as they were not present in gitops", skippedClusters.size(), skippedClusters);
+
+    return clusterRefs.stream().collect(
+        Collectors.toMap(IndividualClusterInternal::getClusterRef, Function.identity()));
+  }
+
+  private GitopsClustersOutcome toOutCome(Map<String, IndividualClusterInternal> validatedClusters) {
+    final GitopsClustersOutcome outcome = new GitopsClustersOutcome(new ArrayList<>());
+
+    for (String clusterId : validatedClusters.keySet()) {
+      IndividualClusterInternal clusterInternal = validatedClusters.get(clusterId);
+      outcome.appendCluster(clusterInternal.getEnvGroupRef(), clusterInternal.getEnvRef(),
+          clusterInternal.getOriginalCluster().getName());
+    }
+
+    //    log.info("{} clusters {} were processed", outcome.getClustersData().size(), outcome.getClustersData());
+    //    log.warn("{} clusters {} were skipped as they were not present in gitops", skippedClusters.size(),
+    //    skippedClusters);
     return outcome;
+  }
+
+  @Builder
+  @Data
+  static class IndividualClusterInternal {
+    String envGroupRef;
+    String envRef;
+    String clusterRef;
+    Cluster originalCluster;
   }
 }

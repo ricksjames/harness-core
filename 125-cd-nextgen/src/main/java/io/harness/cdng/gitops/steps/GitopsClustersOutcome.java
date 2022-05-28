@@ -11,10 +11,10 @@ import io.harness.yaml.core.variables.NGVariable;
 
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import java.util.List;
+import java.util.stream.Collectors;
 import javax.validation.constraints.NotNull;
 import lombok.Builder;
 import lombok.Data;
-import lombok.Singular;
 import lombok.Value;
 
 @Value
@@ -22,12 +22,27 @@ import lombok.Value;
 @RecasterAlias("io.harness.cdng.gitops.steps.GitopsClustersOutcome")
 @OwnedBy(GITOPS)
 public class GitopsClustersOutcome implements Outcome, ExecutionSweepingOutput {
-  @NotNull @Singular List<ClusterData> clustersData;
+  @NotNull List<ClusterData> clustersData;
 
-  public void appendCluster(@NotNull String env, @NotNull String clusterName, List<NGVariable> variables) {
-    emptyIfNull(variables).stream().map(
-        v -> Variable.builder().key(v.getName()).value(v.getCurrentValue().fetchFinalValue()));
+  public GitopsClustersOutcome appendCluster(@NotNull String env, @NotNull String clusterName) {
     clustersData.add(ClusterData.builder().env(env).clusterName(clusterName).build());
+    return this;
+  }
+
+  public GitopsClustersOutcome appendCluster(String envGroup, @NotNull String env, @NotNull String clusterName) {
+    clustersData.add(ClusterData.builder().envGroup(envGroup).env(env).clusterName(clusterName).build());
+    return this;
+  }
+
+  public GitopsClustersOutcome appendCluster(
+      @NotNull String env, @NotNull String clusterName, List<NGVariable> variables) {
+    List<Variable> myVariables =
+        emptyIfNull(variables)
+            .stream()
+            .map(v -> Variable.builder().key(v.getName()).value(v.getCurrentValue().fetchFinalValue()).build())
+            .collect(Collectors.toList());
+    clustersData.add(ClusterData.builder().env(env).clusterName(clusterName).variables(myVariables).build());
+    return this;
   }
 
   @Data
