@@ -5,18 +5,14 @@
  * https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt.
  */
 
-package io.harness.licensing.usage.beans.cd;
+package io.harness.licensing.interfaces.clients;
 
 import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
+import io.harness.licensing.Edition;
+import io.harness.licensing.beans.modules.STOModuleLicenseDTO;
 
-import lombok.experimental.UtilityClass;
-
-@OwnedBy(HarnessTeam.CDP)
-@UtilityClass
-public class CDLicenseUsageConstants {
-  public static final String DISPLAY_NAME = "Last 30 Days";
-  public static final int TIME_PERIOD_IN_DAYS = 30;
-  public static final double PERCENTILE = 0.95;
-  public static final int SERVICE_INSTANCE_LIMIT = 20;
+@OwnedBy(HarnessTeam.STO)
+public interface STOModuleLicenseClient extends ModuleLicenseClient<STOModuleLicenseDTO> {
+  @Override STOModuleLicenseDTO createTrialLicense(Edition edition, String accountId);
 }
