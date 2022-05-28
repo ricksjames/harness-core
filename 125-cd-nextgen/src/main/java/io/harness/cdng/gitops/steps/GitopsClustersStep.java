@@ -1,14 +1,14 @@
 package io.harness.cdng.gitops.steps;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static io.harness.data.structure.EmptyPredicate.isEmpty;
 import static io.harness.data.structure.EmptyPredicate.isNotEmpty;
 import static io.harness.pms.execution.utils.AmbianceUtils.getAccountId;
 import static io.harness.pms.execution.utils.AmbianceUtils.getOrgIdentifier;
 import static io.harness.pms.execution.utils.AmbianceUtils.getProjectIdentifier;
+
+import static com.google.common.base.Preconditions.checkArgument;
 import static java.lang.String.format;
 
-import io.harness.accesscontrol.clients.AccessControlClient;
 import io.harness.cdng.envGroup.beans.EnvironmentGroupEntity;
 import io.harness.cdng.envGroup.services.EnvironmentGroupService;
 import io.harness.cdng.gitops.service.ClusterService;
@@ -54,7 +54,6 @@ public class GitopsClustersStep implements SyncExecutableWithRbac<ClusterStepPar
 
   @Inject private ClusterService clusterService;
   @Inject private EnvironmentGroupService environmentGroupService;
-  @Inject private AccessControlClient accessControlClient;
   @Inject private GitopsResourceClient gitopsResourceClient;
   @Inject ExecutionSweepingOutputService executionSweepingOutputResolver;
 
@@ -135,7 +134,7 @@ public class GitopsClustersStep implements SyncExecutableWithRbac<ClusterStepPar
 
   private Map<String, IndividualClusterInternal> fetchClusterRefs(
       String envGroupRef, Ambiance ambiance, Collection<EnvClusterRefs> envClusterRefs) {
-    List<IndividualClusterInternal> clusterRefs = new ArrayList<>();
+    final List<IndividualClusterInternal> clusterRefs = new ArrayList<>();
     clusterRefs.addAll(envClusterRefs.stream()
                            .filter(ec -> !ec.isDeployToAll())
                            .map(ec
@@ -185,13 +184,13 @@ public class GitopsClustersStep implements SyncExecutableWithRbac<ClusterStepPar
     }
 
     //    log.info("{} clusters {} were processed", outcome.getClustersData().size(), outcome.getClustersData());
-    //    log.warn("{} clusters {} were skipped as they were not present in gitops", skippedClusters.size(),
+    //    log.warn("{} clusters {} were skipped as they were not present in gitops", skppedClusters.size(),
     //    skippedClusters);
     return outcome;
   }
 
-  @Builder
   @Data
+  @Builder
   static class IndividualClusterInternal {
     String envGroupRef;
     String envRef;

@@ -27,7 +27,6 @@ import io.harness.rule.OwnerRule;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import junitparams.JUnitParamsRunner;
@@ -167,8 +166,8 @@ public class GitopsClustersStepTest extends CategoryTest {
   }
 
   @Test
-  @Category(UnitTests.class)
   @Owner(developers = OwnerRule.YOGESH)
+  @Category(UnitTests.class)
   @Parameters(method = "getData")
   public void testExecuteSyncAfterRbac(ClusterStepParameters input, GitopsClustersOutcome expectedOutcome) {
     GitopsClustersStep step = new GitopsClustersStep();
