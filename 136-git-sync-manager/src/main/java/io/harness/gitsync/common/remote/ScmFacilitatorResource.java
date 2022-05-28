@@ -277,14 +277,10 @@ public class ScmFacilitatorResource {
           NGCommonEntityConstants.ORG_KEY) @OrgIdentifier String orgIdentifier,
       @Parameter(description = PROJECT_PARAM_MESSAGE) @QueryParam(
           NGCommonEntityConstants.PROJECT_KEY) @ProjectIdentifier String projectIdentifier,
-      @Parameter(description = GitSyncApiConstants.REPO_NAME) @QueryParam(
-          "RepoName") @NotBlank @NotNull String repoName,
-      @Parameter(description = GitSyncApiConstants.FILE_PATH_KEY) @QueryParam(
-          YamlConstants.FILE_PATH) @NotBlank @NotNull String filePath,
-      @Parameter(description = GitSyncApiConstants.BRANCH_KEY) @QueryParam(
-          YamlConstants.BRANCH) @NotBlank String branch,
-      @Parameter(description = GitSyncApiConstants.CONNECTOR_REF) @QueryParam(
-          "ConnectorRef") @NotBlank String connectorRef) {
+      @Parameter(description = "Repo Name") @QueryParam("RepoName") @NotBlank @NotNull String repoName,
+      @Parameter(description = "File Path") @QueryParam(YamlConstants.FILE_PATH) @NotBlank @NotNull String filePath,
+      @Parameter(description = "Commit Id") @QueryParam(YamlConstants.BRANCH) @NotBlank String branch,
+      @Parameter(description = "Connector Ref") @QueryParam("ConnectorRef") @NotBlank String connectorRef) {
     ScmGetFileResponseDTO scmGetFileResponseDTO =
         scmFacilitatorService.getFileByBranch(ScmGetFileByBranchRequestDTO.builder()
                                                   .scope(Scope.builder()
