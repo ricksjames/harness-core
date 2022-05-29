@@ -16,6 +16,8 @@ import io.harness.cdng.gitops.service.ClusterService;
 import io.harness.gitops.models.Cluster;
 import io.harness.gitops.models.ClusterQuery;
 import io.harness.gitops.remote.GitopsResourceClient;
+import io.harness.logging.DummyLogCallbackImpl;
+import io.harness.logging.LogCallback;
 import io.harness.ng.beans.PageResponse;
 import io.harness.ng.core.dto.ResponseDTO;
 import io.harness.pms.contracts.ambiance.Ambiance;
@@ -50,6 +52,8 @@ public class GitopsClustersStepTest extends CategoryTest {
   @Mock private EnvironmentGroupService environmentGroupService;
   @Mock private GitopsResourceClient gitopsResourceClient;
   @Mock private ClusterService clusterService;
+
+  private LogCallback logCallback = new DummyLogCallbackImpl();
 
   /*
   envgroup -> envGroupId
@@ -183,6 +187,7 @@ public class GitopsClustersStepTest extends CategoryTest {
     Reflect.on(step).set("environmentGroupService", environmentGroupService);
     Reflect.on(step).set("clusterService", clusterService);
     Reflect.on(step).set("gitopsResourceClient", gitopsResourceClient);
+    Reflect.on(step).set("logger", logCallback);
 
     step.executeSyncAfterRbac(buildAmbiance(), input, StepInputPackage.builder().build(), null);
 
