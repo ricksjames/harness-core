@@ -10,6 +10,7 @@ package software.wings.delegatetasks.pcf.pcftaskhandler;
 import static io.harness.rule.OwnerRule.ADWAIT;
 import static io.harness.rule.OwnerRule.ANIL;
 import static io.harness.rule.OwnerRule.IVAN;
+import static io.harness.rule.OwnerRule.RISHABH;
 
 import static software.wings.delegatetasks.pcf.PcfTestConstants.ACCOUNT_ID;
 import static software.wings.delegatetasks.pcf.PcfTestConstants.MANIFEST_YAML;
@@ -31,6 +32,7 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
