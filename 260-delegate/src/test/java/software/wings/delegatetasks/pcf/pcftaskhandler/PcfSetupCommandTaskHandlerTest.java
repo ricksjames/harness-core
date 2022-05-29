@@ -7,6 +7,36 @@
 
 package software.wings.delegatetasks.pcf.pcftaskhandler;
 
+import static io.harness.rule.OwnerRule.ADWAIT;
+import static io.harness.rule.OwnerRule.ANIL;
+import static io.harness.rule.OwnerRule.IVAN;
+
+import static software.wings.delegatetasks.pcf.PcfTestConstants.ACCOUNT_ID;
+import static software.wings.delegatetasks.pcf.PcfTestConstants.MANIFEST_YAML;
+import static software.wings.delegatetasks.pcf.PcfTestConstants.ORG;
+import static software.wings.delegatetasks.pcf.PcfTestConstants.RUNNING;
+import static software.wings.delegatetasks.pcf.PcfTestConstants.SPACE;
+import static software.wings.delegatetasks.pcf.PcfTestConstants.STOPPED;
+import static software.wings.delegatetasks.pcf.PcfTestConstants.getPcfConfig;
+
+import static java.util.Collections.emptyList;
+import static java.util.stream.Collectors.toList;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyBoolean;
+import static org.mockito.Matchers.anyInt;
+import static org.mockito.Matchers.anyList;
+import static org.mockito.Matchers.anyListOf;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import io.harness.annotations.dev.HarnessModule;
 import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
@@ -26,10 +56,31 @@ import io.harness.logging.CommandExecutionStatus;
 import io.harness.logging.LogCallback;
 import io.harness.pcf.CfDeploymentManager;
 import io.harness.pcf.PivotalClientApiException;
-import io.harness.pcf.model.*;
+import io.harness.pcf.model.CfAppAutoscalarRequestData;
+import io.harness.pcf.model.CfCreateApplicationRequestData;
+import io.harness.pcf.model.CfManifestFileData;
+import io.harness.pcf.model.CfRequestConfig;
+import io.harness.pcf.model.PcfConstants;
 import io.harness.rule.Owner;
 import io.harness.security.encryption.EncryptedDataDetail;
 import io.harness.security.encryption.SecretDecryptionService;
+
+import software.wings.WingsBaseTest;
+import software.wings.beans.artifact.ArtifactStreamAttributes;
+import software.wings.delegatetasks.pcf.PcfCommandTaskHelper;
+import software.wings.helpers.ext.pcf.request.CfCommandSetupRequest;
+import software.wings.service.intfc.security.EncryptionService;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import org.cloudfoundry.operations.applications.ApplicationDetail;
 import org.cloudfoundry.operations.applications.ApplicationSummary;
 import org.cloudfoundry.operations.applications.InstanceDetail;
@@ -44,24 +95,6 @@ import org.mockito.Spy;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
-import software.wings.WingsBaseTest;
-import software.wings.beans.artifact.ArtifactStreamAttributes;
-import software.wings.delegatetasks.pcf.PcfCommandTaskHelper;
-import software.wings.helpers.ext.pcf.request.CfCommandSetupRequest;
-import software.wings.service.intfc.security.EncryptionService;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.*;
-import java.util.concurrent.ExecutionException;
-
-import static io.harness.rule.OwnerRule.*;
-import static java.util.Collections.emptyList;
-import static java.util.stream.Collectors.toList;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Matchers.*;
-import static org.mockito.Mockito.*;
-import static software.wings.delegatetasks.pcf.PcfTestConstants.*;
 
 @TargetModule(HarnessModule._930_DELEGATE_TASKS)
 @OwnedBy(HarnessTeam.CDP)
@@ -294,38 +327,38 @@ public class PcfSetupCommandTaskHandlerTest extends WingsBaseTest {
   public void testDownsizeApplicationToZero() throws Exception {
     reset(pcfDeploymentManager);
     ApplicationSummary applicationSummary = ApplicationSummary.builder()
-            .name("a_s_e__1")
-            .diskQuota(1)
-            .requestedState(RUNNING)
-            .id("10")
-            .instances(0)
-            .memoryLimit(1)
-            .runningInstances(0)
-            .build();
+                                                .name("a_s_e__1")
+                                                .diskQuota(1)
+                                                .requestedState(RUNNING)
+                                                .id("10")
+                                                .instances(0)
+                                                .memoryLimit(1)
+                                                .runningInstances(0)
+                                                .build();
 
     ApplicationDetail applicationDetail = ApplicationDetail.builder()
-            .id("10")
-            .diskQuota(1)
-            .instances(0)
-            .memoryLimit(1)
-            .name("a_s_e__1")
-            .requestedState(STOPPED)
-            .stack("")
-            .runningInstances(0)
-            .build();
+                                              .id("10")
+                                              .diskQuota(1)
+                                              .instances(0)
+                                              .memoryLimit(1)
+                                              .name("a_s_e__1")
+                                              .requestedState(STOPPED)
+                                              .stack("")
+                                              .runningInstances(0)
+                                              .build();
     doReturn(applicationDetail).when(pcfDeploymentManager).getApplicationByName(any());
     doReturn(applicationDetail).when(pcfDeploymentManager).resizeApplication(any());
 
     CfCommandSetupRequest cfCommandSetupRequest = CfCommandSetupRequest.builder().useAppAutoscalar(true).build();
 
     CfAppAutoscalarRequestData pcfAppAutoscalarRequestData =
-            CfAppAutoscalarRequestData.builder().configPathVar("path").build();
+        CfAppAutoscalarRequestData.builder().configPathVar("path").build();
 
     doReturn(true).when(pcfCommandTaskBaseHelper).disableAutoscalar(any(), any());
     ArgumentCaptor<CfAppAutoscalarRequestData> argumentCaptor =
-            ArgumentCaptor.forClass(CfAppAutoscalarRequestData.class);
+        ArgumentCaptor.forClass(CfAppAutoscalarRequestData.class);
     pcfSetupCommandTaskHandler.downsizeApplicationToZero(applicationSummary, CfRequestConfig.builder().build(),
-            cfCommandSetupRequest, pcfAppAutoscalarRequestData, executionLogCallback);
+        cfCommandSetupRequest, pcfAppAutoscalarRequestData, executionLogCallback);
 
     verify(pcfCommandTaskBaseHelper, times(1)).disableAutoscalar(argumentCaptor.capture(), any());
     pcfAppAutoscalarRequestData = argumentCaptor.getValue();
@@ -340,39 +373,41 @@ public class PcfSetupCommandTaskHandlerTest extends WingsBaseTest {
   public void testDownsizeApplicationToZero_failAutoscaler() throws Exception {
     reset(pcfDeploymentManager);
     ApplicationSummary applicationSummary = ApplicationSummary.builder()
-            .name("a_s_e__1")
-            .diskQuota(1)
-            .requestedState(RUNNING)
-            .id("10")
-            .instances(0)
-            .memoryLimit(1)
-            .runningInstances(0)
-            .build();
+                                                .name("a_s_e__1")
+                                                .diskQuota(1)
+                                                .requestedState(RUNNING)
+                                                .id("10")
+                                                .instances(0)
+                                                .memoryLimit(1)
+                                                .runningInstances(0)
+                                                .build();
 
     ApplicationDetail applicationDetail = ApplicationDetail.builder()
-            .id("10")
-            .diskQuota(1)
-            .instances(0)
-            .memoryLimit(1)
-            .name("a_s_e__1")
-            .requestedState(STOPPED)
-            .stack("")
-            .runningInstances(0)
-            .build();
+                                              .id("10")
+                                              .diskQuota(1)
+                                              .instances(0)
+                                              .memoryLimit(1)
+                                              .name("a_s_e__1")
+                                              .requestedState(STOPPED)
+                                              .stack("")
+                                              .runningInstances(0)
+                                              .build();
     doReturn(applicationDetail).when(pcfDeploymentManager).getApplicationByName(any());
     doReturn(applicationDetail).when(pcfDeploymentManager).resizeApplication(any());
 
     CfCommandSetupRequest cfCommandSetupRequest = CfCommandSetupRequest.builder().useAppAutoscalar(true).build();
 
     CfAppAutoscalarRequestData pcfAppAutoscalarRequestData =
-            CfAppAutoscalarRequestData.builder().configPathVar("path").build();
+        CfAppAutoscalarRequestData.builder().configPathVar("path").build();
 
-    doThrow(new PivotalClientApiException("#Throwing exception to test if flow stops or not")).when(pcfCommandTaskBaseHelper).disableAutoscalar(any(),any());
+    doThrow(new PivotalClientApiException("#Throwing exception to test if flow stops or not"))
+        .when(pcfCommandTaskBaseHelper)
+        .disableAutoscalar(any(), any());
 
     ArgumentCaptor<CfAppAutoscalarRequestData> argumentCaptor =
-            ArgumentCaptor.forClass(CfAppAutoscalarRequestData.class);
+        ArgumentCaptor.forClass(CfAppAutoscalarRequestData.class);
     pcfSetupCommandTaskHandler.downsizeApplicationToZero(applicationSummary, CfRequestConfig.builder().build(),
-            cfCommandSetupRequest, pcfAppAutoscalarRequestData, executionLogCallback);
+        cfCommandSetupRequest, pcfAppAutoscalarRequestData, executionLogCallback);
 
     verify(pcfCommandTaskBaseHelper, times(1)).disableAutoscalar(argumentCaptor.capture(), any());
     verify(pcfDeploymentManager, times(0)).changeAutoscalarState(any(), any(), anyBoolean());
