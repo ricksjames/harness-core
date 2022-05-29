@@ -115,8 +115,8 @@ public class EventPublisherServerImpl extends EventPublisherGrpc.EventPublisherI
       if (isNotEmpty(withoutCategory)) {
         try {
           long startTime = System.currentTimeMillis();
-          //                    eventDataBulkWriteService.saveBatch(withoutCategory);
-          eventDataBulkWriteService.saveIgnoringDuplicateKeys(withoutCategory);
+          eventDataBulkWriteService.saveBatch(withoutCategory);
+          //          eventDataBulkWriteService.saveIgnoringDuplicateKeys(withoutCategory);
           //          eventDataBulkWriteService.insertPublishedMessages(withoutCategory);
           long endTime = System.currentTimeMillis();
           List<String> uuids = withoutCategory.stream().map(PublishedMessage::getUuid).collect(Collectors.toList());
