@@ -7,39 +7,33 @@
 
 package io.harness.delegate.beans;
 
+import static io.harness.data.structure.EmptyPredicate.isEmpty;
+
 import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
-import io.harness.data.validator.EntityIdentifier;
-import io.harness.gitsync.beans.YamlDTO;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import java.util.Collections;
 import java.util.Set;
+import java.util.stream.Collectors;
 import javax.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
+import org.apache.commons.lang3.StringUtils;
 
 @Data
-@Builder
-@AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
 @OwnedBy(HarnessTeam.DEL)
-public class DelegateSetupDetails implements YamlDTO {
-  private String orgIdentifier;
-  private String projectIdentifier;
+public class DelegateDownloadRequest {
   @NotNull private String name;
   private String description;
   private DelegateSize size;
-  private String hostName;
-  // TODO: Remove delegateCongigId once we drop this from UI.
-  private String delegateConfigurationId;
-  // This can be blank also, since we can create a group from delegate yaml itself.
-  @EntityIdentifier(allowBlank = true) private String identifier;
-
-  private K8sConfigDetails k8sConfigDetails;
-
   private Set<String> tags;
-
-  @NotNull private String delegateType;
   private String tokenName;
+  private K8sPermissionType clusterPermissionType;
+  private String customClusterNamespace;
+
+  public Set<String> getTags() {
+    return isEmpty(tags) ? Collections.emptySet()
+                         : tags.stream().filter(StringUtils::isNotBlank).map(String::trim).collect(Collectors.toSet());
+  }
 }

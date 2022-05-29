@@ -9,6 +9,7 @@ package io.harness.ng.core.delegate.client;
 
 import io.harness.NGCommonEntityConstants;
 import io.harness.delegate.DelegateDownloadResponse;
+import io.harness.delegate.beans.DelegateDownloadRequest;
 import io.harness.delegate.beans.DelegateGroup;
 import io.harness.delegate.beans.DelegateGroupDTO;
 import io.harness.delegate.beans.DelegateGroupListing;
@@ -153,10 +154,17 @@ public interface DelegateNgManagerCgManagerClient {
 
   //------------------------ Delegate Download Apis -----------------------------------
 
-  @POST(DELEGATE_DOWNLOAD_API)
-  Call<RestResponse<DelegateDownloadResponse>> downloadDelegate(
+  @POST(DELEGATE_DOWNLOAD_API + "/kubernetes")
+  Call<RestResponse<DelegateDownloadResponse>> downloadKubernetesDelegate(
       @Query(NGCommonEntityConstants.ACCOUNT_KEY) @NotNull String accountIdentifier,
       @Query(NGCommonEntityConstants.ORG_KEY) String orgIdentifier,
       @Query(NGCommonEntityConstants.PROJECT_KEY) String projectIdentifier,
-      @Body @NotNull DelegateSetupDetails delegateSetupDetails);
+      @Body @NotNull DelegateDownloadRequest delegateDownloadRequest);
+
+  @POST(DELEGATE_DOWNLOAD_API + "/docker")
+  Call<RestResponse<DelegateDownloadResponse>> downloadDockerDelegate(
+      @Query(NGCommonEntityConstants.ACCOUNT_KEY) @NotNull String accountIdentifier,
+      @Query(NGCommonEntityConstants.ORG_KEY) String orgIdentifier,
+      @Query(NGCommonEntityConstants.PROJECT_KEY) String projectIdentifier,
+      @Body @NotNull DelegateDownloadRequest delegateDownloadRequest);
 }

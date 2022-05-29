@@ -11,10 +11,13 @@ import static io.harness.annotations.dev.HarnessTeam.DEL;
 
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.delegate.DelegateDownloadResponse;
-import io.harness.delegate.beans.DelegateSetupDetails;
+import io.harness.delegate.beans.DelegateDownloadRequest;
 
 @OwnedBy(DEL)
 public interface DelegateDownloadService {
-  DelegateDownloadResponse downloadNgDelegate(String accountId, String orgIdentifier, String projectIdentifier,
-      DelegateSetupDetails delegateSetupDetails, String managerHost, String verificationServiceUrl);
+  DelegateDownloadResponse downloadKubernetesDelegate(String accountId, String orgIdentifier, String projectIdentifier,
+      DelegateDownloadRequest delegateDownloadRequest, String managerHost, String verificationServiceUrl);
+
+  DelegateDownloadResponse downloadDockerDelegate(String accountId, String orgIdentifier, String projectIdentifier,
+      DelegateDownloadRequest delegateDownloadRequest, String managerHost, String verificationServiceUrl);
 }

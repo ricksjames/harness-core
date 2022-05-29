@@ -20,7 +20,7 @@ import io.harness.accesscontrol.clients.AccessControlClient;
 import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.delegate.DelegateDownloadResponse;
-import io.harness.delegate.beans.DelegateSetupDetails;
+import io.harness.delegate.beans.DelegateDownloadRequest;
 import io.harness.exception.InvalidRequestException;
 import io.harness.ng.core.delegate.client.DelegateNgManagerCgManagerClient;
 import io.harness.ng.core.dto.ErrorDTO;
@@ -46,8 +46,8 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Response;
 import org.hibernate.validator.constraints.NotEmpty;
 
-@Api("/download-delegate")
-@Path("/download-delegate")
+@Api("download-delegates")
+@Path("/download-delegates")
 @Produces("application/json")
 @Consumes({"application/json"})
 @OwnedBy(HarnessTeam.DEL)
@@ -67,10 +67,10 @@ import org.hibernate.validator.constraints.NotEmpty;
 public class DelegateDownloadResource {
   private static final String CONTENT_TRANSFER_ENCODING = "Content-Transfer-Encoding";
   private static final String BINARY = "binary";
-  public static final String YML = ".yml";
-  private static final String HARNESS_DELEGATE = "harness-delegate";
+  public static final String YAML = ".yaml";
   private static final String CONTENT_DISPOSITION = "Content-Disposition";
   private static final String ATTACHMENT_FILENAME = "attachment; filename=";
+  private static final String DOCKER_COMPOSE = "docker-compose";
 
   private final AccessControlClient accessControlClient;
   private final DelegateNgManagerCgManagerClient delegateNgManagerCgManagerClient;
@@ -83,35 +83,72 @@ public class DelegateDownloadResource {
   }
 
   @POST
-  @ApiOperation(value = "Downloads a delegate file.", nickname = "downloadDelegate")
+  @Path("/kubernetes")
+  @ApiOperation(value = "Downloads a kubernetes delegate yaml file.", nickname = "downloadKubernetesDelegateYaml")
   @Timed
   @ExceptionMetered
-  @Operation(operationId = "downloadDelegate", summary = "Downloads a delegate file",
+  @Operation(operationId = "downloadKubernetesDelegateYaml", summary = "Downloads a kubernetes delegate yaml file.",
       responses =
       {
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "default", description = "Delegate File.")
+        @io.swagger.v3.oas.annotations.responses.
+        ApiResponse(responseCode = "default", description = "Delegate Yaml File.")
       })
   public Response
-  downloadDelegate(@Parameter(description = NGCommonEntityConstants.ACCOUNT_PARAM_MESSAGE) @QueryParam(
-                       NGCommonEntityConstants.ACCOUNT_KEY) @NotEmpty String accountIdentifier,
+  downloadKubernetesDelegate(@Parameter(description = NGCommonEntityConstants.ACCOUNT_PARAM_MESSAGE) @QueryParam(
+                                 NGCommonEntityConstants.ACCOUNT_KEY) @NotEmpty String accountIdentifier,
       @Parameter(description = NGCommonEntityConstants.ORG_PARAM_MESSAGE) @QueryParam(
           NGCommonEntityConstants.ORG_KEY) String orgIdentifier,
       @Parameter(description = NGCommonEntityConstants.PROJECT_PARAM_MESSAGE) @QueryParam(
           NGCommonEntityConstants.PROJECT_KEY) String projectIdentifier,
-      @RequestBody(required = true, description = "Parameters needed for downloading a specific delegate file")
-      DelegateSetupDetails delegateSetupDetails) {
+      @RequestBody(required = true, description = "Parameters needed for downloading kubernetes delegate yaml")
+      DelegateDownloadRequest delegateDownloadRequest) {
     accessControlClient.checkForAccessOrThrow(ResourceScope.of(accountIdentifier, orgIdentifier, projectIdentifier),
         Resource.of(DELEGATE_RESOURCE_TYPE, null), DELEGATE_EDIT_PERMISSION);
     DelegateDownloadResponse delegateDownloadResponse =
-        RestClientUtils.getResponse(delegateNgManagerCgManagerClient.downloadDelegate(
-            accountIdentifier, orgIdentifier, projectIdentifier, delegateSetupDetails));
+        RestClientUtils.getResponse(delegateNgManagerCgManagerClient.downloadKubernetesDelegate(
+            accountIdentifier, orgIdentifier, projectIdentifier, delegateDownloadRequest));
     if (isNotEmpty(delegateDownloadResponse.getErrorMsg())) {
       throw new InvalidRequestException(delegateDownloadResponse.getErrorMsg());
     }
     return Response.ok(delegateDownloadResponse.getDelegateFile())
         .header(CONTENT_TRANSFER_ENCODING, BINARY)
         .type("text/plain; charset=UTF-8")
-        .header(CONTENT_DISPOSITION, ATTACHMENT_FILENAME + HARNESS_DELEGATE + YML)
+        .header(CONTENT_DISPOSITION, ATTACHMENT_FILENAME + KUBERNETES_DELEGATE + YAML)
+        .build();
+  }
+
+  @POST
+  @Path("/docker")
+  @ApiOperation(value = "Downloads a docker delegate yaml file.", nickname = "downloadDockerDelegateYaml")
+  @Timed
+  @ExceptionMetered
+  @Operation(operationId = "downloadDockerDelegateYaml", summary = "Downloads a docker delegate yaml file.",
+      responses =
+      {
+        @io.swagger.v3.oas.annotations.responses.
+        ApiResponse(responseCode = "default", description = "Delegate Yaml File.")
+      })
+  public Response
+  downloadDockerDelegate(@Parameter(description = NGCommonEntityConstants.ACCOUNT_PARAM_MESSAGE) @QueryParam(
+                             NGCommonEntityConstants.ACCOUNT_KEY) @NotEmpty String accountIdentifier,
+      @Parameter(description = NGCommonEntityConstants.ORG_PARAM_MESSAGE) @QueryParam(
+          NGCommonEntityConstants.ORG_KEY) String orgIdentifier,
+      @Parameter(description = NGCommonEntityConstants.PROJECT_PARAM_MESSAGE) @QueryParam(
+          NGCommonEntityConstants.PROJECT_KEY) String projectIdentifier,
+      @RequestBody(required = true, description = "Parameters needed for downloading docker delegate yaml")
+      DelegateDownloadRequest delegateDownloadRequest) {
+    accessControlClient.checkForAccessOrThrow(ResourceScope.of(accountIdentifier, orgIdentifier, projectIdentifier),
+        Resource.of(DELEGATE_RESOURCE_TYPE, null), DELEGATE_EDIT_PERMISSION);
+    DelegateDownloadResponse delegateDownloadResponse =
+        RestClientUtils.getResponse(delegateNgManagerCgManagerClient.downloadDockerDelegate(
+            accountIdentifier, orgIdentifier, projectIdentifier, delegateDownloadRequest));
+    if (isNotEmpty(delegateDownloadResponse.getErrorMsg())) {
+      throw new InvalidRequestException(delegateDownloadResponse.getErrorMsg());
+    }
+    return Response.ok(delegateDownloadResponse.getDelegateFile())
+        .header(CONTENT_TRANSFER_ENCODING, BINARY)
+        .type("text/plain; charset=UTF-8")
+        .header(CONTENT_DISPOSITION, ATTACHMENT_FILENAME + DOCKER_COMPOSE + YAML)
         .build();
   }
 }

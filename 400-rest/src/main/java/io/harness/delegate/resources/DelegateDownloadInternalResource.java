@@ -15,7 +15,7 @@ import io.harness.NGCommonEntityConstants;
 import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.delegate.DelegateDownloadResponse;
-import io.harness.delegate.beans.DelegateSetupDetails;
+import io.harness.delegate.beans.DelegateDownloadRequest;
 import io.harness.delegate.service.intfc.DelegateDownloadService;
 import io.harness.logging.AccountLogContext;
 import io.harness.logging.AutoLogContext;
@@ -61,6 +61,7 @@ public class DelegateDownloadInternalResource {
   }
 
   @POST
+  @Path("/kubernetes")
   @Timed
   @ExceptionMetered
   @InternalApi
@@ -71,11 +72,34 @@ public class DelegateDownloadInternalResource {
           NGCommonEntityConstants.ORG_KEY) String orgIdentifier,
       @Parameter(description = NGCommonEntityConstants.PROJECT_PARAM_MESSAGE) @QueryParam(
           NGCommonEntityConstants.PROJECT_KEY) String projectIdentifier,
-      @RequestBody() DelegateSetupDetails delegateSetupDetails) {
+      @RequestBody() DelegateDownloadRequest delegateDownloadRequest) {
     try (AutoLogContext ignore1 = new AccountLogContext(accountIdentifier, OVERRIDE_ERROR)) {
       String managerUrl = subdomainUrlHelper.getManagerUrl(request, accountIdentifier);
-      DelegateDownloadResponse delegateDownloadResponse = delegateDownloadService.downloadNgDelegate(accountIdentifier,
-          orgIdentifier, projectIdentifier, delegateSetupDetails, managerUrl, getVerificationServiceUrl(request));
+      DelegateDownloadResponse delegateDownloadResponse =
+          delegateDownloadService.downloadKubernetesDelegate(accountIdentifier, orgIdentifier, projectIdentifier,
+              delegateDownloadRequest, managerUrl, getVerificationServiceUrl(request));
+      return new RestResponse<>(delegateDownloadResponse);
+    }
+  }
+
+  @POST
+  @Path("/docker")
+  @Timed
+  @ExceptionMetered
+  @InternalApi
+  public RestResponse<DelegateDownloadResponse> downloadDockerDelegate(@Context HttpServletRequest request,
+      @Parameter(description = NGCommonEntityConstants.ACCOUNT_PARAM_MESSAGE) @QueryParam(
+          NGCommonEntityConstants.ACCOUNT_KEY) @NotNull String accountIdentifier,
+      @Parameter(description = NGCommonEntityConstants.ORG_PARAM_MESSAGE) @QueryParam(
+          NGCommonEntityConstants.ORG_KEY) String orgIdentifier,
+      @Parameter(description = NGCommonEntityConstants.PROJECT_PARAM_MESSAGE) @QueryParam(
+          NGCommonEntityConstants.PROJECT_KEY) String projectIdentifier,
+      @RequestBody() DelegateDownloadRequest delegateDownloadRequest) {
+    try (AutoLogContext ignore1 = new AccountLogContext(accountIdentifier, OVERRIDE_ERROR)) {
+      String managerUrl = subdomainUrlHelper.getManagerUrl(request, accountIdentifier);
+      DelegateDownloadResponse delegateDownloadResponse =
+          delegateDownloadService.downloadDockerDelegate(accountIdentifier, orgIdentifier, projectIdentifier,
+              delegateDownloadRequest, managerUrl, getVerificationServiceUrl(request));
       return new RestResponse<>(delegateDownloadResponse);
     }
   }

@@ -8,6 +8,7 @@
 package io.harness.delegate.service.impl;
 
 import static io.harness.data.structure.EmptyPredicate.isEmpty;
+import static io.harness.data.structure.EmptyPredicate.isNotEmpty;
 import static io.harness.delegate.beans.DelegateSize.LAPTOP;
 import static io.harness.delegate.beans.DelegateSize.LARGE;
 import static io.harness.delegate.beans.DelegateSize.MEDIUM;
@@ -21,11 +22,13 @@ import static io.harness.delegate.beans.K8sPermissionType.NAMESPACE_ADMIN;
 import static java.lang.String.format;
 
 import io.harness.delegate.DelegateDownloadResponse;
+import io.harness.delegate.beans.DelegateDownloadRequest;
 import io.harness.delegate.beans.DelegateEntityOwner;
 import io.harness.delegate.beans.DelegateSetupDetails;
 import io.harness.delegate.beans.DelegateTokenDetails;
 import io.harness.delegate.beans.DelegateTokenStatus;
 import io.harness.delegate.beans.K8sConfigDetails;
+import io.harness.delegate.beans.K8sPermissionType;
 import io.harness.delegate.service.intfc.DelegateDownloadService;
 import io.harness.delegate.service.intfc.DelegateNgTokenService;
 import io.harness.delegate.utils.DelegateEntityOwnerHelper;
@@ -52,29 +55,12 @@ public class DelegateDownloadServiceImpl implements DelegateDownloadService {
   }
 
   @Override
-  public DelegateDownloadResponse downloadNgDelegate(String accountId, String orgIdentifier, String projectIdentifier,
-      DelegateSetupDetails delegateSetupDetails, String managerHost, String verificationServiceUrl) {
+  public DelegateDownloadResponse downloadKubernetesDelegate(String accountId, String orgIdentifier,
+      String projectIdentifier, DelegateDownloadRequest delegateDownloadRequest, String managerHost,
+      String verificationServiceUrl) {
     try {
-      delegateSetupDetails.setOrgIdentifier(orgIdentifier);
-      delegateSetupDetails.setProjectIdentifier(projectIdentifier);
-      if (DOCKER.equals(delegateSetupDetails.getDelegateType())) {
-        return downloadNgDockerDelegate(accountId, delegateSetupDetails, managerHost, verificationServiceUrl);
-      }
-      if (KUBERNETES.equals(delegateSetupDetails.getDelegateType())) {
-        return downloadNgKubernetesDelegate(accountId, delegateSetupDetails, managerHost, verificationServiceUrl);
-      }
-      return new DelegateDownloadResponse(
-          "Invalid delegate type given. Delegate type must be either of KUBERNETES or DOCKER.", null);
-    } catch (Exception e) {
-      log.error("Error occurred during downloading ng delegate.", e);
-      return new DelegateDownloadResponse(ExceptionUtils.getMessage(e), null);
-    }
-  }
-
-  private DelegateDownloadResponse downloadNgKubernetesDelegate(
-      String accountId, DelegateSetupDetails delegateSetupDetails, String managerHost, String verificationServiceUrl) {
-    try {
-      buildProperDelegateSetupDetails(accountId, delegateSetupDetails, KUBERNETES);
+      DelegateSetupDetails delegateSetupDetails = buildProperDelegateSetupDetails(
+          accountId, orgIdentifier, projectIdentifier, delegateDownloadRequest, KUBERNETES);
       File delegateFile = delegateService.generateKubernetesYaml(
           accountId, delegateSetupDetails, managerHost, verificationServiceUrl, MediaType.TEXT_PLAIN_TYPE);
       return new DelegateDownloadResponse(null, delegateFile);
@@ -84,10 +70,12 @@ public class DelegateDownloadServiceImpl implements DelegateDownloadService {
     }
   }
 
-  private DelegateDownloadResponse downloadNgDockerDelegate(
-      String accountId, DelegateSetupDetails delegateSetupDetails, String managerHost, String verificationServiceUrl) {
+  public DelegateDownloadResponse downloadDockerDelegate(String accountId, String orgIdentifier,
+      String projectIdentifier, DelegateDownloadRequest delegateDownloadRequest, String managerHost,
+      String verificationServiceUrl) {
     try {
-      buildProperDelegateSetupDetails(accountId, delegateSetupDetails, DOCKER);
+      DelegateSetupDetails delegateSetupDetails =
+          buildProperDelegateSetupDetails(accountId, orgIdentifier, projectIdentifier, delegateDownloadRequest, DOCKER);
       File delegateFile =
           delegateService.downloadNgDocker(managerHost, verificationServiceUrl, accountId, delegateSetupDetails);
       return new DelegateDownloadResponse(null, delegateFile);
@@ -97,40 +85,49 @@ public class DelegateDownloadServiceImpl implements DelegateDownloadService {
     }
   }
 
-  private void buildProperDelegateSetupDetails(
-      String accountId, DelegateSetupDetails delegateSetupDetails, String delegateType) {
-    delegateService.checkUniquenessOfDelegateName(accountId, delegateSetupDetails.getName(), true);
+  private DelegateSetupDetails buildProperDelegateSetupDetails(String accountId, String orgIdentifier,
+      String projectIdentifier, DelegateDownloadRequest delegateDownloadRequest, String delegateType) {
+    delegateService.checkUniquenessOfDelegateName(accountId, delegateDownloadRequest.getName(), true);
 
-    DelegateEntityOwner owner = DelegateEntityOwnerHelper.buildOwner(
-        delegateSetupDetails.getOrgIdentifier(), delegateSetupDetails.getProjectIdentifier());
+    DelegateSetupDetails delegateSetupDetails = DelegateSetupDetails.builder()
+                                                    .name(delegateDownloadRequest.getName())
+                                                    .orgIdentifier(orgIdentifier)
+                                                    .projectIdentifier(projectIdentifier)
+                                                    .description(delegateDownloadRequest.getDescription())
+                                                    .tags(delegateDownloadRequest.getTags())
+                                                    .delegateType(delegateType)
+                                                    .build();
 
-    String delegateToken = delegateSetupDetails.getTokenName();
-    if (isEmpty(delegateToken)) {
-      delegateToken = delegateNgTokenService.getDefaultTokenName(owner);
+    DelegateEntityOwner owner = DelegateEntityOwnerHelper.buildOwner(orgIdentifier, projectIdentifier);
+
+    String delegateTokenName = delegateDownloadRequest.getTokenName();
+    if (isEmpty(delegateTokenName)) {
+      delegateTokenName = delegateNgTokenService.getDefaultTokenName(owner);
     }
-    DelegateTokenDetails delegateTokenDetails = delegateNgTokenService.getDelegateToken(accountId, delegateToken);
+    DelegateTokenDetails delegateTokenDetails = delegateNgTokenService.getDelegateToken(accountId, delegateTokenName);
     if (delegateTokenDetails == null || DelegateTokenStatus.REVOKED.equals(delegateTokenDetails.getStatus())) {
       throw new InvalidRequestException(format(
           "Can not use %s delegate token. This token does not exists or has been revoked. Please specify a valid delegate token.",
-          delegateToken));
+          delegateTokenName));
     }
-    delegateSetupDetails.setTokenName(delegateToken);
+    delegateSetupDetails.setTokenName(delegateTokenName);
 
     // properties specific for k8s delegate
     if (delegateType.equals(KUBERNETES)) {
-      if (!Arrays.asList(LAPTOP, SMALL, MEDIUM, LARGE).contains(delegateSetupDetails.getSize())) {
+      if (!Arrays.asList(LAPTOP, SMALL, MEDIUM, LARGE).contains(delegateDownloadRequest.getSize())) {
         delegateSetupDetails.setSize(LAPTOP);
       }
 
-      K8sConfigDetails k8sConfigDetails = delegateSetupDetails.getK8sConfigDetails();
-      if (k8sConfigDetails == null
-          || !Arrays.asList(CLUSTER_ADMIN, CLUSTER_VIEWER, NAMESPACE_ADMIN)
-                  .contains(delegateSetupDetails.getK8sConfigDetails().getK8sPermissionType())) {
+      K8sPermissionType clusterPermissionType = delegateDownloadRequest.getClusterPermissionType();
+      if (isNotEmpty(delegateDownloadRequest.getCustomClusterNamespace())) {
+        delegateSetupDetails.setK8sConfigDetails(K8sConfigDetails.builder()
+                                                     .k8sPermissionType(NAMESPACE_ADMIN)
+                                                     .namespace(delegateDownloadRequest.getCustomClusterNamespace())
+                                                     .build());
+      } else if (!CLUSTER_ADMIN.equals(clusterPermissionType) && !CLUSTER_VIEWER.equals(clusterPermissionType)) {
         delegateSetupDetails.setK8sConfigDetails(K8sConfigDetails.builder().k8sPermissionType(CLUSTER_ADMIN).build());
-      } else if (NAMESPACE_ADMIN.equals(k8sConfigDetails.getK8sPermissionType())
-          && isEmpty(k8sConfigDetails.getNamespace())) {
-        throw new InvalidRequestException("K8s namespace must be provided for this type of permission.");
       }
     }
+    return delegateSetupDetails;
   }
 }
