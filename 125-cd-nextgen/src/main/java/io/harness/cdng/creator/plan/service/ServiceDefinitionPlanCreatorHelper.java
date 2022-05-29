@@ -3,9 +3,18 @@ package io.harness.cdng.creator.plan.service;
 import io.harness.cdng.artifact.bean.yaml.ArtifactListConfig;
 import io.harness.cdng.manifest.yaml.ManifestConfigWrapper;
 import io.harness.cdng.service.beans.ServiceConfig;
+import io.harness.cdng.utilities.ArtifactsUtility;
+import io.harness.cdng.utilities.ManifestsUtility;
 import io.harness.cdng.visitor.YamlTypes;
 import io.harness.data.structure.EmptyPredicate;
+import io.harness.data.structure.UUIDGenerator;
 import io.harness.ng.core.service.yaml.NGServiceV2InfoConfig;
+import io.harness.pms.contracts.plan.Dependency;
+import io.harness.pms.contracts.plan.YamlUpdates;
+import io.harness.pms.sdk.core.plan.creation.beans.PlanCreationResponse;
+import io.harness.pms.yaml.DependenciesUtils;
+import io.harness.pms.yaml.YamlField;
+import io.harness.pms.yaml.YamlNode;
 import io.harness.serializer.KryoSerializer;
 
 import com.google.protobuf.ByteString;
@@ -66,6 +75,116 @@ public class ServiceDefinitionPlanCreatorHelper {
       return artifactListConfig.getPrimary() != null || EmptyPredicate.isNotEmpty(artifactListConfig.getSidecars());
     }
     return false;
+  }
+
+  String addDependenciesForArtifacts(YamlNode serviceConfigNode,
+      Map<String, PlanCreationResponse> planCreationResponseMap, ServiceConfig actualServiceConfig,
+      KryoSerializer kryoSerializer) {
+    YamlUpdates.Builder yamlUpdates = YamlUpdates.newBuilder();
+    boolean isUseFromStage = actualServiceConfig.getUseFromStage() != null;
+    YamlField artifactYamlField =
+        ArtifactsUtility.fetchArtifactYamlFieldAndSetYamlUpdates(serviceConfigNode, isUseFromStage, yamlUpdates);
+    String artifactsPlanNodeId = UUIDGenerator.generateUuid();
+
+    Map<String, ByteString> metadataDependency =
+        prepareMetadata(artifactsPlanNodeId, actualServiceConfig, kryoSerializer);
+
+    Map<String, YamlField> dependenciesMap = new HashMap<>();
+    dependenciesMap.put(artifactsPlanNodeId, artifactYamlField);
+    PlanCreationResponse.PlanCreationResponseBuilder artifactPlanCreationResponse =
+        PlanCreationResponse.builder().dependencies(
+            DependenciesUtils.toDependenciesProto(dependenciesMap)
+                .toBuilder()
+                .putDependencyMetadata(
+                    artifactsPlanNodeId, Dependency.newBuilder().putAllMetadata(metadataDependency).build())
+                .build());
+    if (yamlUpdates.getFqnToYamlCount() > 0) {
+      artifactPlanCreationResponse.yamlUpdates(yamlUpdates.build());
+    }
+    planCreationResponseMap.put(artifactsPlanNodeId, artifactPlanCreationResponse.build());
+    return artifactsPlanNodeId;
+  }
+
+  String addDependenciesForArtifactsV2(YamlNode serviceV2Node,
+      Map<String, PlanCreationResponse> planCreationResponseMap, NGServiceV2InfoConfig serviceV2Config,
+      KryoSerializer kryoSerializer) {
+    YamlUpdates.Builder yamlUpdates = YamlUpdates.newBuilder();
+    YamlField artifactYamlField =
+        ArtifactsUtility.fetchArtifactYamlFieldAndSetYamlUpdates(serviceV2Node, false, yamlUpdates);
+    String artifactsPlanNodeId = UUIDGenerator.generateUuid();
+
+    Map<String, ByteString> metadataDependency =
+        prepareMetadataV2(artifactsPlanNodeId, serviceV2Config, kryoSerializer);
+
+    Map<String, YamlField> dependenciesMap = new HashMap<>();
+    dependenciesMap.put(artifactsPlanNodeId, artifactYamlField);
+    PlanCreationResponse.PlanCreationResponseBuilder artifactPlanCreationResponse =
+        PlanCreationResponse.builder().dependencies(
+            DependenciesUtils.toDependenciesProto(dependenciesMap)
+                .toBuilder()
+                .putDependencyMetadata(
+                    artifactsPlanNodeId, Dependency.newBuilder().putAllMetadata(metadataDependency).build())
+                .build());
+    if (yamlUpdates.getFqnToYamlCount() > 0) {
+      artifactPlanCreationResponse.yamlUpdates(yamlUpdates.build());
+    }
+    planCreationResponseMap.put(artifactsPlanNodeId, artifactPlanCreationResponse.build());
+    return artifactsPlanNodeId;
+  }
+
+  String addDependenciesForManifests(YamlNode serviceConfigNode,
+      Map<String, PlanCreationResponse> planCreationResponseMap, ServiceConfig actualServiceConfig,
+      KryoSerializer kryoSerializer) {
+    YamlUpdates.Builder yamlUpdates = YamlUpdates.newBuilder();
+    boolean isUseFromStage = actualServiceConfig.getUseFromStage() != null;
+    YamlField manifestsYamlField =
+        ManifestsUtility.fetchManifestsYamlFieldAndSetYamlUpdates(serviceConfigNode, isUseFromStage, yamlUpdates);
+    String manifestsPlanNodeId = "manifests-" + UUIDGenerator.generateUuid();
+
+    Map<String, ByteString> metadataDependency =
+        prepareMetadata(manifestsPlanNodeId, actualServiceConfig, kryoSerializer);
+
+    Map<String, YamlField> dependenciesMap = new HashMap<>();
+    dependenciesMap.put(manifestsPlanNodeId, manifestsYamlField);
+    PlanCreationResponse.PlanCreationResponseBuilder manifestsPlanCreationResponse =
+        PlanCreationResponse.builder().dependencies(
+            DependenciesUtils.toDependenciesProto(dependenciesMap)
+                .toBuilder()
+                .putDependencyMetadata(
+                    manifestsPlanNodeId, Dependency.newBuilder().putAllMetadata(metadataDependency).build())
+                .build());
+    if (yamlUpdates.getFqnToYamlCount() > 0) {
+      manifestsPlanCreationResponse.yamlUpdates(yamlUpdates.build());
+    }
+    planCreationResponseMap.put(manifestsPlanNodeId, manifestsPlanCreationResponse.build());
+    return manifestsPlanNodeId;
+  }
+
+  String addDependenciesForManifestsV2(YamlNode serviceV2Node,
+      Map<String, PlanCreationResponse> planCreationResponseMap, NGServiceV2InfoConfig serviceV2Config,
+      KryoSerializer kryoSerializer) {
+    YamlUpdates.Builder yamlUpdates = YamlUpdates.newBuilder();
+    YamlField manifestsYamlField =
+        ManifestsUtility.fetchManifestsYamlFieldAndSetYamlUpdates(serviceV2Node, false, yamlUpdates);
+    String manifestsPlanNodeId = "manifests-" + UUIDGenerator.generateUuid();
+
+    Map<String, ByteString> metadataDependency =
+        prepareMetadataV2(manifestsPlanNodeId, serviceV2Config, kryoSerializer);
+
+    Map<String, YamlField> dependenciesMap = new HashMap<>();
+    dependenciesMap.put(manifestsPlanNodeId, manifestsYamlField);
+    PlanCreationResponse.PlanCreationResponseBuilder manifestsPlanCreationResponse =
+        PlanCreationResponse.builder().dependencies(
+            DependenciesUtils.toDependenciesProto(dependenciesMap)
+                .toBuilder()
+                .putDependencyMetadata(
+                    manifestsPlanNodeId, Dependency.newBuilder().putAllMetadata(metadataDependency).build())
+                .build());
+    if (yamlUpdates.getFqnToYamlCount() > 0) {
+      manifestsPlanCreationResponse.yamlUpdates(yamlUpdates.build());
+    }
+    planCreationResponseMap.put(manifestsPlanNodeId, manifestsPlanCreationResponse.build());
+    return manifestsPlanNodeId;
   }
 
   boolean shouldCreatePlanNodeForManifests(ServiceConfig actualServiceConfig) {

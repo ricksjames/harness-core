@@ -9,19 +9,15 @@ package io.harness.cdng.creator.plan.service;
 
 import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
-import io.harness.cdng.artifact.bean.yaml.ArtifactListConfig;
 import io.harness.cdng.configfile.ConfigFileWrapper;
 import io.harness.cdng.creator.plan.PlanCreatorConstants;
-import io.harness.cdng.manifest.yaml.ManifestConfigWrapper;
 import io.harness.cdng.service.ServiceSpec;
 import io.harness.cdng.service.beans.ServiceConfig;
 import io.harness.cdng.service.steps.ServiceDefinitionStep;
 import io.harness.cdng.service.steps.ServiceDefinitionStepParameters;
 import io.harness.cdng.service.steps.ServiceSpecStep;
 import io.harness.cdng.service.steps.ServiceSpecStepParameters;
-import io.harness.cdng.utilities.ArtifactsUtility;
 import io.harness.cdng.utilities.ConfigFileUtility;
-import io.harness.cdng.utilities.ManifestsUtility;
 import io.harness.cdng.visitor.YamlTypes;
 import io.harness.data.structure.EmptyPredicate;
 import io.harness.data.structure.UUIDGenerator;
@@ -122,13 +118,14 @@ public class ServiceDefinitionPlanCreator extends ChildrenPlanCreator<YamlField>
     boolean createPlanForArtifacts =
         ServiceDefinitionPlanCreatorHelper.validateCreatePlanNodeForArtifacts(serviceConfig);
     if (createPlanForArtifacts) {
-      String artifactNodeId = addDependenciesForArtifacts(serviceConfigNode, planCreationResponseMap, serviceConfig);
+      String artifactNodeId = ServiceDefinitionPlanCreatorHelper.addDependenciesForArtifacts(
+          serviceConfigNode, planCreationResponseMap, serviceConfig, kryoSerializer);
       serviceSpecChildrenIds.add(artifactNodeId);
     }
 
     if (ServiceDefinitionPlanCreatorHelper.shouldCreatePlanNodeForManifests(serviceConfig)) {
-      String manifestPlanNodeId =
-          addDependenciesForManifests(serviceConfigNode, planCreationResponseMap, serviceConfig);
+      String manifestPlanNodeId = ServiceDefinitionPlanCreatorHelper.addDependenciesForManifests(
+          serviceConfigNode, planCreationResponseMap, serviceConfig, kryoSerializer);
       serviceSpecChildrenIds.add(manifestPlanNodeId);
     }
 
@@ -146,27 +143,22 @@ public class ServiceDefinitionPlanCreator extends ChildrenPlanCreator<YamlField>
       Map<String, PlanCreationResponse> planCreationResponseMap, YamlNode serviceV2Node) throws IOException {
     NGServiceV2InfoConfig config = YamlUtils.read(serviceV2Node.toString(), NGServiceV2InfoConfig.class);
 
-    //    List<String> serviceSpecChildrenIds = new ArrayList<>();
-    //    boolean createPlanForArtifacts =
-    //    ServiceDefinitionPlanCreatorHelper.validateCreatePlanNodeForArtifactsV2(config); if (createPlanForArtifacts) {
-    //      String artifactNodeId = addDependenciesForArtifactsV2(serviceV2Node, planCreationResponseMap, config);
-    //      serviceSpecChildrenIds.add(artifactNodeId);
-    //    }
-    //
-    //    if (ServiceDefinitionPlanCreatorHelper.shouldCreatePlanNodeForManifestsV2(config)) {
-    //      String manifestPlanNodeId =
-    //          addDependenciesForManifests(serviceConfigNode, planCreationResponseMap, serviceConfig);
-    //      serviceSpecChildrenIds.add(manifestPlanNodeId);
-    //    }
-    //
-    //    if (shouldCreatePlanNodeForConfigFiles(serviceConfig)) {
-    //      String configFilesPlanNodeId =
-    //          addDependenciesForConfigFiles(serviceConfigNode, planCreationResponseMap, serviceConfig);
-    //      serviceSpecChildrenIds.add(configFilesPlanNodeId);
-    //    }
-    //
-    //    // Add serviceSpec node
-    //    addServiceSpecNode(serviceConfig, planCreationResponseMap, serviceSpecChildrenIds);
+    List<String> serviceSpecChildrenIds = new ArrayList<>();
+    boolean createPlanForArtifacts = ServiceDefinitionPlanCreatorHelper.validateCreatePlanNodeForArtifactsV2(config);
+    if (createPlanForArtifacts) {
+      String artifactNodeId = ServiceDefinitionPlanCreatorHelper.addDependenciesForArtifactsV2(
+          serviceV2Node, planCreationResponseMap, config, kryoSerializer);
+      serviceSpecChildrenIds.add(artifactNodeId);
+    }
+
+    if (ServiceDefinitionPlanCreatorHelper.shouldCreatePlanNodeForManifestsV2(config)) {
+      String manifestPlanNodeId = ServiceDefinitionPlanCreatorHelper.addDependenciesForManifestsV2(
+          serviceV2Node, planCreationResponseMap, config, kryoSerializer);
+      serviceSpecChildrenIds.add(manifestPlanNodeId);
+    }
+
+    // Add serviceSpec node
+    addServiceSpecNodeV2(config, planCreationResponseMap, serviceSpecChildrenIds);
   }
 
   private String addServiceSpecNode(ServiceConfig serviceConfig,
@@ -199,81 +191,31 @@ public class ServiceDefinitionPlanCreator extends ChildrenPlanCreator<YamlField>
     return node.getUuid();
   }
 
-  String addDependenciesForArtifacts(YamlNode serviceConfigNode,
-      Map<String, PlanCreationResponse> planCreationResponseMap, ServiceConfig actualServiceConfig) {
-    YamlUpdates.Builder yamlUpdates = YamlUpdates.newBuilder();
-    boolean isUseFromStage = actualServiceConfig.getUseFromStage() != null;
-    YamlField artifactYamlField =
-        ArtifactsUtility.fetchArtifactYamlFieldAndSetYamlUpdates(serviceConfigNode, isUseFromStage, yamlUpdates);
-    String artifactsPlanNodeId = UUIDGenerator.generateUuid();
-
-    Map<String, ByteString> metadataDependency =
-        ServiceDefinitionPlanCreatorHelper.prepareMetadata(artifactsPlanNodeId, actualServiceConfig, kryoSerializer);
-
-    Map<String, YamlField> dependenciesMap = new HashMap<>();
-    dependenciesMap.put(artifactsPlanNodeId, artifactYamlField);
-    PlanCreationResponseBuilder artifactPlanCreationResponse = PlanCreationResponse.builder().dependencies(
-        DependenciesUtils.toDependenciesProto(dependenciesMap)
-            .toBuilder()
-            .putDependencyMetadata(
-                artifactsPlanNodeId, Dependency.newBuilder().putAllMetadata(metadataDependency).build())
-            .build());
-    if (yamlUpdates.getFqnToYamlCount() > 0) {
-      artifactPlanCreationResponse.yamlUpdates(yamlUpdates.build());
-    }
-    planCreationResponseMap.put(artifactsPlanNodeId, artifactPlanCreationResponse.build());
-    return artifactsPlanNodeId;
-  }
-
-  String addDependenciesForArtifactsV2(YamlNode serviceV2Node,
-      Map<String, PlanCreationResponse> planCreationResponseMap, NGServiceV2InfoConfig serviceV2Config) {
-    YamlUpdates.Builder yamlUpdates = YamlUpdates.newBuilder();
-    YamlField artifactYamlField =
-        ArtifactsUtility.fetchArtifactYamlFieldAndSetYamlUpdates(serviceV2Node, false, yamlUpdates, true);
-    String artifactsPlanNodeId = UUIDGenerator.generateUuid();
-
-    Map<String, ByteString> metadataDependency =
-        ServiceDefinitionPlanCreatorHelper.prepareMetadataV2(artifactsPlanNodeId, serviceV2Config, kryoSerializer);
-
-    Map<String, YamlField> dependenciesMap = new HashMap<>();
-    dependenciesMap.put(artifactsPlanNodeId, artifactYamlField);
-    PlanCreationResponseBuilder artifactPlanCreationResponse = PlanCreationResponse.builder().dependencies(
-        DependenciesUtils.toDependenciesProto(dependenciesMap)
-            .toBuilder()
-            .putDependencyMetadata(
-                artifactsPlanNodeId, Dependency.newBuilder().putAllMetadata(metadataDependency).build())
-            .build());
-    if (yamlUpdates.getFqnToYamlCount() > 0) {
-      artifactPlanCreationResponse.yamlUpdates(yamlUpdates.build());
-    }
-    planCreationResponseMap.put(artifactsPlanNodeId, artifactPlanCreationResponse.build());
-    return artifactsPlanNodeId;
-  }
-
-  String addDependenciesForManifests(YamlNode serviceConfigNode,
-      Map<String, PlanCreationResponse> planCreationResponseMap, ServiceConfig actualServiceConfig) {
-    YamlUpdates.Builder yamlUpdates = YamlUpdates.newBuilder();
-    boolean isUseFromStage = actualServiceConfig.getUseFromStage() != null;
-    YamlField manifestsYamlField =
-        ManifestsUtility.fetchManifestsYamlFieldAndSetYamlUpdates(serviceConfigNode, isUseFromStage, yamlUpdates);
-    String manifestsPlanNodeId = "manifests-" + UUIDGenerator.generateUuid();
-
-    Map<String, ByteString> metadataDependency =
-        ServiceDefinitionPlanCreatorHelper.prepareMetadata(manifestsPlanNodeId, actualServiceConfig, kryoSerializer);
-
-    Map<String, YamlField> dependenciesMap = new HashMap<>();
-    dependenciesMap.put(manifestsPlanNodeId, manifestsYamlField);
-    PlanCreationResponseBuilder manifestsPlanCreationResponse = PlanCreationResponse.builder().dependencies(
-        DependenciesUtils.toDependenciesProto(dependenciesMap)
-            .toBuilder()
-            .putDependencyMetadata(
-                manifestsPlanNodeId, Dependency.newBuilder().putAllMetadata(metadataDependency).build())
-            .build());
-    if (yamlUpdates.getFqnToYamlCount() > 0) {
-      manifestsPlanCreationResponse.yamlUpdates(yamlUpdates.build());
-    }
-    planCreationResponseMap.put(manifestsPlanNodeId, manifestsPlanCreationResponse.build());
-    return manifestsPlanNodeId;
+  private String addServiceSpecNodeV2(NGServiceV2InfoConfig serviceV2InfoConfig,
+      Map<String, PlanCreationResponse> planCreationResponseMap, List<String> serviceSpecChildrenIds) {
+    ServiceSpec serviceSpec = serviceV2InfoConfig.getServiceDefinition().getServiceSpec();
+    ServiceSpecStepParameters stepParameters =
+        ServiceSpecStepParameters.builder()
+            .originalVariables(ParameterField.createValueField(serviceSpec.getVariables()))
+            .childrenNodeIds(serviceSpecChildrenIds)
+            .build();
+    PlanNode node =
+        PlanNode.builder()
+            .uuid(serviceV2InfoConfig.getServiceDefinition().getServiceSpec().getUuid())
+            .stepType(ServiceSpecStep.STEP_TYPE)
+            .name(PlanCreatorConstants.SERVICE_SPEC_NODE_NAME)
+            .identifier(YamlTypes.SERVICE_SPEC)
+            .stepParameters(stepParameters)
+            .facilitatorObtainment(
+                FacilitatorObtainment.newBuilder()
+                    .setType(EmptyPredicate.isEmpty(serviceSpecChildrenIds)
+                            ? FacilitatorType.newBuilder().setType(OrchestrationFacilitatorType.SYNC).build()
+                            : FacilitatorType.newBuilder().setType(OrchestrationFacilitatorType.CHILDREN).build())
+                    .build())
+            .skipExpressionChain(false)
+            .build();
+    planCreationResponseMap.put(node.getUuid(), PlanCreationResponse.builder().node(node.getUuid(), node).build());
+    return node.getUuid();
   }
 
   String addDependenciesForConfigFiles(YamlNode serviceConfigNode,
@@ -300,38 +242,6 @@ public class ServiceDefinitionPlanCreator extends ChildrenPlanCreator<YamlField>
     }
     planCreationResponseMap.put(configFilesPlanNodeId, configFilesPlanCreationResponse.build());
     return configFilesPlanNodeId;
-  }
-
-  boolean validateCreatePlanNodeForArtifacts(ServiceConfig actualServiceConfig) {
-    ArtifactListConfig artifactListConfig = actualServiceConfig.getServiceDefinition().getServiceSpec().getArtifacts();
-
-    // Contains either primary artifacts or side-car artifacts
-    if (artifactListConfig != null) {
-      if (artifactListConfig.getPrimary() != null || EmptyPredicate.isNotEmpty(artifactListConfig.getSidecars())) {
-        return true;
-      }
-    }
-
-    if (actualServiceConfig.getStageOverrides() != null
-        && actualServiceConfig.getStageOverrides().getArtifacts() != null) {
-      return actualServiceConfig.getStageOverrides().getArtifacts().getPrimary() != null
-          || EmptyPredicate.isNotEmpty(actualServiceConfig.getStageOverrides().getArtifacts().getSidecars());
-    }
-
-    return false;
-  }
-
-  boolean shouldCreatePlanNodeForManifests(ServiceConfig actualServiceConfig) {
-    List<ManifestConfigWrapper> manifests = actualServiceConfig.getServiceDefinition().getServiceSpec().getManifests();
-
-    // Contains either manifests or overrides or nothing.
-    if (EmptyPredicate.isNotEmpty(manifests)) {
-      return true;
-    }
-
-    return actualServiceConfig.getStageOverrides() != null
-        && actualServiceConfig.getStageOverrides().getManifests() != null
-        && EmptyPredicate.isNotEmpty(actualServiceConfig.getStageOverrides().getManifests());
   }
 
   boolean shouldCreatePlanNodeForConfigFiles(ServiceConfig actualServiceConfig) {
