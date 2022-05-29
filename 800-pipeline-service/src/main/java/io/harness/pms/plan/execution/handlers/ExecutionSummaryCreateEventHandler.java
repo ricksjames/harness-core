@@ -36,6 +36,7 @@ import io.harness.pms.plan.creation.NodeTypeLookupService;
 import io.harness.pms.plan.execution.beans.PipelineExecutionSummaryEntity;
 import io.harness.pms.plan.execution.beans.PipelineExecutionSummaryEntity.PlanExecutionSummaryKeys;
 import io.harness.pms.plan.execution.beans.dto.GraphLayoutNodeDTO;
+import io.harness.pms.yaml.YAMLFieldNameConstants;
 import io.harness.repositories.executions.PmsExecutionSummaryRespository;
 
 import com.google.inject.Inject;
@@ -117,7 +118,8 @@ public class ExecutionSummaryCreateEventHandler implements OrchestrationStartObs
     Set<String> modules = new LinkedHashSet<>();
     for (Map.Entry<String, GraphLayoutNode> entry : layoutNodeMap.entrySet()) {
       GraphLayoutNodeDTO graphLayoutNodeDTO = GraphLayoutDtoMapper.toDto(entry.getValue());
-      if (entry.getValue().getNodeType().equals("parallel")) {
+      if (entry.getValue().getNodeType().equals("parallel")
+          || entry.getValue().getNodeType().equals(YAMLFieldNameConstants.STRATEGY)) {
         layoutNodeDTOMap.put(entry.getKey(), graphLayoutNodeDTO);
         continue;
       }
