@@ -52,7 +52,7 @@ public class SpawnChildrenRequestProcessor implements SdkResponseProcessor {
       for (Child child : request.getChildren().getChildrenList()) {
         String uuid = generateUuid();
         callbackIds.add(uuid);
-        initiateNodeHelper.publishEvent(ambiance, child.getChildNodeId(), uuid);
+        initiateNodeHelper.publishEvent(ambiance, child.getChildNodeId(), uuid, child.getStrategyMetadata(), true);
       }
 
       // Attach a Callback to the parent for the child

@@ -21,6 +21,7 @@ import io.harness.steps.matrix.StrategyStepParameters;
 
 import com.google.inject.Inject;
 import com.google.protobuf.ByteString;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -65,6 +66,7 @@ public class StrategyConfigPlanCreator extends ChildrenPlanCreator<StrategyConfi
                 .setType(FacilitatorType.newBuilder().setType(OrchestrationFacilitatorType.CHILDREN).build())
                 .build())
         .skipExpressionChain(true)
+        .adviserObtainments(new ArrayList<>())
         .build();
   }
 
