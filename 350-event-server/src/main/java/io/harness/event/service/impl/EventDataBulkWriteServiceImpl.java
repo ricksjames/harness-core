@@ -72,32 +72,32 @@ public class EventDataBulkWriteServiceImpl implements EventDataBulkWriteService 
       final List<T> itemsList, final EventBatchQueryFnFactory<T> eventBatchQueryFnFactory, final Class clazz) {
     final int bulkWriteLimit = eventServiceConfig.getBatchQueryConfig().getQueryBatchSize();
 
-    int sum = 0;
+    //    int sum = 0;
     for (final List<T> itemsListPartitioned : Lists.partition(itemsList, bulkWriteLimit)) {
       final BulkWriteOperation bulkWriteOperation =
           hPersistence.getCollection(clazz).initializeUnorderedBulkOperation();
-      int count = 0;
+      //      int count = 0;
       for (final T singleItem : itemsListPartitioned) {
         try {
-          log.info("singleItem: {}", singleItem);
+          //          log.info("singleItem: {}", singleItem);
           eventBatchQueryFnFactory.addQueryFor(bulkWriteOperation, singleItem);
-          count++;
+          //          count++;
         } catch (final Exception ex) {
           log.error("Error updating {}:[{}]", clazz.getSimpleName(), singleItem.toString(), ex);
         }
       }
-      log.info("batchQueryExecutor, bulkWriteOperation count: {}", count);
-      sum += count;
+      //      log.info("batchQueryExecutor, bulkWriteOperation count: {}", count);
+      //      sum += count;
       final BulkWriteResult result = bulkWriteExecutor(bulkWriteOperation);
-      log.info("batchQueryExecutor, bulkWriteOperation (ins + mod + upsert) count: {}",
-          result.getInsertedCount() + result.getModifiedCount() + result.getUpserts().size());
+      //      log.info("batchQueryExecutor, bulkWriteOperation (ins + mod + upsert) count: {}",
+      //          result.getInsertedCount() + result.getModifiedCount() + result.getUpserts().size());
 
       if (!result.isAcknowledged()) {
         return false;
       }
     }
-    log.info("batchQueryExecutor, itemsList count: {}", itemsList.size());
-    log.info("batchQueryExecutor, bulkWriteOperation sum: {}", sum);
+    //    log.info("batchQueryExecutor, itemsList count: {}", itemsList.size());
+    //    log.info("batchQueryExecutor, bulkWriteOperation sum: {}", sum);
 
     return true;
   }
@@ -107,7 +107,7 @@ public class EventDataBulkWriteServiceImpl implements EventDataBulkWriteService 
     for (int i = 1; i < 5; i++) {
       try {
         result = bulkWriteOperation.execute();
-        log.info("BulkWriteExecutor result: {}", result.toString());
+        //        log.info("BulkWriteExecutor result: {}", result.toString());
         return result;
       } catch (final IllegalArgumentException ex) {
         log.error("Exception occurred with bulkWriteExecutor", ex);
@@ -117,10 +117,10 @@ public class EventDataBulkWriteServiceImpl implements EventDataBulkWriteService 
       }
     }
     result = bulkWriteOperation.execute();
-    log.info(
-        "BulkWriteExecutor result [acknowledged:{}, insertedCount:{}, matchedCount:{}, modifiedCount:{}, removedCount:{}]",
-        result.isAcknowledged(), result.getInsertedCount(), result.getMatchedCount(), result.getModifiedCount(),
-        result.getRemovedCount());
+    //    log.info(
+    //        "BulkWriteExecutor result [acknowledged:{}, insertedCount:{}, matchedCount:{}, modifiedCount:{},
+    //        removedCount:{}]", result.isAcknowledged(), result.getInsertedCount(), result.getMatchedCount(),
+    //        result.getModifiedCount(), result.getRemovedCount());
     return result;
   }
 }
