@@ -75,7 +75,7 @@ public class GenerateOpenApiSpecCommandTest {
   @Owner(developers = ASHISHSANODIA)
   @Category(UnitTests.class)
   public void shouldNotGeneratesOpenApiSpecWithoutConfigFileParameter() throws Exception {
-    final boolean success = cli.run(GENERATE_OPENAPI_SPEC, TEST_OPENAPI_JSON);
+    final boolean success = !cli.run(GENERATE_OPENAPI_SPEC, TEST_OPENAPI_JSON).isPresent();
     String openApiContent = openApiOutputStream.toString(UTF_8.name());
 
     SoftAssertions softly = new SoftAssertions();
@@ -89,7 +89,7 @@ public class GenerateOpenApiSpecCommandTest {
   @Owner(developers = ASHISHSANODIA)
   @Category(UnitTests.class)
   public void doNotGeneratesOpenApiSpecIfOutputFileParameterNotProvided() throws Exception {
-    final boolean success = cli.run(GENERATE_OPENAPI_SPEC);
+    final boolean success = !cli.run(GENERATE_OPENAPI_SPEC).isPresent();
     String openApiContent = openApiOutputStream.toString(UTF_8.name());
 
     SoftAssertions softly = new SoftAssertions();
