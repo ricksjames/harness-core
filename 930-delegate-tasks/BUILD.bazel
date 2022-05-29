@@ -106,7 +106,7 @@ java_library(
         "@maven//:org_cloudfoundry_cloudfoundry_operations",
         "@maven//:org_eclipse_jgit_org_eclipse_jgit",
         "@maven//:org_eclipse_jgit_org_eclipse_jgit_ssh_jsch",
-        "@maven//:org_hibernate_hibernate_validator",
+        "@maven//:org_hibernate_validator_hibernate_validator",
         "@maven//:org_jetbrains_annotations",
         "@maven//:org_jooq_joor",
         "@maven//:org_json_json_20160810",
