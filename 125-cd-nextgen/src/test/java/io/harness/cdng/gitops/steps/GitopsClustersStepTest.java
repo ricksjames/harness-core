@@ -26,6 +26,7 @@ import io.harness.rule.OwnerRule;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -64,6 +65,35 @@ public class GitopsClustersStepTest extends CategoryTest {
         .when(environmentGroupService)
         .get("accountId", "orgId", "projId", "envGroupId", false);
 
+    mockGitopsResourceClient();
+    mockClusterService();
+  }
+
+  private void mockClusterService() {
+    doReturn(
+        new PageImpl(asList(io.harness.cdng.gitops.entity.Cluster.builder().clusterRef("c1").envRef("env1").build(),
+            io.harness.cdng.gitops.entity.Cluster.builder().clusterRef("c2").envRef("env1").build())))
+        .when(clusterService)
+        .listAcrossEnv(0, EXPECTED_PAGE_SIZE, "accountId", "orgId", "projId", ImmutableSet.of("env1"));
+
+    doReturn(
+        new PageImpl(asList(io.harness.cdng.gitops.entity.Cluster.builder().clusterRef("c1").envRef("env1").build(),
+            io.harness.cdng.gitops.entity.Cluster.builder().clusterRef("c2").envRef("env1").build(),
+            io.harness.cdng.gitops.entity.Cluster.builder().clusterRef("c3").envRef("env2").build(),
+            io.harness.cdng.gitops.entity.Cluster.builder().clusterRef("c4").envRef("env2").build(),
+            io.harness.cdng.gitops.entity.Cluster.builder().clusterRef("c5").envRef("env2").build())))
+        .when(clusterService)
+        .listAcrossEnv(0, EXPECTED_PAGE_SIZE, "accountId", "orgId", "projId", ImmutableSet.of("env1", "env2", "env3"));
+
+    doReturn(
+        new PageImpl(asList(io.harness.cdng.gitops.entity.Cluster.builder().clusterRef("c3").envRef("env2").build(),
+            io.harness.cdng.gitops.entity.Cluster.builder().clusterRef("c4").envRef("env2").build(),
+            io.harness.cdng.gitops.entity.Cluster.builder().clusterRef("c5").envRef("env2").build())))
+        .when(clusterService)
+        .listAcrossEnv(0, EXPECTED_PAGE_SIZE, "accountId", "orgId", "projId", ImmutableSet.of("env2"));
+  }
+
+  private void mockGitopsResourceClient() throws IOException {
     // mock cluster list call from gitops service
     Call<ResponseDTO<List<Cluster>>> rmock1 = mock(Call.class);
     doReturn(rmock1)
@@ -140,29 +170,6 @@ public class GitopsClustersStepTest extends CategoryTest {
             PageResponse.builder().content(asList(Cluster.builder().identifier("c4").name("c4-name").build())).build()))
         .when(rmock4)
         .execute();
-
-    // mock cluster list call from ng manager
-    doReturn(
-        new PageImpl(asList(io.harness.cdng.gitops.entity.Cluster.builder().clusterRef("c1").envRef("env1").build(),
-            io.harness.cdng.gitops.entity.Cluster.builder().clusterRef("c2").envRef("env1").build())))
-        .when(clusterService)
-        .listAcrossEnv(0, EXPECTED_PAGE_SIZE, "accountId", "orgId", "projId", ImmutableSet.of("env1"));
-
-    doReturn(
-        new PageImpl(asList(io.harness.cdng.gitops.entity.Cluster.builder().clusterRef("c1").envRef("env1").build(),
-            io.harness.cdng.gitops.entity.Cluster.builder().clusterRef("c2").envRef("env1").build(),
-            io.harness.cdng.gitops.entity.Cluster.builder().clusterRef("c3").envRef("env2").build(),
-            io.harness.cdng.gitops.entity.Cluster.builder().clusterRef("c4").envRef("env2").build(),
-            io.harness.cdng.gitops.entity.Cluster.builder().clusterRef("c5").envRef("env2").build())))
-        .when(clusterService)
-        .listAcrossEnv(0, EXPECTED_PAGE_SIZE, "accountId", "orgId", "projId", ImmutableSet.of("env1", "env2", "env3"));
-
-    doReturn(
-        new PageImpl(asList(io.harness.cdng.gitops.entity.Cluster.builder().clusterRef("c3").envRef("env2").build(),
-            io.harness.cdng.gitops.entity.Cluster.builder().clusterRef("c4").envRef("env2").build(),
-            io.harness.cdng.gitops.entity.Cluster.builder().clusterRef("c5").envRef("env2").build())))
-        .when(clusterService)
-        .listAcrossEnv(0, EXPECTED_PAGE_SIZE, "accountId", "orgId", "projId", ImmutableSet.of("env2"));
   }
 
   @Test

@@ -138,7 +138,7 @@ public class ClusterServiceImpl implements ClusterService {
       String projectIdentifier, Collection<String> envRefs) {
     Criteria criteria =
         getClusterEqualityCriteriaAcrossEnvs(accountIdentifier, orgIdentifier, projectIdentifier, envRefs);
-    PageRequest pageRequest = org.springframework.data.domain.PageRequest.of(page, size);
+    PageRequest pageRequest = PageRequest.of(page, size);
     return clusterRepository.find(criteria, pageRequest);
   }
 
