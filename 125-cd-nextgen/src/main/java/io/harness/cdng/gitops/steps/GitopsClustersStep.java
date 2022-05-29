@@ -33,8 +33,6 @@ import io.harness.pms.sdk.core.steps.io.StepInputPackage;
 import io.harness.pms.sdk.core.steps.io.StepResponse;
 import io.harness.steps.executable.SyncExecutableWithRbac;
 
-import software.wings.service.intfc.LogService;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.inject.Inject;
 import java.io.IOException;
@@ -61,7 +59,6 @@ public class GitopsClustersStep implements SyncExecutableWithRbac<ClusterStepPar
   @Inject private EnvironmentGroupService environmentGroupService;
   @Inject private GitopsResourceClient gitopsResourceClient;
   @Inject private ExecutionSweepingOutputService executionSweepingOutputResolver;
-  @Inject private LogService logService;
 
   private LogCallback logger;
 
