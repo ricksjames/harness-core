@@ -1,12 +1,13 @@
 package io.harness.cdng.gitops.steps;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static io.harness.data.structure.CollectionUtils.emptyIfNull;
 import static io.harness.data.structure.EmptyPredicate.isEmpty;
 import static io.harness.data.structure.EmptyPredicate.isNotEmpty;
 import static io.harness.pms.execution.utils.AmbianceUtils.getAccountId;
 import static io.harness.pms.execution.utils.AmbianceUtils.getOrgIdentifier;
 import static io.harness.pms.execution.utils.AmbianceUtils.getProjectIdentifier;
+
+import static com.google.common.base.Preconditions.checkArgument;
 import static java.lang.String.format;
 
 import io.harness.cdng.envGroup.beans.EnvironmentGroupEntity;
