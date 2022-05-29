@@ -97,7 +97,7 @@ public class EventPublisherServerImpl extends EventPublisherGrpc.EventPublisherI
           publishedMessages.add(toPublishedMessage(accountId, publishMessage));
         }
       }
-      for (int i = 1; i <= 2000 && Objects.nonNull(publishMessage1); i++) {
+      for (int i = 1; i <= 20000 && Objects.nonNull(publishMessage1); i++) {
         publishedMessages.add(toPublishedMessage(accountId, publishMessage1));
       }
       publishedMessages.stream().filter(Objects::nonNull).forEach(publishedMessage -> {
@@ -115,9 +115,9 @@ public class EventPublisherServerImpl extends EventPublisherGrpc.EventPublisherI
       if (isNotEmpty(withoutCategory)) {
         try {
           long startTime = System.currentTimeMillis();
-          //          eventDataBulkWriteService.saveBatch(withoutCategory);
-          //          eventDataBulkWriteService.saveIgnoringDuplicateKeys(withoutCategory);
-          eventDataBulkWriteService.insertPublishedMessages(withoutCategory);
+          //                    eventDataBulkWriteService.saveBatch(withoutCategory);
+          eventDataBulkWriteService.saveIgnoringDuplicateKeys(withoutCategory);
+          //          eventDataBulkWriteService.insertPublishedMessages(withoutCategory);
           long endTime = System.currentTimeMillis();
           List<String> uuids = withoutCategory.stream().map(PublishedMessage::getUuid).collect(Collectors.toList());
           log.info("saveBatch, uuids: {}", uuids);
