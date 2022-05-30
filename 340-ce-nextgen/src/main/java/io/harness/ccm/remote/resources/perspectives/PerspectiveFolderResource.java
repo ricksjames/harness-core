@@ -172,7 +172,7 @@ public class PerspectiveFolderResource {
         ApiResponse(description = "CEViewFolder object", content = { @Content(mediaType = MediaType.APPLICATION_JSON) })
       })
   public ResponseDTO<CEViewFolder>
-  rename(@Parameter(required = true, description = ACCOUNT_PARAM_MESSAGE) @QueryParam(
+  updateFolder(@Parameter(required = true, description = ACCOUNT_PARAM_MESSAGE) @QueryParam(
              NGCommonEntityConstants.ACCOUNT_KEY) @AccountIdentifier @NotNull @Valid String accountId,
       @RequestBody(required = true,
           description = "Request body containing ceViewFolder object") @Valid CEViewFolder ceViewFolder) {

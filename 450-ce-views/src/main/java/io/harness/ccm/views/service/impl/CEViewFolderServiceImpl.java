@@ -21,6 +21,8 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import io.harness.exception.InvalidRequestException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
 
@@ -31,8 +33,13 @@ public class CEViewFolderServiceImpl implements CEViewFolderService {
   @Inject private CEViewDao ceViewDao;
   @Inject private CEViewFolderDao ceViewFolderDao;
 
+  private static final long FOLDERS_LIMIT = 500;
+
   @Override
   public CEViewFolder save(CEViewFolder ceViewFolder) {
+    if (numberOfFolders(ceViewFolder.getAccountId()) >= FOLDERS_LIMIT) {
+      throw new InvalidRequestException("Folders limit reached. Please delete existing ones to create a new one.");
+    }
     return ceViewFolderDao.save(ceViewFolder);
   }
 
