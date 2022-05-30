@@ -67,6 +67,7 @@ public class CDNGRegistrars {
           .add(PollingKryoRegistrar.class)
           .addAll(DelegateTaskRegistrars.kryoRegistrars)
           .addAll(NGCommonModuleRegistrars.kryoRegistrars)
+          .addAll(FileStoreRegistrars.kryoRegistrars)
           .build();
 
   public final ImmutableSet<Class<? extends MorphiaRegistrar>> morphiaRegistrars =
@@ -84,6 +85,7 @@ public class CDNGRegistrars {
           .addAll(InstanceRegistrars.morphiaRegistrars)
           .addAll(DelegateTaskRegistrars.morphiaRegistrars)
           .addAll(NGCommonModuleRegistrars.morphiaRegistrars)
+          .addAll(FileStoreRegistrars.morphiaRegistrars)
           .build();
 
   public static final ImmutableList<YamlSchemaRootClass> yamlSchemaRegistrars =
