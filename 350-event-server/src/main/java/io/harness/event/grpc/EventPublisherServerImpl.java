@@ -115,7 +115,7 @@ public class EventPublisherServerImpl extends EventPublisherGrpc.EventPublisherI
       if (isNotEmpty(withoutCategory)) {
         try {
           long startTime = System.currentTimeMillis();
-          //          eventDataBulkWriteService.saveBatch(withoutCategory);
+          //                    eventDataBulkWriteService.saveBatch(withoutCategory);
           //          eventDataBulkWriteService.saveIgnoringDuplicateKeys(withoutCategory);
           eventDataBulkWriteService.insertPublishedMessages(withoutCategory);
           long endTime = System.currentTimeMillis();
