@@ -21,6 +21,7 @@ import io.harness.ccm.commons.entities.anomaly.AnomalyQueryDTO;
 import io.harness.ccm.commons.helper.CCMFilterHelper;
 import io.harness.ccm.commons.utils.AnomalyUtils;
 import io.harness.ccm.remote.beans.anomaly.AnomalyFilterPropertiesDTO;
+import io.harness.data.structure.CollectionUtils;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -76,8 +77,9 @@ public class AnomalyQueryHelper {
 
     return AnomalyQueryDTO.builder()
         .filter(ccmFilter)
-        .groupBy(new ArrayList<>())
-        .orderBy(new ArrayList<>())
+        .groupBy(CollectionUtils.emptyIfNull(anomalyFilterPropertiesDTO.getGroupBy()))
+        .orderBy(CollectionUtils.emptyIfNull(anomalyFilterPropertiesDTO.getOrderBy()))
+        .aggregations(CollectionUtils.emptyIfNull(anomalyFilterPropertiesDTO.getAggregations()))
         .offset(offset)
         .limit(limit)
         .build();

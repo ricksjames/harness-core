@@ -11,6 +11,9 @@ import static io.harness.annotations.dev.HarnessTeam.CE;
 import static io.harness.filter.FilterConstants.ANOMALY_FILTER;
 
 import io.harness.annotations.dev.OwnedBy;
+import io.harness.ccm.commons.entities.CCMAggregation;
+import io.harness.ccm.commons.entities.CCMGroupBy;
+import io.harness.ccm.commons.entities.CCMSort;
 import io.harness.ccm.commons.entities.CCMTimeFilter;
 import io.harness.filter.FilterType;
 import io.harness.filter.dto.FilterPropertiesDTO;
@@ -68,7 +71,10 @@ public class AnomalyFilterPropertiesDTO extends FilterPropertiesDTO {
   @Schema(description = "Fetch anomalies with Anomalous Spend greater-than or equal-to minAnomalousSpend")
   Double minAnomalousSpend;
 
-  @Schema(description = "List of filters to be applies on Anomaly Time") List<CCMTimeFilter> timeFilters;
+  @Schema(description = "List of filters to be applied on Anomaly Time") List<CCMTimeFilter> timeFilters;
+  @Schema(description = "The order by condition for anomaly query") List<CCMSort> orderBy;
+  @Schema(description = "The group by clause for anomaly query") List<CCMGroupBy> groupBy;
+  @Schema(description = "The aggregations for anomaly query") List<CCMAggregation> aggregations;
 
   @Schema(description = "Query Offset") Integer offset;
   @Schema(description = "Query Limit") Integer limit;
