@@ -124,10 +124,12 @@ public class CreatePRStep extends TaskChainExecutableWithRollbackAndRbac {
       Ambiance ambiance, StepElementParameters stepParameters, StepInputPackage inputPackage) {
     /*
     TODO:
-     1. Add a new field in stepParams (target branch?)
+     1. Include commit message, targetBranch and is new branch options
      2. Handle the case when PR already exists
      3. Handle case when branch doesn't exist
-     4. Publish commitId in step outcome
+     4. Publish commitId in step outcome (Samarth)
+     Delegate side: (NgGitOpsCommandTask.java)
+     5. Improve logging for commitAndPush, createPR, etc
      */
     CreatePRStepParams gitOpsSpecParams = (CreatePRStepParams) stepParameters.getSpec();
     StoreConfig store = gitOpsSpecParams.getStore().getValue().getSpec();
