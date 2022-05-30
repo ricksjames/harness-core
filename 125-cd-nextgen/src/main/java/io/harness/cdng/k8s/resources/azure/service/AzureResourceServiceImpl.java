@@ -153,7 +153,7 @@ public class AzureResourceServiceImpl implements AzureResourceService {
                                                     .build();
 
     AzureWebAppNamesResponse azureWebAppNamesResponse = (AzureWebAppNamesResponse) azureHelperService.executeSyncTask(
-        azureTaskParamsTaskParams, baseNGAccess, "Azure list Web App names task failure due to error");
+        azureTaskParamsTaskParams, baseNGAccess, "Azure list Web App names task failure due to error", 60);
     return AzureWebAppNamesDTO.builder().webAppNames(azureWebAppNamesResponse.getWebAppNames()).build();
   }
 
