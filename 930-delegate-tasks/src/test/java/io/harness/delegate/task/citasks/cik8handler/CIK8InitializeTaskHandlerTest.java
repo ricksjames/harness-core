@@ -14,10 +14,12 @@ import static io.harness.delegate.task.citasks.cik8handler.CIK8BuildTaskHandlerT
 import static io.harness.delegate.task.citasks.cik8handler.CIK8BuildTaskHandlerTestHelper.buildTaskParams;
 import static io.harness.delegate.task.citasks.cik8handler.CIK8BuildTaskHandlerTestHelper.buildTaskParamsWithPVC;
 import static io.harness.delegate.task.citasks.cik8handler.CIK8BuildTaskHandlerTestHelper.buildTaskParamsWithPodSvc;
+import static io.harness.delegate.task.citasks.cik8handler.CIK8BuildTaskHandlerTestHelper.buildTaskParamsWithWhitespace;
 import static io.harness.delegate.task.citasks.cik8handler.CIK8BuildTaskHandlerTestHelper.getCustomVarSecret;
 import static io.harness.delegate.task.citasks.cik8handler.CIK8BuildTaskHandlerTestHelper.getPublishArtifactSecrets;
 import static io.harness.delegate.task.citasks.cik8handler.CIK8BuildTaskHandlerTestHelper.getSecretVariableDetails;
 import static io.harness.rule.OwnerRule.SHUBHAM;
+import static io.harness.rule.OwnerRule.SOUMYAJIT;
 
 import static junit.framework.TestCase.assertEquals;
 import static org.mockito.Matchers.any;
@@ -43,7 +45,6 @@ import io.harness.delegate.beans.logstreaming.ILogStreamingTaskClient;
 import io.harness.delegate.task.citasks.cik8handler.helper.SecretVolumesHelper;
 import io.harness.delegate.task.citasks.cik8handler.k8java.CIK8JavaClientHandler;
 import io.harness.delegate.task.citasks.cik8handler.k8java.pod.PodSpecBuilder;
-import io.harness.k8s.KubernetesHelperService;
 import io.harness.k8s.apiclient.ApiClientFactory;
 import io.harness.k8s.model.KubernetesConfig;
 import io.harness.logging.CommandExecutionStatus;
@@ -61,14 +62,18 @@ import io.kubernetes.client.openapi.models.V1SecretBuilder;
 import io.kubernetes.client.util.Watch;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
 @OwnedBy(HarnessTeam.CI)
@@ -78,7 +83,6 @@ public class CIK8InitializeTaskHandlerTest extends CategoryTest {
   @Mock private SecretSpecBuilder secretSpecBuilder;
   @Mock private ILogStreamingTaskClient logStreamingTaskClient;
   @Mock private K8EventHandler k8EventHandler;
-  @Mock private KubernetesHelperService kubernetesHelperService;
   @Mock private SecretVolumesHelper secretVolumesHelper;
   @Mock private CIK8JavaClientHandler cik8JavaClientHandler;
   @Mock private CoreV1Api coreV1Api;
@@ -89,9 +93,7 @@ public class CIK8InitializeTaskHandlerTest extends CategoryTest {
   @InjectMocks private CIK8InitializeTaskHandler cik8BuildTaskHandler;
 
   private static final String namespace = "default";
-  private static String storageClass = "test-storage";
-  private static Integer storageMib = 100;
-  private static String claimName = "pvc";
+  private static final String serviceAccountName = null;
   private static String secretName = "foo";
   private static final int timeout = 100;
   private static V1Secret imgSecret =
@@ -244,7 +246,7 @@ public class CIK8InitializeTaskHandlerTest extends CategoryTest {
              eq(cik8InitializeTaskParams.getCik8PodParams().getName()), eq(logStreamingTaskClient)))
         .thenReturn(watch);
     when(cik8JavaClientHandler.waitUntilPodIsReady(any(), eq("pod"), eq(namespace), eq(timeout)))
-        .thenReturn(PodStatus.builder().status(RUNNING).build());
+        .thenReturn(PodStatus.builder().ciContainerStatusList(new ArrayList<>()).status(RUNNING).build());
 
     doNothing().when(k8EventHandler).stopEventWatch(watch);
 
@@ -309,5 +311,19 @@ public class CIK8InitializeTaskHandlerTest extends CategoryTest {
   @Category(UnitTests.class)
   public void getType() {
     assertEquals(CIK8InitializeTaskHandler.Type.GCP_K8, cik8BuildTaskHandler.getType());
+  }
+
+  @Captor ArgumentCaptor<PodParams> podParamsArgumentCaptor;
+
+  @Test
+  @Owner(developers = SOUMYAJIT)
+  @Category(UnitTests.class)
+  public void executeTaskWithWhitespace() throws UnsupportedEncodingException, TimeoutException, InterruptedException {
+    CIK8InitializeTaskParams cik8InitializeTaskParams = buildTaskParamsWithWhitespace();
+    cik8BuildTaskHandler.executeTaskInternal(cik8InitializeTaskParams, logStreamingTaskClient, "");
+    Mockito.verify(podSpecBuilder).createSpec(podParamsArgumentCaptor.capture());
+    PodParams captorValue = podParamsArgumentCaptor.getValue();
+    assertEquals(namespace, captorValue.getNamespace());
+    assertEquals(serviceAccountName, captorValue.getServiceAccountName());
   }
 }

@@ -23,6 +23,7 @@ public class CIExecutionConstants {
   public static final String PIPELINE_ID_ATTR = "pipelineID";
   public static final String PIPELINE_EXECUTION_ID_ATTR = "pipelineExecutionID";
   public static final String STAGE_ID_ATTR = "stageID";
+  public static final String STAGE_NAME_ATTR = "stageName";
   public static final String BUILD_NUMBER_ATTR = "buildNumber";
   public static final String LABEL_REGEX = "^[a-z0-9A-Z][a-z0-9A-Z\\-_.]*[a-z0-9A-Z]$";
 
@@ -31,6 +32,7 @@ public class CIExecutionConstants {
 
   public static final String STEP_VOLUME = "harness";
   public static final String STEP_MOUNT_PATH = "/harness";
+  public static final String OSX_STEP_MOUNT_PATH = "/tmp/harness";
   public static final String STEP_WORK_DIR = STEP_MOUNT_PATH;
 
   public static final int POD_MAX_WAIT_UNTIL_READY_SECS = 8 * 60;
@@ -46,7 +48,8 @@ public class CIExecutionConstants {
   public static final String PATH_SEPARATOR = "/";
 
   // Constant for
-  public static final String STEP_COMMAND = "/addon/bin/ci-addon";
+  public static final String UNIX_STEP_COMMAND = "/addon/bin/ci-addon";
+  public static final String WIN_STEP_COMMAND = "C:\\addon\\bin\\addon.exe";
   public static final Integer STEP_REQUEST_MEMORY_MIB = 10;
   public static final Integer STEP_REQUEST_MILLI_CPU = 10;
   public static final Integer PORT_STARTING_RANGE = 20002;
@@ -57,11 +60,15 @@ public class CIExecutionConstants {
   public static final String SERVICE_PREFIX = "service-";
   public static final String STEP_PREFIX = "step-";
   public static final String SHARED_VOLUME_PREFIX = "shared-";
+  public static final String VOLUME_PREFIX = "volume-";
 
   // Container constants for setting up addon binary
   public static final String SETUP_ADDON_CONTAINER_NAME = "setup-addon";
-  public static final String SETUP_ADDON_ARGS =
+  public static final String UNIX_SETUP_ADDON_ARGS =
       "mkdir -p /addon/bin; mkdir -p /addon/tmp; chmod -R 776 /addon/tmp; cp /usr/local/bin/ci-addon-linux-amd64 /addon/bin/ci-addon; chmod +x /addon/bin/ci-addon; cp /usr/local/bin/java-agent.jar /addon/bin/java-agent.jar; chmod +x /addon/bin/java-agent.jar";
+
+  public static final String WIN_SETUP_ADDON_ARGS =
+      "mkdir /addon/bin; mkdir /addon/tmp; cp C:/addon.exe /addon/bin/addon.exe";
 
   public static final String ADDON_VOLUME = "addon";
   public static final String ADDON_VOL_MOUNT_PATH = "/addon";
@@ -104,6 +111,7 @@ public class CIExecutionConstants {
   public static final String HARNESS_ORG_ID_VARIABLE = "HARNESS_ORG_ID";
   public static final String HARNESS_BUILD_ID_VARIABLE = "HARNESS_BUILD_ID";
   public static final String HARNESS_STAGE_ID_VARIABLE = "HARNESS_STAGE_ID";
+  public static final String HARNESS_EXECUTION_ID_VARIABLE = "HARNESS_EXECUTION_ID";
   public static final String HARNESS_LOG_PREFIX_VARIABLE = "HARNESS_LOG_PREFIX";
   public static final String HARNESS_SERVICE_LOG_KEY_VARIABLE = "HARNESS_SERVICE_LOG_KEY";
   public static final String HARNESS_PIPELINE_ID_VARIABLE = "HARNESS_PIPELINE_ID";
@@ -118,6 +126,8 @@ public class CIExecutionConstants {
   public static final String PLUGIN_REGISTRY = "PLUGIN_REGISTRY";
   public static final String PLUGIN_ACCESS_KEY = "PLUGIN_ACCESS_KEY";
   public static final String PLUGIN_SECRET_KEY = "PLUGIN_SECRET_KEY";
+  public static final String PLUGIN_ASSUME_ROLE = "PLUGIN_ASSUME_ROLE";
+  public static final String AWS_ROLE_ARN = "AWS_ROLE_ARN";
   public static final String PLUGIN_JSON_KEY = "PLUGIN_JSON_KEY";
   public static final String PLUGIN_URL = "PLUGIN_URL";
 
@@ -126,6 +136,7 @@ public class CIExecutionConstants {
 
   // Deprecated
   public static final List<String> SH_COMMAND = Collections.unmodifiableList(Arrays.asList("sh", "-c", "--"));
+  public static final List<String> PWSH_COMMAND = Collections.unmodifiableList(Arrays.asList("pwsh", "-Command"));
 
   public static final String IMAGE_PATH_SPLIT_REGEX = ":";
   public static final String PVC_DEFAULT_STORAGE_CLASS = "faster";

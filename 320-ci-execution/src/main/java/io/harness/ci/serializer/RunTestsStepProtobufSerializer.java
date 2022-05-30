@@ -82,9 +82,12 @@ public class RunTestsStepProtobufSerializer implements ProtobufStepSerializer<Ru
     runTestsStepBuilder.setRunOnlySelectedTests(
         resolveBooleanParameter(runTestsStepInfo.getRunOnlySelectedTests(), true));
 
-    if (isNotEmpty(runTestsStepInfo.getOutputVariables())) {
-      List<String> outputVarNames =
-          runTestsStepInfo.getOutputVariables().stream().map(OutputNGVariable::getName).collect(Collectors.toList());
+    if (isNotEmpty(runTestsStepInfo.getOutputVariables().getValue())) {
+      List<String> outputVarNames = runTestsStepInfo.getOutputVariables()
+                                        .getValue()
+                                        .stream()
+                                        .map(OutputNGVariable::getName)
+                                        .collect(Collectors.toList());
       runTestsStepBuilder.addAllEnvVarOutputs(outputVarNames);
     }
 
@@ -106,7 +109,23 @@ public class RunTestsStepProtobufSerializer implements ProtobufStepSerializer<Ru
       runTestsStepBuilder.setPackages(packages);
     }
 
-    UnitTestReport reports = runTestsStepInfo.getReports();
+    String namespaces = RunTimeInputHandler.resolveStringParameter(
+        "Namespaces", "RunTests", identifier, runTestsStepInfo.getNamespaces(), false);
+    if (StringUtils.isNotEmpty(namespaces)) {
+      runTestsStepBuilder.setNamespaces(namespaces);
+    }
+
+    String buildEnvName = RunTimeInputHandler.resolveDotNetBuildEnvName(runTestsStepInfo.getBuildEnvironment());
+    if (StringUtils.isNotEmpty(buildEnvName)) {
+      runTestsStepBuilder.setBuildEnvironment(buildEnvName.toLowerCase());
+    }
+
+    String frameworkVersion = RunTimeInputHandler.resolveDotNetVersion(runTestsStepInfo.getFrameworkVersion());
+    if (StringUtils.isNotEmpty(frameworkVersion)) {
+      runTestsStepBuilder.setFrameworkVersion(buildEnvName.toLowerCase());
+    }
+
+    UnitTestReport reports = runTestsStepInfo.getReports().getValue();
     if (reports != null) {
       if (reports.getType() == UnitTestReportType.JUNIT) {
         JUnitTestReport junitTestReport = (JUnitTestReport) reports.getSpec();

@@ -21,9 +21,9 @@ import static io.harness.common.CIExecutionConstants.PLUGIN_ENV_PREFIX;
 import static io.harness.common.CIExecutionConstants.PORT_PREFIX;
 import static io.harness.common.CIExecutionConstants.PORT_STARTING_RANGE;
 import static io.harness.common.CIExecutionConstants.SERVICE_ARG_COMMAND;
-import static io.harness.common.CIExecutionConstants.STEP_COMMAND;
 import static io.harness.common.CIExecutionConstants.STEP_REQUEST_MEMORY_MIB;
 import static io.harness.common.CIExecutionConstants.STEP_REQUEST_MILLI_CPU;
+import static io.harness.common.CIExecutionConstants.UNIX_STEP_COMMAND;
 import static io.harness.delegate.beans.ci.pod.CIContainerType.PLUGIN;
 import static io.harness.delegate.beans.ci.pod.CIContainerType.RUN;
 import static io.harness.delegate.beans.ci.pod.CIContainerType.SERVICE;
@@ -54,6 +54,7 @@ import io.harness.beans.execution.WebhookExecutionSource;
 import io.harness.beans.executionargs.CIExecutionArgs;
 import io.harness.beans.script.ScriptInfo;
 import io.harness.beans.stages.IntegrationStageConfig;
+import io.harness.beans.stages.IntegrationStageConfigImpl;
 import io.harness.beans.steps.stepinfo.InitializeStepInfo;
 import io.harness.beans.yaml.extended.CustomSecretVariable;
 import io.harness.beans.yaml.extended.CustomTextVariable;
@@ -61,7 +62,12 @@ import io.harness.beans.yaml.extended.CustomVariable;
 import io.harness.beans.yaml.extended.infrastrucutre.Infrastructure;
 import io.harness.beans.yaml.extended.infrastrucutre.K8sDirectInfraYaml;
 import io.harness.beans.yaml.extended.infrastrucutre.K8sDirectInfraYaml.K8sDirectInfraYamlSpec;
-import io.harness.ci.beans.entities.BuildNumberDetails;
+import io.harness.beans.yaml.extended.volumes.EmptyDirYaml;
+import io.harness.beans.yaml.extended.volumes.EmptyDirYaml.EmptyDirYamlSpec;
+import io.harness.beans.yaml.extended.volumes.HostPathYaml;
+import io.harness.beans.yaml.extended.volumes.HostPathYaml.HostPathYamlSpec;
+import io.harness.beans.yaml.extended.volumes.PersistentVolumeClaimYaml;
+import io.harness.beans.yaml.extended.volumes.PersistentVolumeClaimYaml.PersistentVolumeClaimYamlSpec;
 import io.harness.common.CIExecutionConstants;
 import io.harness.connector.ConnectorDTO;
 import io.harness.connector.ConnectorInfoDTO;
@@ -69,9 +75,13 @@ import io.harness.delegate.beans.ci.pod.CIK8ContainerParams;
 import io.harness.delegate.beans.ci.pod.CIK8ContainerParams.CIK8ContainerParamsBuilder;
 import io.harness.delegate.beans.ci.pod.ConnectorDetails;
 import io.harness.delegate.beans.ci.pod.ContainerResourceParams;
+import io.harness.delegate.beans.ci.pod.EmptyDirVolume;
 import io.harness.delegate.beans.ci.pod.EnvVariableEnum;
+import io.harness.delegate.beans.ci.pod.HostPathVolume;
 import io.harness.delegate.beans.ci.pod.ImageDetailsWithConnector;
 import io.harness.delegate.beans.ci.pod.PVCParams;
+import io.harness.delegate.beans.ci.pod.PVCVolume;
+import io.harness.delegate.beans.ci.pod.PodVolume;
 import io.harness.delegate.beans.ci.pod.SecretVariableDTO;
 import io.harness.delegate.beans.ci.pod.SecretVariableDetails;
 import io.harness.delegate.beans.connector.ConnectorType;
@@ -109,6 +119,7 @@ import io.harness.k8s.model.ImageDetails;
 import io.harness.plancreator.execution.ExecutionElementConfig;
 import io.harness.plancreator.execution.ExecutionWrapperConfig;
 import io.harness.plancreator.stages.stage.StageElementConfig;
+import io.harness.pms.yaml.ParameterField;
 import io.harness.security.encryption.EncryptedDataDetail;
 import io.harness.yaml.core.variables.NGVariable;
 import io.harness.yaml.core.variables.SecretNGVariable;
@@ -190,17 +201,24 @@ public class CIExecutionPlanTestHelper {
   private static final String GIT_CLONE_IMAGE = "drone/git";
 
   private final ImageDetails imageDetails = ImageDetails.builder().name("maven").tag("3.6.3-jdk-8").build();
+  private static final String mountPath1 = "/mnt1";
+  private static final String mountPath2 = "/mnt2";
+  private static final String mountPath3 = "/mnt3";
+  private static final String claimName = "test";
 
   public List<ScriptInfo> getBuildCommandSteps() {
     return singletonList(ScriptInfo.builder().scriptString(BUILD_SCRIPT).build());
   }
 
   public CodeBase getCICodebase() {
-    return CodeBase.builder().connectorRef(GIT_CONNECTOR).build();
+    return CodeBase.builder().connectorRef(ParameterField.createValueField(GIT_CONNECTOR)).build();
   }
 
   public CodeBase getCICodebaseWithRepoName() {
-    return CodeBase.builder().connectorRef(GIT_CONNECTOR).repoName("portal").build();
+    return CodeBase.builder()
+        .connectorRef(ParameterField.createValueField(GIT_CONNECTOR))
+        .repoName(ParameterField.createValueField("portal"))
+        .build();
   }
 
   public ConnectorDetails getGitConnector() {
@@ -233,14 +251,18 @@ public class CIExecutionPlanTestHelper {
         .build();
   }
 
-  public InitializeStepInfo getExpectedLiteEngineTaskInfoOnFirstPod() {
+  public InitializeStepInfo getExpectedLiteEngineTaskInfoOnFirstPod(
+      ExecutionSource executionSource, StageElementConfig stageElementConfig) {
     return InitializeStepInfo.builder()
         .identifier("liteEngineTask")
         .name("liteEngineTask")
-        .buildJobEnvInfo(getCIBuildJobEnvInfoOnFirstPod())
+        .executionSource(executionSource)
+        .stageIdentifier(stageElementConfig.getIdentifier())
+        .variables(stageElementConfig.getVariables())
+        .stageElementConfig((IntegrationStageConfig) stageElementConfig.getStageType())
         .executionElementConfig(getExecutionElementConfig())
         .ciCodebase(getCICodebase())
-        .infrastructure(getInfrastructure())
+        .infrastructure(getInfrastructureWithVolume())
         .timeout(600000)
         .build();
   }
@@ -269,13 +291,17 @@ public class CIExecutionPlanTestHelper {
         .build();
   }
 
-  public InitializeStepInfo getExpectedLiteEngineTaskInfoOnOtherPods() {
+  public InitializeStepInfo getExpectedLiteEngineTaskInfoOnOtherPods(
+      ExecutionSource executionSource, StageElementConfig stageElementConfig) {
     return InitializeStepInfo.builder()
         .identifier("liteEngineTask")
         .name("liteEngineTask")
-        .buildJobEnvInfo(getCIBuildJobEnvInfoOnOtherPods())
+        .executionSource(executionSource)
+        .stageIdentifier(stageElementConfig.getIdentifier())
+        .variables(stageElementConfig.getVariables())
+        .stageElementConfig((IntegrationStageConfig) stageElementConfig.getStageType())
         .executionElementConfig(getExecutionElementConfig())
-        .infrastructure(getInfrastructure())
+        .infrastructure(getInfrastructureWithVolume())
         .timeout(600000)
         .build();
   }
@@ -298,18 +324,23 @@ public class CIExecutionPlanTestHelper {
 
   private Map<String, ConnectorConversionInfo> getStepConnectorConversionInfoMap() {
     Map<String, ConnectorConversionInfo> map = new HashMap<>();
+    Map<EnvVariableEnum, String> envToSecretEntry = new HashMap<>();
+    envToSecretEntry.put(EnvVariableEnum.GCP_KEY_AS_FILE, "PLUGIN_JSON_KEY");
     map.put("publish-1",
-        ConnectorConversionInfo.builder()
-            .connectorRef("gcr-connector")
-            .envToSecretEntry(EnvVariableEnum.GCP_KEY_AS_FILE, "PLUGIN_JSON_KEY")
-            .build());
+        ConnectorConversionInfo.builder().connectorRef("gcr-connector").envToSecretsMap(envToSecretEntry).build());
+    envToSecretEntry.clear();
+    envToSecretEntry.put(EnvVariableEnum.AWS_ACCESS_KEY, "PLUGIN_ACCESS_KEY");
+    envToSecretEntry.put(EnvVariableEnum.AWS_ACCESS_KEY, "PLUGIN_ACCESS_KEY");
     map.put("publish-2",
-        ConnectorConversionInfo.builder()
-            .connectorRef("ecr-connector")
-            .envToSecretEntry(EnvVariableEnum.AWS_ACCESS_KEY, "PLUGIN_ACCESS_KEY")
-            .envToSecretEntry(EnvVariableEnum.AWS_SECRET_KEY, "PLUGIN_SECRET_KEY")
-            .build());
+        ConnectorConversionInfo.builder().connectorRef("ecr-connector").envToSecretsMap(envToSecretEntry).build());
     return map;
+  }
+
+  private List<PodVolume> getVolumes() {
+    EmptyDirVolume vol1 = EmptyDirVolume.builder().name("volume-0").mountPath(mountPath1).build();
+    HostPathVolume vol2 = HostPathVolume.builder().name("volume-1").mountPath(mountPath2).path(mountPath2).build();
+    PVCVolume vol3 = PVCVolume.builder().name("volume-2").claimName(claimName).mountPath(mountPath3).build();
+    return Arrays.asList(vol1, vol2, vol3);
   }
 
   public K8BuildJobEnvInfo.PodsSetupInfo getCIPodsSetupInfoOnFirstPod() {
@@ -319,15 +350,39 @@ public class CIExecutionPlanTestHelper {
     volumeToMountPath.put(VOLUME_NAME, MOUNT_PATH);
     volumeToMountPath.put("shared-0", "share/");
     volumeToMountPath.put("addon", "/addon");
+    volumeToMountPath.put("volume-0", mountPath1);
+    volumeToMountPath.put("volume-1", mountPath2);
+    volumeToMountPath.put("volume-2", mountPath3);
     pods.add(PodSetupInfo.builder()
                  .name("")
                  .pvcParamsList(Arrays.asList(PVCParams.builder()
-                                                  .volumeName("shared-0")
+                                                  .volumeName("volume-0")
                                                   .claimName("")
                                                   .isPresent(false)
                                                   .sizeMib(PVC_DEFAULT_STORAGE_SIZE)
                                                   .storageClass(CIExecutionConstants.PVC_DEFAULT_STORAGE_CLASS)
                                                   .build(),
+                     PVCParams.builder()
+                         .volumeName("volume-2")
+                         .claimName("")
+                         .isPresent(false)
+                         .sizeMib(PVC_DEFAULT_STORAGE_SIZE)
+                         .storageClass(CIExecutionConstants.PVC_DEFAULT_STORAGE_CLASS)
+                         .build(),
+                     PVCParams.builder()
+                         .volumeName("shared-0")
+                         .claimName("")
+                         .isPresent(false)
+                         .sizeMib(PVC_DEFAULT_STORAGE_SIZE)
+                         .storageClass(CIExecutionConstants.PVC_DEFAULT_STORAGE_CLASS)
+                         .build(),
+                     PVCParams.builder()
+                         .volumeName("volume-1")
+                         .claimName("")
+                         .isPresent(false)
+                         .sizeMib(PVC_DEFAULT_STORAGE_SIZE)
+                         .storageClass(CIExecutionConstants.PVC_DEFAULT_STORAGE_CLASS)
+                         .build(),
                      PVCParams.builder()
                          .volumeName("addon")
                          .claimName("pod-addon")
@@ -353,6 +408,7 @@ public class CIExecutionPlanTestHelper {
                  .serviceGrpcPortList(Collections.singletonList(PORT_STARTING_RANGE))
                  .volumeToMountPath(volumeToMountPath)
                  .workDirPath(WORK_DIR)
+                 .volumes(getVolumes())
                  .build());
     return K8BuildJobEnvInfo.PodsSetupInfo.builder().podSetupInfoList(pods).build();
   }
@@ -365,16 +421,40 @@ public class CIExecutionPlanTestHelper {
     volumeToMountPath.put(VOLUME_NAME, MOUNT_PATH);
     volumeToMountPath.put("shared-0", "share/");
     volumeToMountPath.put("addon", "/addon");
+    volumeToMountPath.put("volume-0", mountPath1);
+    volumeToMountPath.put("volume-1", mountPath2);
+    volumeToMountPath.put("volume-2", mountPath3);
     Integer index = 1;
     pods.add(PodSetupInfo.builder()
                  .name("")
                  .pvcParamsList(Arrays.asList(PVCParams.builder()
-                                                  .volumeName("shared-0")
-                                                  .claimName("pod-2-shared-0")
+                                                  .volumeName("volume-0")
+                                                  .claimName("")
                                                   .isPresent(false)
                                                   .sizeMib(PVC_DEFAULT_STORAGE_SIZE)
                                                   .storageClass(CIExecutionConstants.PVC_DEFAULT_STORAGE_CLASS)
                                                   .build(),
+                     PVCParams.builder()
+                         .volumeName("volume-2")
+                         .claimName("")
+                         .isPresent(false)
+                         .sizeMib(PVC_DEFAULT_STORAGE_SIZE)
+                         .storageClass(CIExecutionConstants.PVC_DEFAULT_STORAGE_CLASS)
+                         .build(),
+                     PVCParams.builder()
+                         .volumeName("shared-0")
+                         .claimName("pod-2-shared-0")
+                         .isPresent(false)
+                         .sizeMib(PVC_DEFAULT_STORAGE_SIZE)
+                         .storageClass(CIExecutionConstants.PVC_DEFAULT_STORAGE_CLASS)
+                         .build(),
+                     PVCParams.builder()
+                         .volumeName("volume-1")
+                         .claimName("")
+                         .isPresent(false)
+                         .sizeMib(PVC_DEFAULT_STORAGE_SIZE)
+                         .storageClass(CIExecutionConstants.PVC_DEFAULT_STORAGE_CLASS)
+                         .build(),
                      PVCParams.builder()
                          .volumeName("addon")
                          .claimName("pod-2-addon")
@@ -402,6 +482,7 @@ public class CIExecutionPlanTestHelper {
                  .serviceGrpcPortList(Collections.singletonList(PORT_STARTING_RANGE))
                  .volumeToMountPath(volumeToMountPath)
                  .workDirPath(WORK_DIR)
+                 .volumes(getVolumes())
                  .build());
     return K8BuildJobEnvInfo.PodsSetupInfo.builder().podSetupInfoList(pods).build();
   }
@@ -421,6 +502,7 @@ public class CIExecutionPlanTestHelper {
         .identifier(SERVICE_ID)
         .dependencySpecType(CIServiceInfo.builder()
                                 .identifier(SERVICE_ID)
+                                .grpcPort(20002)
                                 .args(createValueField(Collections.singletonList(SERVICE_ARGS)))
                                 .entrypoint(createValueField(Collections.singletonList(SERVICE_ENTRYPOINT)))
                                 .image(createValueField(SERVICE_IMAGE))
@@ -454,7 +536,7 @@ public class CIExecutionPlanTestHelper {
         .envVars(ImmutableMap.of("HARNESS_SERVICE_ENTRYPOINT", "redis", "HARNESS_SERVICE_ARGS", "start"))
         .containerType(SERVICE)
         .args(args)
-        .commands(asList(STEP_COMMAND))
+        .commands(asList(UNIX_STEP_COMMAND))
         .ports(asList(port))
         .containerResourceParams(ContainerResourceParams.builder()
                                      .resourceRequestMilliCpu(SERVICE_LIMIT_CPU)
@@ -463,6 +545,7 @@ public class CIExecutionPlanTestHelper {
                                      .resourceLimitMemoryMiB(SERVICE_LIMIT_MEM)
                                      .build())
         .stepIdentifier(SERVICE_ID)
+        .privileged(false)
         .build();
   }
 
@@ -481,7 +564,7 @@ public class CIExecutionPlanTestHelper {
         .name(SERVICE_CTR_NAME)
         .containerType(SERVICE)
         .args(args)
-        .commands(asList(STEP_COMMAND))
+        .commands(asList(UNIX_STEP_COMMAND))
         .ports(asList(port))
         .containerResourceParams(ContainerResourceParams.builder()
                                      .resourceRequestMilliCpu(SERVICE_LIMIT_CPU)
@@ -504,7 +587,7 @@ public class CIExecutionPlanTestHelper {
         .name("step-" + index.toString())
         .containerType(RUN)
         .args(Arrays.asList(PORT_PREFIX, port.toString()))
-        .commands(Arrays.asList(STEP_COMMAND))
+        .commands(Arrays.asList(UNIX_STEP_COMMAND))
         .ports(Arrays.asList(port))
         .containerResourceParams(ContainerResourceParams.builder()
                                      .resourceRequestMilliCpu(STEP_REQUEST_MILLI_CPU)
@@ -529,7 +612,7 @@ public class CIExecutionPlanTestHelper {
         .name(RUN_STEP_ID)
         .containerType(RUN)
         .args(asList(PORT_PREFIX, port.toString()))
-        .commands(asList(STEP_COMMAND))
+        .commands(asList(UNIX_STEP_COMMAND))
         .ports(asList(port))
         .containerResourceParams(ContainerResourceParams.builder()
                                      .resourceRequestMilliCpu(STEP_REQUEST_MILLI_CPU)
@@ -554,7 +637,7 @@ public class CIExecutionPlanTestHelper {
         .name("step-" + index.toString())
         .containerType(PLUGIN)
         .args(Arrays.asList(PORT_PREFIX, port.toString()))
-        .commands(Arrays.asList(STEP_COMMAND))
+        .commands(Arrays.asList(UNIX_STEP_COMMAND))
         .ports(Arrays.asList(port))
         .containerResourceParams(ContainerResourceParams.builder()
                                      .resourceRequestMilliCpu(STEP_REQUEST_MILLI_CPU)
@@ -582,7 +665,7 @@ public class CIExecutionPlanTestHelper {
         .name("step-" + index.toString())
         .containerType(PLUGIN)
         .args(Arrays.asList(PORT_PREFIX, port.toString()))
-        .commands(Arrays.asList(STEP_COMMAND))
+        .commands(Arrays.asList(UNIX_STEP_COMMAND))
         .ports(Arrays.asList(port))
         .containerResourceParams(ContainerResourceParams.builder()
                                      .resourceRequestMilliCpu(STEP_REQUEST_MILLI_CPU)
@@ -614,7 +697,7 @@ public class CIExecutionPlanTestHelper {
         .name(CLONE_STEP_ID)
         .containerType(PLUGIN)
         .args(asList(PORT_PREFIX, port.toString()))
-        .commands(asList(STEP_COMMAND))
+        .commands(asList(UNIX_STEP_COMMAND))
         .ports(asList(port))
         .containerResourceParams(ContainerResourceParams.builder()
                                      .resourceRequestMilliCpu(STEP_REQUEST_MILLI_CPU)
@@ -645,7 +728,7 @@ public class CIExecutionPlanTestHelper {
         .name(PLUGIN_STEP_ID)
         .containerType(PLUGIN)
         .args(asList(PORT_PREFIX, port.toString()))
-        .commands(asList(STEP_COMMAND))
+        .commands(asList(UNIX_STEP_COMMAND))
         .ports(asList(port))
         .containerResourceParams(ContainerResourceParams.builder()
                                      .resourceRequestMilliCpu(STEP_REQUEST_MILLI_CPU)
@@ -1130,7 +1213,6 @@ public class CIExecutionPlanTestHelper {
   public CIExecutionArgs getCIExecutionArgs() {
     return CIExecutionArgs.builder()
         .executionSource(ManualExecutionSource.builder().branch(REPO_BRANCH).build())
-        .buildNumberDetails(BuildNumberDetails.builder().buildNumber(BUILD_NUMBER).build())
         .build();
   }
 
@@ -1141,10 +1223,7 @@ public class CIExecutionPlanTestHelper {
 
     WebhookEvent webhookEvent = PRWebhookEvent.builder().baseAttributes(core).repository(repo).build();
     ExecutionSource prExecutionSource = WebhookExecutionSource.builder().webhookEvent(webhookEvent).build();
-    return CIExecutionArgs.builder()
-        .buildNumberDetails(BuildNumberDetails.builder().buildNumber(BUILD_NUMBER).build())
-        .executionSource(prExecutionSource)
-        .build();
+    return CIExecutionArgs.builder().executionSource(prExecutionSource).build();
   }
 
   public Map<String, String> getPRCIExecutionArgsEnvVars() {
@@ -1171,10 +1250,7 @@ public class CIExecutionPlanTestHelper {
 
     WebhookEvent webhookEvent = BranchWebhookEvent.builder().baseAttributes(core).repository(repo).build();
     ExecutionSource prExecutionSource = WebhookExecutionSource.builder().webhookEvent(webhookEvent).build();
-    return CIExecutionArgs.builder()
-        .buildNumberDetails(BuildNumberDetails.builder().buildNumber(BUILD_NUMBER).build())
-        .executionSource(prExecutionSource)
-        .build();
+    return CIExecutionArgs.builder().executionSource(prExecutionSource).build();
   }
 
   public Map<String, String> getBranchCIExecutionArgsEnvVars() {
@@ -1201,11 +1277,43 @@ public class CIExecutionPlanTestHelper {
         .build();
   }
   public IntegrationStageConfig getIntegrationStageConfig() {
-    return IntegrationStageConfig.builder()
+    return IntegrationStageConfigImpl.builder()
         .execution(getExecutionElementConfig())
-        .infrastructure(getInfrastructure())
+        .infrastructure(getInfrastructureWithVolume())
         .sharedPaths(createValueField(newArrayList("share/")))
-        .serviceDependencies(Collections.singletonList(getServiceDependencyElement()))
+        .serviceDependencies(ParameterField.createValueField(Collections.singletonList(getServiceDependencyElement())))
+        .build();
+  }
+
+  public Infrastructure getInfrastructureWithVolume() {
+    EmptyDirYaml emptyDirYaml = EmptyDirYaml.builder()
+                                    .mountPath(createValueField(mountPath1))
+                                    .spec(EmptyDirYamlSpec.builder()
+                                              .medium(ParameterField.createValueField(null))
+                                              .size(ParameterField.createValueField(null))
+                                              .build())
+                                    .build();
+    HostPathYaml hostPathYaml = HostPathYaml.builder()
+                                    .mountPath(createValueField(mountPath2))
+                                    .spec(HostPathYamlSpec.builder()
+                                              .path(ParameterField.createValueField(mountPath2))
+                                              .type(ParameterField.createValueField(null))
+                                              .build())
+                                    .build();
+    PersistentVolumeClaimYaml pvcYaml = PersistentVolumeClaimYaml.builder()
+                                            .mountPath(createValueField(mountPath3))
+                                            .spec(PersistentVolumeClaimYamlSpec.builder()
+                                                      .claimName(ParameterField.createValueField(claimName))
+                                                      .readOnly(ParameterField.createValueField(null))
+                                                      .build())
+                                            .build();
+    return K8sDirectInfraYaml.builder()
+        .type(Infrastructure.Type.KUBERNETES_DIRECT)
+        .spec(K8sDirectInfraYamlSpec.builder()
+                  .connectorRef(createValueField("testKubernetesCluster"))
+                  .namespace(createValueField("testNamespace"))
+                  .volumes(ParameterField.createValueField(Arrays.asList(emptyDirYaml, hostPathYaml, pvcYaml)))
+                  .build())
         .build();
   }
 }

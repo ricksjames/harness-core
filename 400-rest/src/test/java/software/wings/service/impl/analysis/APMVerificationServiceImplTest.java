@@ -43,16 +43,22 @@ import software.wings.APMFetchConfig;
 import software.wings.WingsBaseTest;
 import software.wings.beans.APMValidateCollectorConfig;
 import software.wings.beans.APMVerificationConfig;
+import software.wings.beans.ApmMetricCollectionInfo;
+import software.wings.beans.ApmResponseMapping;
 import software.wings.beans.AppDynamicsConfig;
 import software.wings.beans.AwsConfig;
 import software.wings.beans.DatadogConfig;
 import software.wings.beans.Environment;
 import software.wings.beans.GcpConfig;
+import software.wings.beans.LogCollectionInfo;
+import software.wings.beans.LogResponseMapping;
 import software.wings.beans.NewRelicConfig;
 import software.wings.beans.PrometheusConfig;
 import software.wings.beans.SettingAttribute;
 import software.wings.beans.TaskType;
+import software.wings.beans.apm.Method;
 import software.wings.delegatetasks.DelegateProxyFactory;
+import software.wings.delegatetasks.DelegateStateType;
 import software.wings.dl.WingsPersistence;
 import software.wings.metrics.MetricType;
 import software.wings.service.impl.ThirdPartyApiCallLog;
@@ -73,14 +79,8 @@ import software.wings.service.intfc.datadog.DatadogService;
 import software.wings.service.intfc.prometheus.PrometheusAnalysisService;
 import software.wings.service.intfc.security.SecretManager;
 import software.wings.service.intfc.verification.CVActivityLogService;
-import software.wings.service.intfc.verification.CVActivityLogService.Logger;
+import software.wings.service.intfc.verification.CVActivityLogger;
 import software.wings.sm.StateType;
-import software.wings.sm.states.APMVerificationState;
-import software.wings.sm.states.APMVerificationState.MetricCollectionInfo;
-import software.wings.sm.states.APMVerificationState.ResponseMapping;
-import software.wings.sm.states.CustomLogVerificationState;
-import software.wings.sm.states.CustomLogVerificationState.LogCollectionInfo;
-import software.wings.sm.states.CustomLogVerificationState.Method;
 import software.wings.sm.states.DatadogState;
 import software.wings.verification.appdynamics.AppDynamicsCVServiceConfiguration;
 import software.wings.verification.cloudwatch.CloudWatchCVServiceConfiguration;
@@ -140,9 +140,10 @@ public class APMVerificationServiceImplTest extends WingsBaseTest {
     FieldUtils.writeField(service, "cvActivityLogService", cvActivityLogService, true);
     FieldUtils.writeField(service, "prometheusAnalysisService", prometheusAnalysisService, true);
     when(featureFlagService.isEnabled(any(), anyString())).thenReturn(false);
-    when(cvActivityLogService.getLoggerByStateExecutionId(anyString(), anyString())).thenReturn(mock(Logger.class));
+    when(cvActivityLogService.getLoggerByStateExecutionId(anyString(), anyString()))
+        .thenReturn(mock(CVActivityLogger.class));
     when(cvActivityLogService.getLoggerByCVConfigId(anyString(), anyString(), anyLong()))
-        .thenReturn(mock(Logger.class));
+        .thenReturn(mock(CVActivityLogger.class));
     when(environmentService.get(anyString(), anyString()))
         .thenReturn(Environment.Builder.anEnvironment().environmentType(EnvironmentType.PROD).build());
   }
@@ -163,10 +164,10 @@ public class APMVerificationServiceImplTest extends WingsBaseTest {
 
     APMSetupTestNodeData nodeData = APMSetupTestNodeData.builder()
                                         .fetchConfig(fetchConfig)
-                                        .apmMetricCollectionInfo(MetricCollectionInfo.builder()
+                                        .apmMetricCollectionInfo(ApmMetricCollectionInfo.builder()
                                                                      .metricName("name")
                                                                      .collectionUrl("testURL")
-                                                                     .responseMapping(ResponseMapping.builder()
+                                                                     .responseMapping(ApmResponseMapping.builder()
                                                                                           .metricValueJsonPath("key1")
                                                                                           .timestampJsonPath("time")
                                                                                           .txnNameFieldValue("txnName")
@@ -182,7 +183,7 @@ public class APMVerificationServiceImplTest extends WingsBaseTest {
 
     // execute
     VerificationNodeDataSetupResponse response =
-        service.getDataForNode("accountId", "serverConfigId", nodeData, StateType.APM_VERIFICATION);
+        service.getDataForNode("accountId", "serverConfigId", nodeData, DelegateStateType.APM_VERIFICATION);
 
     // verify
     assertThat(response).isNotNull();
@@ -202,7 +203,7 @@ public class APMVerificationServiceImplTest extends WingsBaseTest {
             .instanceElement(SetupTestNodeData.Instance.builder()
                                  .instanceDetails(InstanceDetails.builder().hostName("sampleHostname").build())
                                  .build())
-            .stateType(StateType.DATA_DOG)
+            .stateType(DelegateStateType.DATA_DOG)
             .guid(generateUuid())
             .build();
     when(mlServiceUtils.getHostName(eq(nodeData))).thenReturn("sampleHostname");
@@ -222,7 +223,7 @@ public class APMVerificationServiceImplTest extends WingsBaseTest {
         .thenReturn("docker.mem.rss");
     // execute
     VerificationNodeDataSetupResponse response =
-        service.getDataForNode("accountId", "serverConfigId", nodeData, StateType.DATA_DOG);
+        service.getDataForNode("accountId", "serverConfigId", nodeData, DelegateStateType.DATA_DOG);
 
     assertThat(response).isNotNull();
     assertThat(response.isProviderReachable()).isTrue();
@@ -243,7 +244,7 @@ public class APMVerificationServiceImplTest extends WingsBaseTest {
             .instanceElement(SetupTestNodeData.Instance.builder()
                                  .instanceDetails(InstanceDetails.builder().hostName("sampleHostname").build())
                                  .build())
-            .stateType(StateType.DATA_DOG)
+            .stateType(DelegateStateType.DATA_DOG)
             .guid(generateUuid())
             .build();
     when(mlServiceUtils.getHostName(eq(nodeData))).thenReturn("sampleHostname");
@@ -263,7 +264,7 @@ public class APMVerificationServiceImplTest extends WingsBaseTest {
         .thenReturn("docker.mem.rss");
     // execute
     VerificationNodeDataSetupResponse response =
-        service.getDataForNode("accountId", "serverConfigId", nodeData, StateType.DATA_DOG);
+        service.getDataForNode("accountId", "serverConfigId", nodeData, DelegateStateType.DATA_DOG);
 
     assertThat(response).isNotNull();
     assertThat(response.isProviderReachable()).isTrue();
@@ -284,7 +285,7 @@ public class APMVerificationServiceImplTest extends WingsBaseTest {
             .instanceElement(SetupTestNodeData.Instance.builder()
                                  .instanceDetails(InstanceDetails.builder().hostName("sampleHostname").build())
                                  .build())
-            .stateType(StateType.DATA_DOG)
+            .stateType(DelegateStateType.DATA_DOG)
             .guid(generateUuid())
             .build();
     Map<String, Set<DatadogState.Metric>> customMetric = new HashMap<>();
@@ -302,7 +303,7 @@ public class APMVerificationServiceImplTest extends WingsBaseTest {
         .thenReturn("docker.mem.rss");
     // execute
     VerificationNodeDataSetupResponse response =
-        service.getDataForNode("accountId", "serverConfigId", nodeData, StateType.DATA_DOG);
+        service.getDataForNode("accountId", "serverConfigId", nodeData, DelegateStateType.DATA_DOG);
   }
 
   @Test
@@ -322,7 +323,7 @@ public class APMVerificationServiceImplTest extends WingsBaseTest {
         APMSetupTestNodeData.builder()
             .fetchConfig(fetchConfig)
             .apmMetricCollectionInfo(
-                MetricCollectionInfo.builder().responseMapping(ResponseMapping.builder().build()).build())
+                ApmMetricCollectionInfo.builder().responseMapping(ApmResponseMapping.builder().build()).build())
             .build();
     nodeData.setGuid(generateUuid());
 
@@ -339,7 +340,7 @@ public class APMVerificationServiceImplTest extends WingsBaseTest {
 
     // execute
     VerificationNodeDataSetupResponse response =
-        service.getDataForNode("accountId", "serverConfigId", nodeData, StateType.APM_VERIFICATION);
+        service.getDataForNode("accountId", "serverConfigId", nodeData, DelegateStateType.APM_VERIFICATION);
 
     // verify
     assertThat(response).isNotNull();
@@ -369,7 +370,7 @@ public class APMVerificationServiceImplTest extends WingsBaseTest {
 
     // execute
     VerificationNodeDataSetupResponse response =
-        service.getDataForNode("accountId", null, fetchConfig, StateType.APM_VERIFICATION);
+        service.getDataForNode("accountId", null, fetchConfig, DelegateStateType.APM_VERIFICATION);
   }
 
   @Test(expected = WingsException.class)
@@ -393,7 +394,7 @@ public class APMVerificationServiceImplTest extends WingsBaseTest {
 
     // execute
     VerificationNodeDataSetupResponse response =
-        service.getDataForNode("accountId", "serverId", null, StateType.APM_VERIFICATION);
+        service.getDataForNode("accountId", "serverId", null, DelegateStateType.APM_VERIFICATION);
   }
 
   @Test(expected = WingsException.class)
@@ -417,7 +418,7 @@ public class APMVerificationServiceImplTest extends WingsBaseTest {
 
     // execute
     VerificationNodeDataSetupResponse response =
-        service.getDataForNode("accountId", "serverId", null, StateType.APM_VERIFICATION);
+        service.getDataForNode("accountId", "serverId", null, DelegateStateType.APM_VERIFICATION);
   }
 
   @Test
@@ -457,7 +458,7 @@ public class APMVerificationServiceImplTest extends WingsBaseTest {
         .isEqualTo(taskCaptor.getValue().getData().getTaskType());
     APMDataCollectionInfo dataCollectionInfo =
         (APMDataCollectionInfo) taskCaptor.getValue().getData().getParameters()[0];
-    assertThat(StateType.DATA_DOG).isEqualTo(dataCollectionInfo.getStateType());
+    assertThat(DelegateStateType.DATA_DOG).isEqualTo(dataCollectionInfo.getStateType());
     assertThat(1540419553000l).isEqualTo(dataCollectionInfo.getStartTime());
     assertThat(15).isEqualTo(dataCollectionInfo.getDataCollectionTotalTime());
   }
@@ -707,7 +708,7 @@ public class APMVerificationServiceImplTest extends WingsBaseTest {
             .logCollectionInfo(LogCollectionInfo.builder()
                                    .collectionUrl("testURL")
                                    .method(Method.GET)
-                                   .responseMapping(CustomLogVerificationState.ResponseMapping.builder()
+                                   .responseMapping(LogResponseMapping.builder()
                                                         .hostJsonPath("host")
                                                         .logMessageJsonPath("logMessage")
                                                         .timestampJsonPath("time")
@@ -723,7 +724,7 @@ public class APMVerificationServiceImplTest extends WingsBaseTest {
 
     // execute
     VerificationNodeDataSetupResponse response =
-        service.getDataForNode("accountId", "serverConfigId", nodeData, StateType.LOG_VERIFICATION);
+        service.getDataForNode("accountId", "serverConfigId", nodeData, DelegateStateType.LOG_VERIFICATION);
 
     // verify
     assertThat(response).isNotNull();
@@ -744,7 +745,7 @@ public class APMVerificationServiceImplTest extends WingsBaseTest {
     APMSetupTestNodeData nodeData =
         APMSetupTestNodeData.builder()
             .fetchConfig(fetchConfig)
-            .apmMetricCollectionInfo(MetricCollectionInfo.builder().method(APMVerificationState.Method.POST).build())
+            .apmMetricCollectionInfo(ApmMetricCollectionInfo.builder().method(Method.POST).build())
             .build();
 
     // setup
@@ -753,7 +754,7 @@ public class APMVerificationServiceImplTest extends WingsBaseTest {
     when(mockDelegateProxyFactory.get(any(), any())).thenReturn(apmDelegateService);
 
     try {
-      service.getDataForNode("accountId", "serverConfigId", nodeData, StateType.APM_VERIFICATION);
+      service.getDataForNode("accountId", "serverConfigId", nodeData, DelegateStateType.APM_VERIFICATION);
       fail("should throw an exception");
     } catch (VerificationOperationException e) {
       assertThat(e.getParams().get("reason")).isEqualTo("Could not resolve \"$ {host}\" provided in input");

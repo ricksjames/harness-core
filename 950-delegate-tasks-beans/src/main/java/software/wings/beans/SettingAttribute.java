@@ -46,6 +46,7 @@ import static software.wings.settings.SettingVariableTypes.KUBERNETES_CLUSTER;
 import static software.wings.settings.SettingVariableTypes.LOGZ;
 import static software.wings.settings.SettingVariableTypes.NEW_RELIC;
 import static software.wings.settings.SettingVariableTypes.NEXUS;
+import static software.wings.settings.SettingVariableTypes.OCI_HELM_REPO;
 import static software.wings.settings.SettingVariableTypes.PCF;
 import static software.wings.settings.SettingVariableTypes.PHYSICAL_DATA_CENTER;
 import static software.wings.settings.SettingVariableTypes.PROMETHEUS;
@@ -71,6 +72,9 @@ import io.harness.beans.EmbeddedUser;
 import io.harness.data.validator.EntityName;
 import io.harness.data.validator.Trimmed;
 import io.harness.iterator.PersistentRegularIterable;
+import io.harness.mongo.CollationLocale;
+import io.harness.mongo.CollationStrength;
+import io.harness.mongo.index.Collation;
 import io.harness.mongo.index.CompoundMongoIndex;
 import io.harness.mongo.index.FdIndex;
 import io.harness.mongo.index.MongoIndex;
@@ -171,6 +175,15 @@ public class SettingAttribute
                  .field(SettingAttributeKeys.secretsMigrated)
                  .field(SettingAttributeKeys.accountId)
                  .build())
+        .add(CompoundMongoIndex.builder()
+                 .name("accountIdAppIdCategoryNameIdx")
+                 .field(SettingAttributeKeys.accountId)
+                 .field(SettingAttributeKeys.appId)
+                 .field(SettingAttributeKeys.category)
+                 .field(SettingAttributeKeys.name)
+                 .collation(
+                     Collation.builder().locale(CollationLocale.ENGLISH).strength(CollationStrength.PRIMARY).build())
+                 .build())
         .build();
   }
 
@@ -265,7 +278,7 @@ public class SettingAttribute
     SETTING(Lists.newArrayList(
         HOST_CONNECTION_ATTRIBUTES, BASTION_HOST_CONNECTION_ATTRIBUTES, STRING, WINRM_CONNECTION_ATTRIBUTES)),
 
-    HELM_REPO(Lists.newArrayList(HTTP_HELM_REPO, AMAZON_S3_HELM_REPO, GCS_HELM_REPO)),
+    HELM_REPO(Lists.newArrayList(HTTP_HELM_REPO, AMAZON_S3_HELM_REPO, GCS_HELM_REPO, OCI_HELM_REPO)),
 
     AZURE_ARTIFACTS(Lists.newArrayList(AZURE_ARTIFACTS_PAT)),
 

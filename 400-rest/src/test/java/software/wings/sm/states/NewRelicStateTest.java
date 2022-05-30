@@ -48,6 +48,7 @@ import software.wings.beans.NewRelicConfig;
 import software.wings.beans.SettingAttribute;
 import software.wings.beans.TemplateExpression;
 import software.wings.beans.WorkflowExecution;
+import software.wings.delegatetasks.DelegateStateType;
 import software.wings.metrics.MetricType;
 import software.wings.service.impl.analysis.AnalysisContext;
 import software.wings.service.impl.analysis.AnalysisTolerance;
@@ -63,9 +64,10 @@ import software.wings.service.intfc.InfrastructureMappingService;
 import software.wings.service.intfc.MetricDataAnalysisService;
 import software.wings.service.intfc.newrelic.NewRelicService;
 import software.wings.service.intfc.security.SecretManager;
-import software.wings.service.intfc.verification.CVActivityLogService.Logger;
+import software.wings.service.intfc.verification.CVActivityLogger;
 import software.wings.sm.ExecutionResponse;
 import software.wings.sm.StateType;
+import software.wings.sm.WorkflowStandardParamsExtensionService;
 import software.wings.sm.states.NewRelicState.Metric;
 import software.wings.verification.VerificationStateAnalysisExecutionData;
 
@@ -102,6 +104,7 @@ public class NewRelicStateTest extends APMStateVerificationTestBase {
   @Mock private WaitNotifyEngine waitNotifyEngine;
   @Mock private DelegateService delegateService;
   @Mock private SecretManager secretManager;
+  @Mock private WorkflowStandardParamsExtensionService workflowStandardParamsExtensionService;
   private String infraMappingId;
   private NewRelicState newRelicState;
 
@@ -169,7 +172,10 @@ public class NewRelicStateTest extends APMStateVerificationTestBase {
     FieldUtils.writeField(newRelicState, "accountService", accountService, true);
     FieldUtils.writeField(newRelicState, "cvActivityLogService", cvActivityLogService, true);
     FieldUtils.writeField(newRelicState, "workflowVerificationResultService", workflowVerificationResultService, true);
-    when(cvActivityLogService.getLoggerByStateExecutionId(anyString(), anyString())).thenReturn(mock(Logger.class));
+    FieldUtils.writeField(
+        newRelicState, "workflowStandardParamsExtensionService", workflowStandardParamsExtensionService, true);
+    when(cvActivityLogService.getLoggerByStateExecutionId(anyString(), anyString()))
+        .thenReturn(mock(CVActivityLogger.class));
 
     setupCommonMocks();
   }
@@ -298,14 +304,14 @@ public class NewRelicStateTest extends APMStateVerificationTestBase {
     doReturn(serviceId).when(spyNewRelicState).getPhaseServiceId(executionContext);
 
     when(metricAnalysisService.getLastSuccessfulWorkflowExecutionIdWithData(
-             StateType.NEW_RELIC, appId, workflowId, serviceId, infraMappingId, environment.getUuid()))
+             DelegateStateType.NEW_RELIC, appId, workflowId, serviceId, infraMappingId, environment.getUuid()))
         .thenReturn(workflowExecutionId);
     when(executionContext.renderExpression("${workflow.variables.NewRelic_Server}"))
         .thenReturn(settingAttribute.getUuid());
     when(executionContext.renderExpression("${workflow.variables.NewRelic_App}")).thenReturn("30444");
     doReturn(Environment.Builder.anEnvironment().uuid(UUID.randomUUID().toString()).build())
-        .when(workflowStandardParams)
-        .getEnv();
+        .when(workflowStandardParamsExtensionService)
+        .getEnv(workflowStandardParams);
     when(executionContext.getContextElement(ContextElementType.STANDARD)).thenReturn(workflowStandardParams);
     doReturn(false).when(spyNewRelicState).isCVTaskEnqueuingEnabled(anyString());
     doReturn(AnalysisTolerance.LOW).when(spyNewRelicState).getAnalysisTolerance();
@@ -340,7 +346,7 @@ public class NewRelicStateTest extends APMStateVerificationTestBase {
     NewRelicDataCollectionInfoV2 dataCollectionInfo =
         (NewRelicDataCollectionInfoV2) newRelicState.createDataCollectionInfo(executionContext, hosts);
 
-    assertThat(StateType.NEW_RELIC).isEqualTo(dataCollectionInfo.getStateType());
+    assertThat(DelegateStateType.NEW_RELIC).isEqualTo(dataCollectionInfo.getStateType());
     assertThat(dataCollectionInfo.getNewRelicConfig()).isNull();
     assertThat(dataCollectionInfo.getStateExecutionId()).isEqualTo(executionContext.getStateExecutionInstanceId());
     assertThat(dataCollectionInfo.getConnectorId()).isEqualTo(analysisServerConfigId);
@@ -359,7 +365,7 @@ public class NewRelicStateTest extends APMStateVerificationTestBase {
     NewRelicDataCollectionInfoV2 dataCollectionInfo =
         (NewRelicDataCollectionInfoV2) newRelicState.createDataCollectionInfo(executionContext, hosts);
 
-    assertThat(StateType.NEW_RELIC).isEqualTo(dataCollectionInfo.getStateType());
+    assertThat(DelegateStateType.NEW_RELIC).isEqualTo(dataCollectionInfo.getStateType());
     assertThat(dataCollectionInfo.getNewRelicConfig()).isNull();
     assertThat(dataCollectionInfo.getStateExecutionId()).isEqualTo(executionContext.getStateExecutionInstanceId());
     assertThat(dataCollectionInfo.getConnectorId()).isEqualTo(analysisServerConfigId);
@@ -399,7 +405,7 @@ public class NewRelicStateTest extends APMStateVerificationTestBase {
     NewRelicDataCollectionInfoV2 dataCollectionInfo =
         (NewRelicDataCollectionInfoV2) spyState.createDataCollectionInfo(executionContext, hosts);
 
-    assertThat(StateType.NEW_RELIC).isEqualTo(dataCollectionInfo.getStateType());
+    assertThat(DelegateStateType.NEW_RELIC).isEqualTo(dataCollectionInfo.getStateType());
     assertThat(dataCollectionInfo.getNewRelicConfig()).isNull();
     assertThat(dataCollectionInfo.getStateExecutionId()).isEqualTo(executionContext.getStateExecutionInstanceId());
 
@@ -428,7 +434,7 @@ public class NewRelicStateTest extends APMStateVerificationTestBase {
     NewRelicDataCollectionInfoV2 dataCollectionInfo =
         (NewRelicDataCollectionInfoV2) spyState.createDataCollectionInfo(executionContext, hosts);
 
-    assertThat(StateType.NEW_RELIC).isEqualTo(dataCollectionInfo.getStateType());
+    assertThat(DelegateStateType.NEW_RELIC).isEqualTo(dataCollectionInfo.getStateType());
     assertThat(dataCollectionInfo.getNewRelicConfig()).isNull();
     assertThat(dataCollectionInfo.getStateExecutionId()).isEqualTo(executionContext.getStateExecutionInstanceId());
 
@@ -449,7 +455,7 @@ public class NewRelicStateTest extends APMStateVerificationTestBase {
     NewRelicDataCollectionInfoV2 dataCollectionInfo =
         (NewRelicDataCollectionInfoV2) spyState.createDataCollectionInfo(executionContext, hosts);
 
-    assertThat(StateType.NEW_RELIC).isEqualTo(dataCollectionInfo.getStateType());
+    assertThat(DelegateStateType.NEW_RELIC).isEqualTo(dataCollectionInfo.getStateType());
     assertThat(dataCollectionInfo.getNewRelicConfig()).isNull();
     assertThat(dataCollectionInfo.getStateExecutionId()).isEqualTo(executionContext.getStateExecutionInstanceId());
 
@@ -477,7 +483,7 @@ public class NewRelicStateTest extends APMStateVerificationTestBase {
     NewRelicDataCollectionInfoV2 dataCollectionInfo =
         (NewRelicDataCollectionInfoV2) spyState.createDataCollectionInfo(executionContext, hosts);
 
-    assertThat(StateType.NEW_RELIC).isEqualTo(dataCollectionInfo.getStateType());
+    assertThat(DelegateStateType.NEW_RELIC).isEqualTo(dataCollectionInfo.getStateType());
     assertThat(dataCollectionInfo.getNewRelicConfig()).isNull();
     assertThat(dataCollectionInfo.getStateExecutionId()).isEqualTo(executionContext.getStateExecutionInstanceId());
 

@@ -39,9 +39,8 @@ import io.harness.eventsframework.api.EventsFrameworkDownException;
 import io.harness.eventsframework.api.Producer;
 import io.harness.eventsframework.producer.Message;
 import io.harness.exception.InvalidRequestException;
-import io.harness.ng.beans.PageResponse;
-import io.harness.ng.core.accountsetting.AccountSettingsHelper;
 import io.harness.ng.core.accountsetting.dto.AccountSettingType;
+import io.harness.ng.core.accountsetting.services.NGAccountSettingService;
 import io.harness.ng.core.api.NGEncryptedDataService;
 import io.harness.ng.core.api.NGSecretServiceV2;
 import io.harness.ng.core.dto.secrets.SecretDTOV2;
@@ -64,7 +63,9 @@ import com.amazonaws.util.StringInputStream;
 import com.google.common.collect.Lists;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
@@ -72,6 +73,7 @@ import org.junit.experimental.categories.Category;
 import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 
@@ -85,14 +87,14 @@ public class SecretCrudServiceImplTest extends CategoryTest {
   @Mock private SecretCrudServiceImpl secretCrudService;
   @Mock private Producer eventProducer;
   @Mock private NGEncryptedDataService encryptedDataService;
-  @Mock private AccountSettingsHelper accountSettingsHelper;
+  @Mock private NGAccountSettingService accountSettingService;
   @Mock private NGConnectorSecretManagerService connectorService;
 
   @Before
   public void setup() {
     initMocks(this);
     secretCrudServiceSpy = new SecretCrudServiceImpl(secretEntityReferenceHelper, fileUploadLimit, ngSecretServiceV2,
-        eventProducer, encryptedDataService, accountSettingsHelper, connectorService);
+        eventProducer, encryptedDataService, accountSettingService, connectorService);
     secretCrudService = spy(secretCrudServiceSpy);
   }
 
@@ -129,7 +131,7 @@ public class SecretCrudServiceImplTest extends CategoryTest {
                                             .build())
                                   .build();
     doReturn(true)
-        .when(accountSettingsHelper)
+        .when(accountSettingService)
         .getIsBuiltInSMDisabled("accountId", null, null, AccountSettingType.CONNECTOR);
     doReturn(true).when(secretCrudService).checkIfSecretManagerUsedIsHarnessManaged("accountId", secretDTOV2);
     assertThatThrownBy(() -> secretCrudService.create("accountId", secretDTOV2))
@@ -152,7 +154,7 @@ public class SecretCrudServiceImplTest extends CategoryTest {
                                             .build())
                                   .build();
     doReturn(true)
-        .when(accountSettingsHelper)
+        .when(accountSettingService)
         .getIsBuiltInSMDisabled("accountId", null, null, AccountSettingType.CONNECTOR);
     doReturn(false).when(secretCrudService).checkIfSecretManagerUsedIsHarnessManaged("accountId", secretDTOV2);
     SecretResponseWrapper responseWrapper = secretCrudService.create("accountId", secretDTOV2);
@@ -179,7 +181,7 @@ public class SecretCrudServiceImplTest extends CategoryTest {
                                             .build())
                                   .build();
     doReturn(false)
-        .when(accountSettingsHelper)
+        .when(accountSettingService)
         .getIsBuiltInSMDisabled("accountId", null, null, AccountSettingType.CONNECTOR);
     doReturn(true).when(secretCrudService).checkIfSecretManagerUsedIsHarnessManaged("accountId", secretDTOV2);
     SecretResponseWrapper responseWrapper = secretCrudService.create("accountId", secretDTOV2);
@@ -448,8 +450,8 @@ public class SecretCrudServiceImplTest extends CategoryTest {
   public void testList() {
     when(ngSecretServiceV2.list(any(), anyInt(), anyInt()))
         .thenReturn(new PageImpl<>(Lists.newArrayList(Secret.builder().build()), PageRequest.of(0, 10), 1));
-    PageResponse<SecretResponseWrapper> secretPage = secretCrudService.list("account", "org", "proj",
-        Collections.emptyList(), singletonList(SecretType.SSHKey), false, "abc", 0, 100, null);
+    Page<SecretResponseWrapper> secretPage = secretCrudService.list("account", "org", "proj", Collections.emptyList(),
+        singletonList(SecretType.SSHKey), false, "abc", 0, 100, null);
     assertThat(secretPage.getContent()).isNotEmpty();
     assertThat(secretPage.getContent().size()).isEqualTo(1);
     verify(ngSecretServiceV2).list(any(), anyInt(), anyInt());
@@ -477,6 +479,26 @@ public class SecretCrudServiceImplTest extends CategoryTest {
     verify(encryptedDataService, atLeastOnce()).delete(any(), any(), any(), any());
     verify(ngSecretServiceV2, atLeastOnce()).delete(any(), any(), any(), any());
     verify(secretEntityReferenceHelper, atLeastOnce())
+        .deleteSecretEntityReferenceWhenSecretGetsDeleted(any(), any(), any(), any(), any());
+  }
+
+  @Test
+  @Owner(developers = VIKAS_M)
+  @Category(UnitTests.class)
+  public void testDeleteBatch() {
+    List<String> secretIdentifiers = new ArrayList<>();
+    secretIdentifiers.add("identifier1");
+    secretIdentifiers.add("identifier2");
+    when(ngSecretServiceV2.delete(any(), any(), any(), any())).thenReturn(true);
+    doNothing()
+        .when(secretEntityReferenceHelper)
+        .deleteSecretEntityReferenceWhenSecretGetsDeleted(any(), any(), any(), any(), any());
+    when(ngSecretServiceV2.get(any(), any(), any(), any()))
+        .thenReturn(Optional.of(
+            Secret.builder().type(SecretType.SecretText).secretSpec(SecretTextSpec.builder().build()).build()));
+    secretCrudService.deleteBatch("accountId", "orgId", "projectId", secretIdentifiers);
+    verify(ngSecretServiceV2, times(2)).get(any(), any(), any(), any());
+    verify(secretEntityReferenceHelper, times(2))
         .deleteSecretEntityReferenceWhenSecretGetsDeleted(any(), any(), any(), any(), any());
   }
 }

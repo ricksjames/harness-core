@@ -23,9 +23,9 @@ import io.harness.NGResourceFilterConstants;
 import io.harness.accesscontrol.AccountIdentifier;
 import io.harness.accesscontrol.NGAccessControlCheck;
 import io.harness.accesscontrol.ResourceIdentifier;
+import io.harness.accesscontrol.acl.api.Resource;
+import io.harness.accesscontrol.acl.api.ResourceScope;
 import io.harness.accesscontrol.clients.AccessControlClient;
-import io.harness.accesscontrol.clients.Resource;
-import io.harness.accesscontrol.clients.ResourceScope;
 import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.connector.ConnectorCatalogueResponseDTO;
@@ -452,7 +452,8 @@ public class ConnectorResource {
   public ResponseDTO<ConnectorCatalogueResponseDTO>
   getConnectorCatalogue(@Parameter(description = ACCOUNT_PARAM_MESSAGE, required = true) @NotBlank @QueryParam(
       NGCommonEntityConstants.ACCOUNT_KEY) String accountIdentifier) {
-    return ResponseDTO.newResponse(connectorService.getConnectorCatalogue());
+    ConnectorCatalogueResponseDTO connectorCatalogue = connectorService.getConnectorCatalogue(accountIdentifier);
+    return ResponseDTO.newResponse(connectorCatalogue);
   }
 
   @GET
@@ -546,8 +547,10 @@ public class ConnectorResource {
         ApiResponse(responseCode = "default", description = "Returns all settings for the Connector type")
       })
   public ResponseDTO<FieldValues>
-  getAllAllowedFieldValues(@Parameter(description = "Connector type") @NotNull @QueryParam(
-      NGCommonEntityConstants.CONNECTOR_TYPE) ConnectorType connectorType) {
+  getAllAllowedFieldValues(@Parameter(description = ACCOUNT_PARAM_MESSAGE, required = true) @NotBlank @QueryParam(
+                               NGCommonEntityConstants.ACCOUNT_KEY) String accountIdentifier,
+      @Parameter(description = "Connector type") @NotNull @QueryParam(
+          NGCommonEntityConstants.CONNECTOR_TYPE) ConnectorType connectorType) {
     return ResponseDTO.newResponse(ConnectorAllowedFieldValues.TYPE_TO_FIELDS.get(connectorType));
   }
 }

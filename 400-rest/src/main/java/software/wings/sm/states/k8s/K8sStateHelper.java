@@ -84,6 +84,7 @@ import software.wings.settings.SettingValue;
 import software.wings.sm.ExecutionContext;
 import software.wings.sm.ExecutionResponse;
 import software.wings.sm.WorkflowStandardParams;
+import software.wings.sm.WorkflowStandardParamsExtensionService;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
@@ -97,6 +98,7 @@ import java.util.List;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.LineIterator;
+import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
 @Singleton
@@ -116,6 +118,7 @@ public class K8sStateHelper {
   @Inject private FeatureFlagService featureFlagService;
   @Inject private KryoSerializer kryoSerializer;
   @Inject private EnvironmentService environmentService;
+  @Inject private WorkflowStandardParamsExtensionService workflowStandardParamsExtensionService;
 
   public static List<String> fetchDelegateSelectorsFromK8sCloudProvider(SettingValue settingValue) {
     if (!(settingValue instanceof KubernetesClusterConfig)) {
@@ -180,13 +183,13 @@ public class K8sStateHelper {
     return false;
   }
 
-  public static Environment fetchEnvFromExecutionContext(ExecutionContext context) {
+  public Environment fetchEnvFromExecutionContext(ExecutionContext context) {
     WorkflowStandardParams workflowStandardParams = context.getContextElement(ContextElementType.STANDARD);
-    if (workflowStandardParams == null || workflowStandardParams.getEnv() == null) {
+    if (workflowStandardParams == null) {
       return null;
     }
 
-    return workflowStandardParams.getEnv();
+    return this.workflowStandardParamsExtensionService.getEnv(workflowStandardParams);
   }
 
   public static long fetchSafeTimeoutInMillis(Integer timeoutInMillis) {
@@ -284,6 +287,25 @@ public class K8sStateHelper {
         appId, serviceArtifactVariableNames, serviceId, infrastructureDefinition.getEnvId());
   }
 
+  public List<K8sPod> fetchPodListForCluster(ContainerInfrastructureMapping containerInfrastructureMapping,
+      String namespace, String releaseName, String clusterName) throws K8sPodSyncException, InterruptedException {
+    K8sInstanceSyncTaskParameters k8sInstanceSyncTaskParameters =
+        K8sInstanceSyncTaskParameters.builder()
+            .accountId(containerInfrastructureMapping.getAccountId())
+            .appId(containerInfrastructureMapping.getAppId())
+            .k8sClusterConfig(
+                containerDeploymentManagerHelper.getK8sClusterConfig(containerInfrastructureMapping, null))
+            .namespace(namespace)
+            .releaseName(releaseName)
+            .build();
+
+    if (StringUtils.isNotBlank(clusterName)) {
+      k8sInstanceSyncTaskParameters.getK8sClusterConfig().setClusterName(clusterName);
+    }
+
+    return fetchPodListInternal(containerInfrastructureMapping, releaseName, k8sInstanceSyncTaskParameters);
+  }
+
   public List<K8sPod> fetchPodList(ContainerInfrastructureMapping containerInfrastructureMapping, String namespace,
       String releaseName) throws K8sPodSyncException, InterruptedException {
     K8sInstanceSyncTaskParameters k8sInstanceSyncTaskParameters =
@@ -296,6 +318,12 @@ public class K8sStateHelper {
             .releaseName(releaseName)
             .build();
 
+    return fetchPodListInternal(containerInfrastructureMapping, releaseName, k8sInstanceSyncTaskParameters);
+  }
+
+  private List<K8sPod> fetchPodListInternal(ContainerInfrastructureMapping containerInfrastructureMapping,
+      String releaseName, K8sTaskParameters k8sInstanceSyncTaskParameters)
+      throws K8sPodSyncException, InterruptedException {
     List tags = new ArrayList();
     tags.addAll(awsCommandHelper.getAwsConfigTagsFromK8sConfig(k8sInstanceSyncTaskParameters));
 

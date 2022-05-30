@@ -42,6 +42,7 @@ import software.wings.beans.StateExecutionInterrupt;
 import software.wings.beans.Workflow;
 import software.wings.beans.WorkflowExecution;
 import software.wings.beans.appmanifest.HelmChart;
+import software.wings.beans.approval.PreviousApprovalDetails;
 import software.wings.beans.artifact.Artifact;
 import software.wings.beans.baseline.WorkflowExecutionBaseline;
 import software.wings.beans.concurrency.ConcurrentExecutionResponse;
@@ -76,6 +77,7 @@ import org.mongodb.morphia.query.Query;
 @TargetModule(HarnessModule._870_CG_ORCHESTRATION)
 public interface WorkflowExecutionService extends StateStatusUpdate {
   void refreshPipelineExecution(WorkflowExecution workflowExecution);
+  void refreshStatus(WorkflowExecution workflowExecution);
 
   HIterator<WorkflowExecution> executions(String appId, long startedFrom, long statedTo, Set<String> includeOnlyFields);
 
@@ -108,6 +110,8 @@ public interface WorkflowExecutionService extends StateStatusUpdate {
   WorkflowExecution getExecutionWithoutSummary(@NotNull String appId, @NotNull String workflowExecutionId);
 
   WorkflowExecution getWorkflowExecution(@NotNull String appId, @NotNull String workflowExecutionId);
+
+  String getPipelineExecutionId(@NotNull String appId, @NotNull String workflowExecutionId);
 
   WorkflowExecution getExecutionDetailsWithoutGraph(String appId, String workflowExecutionId);
 
@@ -331,4 +335,15 @@ public interface WorkflowExecutionService extends StateStatusUpdate {
 
   List<WorkflowExecution> getLatestSuccessWorkflowExecutions(String appId, String workflowId, List<String> serviceIds,
       int executionsToSkip, int executionsToIncludeInResponse);
+
+  PreviousApprovalDetails getPreviousApprovalDetails(
+      String appId, String workflowExecutionId, String pipelineId, String approvalId);
+  Boolean approveAndRejectPreviousExecutions(String accountId, String appId, String workflowExecutionId,
+      String stateExecutionId, ApprovalDetails approvalDetails, PreviousApprovalDetails previousApprovalIds);
+
+  void rejectPreviousDeployments(String appId, String workflowExecutionId, ApprovalDetails approvalDetails);
+  WorkflowExecution getLastSuccessfulWorkflowExecution(
+      String accountId, String appId, String workflowId, String envId, String serviceId, String infraMappingId);
+
+  WorkflowExecutionInfo getWorkflowExecutionInfo(String appId, String workflowExecutionId);
 }

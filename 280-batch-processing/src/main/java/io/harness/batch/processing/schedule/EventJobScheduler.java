@@ -14,6 +14,8 @@ import static java.lang.String.format;
 import io.harness.batch.processing.YamlPropertyLoaderFactory;
 import io.harness.batch.processing.billing.timeseries.service.impl.BillingDataServiceImpl;
 import io.harness.batch.processing.billing.timeseries.service.impl.K8sUtilizationGranularDataServiceImpl;
+import io.harness.batch.processing.billing.timeseries.service.impl.PodCountComputationServiceImpl;
+import io.harness.batch.processing.billing.timeseries.service.impl.UtilizationDataServiceImpl;
 import io.harness.batch.processing.billing.timeseries.service.impl.WeeklyReportServiceImpl;
 import io.harness.batch.processing.budgets.service.impl.BudgetAlertsServiceImpl;
 import io.harness.batch.processing.budgets.service.impl.BudgetCostUpdateService;
@@ -30,7 +32,6 @@ import io.harness.batch.processing.service.AwsAccountTagsCollectionService;
 import io.harness.batch.processing.service.impl.BatchJobBucketLogContext;
 import io.harness.batch.processing.service.impl.BatchJobRunningModeContext;
 import io.harness.batch.processing.service.impl.BatchJobTypeLogContext;
-import io.harness.batch.processing.service.impl.CronJobTypeLogContext;
 import io.harness.batch.processing.service.impl.InstanceDataServiceImpl;
 import io.harness.batch.processing.service.intfc.BillingDataPipelineHealthStatusService;
 import io.harness.batch.processing.shard.AccountShardService;
@@ -92,6 +93,8 @@ public class EventJobScheduler {
   @Autowired private ConnectorsHealthUpdateService connectorsHealthUpdateService;
   @Autowired private K8SWorkloadService k8SWorkloadService;
   @Autowired private AwsAccountTagsCollectionService awsAccountTagsCollectionService;
+  @Autowired private UtilizationDataServiceImpl utilizationDataService;
+  @Autowired private PodCountComputationServiceImpl podCountComputationService;
 
   @PostConstruct
   public void orderJobs() {
@@ -136,11 +139,16 @@ public class EventJobScheduler {
     runCloudEfficiencyEventJobs(BatchJobBucket.OUT_OF_CLUSTER, true);
   }
 
+  @Scheduled(cron = "0 30 * ? * *") // 0 */10 * * * ?   for testing
+  public void runCloudEfficiencyOutOfClusterECSJobs() {
+    runCloudEfficiencyEventJobs(BatchJobBucket.OUT_OF_CLUSTER_ECS, true);
+  }
+
   private void runCloudEfficiencyEventJobs(BatchJobBucket batchJobBucket, boolean runningMode) {
-    accountShardService.getCeEnabledAccounts().forEach(account
+    accountShardService.getCeEnabledAccountIds().forEach(account
         -> jobs.stream()
                .filter(job -> BatchJobType.fromJob(job).getBatchJobBucket() == batchJobBucket)
-               .forEach(job -> runJob(account.getUuid(), job, runningMode)));
+               .forEach(job -> runJob(account, job, runningMode)));
   }
 
   @Scheduled(cron = "0 0 */6 ? * *")
@@ -157,8 +165,7 @@ public class EventJobScheduler {
 
   @Scheduled(cron = "0 * * ? * *")
   public void runGcpScheduledQueryJobs() {
-    accountShardService.getCeEnabledAccounts().forEach(
-        account -> gcpScheduledQueryTriggerAction.execute(account.getUuid()));
+    accountShardService.getCeEnabledAccountIds().forEach(account -> gcpScheduledQueryTriggerAction.execute(account));
   }
 
   @Scheduled(cron = "0 0 8 * * ?")
@@ -167,6 +174,24 @@ public class EventJobScheduler {
     if (masterPod) {
       try {
         k8sUtilizationGranularDataService.purgeOldKubernetesUtilData();
+      } catch (Exception ex) {
+        log.error("Exception while running runTimescalePurgeJob", ex);
+      }
+
+      try {
+        utilizationDataService.purgeUtilisationData();
+      } catch (Exception ex) {
+        log.error("Exception while running runTimescalePurgeJob", ex);
+      }
+
+      try {
+        podCountComputationService.purgeActivePodCount();
+      } catch (Exception ex) {
+        log.error("Exception while running runTimescalePurgeJob", ex);
+      }
+
+      try {
+        billingDataService.purgeOldBillingData();
       } catch (Exception ex) {
         log.error("Exception while running runTimescalePurgeJob", ex);
       }
@@ -189,7 +214,7 @@ public class EventJobScheduler {
   public void runConnectorsHealthStatusJob() {
     boolean masterPod = accountShardService.isMasterPod();
     if (masterPod) {
-      try (AutoLogContext ignore = new CronJobTypeLogContext("runConnectorsHealthStatusJob", OVERRIDE_ERROR)) {
+      try {
         log.info("running billing data pipeline health status service job");
         billingDataPipelineHealthStatusService.processAndUpdateHealthStatus();
       } catch (Exception ex) {
@@ -202,7 +227,7 @@ public class EventJobScheduler {
   public void runAccountExpiryCleanup() {
     boolean masterPod = accountShardService.isMasterPod();
     if (masterPod) {
-      try (AutoLogContext ignore = new CronJobTypeLogContext("runAccountExpiryCleanup", OVERRIDE_ERROR)) {
+      try {
         accountExpiryCleanupService.execute();
       } catch (Exception ex) {
         log.error("Exception while running runAccountExpiryCleanup {}", ex);
@@ -212,7 +237,7 @@ public class EventJobScheduler {
 
   @Scheduled(cron = "${scheduler-jobs-config.weeklyReportsJobCron}")
   public void runWeeklyReportJob() {
-    try (AutoLogContext ignore = new CronJobTypeLogContext("runWeeklyReportJob", OVERRIDE_ERROR)) {
+    try {
       weeklyReportService.generateAndSendWeeklyReport();
       log.info("Weekly billing report generated and send");
     } catch (Exception ex) {
@@ -223,7 +248,7 @@ public class EventJobScheduler {
   @Scheduled(cron = "0 */30 * * * ?") // Run every 30 mins. Change to 0 */10 * * * ? for every 10 mins for testing
   public void runScheduledReportJob() {
     // In case jobs take longer time, the jobs will be queued and executed in turn
-    try (AutoLogContext ignore = new CronJobTypeLogContext("runScheduledReportJob", OVERRIDE_ERROR)) {
+    try {
       scheduledReportService.generateAndSendScheduledReport();
       log.info("Scheduled reports generated and sent");
     } catch (Exception ex) {
@@ -233,7 +258,7 @@ public class EventJobScheduler {
 
   @Scheduled(cron = "0 0 */1 ? * *")
   public void updateCostMetadatRecord() {
-    try (AutoLogContext ignore = new CronJobTypeLogContext("updateCostMetadatRecord", OVERRIDE_ERROR)) {
+    try {
       ceMetaDataRecordUpdateService.updateCloudProviderMetadata();
       log.info("updated cost data");
     } catch (Exception ex) {
@@ -257,7 +282,7 @@ public class EventJobScheduler {
 
   @Scheduled(cron = "0 30 8 * * ?")
   public void runViewUpdateCostJob() {
-    try (AutoLogContext ignore = new CronJobTypeLogContext("runViewUpdateCostJob", OVERRIDE_ERROR)) {
+    try {
       viewCostUpdateService.updateTotalCost();
       log.info("Updated view total cost");
     } catch (Exception ex) {
@@ -267,7 +292,7 @@ public class EventJobScheduler {
 
   @Scheduled(cron = "${scheduler-jobs-config.budgetAlertsJobCron}")
   public void runBudgetAlertsJob() {
-    try (AutoLogContext ignore = new CronJobTypeLogContext("runBudgetAlertsJob", OVERRIDE_ERROR)) {
+    try {
       budgetAlertsService.sendBudgetAlerts();
       log.info("Budget alerts send");
     } catch (Exception ex) {
@@ -277,7 +302,7 @@ public class EventJobScheduler {
 
   @Scheduled(cron = "${scheduler-jobs-config.budgetCostUpdateJobCron}")
   public void runBudgetCostUpdateJob() {
-    try (AutoLogContext ignore = new CronJobTypeLogContext("runBudgetCostUpdateJob", OVERRIDE_ERROR)) {
+    try {
       budgetCostUpdateService.updateCosts();
       log.info("Costs updated for budgets");
     } catch (Exception ex) {
@@ -287,7 +312,7 @@ public class EventJobScheduler {
 
   @Scheduled(cron = "${scheduler-jobs-config.connectorHealthUpdateJobCron}")
   public void runNGConnectorsHealthUpdateJob() {
-    try (AutoLogContext ignore = new CronJobTypeLogContext("runNGConnectorsHealthUpdateJob", OVERRIDE_ERROR)) {
+    try {
       if (!batchMainConfig.getConnectorHealthUpdateJobConfig().isEnabled()) {
         log.info("connectorHealthUpdateJob is disabled in config");
         return;
@@ -301,18 +326,15 @@ public class EventJobScheduler {
 
   @Scheduled(cron = "${scheduler-jobs-config.awsAccountTagsCollectionJobCron}") //  0 */10 * * * ? for testing
   public void runAwsAccountTagsCollectionJob() {
-    boolean masterPod = accountShardService.isMasterPod();
-    if (masterPod) {
-      try (AutoLogContext ignore = new CronJobTypeLogContext("runAwsAccountTagsCollectionJob", OVERRIDE_ERROR)) {
-        if (!batchMainConfig.getAwsAccountTagsCollectionJobConfig().isEnabled()) {
-          log.info("awsAccountTagsCollectionJobConfig is disabled in config");
-          return;
-        }
-        log.info("running aws account tags collection job");
-        awsAccountTagsCollectionService.update();
-      } catch (Exception ex) {
-        log.error("Exception while running runAwsAccountTagsCollectionJob", ex);
+    try {
+      if (!batchMainConfig.getAwsAccountTagsCollectionJobConfig().isEnabled()) {
+        log.info("awsAccountTagsCollectionJobConfig is disabled in config");
+        return;
       }
+      log.info("running aws account tags collection job");
+      awsAccountTagsCollectionService.update();
+    } catch (Exception ex) {
+      log.error("Exception while running runAwsAccountTagsCollectionJob", ex);
     }
   }
 
@@ -330,8 +352,8 @@ public class EventJobScheduler {
     if (cfClient == null) {
       return;
     }
-    accountShardService.getCeEnabledAccounts().forEach(account -> {
-      Target target = Target.builder().name(account.getAccountName()).identifier(account.getUuid()).build();
+    accountShardService.getCeEnabledAccountIds().forEach(account -> {
+      Target target = Target.builder().name(account).identifier(account).build();
       boolean result = cfClient.boolVariation("cf_sample_flag", target, false);
       log.info(format(
           "The feature flag cf_sample_flag resolves to %s for account %s", Boolean.toString(result), target.getName()));

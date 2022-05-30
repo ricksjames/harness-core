@@ -57,8 +57,10 @@ public class TimeRangeBasedFreezeConfig extends GovernanceFreezeConfig {
       @JsonProperty("timeRange") TimeRange timeRange, @JsonProperty("name") String name,
       @JsonProperty("description") String description, @JsonProperty("applicable") boolean applicable,
       @JsonProperty("appSelections") List<ApplicationFilter> appSelections,
-      @JsonProperty("userGroups") List<String> userGroups, @JsonProperty("uuid") String uuid) {
-    super(freezeForAllApps, appIds, environmentTypes, name, description, applicable, appSelections, userGroups, uuid);
+      @JsonProperty("userGroups") List<String> userGroups, @JsonProperty("uuid") String uuid,
+      @JsonProperty("userGroupSelections") UserGroupFilter userGroupSelection) {
+    super(freezeForAllApps, appIds, environmentTypes, name, description, applicable, appSelections, userGroups, uuid,
+        userGroupSelection);
     this.timeRange = Objects.requireNonNull(timeRange, "time-range not provided for deployment freeze");
 
     if (timeRange.getFrom() > timeRange.getTo()) {
@@ -104,16 +106,23 @@ public class TimeRangeBasedFreezeConfig extends GovernanceFreezeConfig {
   }
 
   public void toggleExpiredWindowsOff() {
+    if (checkWindowExpired()) {
+      setApplicable(false);
+    }
+  }
+
+  public boolean checkWindowExpired() {
     long currentTime = System.currentTimeMillis();
     if (timeRange != null) {
       // After all iterations of scheduled windows are done, toggle the window
       if (timeRange.getFreezeOccurrence() != null && currentTime > timeRange.getEndTime()) {
-        setApplicable(false);
+        return true;
         // toggle scheduled NEVER reoccurring windows and start now windows
       } else if (timeRange.getFreezeOccurrence() == null && currentTime > timeRange.getTo()) {
-        setApplicable(false);
+        return true;
       }
     }
+    return false;
   }
 
   public void recalculateFreezeWindowState() {
@@ -135,10 +144,11 @@ public class TimeRangeBasedFreezeConfig extends GovernanceFreezeConfig {
     private List<String> userGroups;
     private List<ApplicationFilterYaml> appSelections;
     private TimeRange.Yaml timeRange;
+    private UserGroupFilterYaml userGroupSelection;
 
     @Builder
     public Yaml(String type, String name, String description, boolean applicable, List<String> userGroups,
-        List<ApplicationFilterYaml> appSelections, TimeRange.Yaml timeRange) {
+        List<ApplicationFilterYaml> appSelections, TimeRange.Yaml timeRange, UserGroupFilterYaml userGroupSelection) {
       super(type);
       setName(name);
       setDescription(description);
@@ -146,6 +156,7 @@ public class TimeRangeBasedFreezeConfig extends GovernanceFreezeConfig {
       setUserGroups(userGroups);
       setAppSelections(appSelections);
       setTimeRange(timeRange);
+      setUserGroupSelection(userGroupSelection);
     }
 
     public Yaml() {

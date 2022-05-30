@@ -11,6 +11,8 @@ import static io.harness.data.structure.EmptyPredicate.isNotEmpty;
 import static io.harness.data.structure.UUIDGenerator.generateUuid;
 import static io.harness.waiter.OrchestrationNotifyEventListener.ORCHESTRATION;
 
+import static software.wings.delegatetasks.cv.CVConstants.CONTROL_HOST_NAME;
+import static software.wings.delegatetasks.cv.CVConstants.TEST_HOST_NAME;
 import static software.wings.service.impl.analysis.AnalysisComparisonStrategy.COMPARE_WITH_PREVIOUS;
 import static software.wings.service.impl.newrelic.NewRelicMetricDataRecord.DEFAULT_GROUP_NAME;
 
@@ -53,7 +55,6 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.FieldNameConstants;
 import lombok.extern.slf4j.Slf4j;
-import org.mongodb.morphia.annotations.Transient;
 import org.slf4j.Logger;
 
 /**
@@ -66,8 +67,6 @@ import org.slf4j.Logger;
 @TargetModule(HarnessModule._870_CG_ORCHESTRATION)
 @BreakDependencyOn("software.wings.service.intfc.DelegateService")
 public class DynatraceState extends AbstractMetricAnalysisState {
-  @Transient @SchemaIgnore public static final String TEST_HOST_NAME = "testNode";
-  @Transient @SchemaIgnore public static final String CONTROL_HOST_NAME = "controlNode";
   @Inject @SchemaIgnore private transient DynaTraceService dynaTraceService;
   @Attributes(required = true, title = "Dynatrace Server") private String analysisServerConfigId;
 
@@ -142,7 +141,7 @@ public class DynatraceState extends AbstractMetricAnalysisState {
             .workflowExecutionId(context.getWorkflowExecutionId())
             .serviceId(getPhaseServiceId(context))
             .startTime(dataCollectionStartTimeStamp)
-            .collectionTime(Integer.parseInt(getTimeDuration()))
+            .collectionTime(Integer.parseInt(getTimeDuration(context)))
             .timeSeriesDefinitions(Lists.newArrayList(DynaTraceTimeSeries.values()))
             .dataCollectionMinute(0)
             .dynatraceServiceIds(entityIdsToQuery)
@@ -162,7 +161,7 @@ public class DynatraceState extends AbstractMetricAnalysisState {
                       .async(true)
                       .taskType(TaskType.DYNA_TRACE_METRIC_DATA_COLLECTION_TASK.name())
                       .parameters(new Object[] {dataCollectionInfo})
-                      .timeout(TimeUnit.MINUTES.toMillis(Integer.parseInt(getTimeDuration()) + 5))
+                      .timeout(TimeUnit.MINUTES.toMillis(Integer.parseInt(getTimeDuration(context)) + 5))
                       .build())
             .setupAbstraction(Cd1SetupFields.ENV_ID_FIELD, envId)
             .setupAbstraction(Cd1SetupFields.INFRASTRUCTURE_MAPPING_ID_FIELD, infrastructureMappingId)
@@ -173,7 +172,7 @@ public class DynatraceState extends AbstractMetricAnalysisState {
             .stateExecutionId(context.getStateExecutionInstanceId())
             .dataCollectionStartTime(dataCollectionStartTimeStamp)
             .dataCollectionEndTime(
-                dataCollectionStartTimeStamp + TimeUnit.MINUTES.toMillis(Integer.parseInt(getTimeDuration())))
+                dataCollectionStartTimeStamp + TimeUnit.MINUTES.toMillis(Integer.parseInt(getTimeDuration(context))))
             .executionData(executionData)
             .build(),
         waitId);

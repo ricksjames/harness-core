@@ -197,13 +197,28 @@ public class PhaseStepSubWorkflow extends SubWorkflowState {
         } catch (Exception ignored) {
         }
         if (evaluated == null) {
-          // Provisioner Outputs not available yet to resolve infra definition
-          return;
+          try {
+            evaluated = context.evaluateExpression(
+                String
+                    .format("${%s_%s_%s}", infrastructureProvisioner.variableKey(), phaseElement.getInfraDefinitionId(),
+                        phaseElement.getServiceElement().getUuid())
+                    .replaceAll("-", "_"));
+          } catch (Exception ignored) {
+          }
+
+          if (evaluated == null) {
+            // Provisioner Outputs not available yet to resolve infra definition
+            return;
+          }
         }
       }
 
       InfrastructureMapping infraMapping = infrastructureDefinitionService.renderAndSaveInfraMapping(
           appId, phaseElement.getServiceElement().getUuid(), infraDefinitionId, context);
+
+      if (null == infraMapping) {
+        return;
+      }
 
       updateInfraMappingDependencies(context, phaseElement, appId, infraMapping);
     }
@@ -390,11 +405,19 @@ public class PhaseStepSubWorkflow extends SubWorkflowState {
       }
       case K8S_PHASE_STEP: {
         {
-          Optional<StepExecutionSummary> first = phaseStepExecutionSummary.getStepExecutionSummaryList()
-                                                     .stream()
-                                                     .filter(s -> s instanceof K8sExecutionSummary)
-                                                     .filter(s -> !((K8sExecutionSummary) s).isExportManifests())
-                                                     .findFirst();
+          List<K8sExecutionSummary> executionSummaries = phaseStepExecutionSummary.getStepExecutionSummaryList()
+                                                             .stream()
+                                                             .filter(K8sExecutionSummary.class ::isInstance)
+                                                             .map(K8sExecutionSummary.class ::cast)
+                                                             .filter(s -> !s.isExportManifests())
+                                                             .collect(toList());
+
+          Optional<K8sExecutionSummary> first =
+              executionSummaries.stream().filter(s -> s.getReleaseNumber() != null).findFirst();
+          if (!first.isPresent()) {
+            first = executionSummaries.stream().findFirst();
+          }
+
           if (!first.isPresent()) {
             Optional<StepExecutionSummary> firstScriptStateExecutionSummary =
                 phaseStepExecutionSummary.getStepExecutionSummaryList()
@@ -408,7 +431,7 @@ public class PhaseStepSubWorkflow extends SubWorkflowState {
             return null;
           }
 
-          K8sExecutionSummary k8sExecutionSummary = (K8sExecutionSummary) first.get();
+          K8sExecutionSummary k8sExecutionSummary = first.get();
 
           K8sContextElement k8SContextElement =
               K8sContextElement.builder()

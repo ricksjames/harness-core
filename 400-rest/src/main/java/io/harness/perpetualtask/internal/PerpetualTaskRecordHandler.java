@@ -8,7 +8,6 @@
 package io.harness.perpetualtask.internal;
 
 import static io.harness.data.structure.EmptyPredicate.isNotEmpty;
-import static io.harness.exception.WingsException.ExecutionContext.MANAGER;
 import static io.harness.govern.IgnoreThrowable.ignoredOnPurpose;
 import static io.harness.logging.AutoLogContext.OverrideBehavior.OVERRIDE_ERROR;
 import static io.harness.mongo.iterator.MongoPersistenceIterator.SchedulingType.IRREGULAR_SKIP_MISSED;
@@ -33,17 +32,14 @@ import io.harness.delegate.beans.RemoteMethodReturnValueData;
 import io.harness.delegate.beans.TaskData;
 import io.harness.delegate.beans.executioncapability.ExecutionCapability;
 import io.harness.exception.InvalidRequestException;
-import io.harness.exception.WingsException;
 import io.harness.iterator.PersistenceIterator;
 import io.harness.iterator.PersistenceIteratorFactory;
 import io.harness.iterator.PersistenceIteratorFactory.PumpExecutorOptions;
 import io.harness.logging.AccountLogContext;
 import io.harness.logging.AutoLogContext;
-import io.harness.logging.ExceptionLogger;
 import io.harness.mongo.iterator.MongoPersistenceIterator;
 import io.harness.mongo.iterator.filter.MorphiaFilterExpander;
 import io.harness.mongo.iterator.provider.MorphiaPersistenceProvider;
-import io.harness.mongo.iterator.provider.MorphiaPersistenceRequiredProvider;
 import io.harness.perpetualtask.PerpetualTaskExecutionBundle;
 import io.harness.perpetualtask.PerpetualTaskService;
 import io.harness.perpetualtask.PerpetualTaskServiceClient;
@@ -52,13 +48,15 @@ import io.harness.perpetualtask.PerpetualTaskState;
 import io.harness.perpetualtask.PerpetualTaskUnassignedReason;
 import io.harness.perpetualtask.internal.PerpetualTaskRecord.PerpetualTaskRecordKeys;
 import io.harness.serializer.KryoSerializer;
+import io.harness.workers.background.AccountLevelEntityProcessController;
 import io.harness.workers.background.AccountStatusBasedEntityProcessController;
 
+import software.wings.beans.Account;
+import software.wings.beans.Account.AccountKeys;
 import software.wings.beans.TaskType;
 import software.wings.service.InstanceSyncConstants;
 import software.wings.service.impl.PerpetualTaskCapabilityCheckResponse;
 import software.wings.service.intfc.AccountService;
-import software.wings.service.intfc.AlertService;
 import software.wings.service.intfc.DelegateService;
 import software.wings.service.intfc.perpetualtask.PerpetualTaskCrudObserver;
 
@@ -80,14 +78,13 @@ public class PerpetualTaskRecordHandler implements PerpetualTaskCrudObserver {
   @Inject private PerpetualTaskService perpetualTaskService;
   @Inject private PerpetualTaskServiceClientRegistry clientRegistry;
   @Inject private MorphiaPersistenceProvider<PerpetualTaskRecord> persistenceProvider;
-  @Inject private MorphiaPersistenceRequiredProvider<PerpetualTaskRecord> persistenceRequiredProvider;
-  @Inject private transient AlertService alertService;
+  @Inject private MorphiaPersistenceProvider<Account> persistenceProviderAccount;
   @Inject private AccountService accountService;
   @Inject private KryoSerializer kryoSerializer;
   @Inject private PerpetualTaskRecordDao perpetualTaskRecordDao;
 
   PersistenceIterator<PerpetualTaskRecord> assignmentIterator;
-  PersistenceIterator<PerpetualTaskRecord> rebalanceIterator;
+  PersistenceIterator<Account> rebalanceIterator;
 
   public void registerIterators(int perpetualTaskAssignmentThreadPoolSize, int perpetualTaskRebalanceThreadPoolSize) {
     assignmentIterator = persistenceIteratorFactory.createPumpIteratorWithDedicatedThreadPool(
@@ -119,17 +116,16 @@ public class PerpetualTaskRecordHandler implements PerpetualTaskCrudObserver {
             .interval(ofMinutes(PERPETUAL_TASK_ASSIGNMENT_INTERVAL_MINUTE))
             .build(),
         PerpetualTaskRecordHandler.class,
-        MongoPersistenceIterator.<PerpetualTaskRecord, MorphiaFilterExpander<PerpetualTaskRecord>>builder()
-            .clazz(PerpetualTaskRecord.class)
-            .fieldName(PerpetualTaskRecordKeys.rebalanceIteration)
+        MongoPersistenceIterator.<Account, MorphiaFilterExpander<Account>>builder()
+            .clazz(Account.class)
+            .fieldName(AccountKeys.perpetualTaskRebalanceIteration)
             .targetInterval(ofMinutes(PERPETUAL_TASK_ASSIGNMENT_INTERVAL_MINUTE))
-            .acceptableNoAlertDelay(ofSeconds(45))
-            .acceptableExecutionTime(ofSeconds(30))
+            .acceptableNoAlertDelay(ofSeconds(60))
+            .acceptableExecutionTime(ofSeconds(60))
             .handler(this::rebalance)
-            .filterExpander(query -> query.filter(PerpetualTaskRecordKeys.state, PerpetualTaskState.TASK_TO_REBALANCE))
-            .entityProcessController(new AccountStatusBasedEntityProcessController<>(accountService))
+            .entityProcessController(new AccountLevelEntityProcessController(accountService))
             .schedulingType(REGULAR)
-            .persistenceProvider(persistenceRequiredProvider)
+            .persistenceProvider(persistenceProviderAccount)
             .redistribute(true));
   }
 
@@ -182,21 +178,30 @@ public class PerpetualTaskRecordHandler implements PerpetualTaskCrudObserver {
         ignoredOnPurpose(exception);
         perpetualTaskService.updateTaskUnassignedReason(
             taskId, PerpetualTaskUnassignedReason.NO_ELIGIBLE_DELEGATES, taskRecord.getAssignTryCount());
-      } catch (WingsException exception) {
-        ExceptionLogger.logProcessedMessages(exception, MANAGER, log);
       } catch (Exception e) {
         log.error("Failed to assign any Delegate to perpetual task {} ", taskId, e);
+        // although we are updating the reason as VALIDATION_TASK_FAILED, but we should check logs for exact reason.
+        perpetualTaskService.updateTaskUnassignedReason(
+            taskId, PerpetualTaskUnassignedReason.VALIDATION_TASK_FAILED, taskRecord.getAssignTryCount());
       }
+    } catch (Exception e) {
+      log.error("Unexpected error occurred during assigning perpetual task {}", taskRecord.getUuid(), e);
+      perpetualTaskService.updateTaskUnassignedReason(
+          taskRecord.getUuid(), PerpetualTaskUnassignedReason.VALIDATION_TASK_FAILED, taskRecord.getAssignTryCount());
     }
   }
 
-  public void rebalance(PerpetualTaskRecord taskRecord) {
-    if (delegateService.checkDelegateConnected(taskRecord.getAccountId(), taskRecord.getDelegateId())) {
-      perpetualTaskService.appointDelegate(taskRecord.getAccountId(), taskRecord.getUuid(), taskRecord.getDelegateId(),
-          taskRecord.getClientContext().getLastContextUpdated());
-      return;
+  public void rebalance(Account account) {
+    List<PerpetualTaskRecord> perpetualTaskRecordList =
+        perpetualTaskRecordDao.listBatchOfPerpetualTasksToRebalanceForAccount(account.getUuid());
+    for (PerpetualTaskRecord taskRecord : perpetualTaskRecordList) {
+      if (delegateService.checkDelegateConnected(taskRecord.getAccountId(), taskRecord.getDelegateId())) {
+        perpetualTaskService.appointDelegate(
+            taskRecord.getAccountId(), taskRecord.getUuid(), taskRecord.getDelegateId(), System.currentTimeMillis());
+        continue;
+      }
+      assign(taskRecord);
     }
-    assign(taskRecord);
   }
 
   protected DelegateTask getValidationTask(PerpetualTaskRecord taskRecord) {

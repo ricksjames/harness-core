@@ -13,15 +13,11 @@ import static io.harness.accesscontrol.clients.AccessControlClientUtils.serviceC
 import static io.harness.accesscontrol.principals.PrincipalType.API_KEY;
 import static io.harness.accesscontrol.principals.PrincipalType.SERVICE;
 import static io.harness.accesscontrol.principals.PrincipalType.SERVICE_ACCOUNT;
+import static io.harness.data.structure.EmptyPredicate.isEmpty;
 
-import io.harness.accesscontrol.Principal;
 import io.harness.accesscontrol.acl.ACLService;
 import io.harness.accesscontrol.acl.PermissionCheck;
 import io.harness.accesscontrol.acl.PermissionCheckResult;
-import io.harness.accesscontrol.clients.AccessCheckRequestDTO;
-import io.harness.accesscontrol.clients.AccessCheckResponseDTO;
-import io.harness.accesscontrol.clients.AccessControlDTO;
-import io.harness.accesscontrol.clients.PermissionCheckDTO;
 import io.harness.accesscontrol.preference.services.AccessControlPreferenceService;
 import io.harness.accesscontrol.principals.PrincipalType;
 import io.harness.accesscontrol.roleassignments.privileged.PrivilegedAccessCheck;
@@ -33,9 +29,11 @@ import io.harness.exception.InvalidRequestException;
 import io.harness.exception.WingsException;
 import io.harness.ng.core.dto.ResponseDTO;
 import io.harness.security.SecurityContextBuilder;
+import io.harness.security.annotations.NextGenManagerAuth;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
@@ -49,6 +47,7 @@ import org.apache.commons.lang3.StringUtils;
 @ValidateOnExecution
 @Singleton
 @Slf4j
+@NextGenManagerAuth
 @OwnedBy(HarnessTeam.PL)
 public class ACLResourceImpl implements ACLResource {
   private final ACLService aclService;
@@ -78,7 +77,12 @@ public class ACLResourceImpl implements ACLResource {
     io.harness.security.dto.Principal contextPrincipal = SecurityContextBuilder.getPrincipal();
     List<PermissionCheckDTO> permissionChecksDTOs = dto.getPermissions();
     Principal principalToCheckPermissionsFor = dto.getPrincipal();
-
+    if (isEmpty(permissionChecksDTOs)) {
+      return ResponseDTO.newResponse(AccessCheckResponseDTO.builder()
+                                         .principal(principalToCheckPermissionsFor)
+                                         .accessControlList(new ArrayList<>())
+                                         .build());
+    }
     boolean preconditionsValid = checkPreconditions(contextPrincipal, principalToCheckPermissionsFor);
 
     if (serviceContextAndNoPrincipalInBody(contextPrincipal, principalToCheckPermissionsFor)) {

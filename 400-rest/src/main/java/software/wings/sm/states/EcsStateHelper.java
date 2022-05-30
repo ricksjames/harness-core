@@ -115,8 +115,10 @@ import software.wings.beans.command.EcsSetupParams.EcsSetupParamsBuilder;
 import software.wings.beans.command.PcfDummyCommandUnit;
 import software.wings.beans.container.AwsAutoScalarConfig;
 import software.wings.beans.container.ContainerTask;
+import software.wings.beans.container.ContainerTaskMapper;
 import software.wings.beans.container.EcsContainerTask;
 import software.wings.beans.container.EcsServiceSpecification;
+import software.wings.beans.container.EcsServiceSpecificationMapper;
 import software.wings.helpers.ext.container.ContainerDeploymentManagerHelper;
 import software.wings.helpers.ext.ecs.request.EcsBGListenerUpdateRequest;
 import software.wings.helpers.ext.ecs.request.EcsCommandRequest;
@@ -147,6 +149,7 @@ import software.wings.sm.ExecutionResponse;
 import software.wings.sm.ExecutionResponse.ExecutionResponseBuilder;
 import software.wings.sm.InstanceStatusSummary;
 import software.wings.sm.WorkflowStandardParams;
+import software.wings.sm.WorkflowStandardParamsExtensionService;
 import software.wings.sm.states.ContainerServiceSetup.ContainerServiceSetupKeys;
 import software.wings.sm.states.EcsSetupContextVariableHolder.EcsSetupContextVariableHolderBuilder;
 import software.wings.utils.EcsConvention;
@@ -180,6 +183,7 @@ public class EcsStateHelper {
   @Inject private FeatureFlagService featureFlagService;
   @Inject private SweepingOutputService sweepingOutputService;
   @Inject private StateExecutionService stateExecutionService;
+  @Inject private WorkflowStandardParamsExtensionService workflowStandardParamsExtensionService;
 
   public ContainerSetupParams buildContainerSetupParams(
       ExecutionContext context, EcsSetupStateConfig ecsSetupStateConfig) {
@@ -232,7 +236,7 @@ public class EcsStateHelper {
         .withServiceName(ecsSetupStateConfig.getServiceName())
         .withClusterName(ecsSetupStateConfig.getClusterName())
         .withImageDetails(ecsSetupStateConfig.getImageDetails())
-        .withContainerTask(containerTask)
+        .withContainerTask(ContainerTaskMapper.toEcsContainerTaskDTO((EcsContainerTask) containerTask))
         .withLoadBalancerName(context.renderExpression(ecsSetupStateConfig.getLoadBalancerName()))
         .withInfraMappingId(ecsSetupStateConfig.getInfrastructureMapping().getUuid())
         .withRoleArn(context.renderExpression(ecsSetupStateConfig.getRoleArn()))
@@ -269,8 +273,8 @@ public class EcsStateHelper {
         .withServiceSteadyStateTimeout(serviceSteadyStateTimeout)
         .withRollback(ecsSetupStateConfig.isRollback())
         .withPreviousEcsServiceSnapshotJson(ecsSetupStateConfig.getPreviousEcsServiceSnapshotJson())
-        .withEcsServiceSpecification(
-            getServiceSpecWithRenderedExpression(ecsSetupStateConfig.getEcsServiceSpecification(), context))
+        .withEcsServiceSpecification(EcsServiceSpecificationMapper.toEcsServiceSpecificationDTO(
+            getServiceSpecWithRenderedExpression(ecsSetupStateConfig.getEcsServiceSpecification(), context)))
         .withEcsServiceArn(ecsSetupStateConfig.getEcsServiceArn())
         .withIsDaemonSchedulingStrategy(ecsSetupStateConfig.isDaemonSchedulingStrategy())
         .withNewAwsAutoScalarConfigList(
@@ -559,12 +563,12 @@ public class EcsStateHelper {
 
   public Application getApplicationFromExecutionContext(ExecutionContext executionContext) {
     WorkflowStandardParams workflowStandardParams = executionContext.getContextElement(ContextElementType.STANDARD);
-    return workflowStandardParams.fetchRequiredApp();
+    return workflowStandardParamsExtensionService.fetchRequiredApp(workflowStandardParams);
   }
 
   public Environment getEnvironmentFromExecutionContext(ExecutionContext executionContext) {
     WorkflowStandardParams workflowStandardParams = executionContext.getContextElement(ContextElementType.STANDARD);
-    return workflowStandardParams.getEnv();
+    return workflowStandardParamsExtensionService.getEnv(workflowStandardParams);
   }
 
   public EcsRunTaskDataBag prepareBagForEcsRunTask(ExecutionContext executionContext, Long timeout,
@@ -616,8 +620,8 @@ public class EcsStateHelper {
 
     ImageDetails imageDetails =
         artifactCollectionUtils.fetchContainerImageDetails(artifact, context.getWorkflowExecutionId());
-    Application app = workflowStandardParams.fetchRequiredApp();
-    Environment env = workflowStandardParams.getEnv();
+    Application app = workflowStandardParamsExtensionService.fetchRequiredApp(workflowStandardParams);
+    Environment env = workflowStandardParamsExtensionService.getEnv(workflowStandardParams);
 
     Service service = serviceResourceService.getWithDetails(app.getUuid(), serviceId);
     ContainerTask containerTask =
@@ -932,32 +936,30 @@ public class EcsStateHelper {
     InstanceElementListParam listParam = InstanceElementListParam.builder().build();
 
     if (deployResponse != null) {
-      if (isNotEmpty(deployResponse.getContainerInfos())) {
-        List<InstanceStatusSummary> instanceStatusSummaries =
-            containerDeploymentHelper.getInstanceStatusSummaries(context, deployResponse.getContainerInfos());
-        executionData.setNewInstanceStatusSummaries(instanceStatusSummaries);
+      List<InstanceStatusSummary> instanceStatusSummaries =
+          containerDeploymentHelper.getInstanceStatusSummaries(context, deployResponse.getContainerInfos());
+      executionData.setNewInstanceStatusSummaries(instanceStatusSummaries);
 
-        List<InstanceElement> finalInstanceElements = new ArrayList<>();
-        List<InstanceElement> instanceElements =
-            instanceStatusSummaries.stream().map(InstanceStatusSummary::getInstanceElement).collect(toList());
-        setNewInstanceFlag(instanceElements, true, finalInstanceElements);
+      List<InstanceElement> finalInstanceElements = new ArrayList<>();
+      List<InstanceElement> instanceElements =
+          instanceStatusSummaries.stream().map(InstanceStatusSummary::getInstanceElement).collect(toList());
+      setNewInstanceFlag(instanceElements, true, finalInstanceElements);
 
-        listParam = InstanceElementListParam.builder().instanceElements(finalInstanceElements).build();
+      listParam = InstanceElementListParam.builder().instanceElements(finalInstanceElements).build();
 
-        List<InstanceElement> allInstanceElements =
-            getAllInstanceElements(context, containerDeploymentHelper, deployResponse, finalInstanceElements);
-        // This sweeping element will be used by verification or other consumers.
-        List<InstanceDetails> instanceDetails = generateEcsInstanceDetails(allInstanceElements);
-        boolean skipVerification = instanceDetails.stream().noneMatch(InstanceDetails::isNewInstance);
-        sweepingOutputService.save(context.prepareSweepingOutputBuilder(SweepingOutputInstance.Scope.WORKFLOW)
-                                       .name(context.appendStateExecutionId(InstanceInfoVariables.SWEEPING_OUTPUT_NAME))
-                                       .value(InstanceInfoVariables.builder()
-                                                  .instanceElements(allInstanceElements)
-                                                  .instanceDetails(instanceDetails)
-                                                  .skipVerification(skipVerification)
-                                                  .build())
-                                       .build());
-      }
+      List<InstanceElement> allInstanceElements =
+          getAllInstanceElements(context, containerDeploymentHelper, deployResponse, finalInstanceElements);
+      // This sweeping element will be used by verification or other consumers.
+      List<InstanceDetails> instanceDetails = generateEcsInstanceDetails(allInstanceElements);
+      boolean skipVerification = instanceDetails.stream().noneMatch(InstanceDetails::isNewInstance);
+      sweepingOutputService.save(context.prepareSweepingOutputBuilder(SweepingOutputInstance.Scope.WORKFLOW)
+                                     .name(context.appendStateExecutionId(InstanceInfoVariables.SWEEPING_OUTPUT_NAME))
+                                     .value(InstanceInfoVariables.builder()
+                                                .instanceElements(allInstanceElements)
+                                                .instanceDetails(instanceDetails)
+                                                .skipVerification(skipVerification)
+                                                .build())
+                                     .build());
 
       executionData.setOldInstanceData(deployResponse.getOldInstanceData());
       executionData.setNewInstanceData(deployResponse.getNewInstanceData());
@@ -1143,8 +1145,8 @@ public class EcsStateHelper {
       ServiceResourceService serviceResourceService, InfrastructureMappingService infrastructureMappingService,
       SettingsService settingsService, SecretManager secretManager, boolean rollback) {
     WorkflowStandardParams workflowStandardParams = context.getContextElement(ContextElementType.STANDARD);
-    Application app = workflowStandardParams.fetchRequiredApp();
-    Environment env = workflowStandardParams.getEnv();
+    Application app = workflowStandardParamsExtensionService.fetchRequiredApp(workflowStandardParams);
+    Environment env = workflowStandardParamsExtensionService.getEnv(workflowStandardParams);
     PhaseElement phaseElement = context.getContextElement(ContextElementType.PARAM, PhaseElement.PHASE_PARAM);
     String serviceId = phaseElement.getServiceElement().getUuid();
     Service svc = serviceResourceService.getWithDetails(app.getUuid(), serviceId);
@@ -1296,7 +1298,7 @@ public class EcsStateHelper {
   }
 
   public void createSweepingOutputForRollback(EcsDeployDataBag deployDataBag, Activity activity,
-      DelegateService delegateService, EcsResizeParams resizeParams, ExecutionContext context) {
+      DelegateService delegateService, EcsResizeParams resizeParams, ExecutionContext context, boolean blueGreen) {
     EcsDeployRollbackDataFetchRequest request =
         EcsDeployRollbackDataFetchRequest.builder()
             .accountId(deployDataBag.getApp().getAccountId())
@@ -1307,6 +1309,7 @@ public class EcsStateHelper {
             .cluster(deployDataBag.getEcsInfrastructureMapping().getClusterName())
             .awsConfig(deployDataBag.getAwsConfig())
             .ecsResizeParams(resizeParams)
+            .blueGreen(blueGreen)
             .build();
 
     DelegateTask task =

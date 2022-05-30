@@ -11,7 +11,9 @@ import static io.harness.annotations.dev.HarnessTeam.CDP;
 import static io.harness.beans.EnvironmentType.ALL;
 import static io.harness.beans.ExecutionStatus.FAILED;
 import static io.harness.beans.ExecutionStatus.SUCCESS;
+import static io.harness.beans.FeatureName.ACTIVITY_ID_BASED_TF_BASE_DIR;
 import static io.harness.beans.FeatureName.GIT_HOST_CONNECTIVITY;
+import static io.harness.beans.FeatureName.SAVE_TERRAFORM_APPLY_SWEEPING_OUTPUT_TO_WORKFLOW;
 import static io.harness.beans.FeatureName.TERRAFORM_AWS_CP_AUTHENTICATION;
 import static io.harness.beans.OrchestrationWorkflowType.BUILD;
 import static io.harness.context.ContextElementType.TERRAFORM_INHERIT_PLAN;
@@ -66,6 +68,7 @@ import io.harness.beans.ExecutionStatus;
 import io.harness.beans.FeatureName;
 import io.harness.beans.SecretManagerConfig;
 import io.harness.beans.SweepingOutputInstance;
+import io.harness.beans.SweepingOutputInstance.Scope;
 import io.harness.beans.TriggeredBy;
 import io.harness.beans.terraform.TerraformPlanParam;
 import io.harness.beans.terraform.TerraformPlanParam.TerraformPlanParamBuilder;
@@ -89,6 +92,7 @@ import io.harness.security.encryption.EncryptedRecordData;
 import io.harness.serializer.JsonUtils;
 import io.harness.tasks.ResponseData;
 
+import software.wings.api.PhaseElement;
 import software.wings.api.ScriptStateExecutionData;
 import software.wings.api.TerraformApplyMarkerParam;
 import software.wings.api.TerraformExecutionData;
@@ -333,8 +337,9 @@ public abstract class TerraformProvisionState extends State {
     // We are checking for nulls in tfPlanJson field because it can be null even if feature flag is set to true.
     // Customer sometimes enables that flag because the customer is using multiple terraform versions at the same time,
     // some of which do not support exporting in json format
-    if (featureFlagService.isEnabled(FeatureName.EXPORT_TF_PLAN, context.getAccountId())
-        && executionData.getTfPlanJson() != null) {
+    boolean saveTfPlanSweepingOutput =
+        executionData.getTfPlanJsonFiledId() != null || executionData.getTfPlanJson() != null;
+    if (featureFlagService.isEnabled(FeatureName.EXPORT_TF_PLAN, context.getAccountId()) && saveTfPlanSweepingOutput) {
       String variableName = terraformCommand == TerraformCommand.APPLY ? TF_APPLY_VAR_NAME : TF_DESTROY_VAR_NAME;
       // if the plan variable exists overwrite it
       SweepingOutputInstance sweepingOutputInstance =
@@ -357,10 +362,12 @@ public abstract class TerraformProvisionState extends State {
         tfPlanParamBuilder.tfplan(format("'%s'", JsonUtils.prettifyJsonString(executionData.getTfPlanJson())));
       }
 
-      sweepingOutputService.save(context.prepareSweepingOutputBuilder(SweepingOutputInstance.Scope.PIPELINE)
-                                     .name(variableName)
-                                     .value(tfPlanParamBuilder.build())
-                                     .build());
+      Scope scope =
+          featureFlagService.isEnabled(SAVE_TERRAFORM_APPLY_SWEEPING_OUTPUT_TO_WORKFLOW, context.getAccountId())
+          ? Scope.WORKFLOW
+          : Scope.PIPELINE;
+      sweepingOutputService.save(
+          context.prepareSweepingOutputBuilder(scope).name(variableName).value(tfPlanParamBuilder.build()).build());
     }
   }
 
@@ -478,6 +485,23 @@ public abstract class TerraformProvisionState extends State {
                                    .name(TerraformOutputVariables.SWEEPING_OUTPUT_NAME)
                                    .value(terraformOutputVariables)
                                    .build());
+
+    PhaseElement phaseElement = context.getContextElement(ContextElementType.PARAM, PhaseElement.PHASE_PARAM);
+
+    if (phaseElement != null && isNotEmpty(phaseElement.getInfraDefinitionId())
+        && phaseElement.getServiceElement() != null && isNotEmpty(phaseElement.getServiceElement().getUuid())) {
+      String name = format("%s_%s_%s", TerraformOutputVariables.SWEEPING_OUTPUT_NAME,
+          phaseElement.getInfraDefinitionId(), phaseElement.getServiceElement().getUuid())
+                        .replaceAll("-", "_");
+      try {
+        sweepingOutputService.save(context.prepareSweepingOutputBuilder(SweepingOutputInstance.Scope.PIPELINE)
+                                       .name(name)
+                                       .value(terraformOutputVariables)
+                                       .build());
+      } catch (Exception ex) {
+        log.error("Failed to save sweeping output against name {}", name);
+      }
+    }
   }
 
   private void saveUserInputs(ExecutionContext context, TerraformExecutionData terraformExecutionData,
@@ -771,7 +795,9 @@ public abstract class TerraformProvisionState extends State {
             .useTfClient(
                 featureFlagService.isEnabled(FeatureName.USE_TF_CLIENT, executionContext.getApp().getAccountId()))
             .isGitHostConnectivityCheck(
-                featureFlagService.isEnabled(GIT_HOST_CONNECTIVITY, executionContext.getApp().getAccountId()));
+                featureFlagService.isEnabled(GIT_HOST_CONNECTIVITY, executionContext.getApp().getAccountId()))
+            .useActivityIdBasedTfBaseDir(
+                featureFlagService.isEnabled(ACTIVITY_ID_BASED_TF_BASE_DIR, context.getAccountId()));
 
     if (featureFlagService.isEnabled(TERRAFORM_AWS_CP_AUTHENTICATION, context.getAccountId())) {
       setAWSAuthParamsIfPresent(context, terraformProvisionParametersBuilder);
@@ -1017,7 +1043,9 @@ public abstract class TerraformProvisionState extends State {
             .useTfClient(
                 featureFlagService.isEnabled(FeatureName.USE_TF_CLIENT, executionContext.getApp().getAccountId()))
             .isGitHostConnectivityCheck(
-                featureFlagService.isEnabled(GIT_HOST_CONNECTIVITY, executionContext.getApp().getAccountId()));
+                featureFlagService.isEnabled(GIT_HOST_CONNECTIVITY, executionContext.getApp().getAccountId()))
+            .useActivityIdBasedTfBaseDir(
+                featureFlagService.isEnabled(ACTIVITY_ID_BASED_TF_BASE_DIR, context.getAccountId()));
 
     if (featureFlagService.isEnabled(TERRAFORM_AWS_CP_AUTHENTICATION, context.getAccountId())) {
       setAWSAuthParamsIfPresent(context, terraformProvisionParametersBuilder);

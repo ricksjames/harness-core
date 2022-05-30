@@ -12,10 +12,10 @@ import static io.harness.data.structure.EmptyPredicate.isNotEmpty;
 import static io.harness.data.structure.UUIDGenerator.generateUuid;
 import static io.harness.waiter.OrchestrationNotifyEventListener.ORCHESTRATION;
 
+import static software.wings.delegatetasks.cv.CVConstants.CONTROL_HOST_NAME;
+import static software.wings.delegatetasks.cv.CVConstants.TEST_HOST_NAME;
 import static software.wings.service.impl.aws.model.AwsConstants.AWS_DEFAULT_REGION;
 import static software.wings.service.impl.newrelic.NewRelicMetricDataRecord.DEFAULT_GROUP_NAME;
-import static software.wings.sm.states.DynatraceState.CONTROL_HOST_NAME;
-import static software.wings.sm.states.DynatraceState.TEST_HOST_NAME;
 
 import static java.util.Collections.singletonList;
 
@@ -53,7 +53,7 @@ import com.github.reinert.jjschema.Attributes;
 import com.github.reinert.jjschema.SchemaIgnore;
 import com.google.common.collect.Sets;
 import com.google.inject.Inject;
-import com.hazelcast.util.Preconditions;
+import com.hazelcast.internal.util.Preconditions;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -194,7 +194,7 @@ public class CloudWatchState extends AbstractMetricAnalysisState {
             .serviceId(getPhaseServiceId(context))
             .analysisComparisonStrategy(getComparisonStrategy())
             .startTime(dataCollectionStartTimeStamp)
-            .collectionTime(Integer.parseInt(getTimeDuration()))
+            .collectionTime(Integer.parseInt(getTimeDuration(context)))
             .dataCollectionMinute(0)
             .encryptedDataDetails(
                 secretManager.getEncryptionDetails(awsConfig, context.getAppId(), context.getWorkflowExecutionId()))
@@ -227,7 +227,7 @@ public class CloudWatchState extends AbstractMetricAnalysisState {
                       .async(true)
                       .taskType(TaskType.CLOUD_WATCH_COLLECT_METRIC_DATA.name())
                       .parameters(new Object[] {dataCollectionInfo})
-                      .timeout(TimeUnit.MINUTES.toMillis(Integer.parseInt(getTimeDuration()) + 120))
+                      .timeout(TimeUnit.MINUTES.toMillis(Integer.parseInt(getTimeDuration(context)) + 120))
                       .build())
             .setupAbstraction(Cd1SetupFields.ENV_ID_FIELD, envId)
             .setupAbstraction(Cd1SetupFields.INFRASTRUCTURE_MAPPING_ID_FIELD, infrastructureMappingId)
@@ -238,7 +238,7 @@ public class CloudWatchState extends AbstractMetricAnalysisState {
             .stateExecutionId(context.getStateExecutionInstanceId())
             .dataCollectionStartTime(dataCollectionStartTimeStamp)
             .dataCollectionEndTime(
-                dataCollectionStartTimeStamp + TimeUnit.MINUTES.toMillis(Integer.parseInt(getTimeDuration())))
+                dataCollectionStartTimeStamp + TimeUnit.MINUTES.toMillis(Integer.parseInt(getTimeDuration(context))))
             .executionData(executionData)
             .build(),
         waitId);
@@ -260,12 +260,18 @@ public class CloudWatchState extends AbstractMetricAnalysisState {
     Map<String, TimeSeriesMetricDefinition> rv = new HashMap<>();
     for (Entry<AwsNameSpace, List<CloudWatchMetric>> entry : timeSeriesToCollect.entrySet()) {
       for (CloudWatchMetric timeSeries : entry.getValue()) {
-        rv.put(timeSeries.getMetricName(),
-            TimeSeriesMetricDefinition.builder()
-                .metricName(timeSeries.getMetricName())
-                .metricType(MetricType.valueOf(timeSeries.getMetricType()))
-                .tags(Sets.newHashSet(entry.getKey().name()))
-                .build());
+        if (rv.containsKey(timeSeries.getMetricName())) {
+          TimeSeriesMetricDefinition timeSeriesMetricDefinition = rv.get(timeSeries.getMetricName());
+          // update the tags as for same metric name all the other values will remain same. This tag is used by LE.
+          timeSeriesMetricDefinition.getTags().add(entry.getKey().name());
+        } else {
+          rv.put(timeSeries.getMetricName(),
+              TimeSeriesMetricDefinition.builder()
+                  .metricName(timeSeries.getMetricName())
+                  .metricType(MetricType.valueOf(timeSeries.getMetricType()))
+                  .tags(Sets.newHashSet(entry.getKey().name()))
+                  .build());
+        }
       }
     }
     return rv;

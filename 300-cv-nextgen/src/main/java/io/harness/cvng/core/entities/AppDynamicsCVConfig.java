@@ -15,7 +15,9 @@ import io.harness.cvng.beans.CVMonitoringCategory;
 import io.harness.cvng.beans.DataSourceType;
 import io.harness.cvng.beans.TimeSeriesMetricType;
 import io.harness.cvng.core.beans.monitoredService.healthSouceSpec.AppDynamicsHealthSourceSpec.AppDMetricDefinitions;
+import io.harness.cvng.core.entities.AppDynamicsCVConfig.MetricInfo;
 import io.harness.cvng.core.services.CVNextGenConstants;
+import io.harness.cvng.core.utils.analysisinfo.AnalysisInfoUtility;
 import io.harness.cvng.core.utils.analysisinfo.DevelopmentVerificationTransformer;
 import io.harness.cvng.core.utils.analysisinfo.LiveMonitoringTransformer;
 import io.harness.cvng.core.utils.analysisinfo.SLIMetricTransformer;
@@ -23,16 +25,19 @@ import io.harness.cvng.core.utils.analysisinfo.SLIMetricTransformer;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-import lombok.Value;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.FieldNameConstants;
 import lombok.experimental.SuperBuilder;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.mongodb.morphia.query.UpdateOperations;
 
 @JsonTypeName("APP_DYNAMICS")
@@ -41,7 +46,7 @@ import org.mongodb.morphia.query.UpdateOperations;
 @FieldNameConstants(innerTypeName = "AppDynamicsCVConfigKeys")
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
-public class AppDynamicsCVConfig extends MetricCVConfig {
+public class AppDynamicsCVConfig extends MetricCVConfig<MetricInfo> {
   private String applicationName;
   private String tierName;
   private String groupName;
@@ -62,6 +67,55 @@ public class AppDynamicsCVConfig extends MetricCVConfig {
   protected void validateParams() {
     checkNotNull(applicationName, generateErrorMessageFromParam(AppDynamicsCVConfigKeys.applicationName));
     checkNotNull(tierName, generateErrorMessageFromParam(AppDynamicsCVConfigKeys.tierName));
+  }
+
+  @Override
+  public boolean isSLIEnabled() {
+    if (!getMetricPack().getIdentifier().equals(CVNextGenConstants.CUSTOM_PACK_IDENTIFIER)) {
+      return false;
+    }
+    return AnalysisInfoUtility.anySLIEnabled(metricInfos);
+  }
+
+  @Override
+  public boolean isLiveMonitoringEnabled() {
+    if (!getMetricPack().getIdentifier().equals(CVNextGenConstants.CUSTOM_PACK_IDENTIFIER)) {
+      return true;
+    }
+    return AnalysisInfoUtility.anyLiveMonitoringEnabled(metricInfos);
+  }
+
+  @Override
+  public boolean isDeploymentVerificationEnabled() {
+    if (!getMetricPack().getIdentifier().equals(CVNextGenConstants.CUSTOM_PACK_IDENTIFIER)) {
+      return true;
+    }
+    return AnalysisInfoUtility.anyDeploymentVerificationEnabled(metricInfos);
+  }
+
+  @Override
+  public Optional<String> maybeGetGroupName() {
+    return Optional.ofNullable(groupName);
+  }
+
+  @Override
+  public List<MetricInfo> getMetricInfos() {
+    populateCompleteMetricPaths();
+    if (metricInfos == null) {
+      return Collections.emptyList();
+    }
+    return metricInfos;
+  }
+
+  @Override
+  public void setMetricInfos(List<MetricInfo> metricInfos) {
+    this.metricInfos = metricInfos;
+    populateCompleteMetricPaths();
+  }
+
+  public void setTierName(String tierName) {
+    this.tierName = tierName;
+    populateCompleteMetricPaths();
   }
 
   public static class AppDynamicsCVConfigUpdatableEntity
@@ -100,6 +154,8 @@ public class AppDynamicsCVConfig extends MetricCVConfig {
               .metricName(md.getMetricName())
               .baseFolder(md.getBaseFolder())
               .metricPath(md.getMetricPath())
+              .completeServiceInstanceMetricPath(md.getCompleteServiceInstanceMetricPath())
+              .completeMetricPath(md.getCompleteMetricPath())
               .sli(SLIMetricTransformer.transformDTOtoEntity(md.getSli()))
               .liveMonitoring(LiveMonitoringTransformer.transformDTOtoEntity(md.getAnalysis()))
               .deploymentVerification(DevelopmentVerificationTransformer.transformDTOtoEntity(md.getAnalysis()))
@@ -118,15 +174,42 @@ public class AppDynamicsCVConfig extends MetricCVConfig {
                                   .build());
     });
     this.setMetricPack(metricPack);
+    populateCompleteMetricPaths();
   }
 
-  @Value
+  @Data
   @SuperBuilder
   @FieldDefaults(level = AccessLevel.PRIVATE)
+  @FieldNameConstants(innerTypeName = "AppDynamicsMetricInfoKeys")
   public static class MetricInfo extends AnalysisInfo {
-    String metricName;
-    String baseFolder;
-    String metricPath;
+    @Deprecated String baseFolder;
+    @Deprecated String metricPath;
+    String completeMetricPath;
+    String completeServiceInstanceMetricPath;
     TimeSeriesMetricType metricType;
+  }
+
+  public void populateCompleteMetricPaths() {
+    CollectionUtils.emptyIfNull(metricInfos).forEach(metricInfo -> populateCompleteMetricPaths(metricInfo));
+  }
+
+  // TODO: remove after UI change and data migration to completeMetricPaths.
+  private void populateCompleteMetricPaths(MetricInfo metricInfo) {
+    if (StringUtils.isEmpty(tierName)) {
+      // If tier is not yet set, skip
+      return;
+    }
+    if (StringUtils.isEmpty(metricInfo.getCompleteMetricPath())) {
+      metricInfo.setCompleteMetricPath(getCompleteMetricPath(metricInfo.getBaseFolder(), metricInfo.getMetricPath()));
+    }
+    if (StringUtils.isEmpty(metricInfo.getCompleteServiceInstanceMetricPath())
+        && StringUtils.isNotEmpty(metricInfo.getDeploymentVerification().getServiceInstanceMetricPath())) {
+      metricInfo.setCompleteServiceInstanceMetricPath(getCompleteMetricPath(
+          metricInfo.getBaseFolder(), metricInfo.getDeploymentVerification().getServiceInstanceMetricPath()));
+    }
+  }
+
+  private String getCompleteMetricPath(String basePath, String metricPath) {
+    return basePath + "|" + tierName + "|" + metricPath;
   }
 }

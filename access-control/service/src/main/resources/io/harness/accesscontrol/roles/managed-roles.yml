@@ -1,6 +1,6 @@
 # Any edit in this file should accompany an increment in version.
 name: rolesConfiguration
-version: 18
+version: 25
 roles:
     - identifier: _project_admin
       name: Project Admin
@@ -36,6 +36,9 @@ roles:
         - core_environment_edit
         - core_environment_delete
         - core_environment_access
+        - core_environmentgroup_view
+        - core_environmentgroup_edit
+        - core_environmentgroup_delete
         - core_audit_view
         - core_usergroup_view
         - core_usergroup_manage
@@ -83,6 +86,38 @@ roles:
         - chi_slo_view
         - chi_slo_edit
         - chi_slo_delete
+        - gitops_agent_view
+        - gitops_agent_edit
+        - gitops_agent_delete
+        - gitops_application_view
+        - gitops_application_edit
+        - gitops_application_delete
+        - gitops_application_sync
+        - gitops_repository_view
+        - gitops_repository_edit
+        - gitops_repository_delete
+        - gitops_cluster_view
+        - gitops_cluster_edit
+        - gitops_cluster_delete
+        - gitops_gpgkey_view
+        - gitops_gpgkey_edit
+        - gitops_gpgkey_delete
+        - gitops_cert_view
+        - gitops_cert_edit
+        - gitops_cert_delete
+        - core_file_view
+        - core_file_edit
+        - core_file_delete
+        - core_file_access
+        - core_variable_view
+        - core_variable_edit
+        - core_variable_delete
+        - chaos_chaoshub_view
+        - chaos_chaoshub_edit
+        - chaos_chaoshub_delete
+        - chaos_chaosagent_view
+        - chaos_chaosagent_edit
+        - chaos_chaosagent_delete
       allowedScopeLevels:
         - project
       managed: true
@@ -98,6 +133,7 @@ roles:
         - core_pipeline_view
         - core_service_view
         - core_environment_view
+        - core_environmentgroup_view
         - core_audit_view
         - core_usergroup_view
         - core_user_view
@@ -114,6 +150,16 @@ roles:
         - ff_target_view
         - ff_environment_apiKeyView
         - ff_environment_view
+        - gitops_agent_view
+        - gitops_application_view
+        - gitops_repository_view
+        - gitops_cluster_view
+        - gitops_gpgkey_view
+        - gitops_cert_view
+        - core_file_view
+        - core_variable_view
+        - chaos_chaoshub_view
+        - chaos_chaosagent_view
       allowedScopeLevels:
         - project
       managed: true
@@ -151,6 +197,9 @@ roles:
         - core_environment_edit
         - core_environment_delete
         - core_environment_access
+        - core_environmentgroup_view
+        - core_environmentgroup_edit
+        - core_environmentgroup_delete
         - core_audit_view
         - core_usergroup_view
         - core_usergroup_manage
@@ -204,6 +253,38 @@ roles:
         - ff_featureflag_toggle
         - core_dashboards_view
         - core_dashboards_edit
+        - gitops_agent_view
+        - gitops_agent_edit
+        - gitops_agent_delete
+        - gitops_application_view
+        - gitops_application_edit
+        - gitops_application_delete
+        - gitops_application_sync
+        - gitops_repository_view
+        - gitops_repository_edit
+        - gitops_repository_delete
+        - gitops_cluster_view
+        - gitops_cluster_edit
+        - gitops_cluster_delete
+        - gitops_gpgkey_view
+        - gitops_gpgkey_edit
+        - gitops_gpgkey_delete
+        - gitops_cert_view
+        - gitops_cert_edit
+        - gitops_cert_delete
+        - core_file_view
+        - core_file_edit
+        - core_file_delete
+        - core_file_access
+        - core_variable_view
+        - core_variable_edit
+        - core_variable_delete
+        - chaos_chaoshub_view
+        - chaos_chaoshub_edit
+        - chaos_chaoshub_delete
+        - chaos_chaosagent_view
+        - chaos_chaosagent_edit
+        - chaos_chaosagent_delete
       allowedScopeLevels:
         - organization
       managed: true
@@ -218,6 +299,7 @@ roles:
         - core_delegateconfiguration_view
         - core_service_view
         - core_environment_view
+        - core_environmentgroup_view
         - core_audit_view
         - core_usergroup_view
         - core_user_view
@@ -237,6 +319,16 @@ roles:
         - ff_environment_apiKeyView
         - ff_environment_view
         - core_dashboards_view
+        - gitops_agent_view
+        - gitops_application_view
+        - gitops_repository_view
+        - gitops_cluster_view
+        - gitops_gpgkey_view
+        - gitops_cert_view
+        - core_file_view
+        - core_variable_view
+        - chaos_chaoshub_view
+        - chaos_chaosagent_view
       allowedScopeLevels:
         - organization
       managed: true
@@ -271,6 +363,9 @@ roles:
         - core_environment_edit
         - core_environment_delete
         - core_environment_access
+        - core_environmentgroup_view
+        - core_environmentgroup_edit
+        - core_environmentgroup_delete
         - core_audit_view
         - core_usergroup_view
         - core_usergroup_manage
@@ -334,6 +429,38 @@ roles:
         - ff_environment_edit
         - ff_environment_view
         - ff_featureflag_toggle
+        - gitops_agent_view
+        - gitops_agent_edit
+        - gitops_agent_delete
+        - gitops_application_view
+        - gitops_application_edit
+        - gitops_application_delete
+        - gitops_application_sync
+        - gitops_repository_view
+        - gitops_repository_edit
+        - gitops_repository_delete
+        - gitops_cluster_view
+        - gitops_cluster_edit
+        - gitops_cluster_delete
+        - gitops_gpgkey_view
+        - gitops_gpgkey_edit
+        - gitops_gpgkey_delete
+        - gitops_cert_view
+        - gitops_cert_edit
+        - gitops_cert_delete
+        - core_file_view
+        - core_file_edit
+        - core_file_delete
+        - core_file_access
+        - core_variable_view
+        - core_variable_edit
+        - core_variable_delete
+        - chaos_chaoshub_view
+        - chaos_chaoshub_edit
+        - chaos_chaoshub_delete
+        - chaos_chaosagent_view
+        - chaos_chaosagent_edit
+        - chaos_chaosagent_delete
       allowedScopeLevels:
         - account
       managed: true
@@ -347,6 +474,7 @@ roles:
         - core_delegateconfiguration_view
         - core_service_view
         - core_environment_view
+        - core_environmentgroup_view
         - core_audit_view
         - core_usergroup_view
         - core_user_view
@@ -370,6 +498,16 @@ roles:
         - ff_environment_apiKeyView
         - ff_environment_view
         - core_dashboards_view
+        - gitops_agent_view
+        - gitops_application_view
+        - gitops_repository_view
+        - gitops_cluster_view
+        - gitops_gpgkey_view
+        - gitops_cert_view
+        - core_file_view
+        - core_variable_view
+        - chaos_chaoshub_view
+        - chaos_chaosagent_view
       allowedScopeLevels:
         - account
       managed: true
@@ -388,11 +526,15 @@ roles:
         - core_service_access
         - core_environment_view
         - core_environment_access
+        - core_environmentgroup_view
         - core_audit_view
         - core_usergroup_view
         - core_user_view
         - core_role_view
         - core_resourcegroup_view
+        - core_file_view
+        - core_file_access
+        - core_variable_view
       allowedScopeLevels:
         - project
       managed: true
@@ -413,17 +555,29 @@ roles:
         - account
         - organization
         - project
-    - identifier: _governance_admin
-      name: Governance Admin
-      description: Can view, edit, and delete Policies and Policy Sets
+    - identifier: _gitops_admin_role
+      name: Gitops Admin Role
+      description: Can create, edit, and view Gitops Resources
       permissions:
-        - core_governancePolicySets_view
-        - core_governancePolicySets_edit
-        - core_governancePolicySets_delete
-        - core_governancePolicySets_evaluate
-        - core_governancePolicy_view
-        - core_governancePolicy_edit
-        - core_governancePolicy_delete
+        - gitops_agent_view
+        - gitops_agent_edit
+        - gitops_agent_delete
+        - gitops_application_view
+        - gitops_application_edit
+        - gitops_application_delete
+        - gitops_application_sync
+        - gitops_repository_view
+        - gitops_repository_edit
+        - gitops_repository_delete
+        - gitops_cluster_view
+        - gitops_cluster_edit
+        - gitops_cluster_delete
+        - gitops_gpgkey_view
+        - gitops_gpgkey_edit
+        - gitops_gpgkey_delete
+        - gitops_cert_view
+        - gitops_cert_edit
+        - gitops_cert_delete
       managed: true
       allowedScopeLevels:
         - account

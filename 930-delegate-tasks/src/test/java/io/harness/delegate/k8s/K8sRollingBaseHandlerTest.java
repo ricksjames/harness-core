@@ -16,6 +16,7 @@ import static io.harness.rule.OwnerRule.ANSHUL;
 import static io.harness.rule.OwnerRule.TATHAGAT;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Matchers.any;
@@ -241,29 +242,75 @@ public class K8sRollingBaseHandlerTest extends CategoryTest {
   @Test
   @Owner(developers = TATHAGAT)
   @Category(UnitTests.class)
-  public void testAddLabelsInDeploymentSelectorAddSelector() {
+  public void testAddLabelsInDeploymentSelector() {
     KubernetesResource resource = mock(KubernetesResource.class);
     prepareMockedKubernetesResource(resource);
-    List<KubernetesResource> resources = Collections.singletonList(resource);
-    k8sRollingBaseHandler.addLabelsInDeploymentSelectorForCanary(true, resources);
+    List<KubernetesResource> resources = singletonList(resource);
+
+    k8sRollingBaseHandler.addLabelsInDeploymentSelectorForCanary(false, resources, false);
+    verify(resource, never()).addLabelsInDeploymentSelector(anyMap());
+
+    k8sRollingBaseHandler.addLabelsInDeploymentSelectorForCanary(false, resources, true);
     verify(resource, times(1)).addLabelsInDeploymentSelector(anyMap());
+
+    k8sRollingBaseHandler.addLabelsInDeploymentSelectorForCanary(true, resources, false);
+    verify(resource, times(2)).addLabelsInDeploymentSelector(anyMap());
   }
 
   @Test
   @Owner(developers = TATHAGAT)
   @Category(UnitTests.class)
-  public void testAddLabelsInDeploymentSelectorNonCanary() {
-    KubernetesResource resource = mock(KubernetesResource.class);
-    prepareMockedKubernetesResource(resource);
-    List<KubernetesResource> resources = Collections.singletonList(resource);
+  public void testAddLabelsInDeploymentSelectorWrapper() {
+    KubernetesResource resource1 = mock(KubernetesResource.class);
+    KubernetesResource resource2 = mock(KubernetesResource.class);
+    prepareMockedKubernetesResourceList(asList(resource1, resource2));
 
-    k8sRollingBaseHandler.addLabelsInDeploymentSelectorForCanary(false, resources);
-    verify(resource, never()).addLabelsInDeploymentSelector(anyMap());
+    k8sRollingBaseHandler.addLabelsInDeploymentSelectorForCanary(
+        true, true, asList(resource1, resource2), singletonList(resource1));
+    verify(resource1, times(1)).addLabelsInDeploymentSelector(anyMap());
+    verify(resource2, never()).addLabelsInDeploymentSelector(anyMap());
+
+    k8sRollingBaseHandler.addLabelsInDeploymentSelectorForCanary(
+        true, false, asList(resource1, resource2), singletonList(resource1));
+    verify(resource1, times(2)).addLabelsInDeploymentSelector(anyMap());
+    verify(resource2, times(1)).addLabelsInDeploymentSelector(anyMap());
+
+    k8sRollingBaseHandler.addLabelsInDeploymentSelectorForCanary(
+        false, true, asList(resource1, resource2), singletonList(resource1));
+    verify(resource1, times(3)).addLabelsInDeploymentSelector(anyMap());
+    verify(resource2, times(1)).addLabelsInDeploymentSelector(anyMap());
+
+    k8sRollingBaseHandler.addLabelsInDeploymentSelectorForCanary(
+        false, false, asList(resource1, resource2), singletonList(resource1));
+    verify(resource1, times(3)).addLabelsInDeploymentSelector(anyMap());
+    verify(resource2, times(1)).addLabelsInDeploymentSelector(anyMap());
+  }
+
+  @Test
+  @Owner(developers = TATHAGAT)
+  @Category(UnitTests.class)
+  public void testAddLabelsInDeploymentSelectorWrapperFfOf() {
+    KubernetesResource resource1 = mock(KubernetesResource.class);
+    KubernetesResource resource2 = mock(KubernetesResource.class);
+    prepareMockedKubernetesResourceList(asList(resource1, resource2));
+
+    k8sRollingBaseHandler.addLabelsInDeploymentSelectorForCanary(
+        true, false, asList(resource1, resource2), singletonList(resource1));
+    verify(resource1, times(1)).addLabelsInDeploymentSelector(anyMap());
+    verify(resource2, times(1)).addLabelsInDeploymentSelector(anyMap());
   }
 
   private void prepareMockedKubernetesResource(KubernetesResource resource) {
     KubernetesResourceId resourceId = mock(KubernetesResourceId.class);
     when(resource.getResourceId()).thenReturn(resourceId);
     when(resourceId.getKind()).thenReturn(Kind.Deployment.name());
+  }
+
+  private void prepareMockedKubernetesResourceList(List<KubernetesResource> resourceList) {
+    for (KubernetesResource resource : resourceList) {
+      KubernetesResourceId mockedResource = mock(KubernetesResourceId.class);
+      when(resource.getResourceId()).thenReturn(mockedResource);
+      when(mockedResource.getKind()).thenReturn(Kind.Deployment.name());
+    }
   }
 }

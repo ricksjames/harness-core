@@ -18,7 +18,6 @@ import static com.google.common.base.Charsets.UTF_8;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
 import io.harness.delegate.message.MessageService;
-import io.harness.event.client.impl.EventPublisherConstants;
 import io.harness.event.client.impl.tailer.TailerModule;
 import io.harness.event.client.impl.tailer.TailerModule.Config;
 import io.harness.managerclient.WatcherManagerClientModule;
@@ -35,7 +34,6 @@ import com.google.inject.Module;
 import java.io.File;
 import java.lang.management.ManagementFactory;
 import java.util.HashSet;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -128,8 +126,14 @@ public class WatcherApplication {
       }
     });
 
-    modules.add(new WatcherManagerClientModule(
-        configuration.getManagerUrl(), configuration.getAccountId(), configuration.getAccountSecret()));
+    // TODO: Remove this block once we completely deprecate accountSecret in YAML.
+    String delegateToken = configuration.getDelegateToken();
+    if (StringUtils.isEmpty(delegateToken)) {
+      log.error("Error while reading secret");
+      throw new RuntimeException("Neither delegateToken nor accountSecret present in config-watcher.yml");
+    }
+    modules.add(
+        new WatcherManagerClientModule(configuration.getManagerUrl(), configuration.getAccountId(), delegateToken));
 
     modules.add(WatcherModule.getInstance());
 
@@ -147,9 +151,8 @@ public class WatcherApplication {
       if (publishTarget != null && publishAuthority != null) {
         modules.add(new TailerModule(Config.builder()
                                          .accountId(configuration.getAccountId())
-                                         .accountSecret(configuration.getAccountSecret())
-                                         .queueFilePath(Optional.ofNullable(configuration.getQueueFilePath())
-                                                            .orElse(EventPublisherConstants.DEFAULT_QUEUE_FILE_PATH))
+                                         .accountSecret(delegateToken)
+                                         .queueFilePath(configuration.getQueueFilePath())
                                          .publishTarget(publishTarget)
                                          .publishAuthority(publishAuthority)
                                          .build()));

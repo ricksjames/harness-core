@@ -8,11 +8,11 @@ package junit
 import (
 	"context"
 	"fmt"
-	"github.com/mattn/go-zglob"
 	"github.com/harness/harness-core/commons/go/lib/filesystem"
 	gojunit "github.com/harness/harness-core/product/ci/addon/gojunit"
 	"github.com/harness/harness-core/product/ci/addon/testreports"
 	"github.com/harness/harness-core/product/ci/ti-service/types"
+	"github.com/mattn/go-zglob"
 	"go.uber.org/zap"
 )
 
@@ -80,20 +80,28 @@ func (j *Junit) GetTests(ctx context.Context) <-chan *types.TestCase {
 				j.Log.Errorw(fmt.Sprintf("could not parse file %s. Error: %s", file, err), "file", file, zap.Error(err))
 				continue
 			}
-			for _, suite := range suites {
-				for _, test := range suite.Tests {
-					ct := convert(test, suite)
-					if ct.Name != "" {
-						testc <- ct
-						total = total + 1
-					}
-
-				}
-			}
+			total += processTestSuites(testc, suites)
 		}
 		j.Log.Infow(fmt.Sprintf("parsed %d test cases", total), "num_cases", total)
 	}()
 	return testc
+}
+
+// processTestSuites recusively writes the test data from parsed data to the
+// input channel and returns the total number of tests written to the channel
+func processTestSuites(testc chan *types.TestCase, suites []gojunit.Suite) int {
+	totalTests := 0
+	for _, suite := range suites {
+		for _, test := range suite.Tests {
+			ct := convert(test, suite)
+			if ct.Name != "" {
+				testc <- ct
+				totalTests += 1
+			}
+		}
+		totalTests += processTestSuites(testc, suite.Suites)
+	}
+	return totalTests
 }
 
 // convert combines relevant information in test cases and test suites and parses it to our custom format

@@ -74,6 +74,7 @@ import static software.wings.beans.yaml.YamlConstants.WORKFLOWS_FOLDER;
 import static software.wings.beans.yaml.YamlConstants.YAML_EXTENSION;
 import static software.wings.common.TemplateConstants.TEMPLATE_TYPES_WITH_YAML_SUPPORT;
 import static software.wings.security.UserThreadLocal.userGuard;
+import static software.wings.settings.SettingVariableTypes.OCI_HELM_REPO;
 import static software.wings.settings.SettingVariableTypes.PHYSICAL_DATA_CENTER;
 
 import static java.util.Collections.emptySet;
@@ -908,9 +909,7 @@ public class YamlDirectoryServiceImpl implements YamlDirectoryService {
     futureResponseList.add(
         executorService.submit(() -> doProvisioners(app, appPath.clone(), applyPermissions, allowedProvisioners)));
 
-    if (isAppTelemetryEnabled(accountId)) {
-      futureResponseList.add(executorService.submit(() -> doEventConfigs(app, appPath.clone())));
-    }
+    futureResponseList.add(executorService.submit(() -> doEventConfigs(app, appPath.clone())));
 
     futureResponseList.add(executorService.submit(
         () -> doTemplateLibraryForApp(app, appPath.clone(), applyPermissions, allowedTemplates)));
@@ -945,9 +944,7 @@ public class YamlDirectoryServiceImpl implements YamlDirectoryService {
     appFolder.addChild(map.get(WORKFLOWS_FOLDER));
     appFolder.addChild(map.get(PIPELINES_FOLDER));
     appFolder.addChild(map.get(PROVISIONERS_FOLDER));
-    if (isAppTelemetryEnabled(accountId)) {
-      appFolder.addChild(map.get(CG_EVENT_CONFIG_FOLDER));
-    }
+    appFolder.addChild(map.get(CG_EVENT_CONFIG_FOLDER));
     if (isTriggerYamlEnabled(accountId)) {
       appFolder.addChild(map.get(TRIGGER_FOLDER));
     }
@@ -969,10 +966,6 @@ public class YamlDirectoryServiceImpl implements YamlDirectoryService {
 
   private boolean isTriggerYamlEnabled(String accountId) {
     return featureFlagService.isEnabled(FeatureName.TRIGGER_YAML, accountId);
-  }
-
-  private boolean isAppTelemetryEnabled(String accountId) {
-    return featureFlagService.isEnabled(FeatureName.APP_TELEMETRY, accountId);
   }
 
   private boolean isNewDeploymentFreezeFFenabled(String accountId) {
@@ -2275,6 +2268,9 @@ public class YamlDirectoryServiceImpl implements YamlDirectoryService {
     doArtifactServerType(accountId, artifactServersFolder, SettingVariableTypes.NEXUS, directoryPath.clone());
     doArtifactServerType(accountId, artifactServersFolder, SettingVariableTypes.ARTIFACTORY, directoryPath.clone());
     doArtifactServerType(accountId, artifactServersFolder, SettingVariableTypes.HTTP_HELM_REPO, directoryPath.clone());
+    if (featureFlagService.isEnabled(FeatureName.HELM_OCI_SUPPORT, accountId)) {
+      doArtifactServerType(accountId, artifactServersFolder, SettingVariableTypes.OCI_HELM_REPO, directoryPath.clone());
+    }
     doArtifactServerType(
         accountId, artifactServersFolder, SettingVariableTypes.AMAZON_S3_HELM_REPO, directoryPath.clone());
     doArtifactServerType(accountId, artifactServersFolder, SettingVariableTypes.GCS_HELM_REPO, directoryPath.clone());
@@ -2805,6 +2801,12 @@ public class YamlDirectoryServiceImpl implements YamlDirectoryService {
     StringBuilder sb = new StringBuilder();
     sb.append(getRootPath()).append(PATH_DELIMITER);
 
+    if (!featureFlagService.isEnabled(FeatureName.HELM_OCI_SUPPORT, settingAttribute.getAccountId())
+        && settingVariableType.equals(OCI_HELM_REPO)) {
+      log.warn("Unknown SettingVariable type:" + settingVariableType);
+      return sb.toString();
+    }
+
     switch (settingVariableType) {
       // cloud providers
       case AWS:
@@ -2833,6 +2835,7 @@ public class YamlDirectoryServiceImpl implements YamlDirectoryService {
       case ACR:
       case AMAZON_S3:
       case HTTP_HELM_REPO:
+      case OCI_HELM_REPO:
       case AMAZON_S3_HELM_REPO:
       case GCS_HELM_REPO:
       case AZURE_ARTIFACTS_PAT:

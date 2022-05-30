@@ -96,6 +96,7 @@ message HelmInstallationParameters {
     HELM_VERSION_UNSPECIFIED = 0;
     V2 = 1;
     V3 = 2;
+    V380 = 3;
   }
   HelmVersion helm_version = 1;
 }
@@ -179,4 +180,5 @@ message LiteEngineConnectionParameters {
 // Testing whether a delegate can connect to a given VM pool (CI)
 message CIVMParameters {
   string pool_id = 1;
+  string stage_runtime_id = 2;
 }

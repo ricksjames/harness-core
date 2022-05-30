@@ -11,7 +11,6 @@ import static io.harness.annotations.dev.HarnessTeam.CDP;
 import static io.harness.rule.OwnerRule.ACASIAN;
 import static io.harness.rule.OwnerRule.ADWAIT;
 import static io.harness.rule.OwnerRule.ANKIT;
-import static io.harness.rule.OwnerRule.GEORGE;
 import static io.harness.rule.OwnerRule.RAMA;
 import static io.harness.rule.OwnerRule.ROHIT_KUMAR;
 
@@ -24,6 +23,7 @@ import static software.wings.utils.WingsTestConstants.INFRA_MAPPING_ID;
 import static java.util.Arrays.asList;
 import static junit.framework.TestCase.assertTrue;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.joor.Reflect.on;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyList;
 import static org.mockito.Matchers.anyLong;
@@ -39,6 +39,7 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import io.harness.annotations.dev.OwnedBy;
+import io.harness.beans.ArtifactMetadata;
 import io.harness.beans.EmbeddedUser;
 import io.harness.beans.EnvironmentType;
 import io.harness.beans.FeatureName;
@@ -65,6 +66,7 @@ import software.wings.api.AwsAutoScalingGroupDeploymentInfo;
 import software.wings.api.AwsCodeDeployDeploymentInfo;
 import software.wings.api.ContainerDeploymentInfoWithLabels;
 import software.wings.api.ContainerDeploymentInfoWithNames;
+import software.wings.api.ContextElementParamMapperFactory;
 import software.wings.api.DeploymentEvent;
 import software.wings.api.DeploymentInfo;
 import software.wings.api.DeploymentSummary;
@@ -115,6 +117,7 @@ import software.wings.sm.ExecutionContext;
 import software.wings.sm.PhaseExecutionSummary;
 import software.wings.sm.PhaseStepExecutionSummary;
 import software.wings.sm.WorkflowStandardParams;
+import software.wings.sm.WorkflowStandardParamsExtensionService;
 import software.wings.sm.states.PhaseStepSubWorkflow;
 import software.wings.utils.WingsTestConstants;
 
@@ -183,9 +186,12 @@ public class InstanceHelperTest extends WingsBaseTest {
   @InjectMocks @Inject private AzureInstanceHandler azureInstanceHandler;
   @InjectMocks @Inject private SpotinstAmiInstanceHandler spotinstAmiInstanceHandler;
   @InjectMocks @Inject private AwsLambdaInstanceHandler awsLambdaInstanceHandler;
+  @InjectMocks @Inject private PdcInstanceHandler pdcInstanceHandler;
   @InjectMocks @Inject private CustomDeploymentInstanceHandler customDeploymentInstanceHandler;
   @InjectMocks @Inject private AzureVMSSInstanceHandler azureVMSSInstanceHandler;
   @InjectMocks @Inject private AzureWebAppInstanceHandler azureWebAppInstanceHandler;
+  @InjectMocks @Inject private ContextElementParamMapperFactory contextElementParamMapperFactory;
+  @InjectMocks @Inject private WorkflowStandardParamsExtensionService workflowStandardParamsExtensionService;
 
   @InjectMocks @Inject private InstanceHelper instanceHelper;
   private WorkflowExecution workflowExecution;
@@ -245,7 +251,7 @@ public class InstanceHelperTest extends WingsBaseTest {
             .withDisplayName("artifact1")
             .withArtifactStreamId(ARTIFACT_STREAM_ID_1)
             .withArtifactSourceName("sourceName")
-            .withMetadata(Collections.singletonMap("buildNo", "1.0"))
+            .withMetadata(new ArtifactMetadata(Collections.singletonMap("buildNo", "1.0")))
             .build();
       } else {
         return Artifact.Builder.anArtifact()
@@ -253,7 +259,7 @@ public class InstanceHelperTest extends WingsBaseTest {
             .withDisplayName("artifact2")
             .withArtifactStreamId(ARTIFACT_STREAM_ID_2)
             .withArtifactSourceName("sourceName")
-            .withMetadata(Collections.singletonMap("buildNo", "1.0"))
+            .withMetadata(new ArtifactMetadata(Collections.singletonMap("buildNo", "1.0")))
             .build();
       }
     });
@@ -294,6 +300,14 @@ public class InstanceHelperTest extends WingsBaseTest {
 
     AcquiredLock<?> acquiredLock = mock(AcquiredLock.class);
     when(persistentLocker.tryToAcquireLock(any(), any(), any())).thenReturn(acquiredLock);
+
+    on(workflowStandardParamsExtensionService).set("artifactService", artifactService);
+    on(workflowStandardParamsExtensionService)
+        .set("artifactStreamServiceBindingService", artifactStreamServiceBindingService);
+    on(contextElementParamMapperFactory).set("artifactService", artifactService);
+    on(contextElementParamMapperFactory)
+        .set("workflowStandardParamsExtensionService", workflowStandardParamsExtensionService);
+    on(instanceHelper).set("workflowStandardParamsExtensionService", workflowStandardParamsExtensionService);
   }
 
   @Test
@@ -913,20 +927,6 @@ public class InstanceHelperTest extends WingsBaseTest {
   }
 
   @Test
-  @Owner(developers = GEORGE)
-  @Category(UnitTests.class)
-  public void testIsSupported() throws Exception {
-    assertThat(instanceHelper.isSupported(InfrastructureMappingType.PHYSICAL_DATA_CENTER_SSH)).isFalse();
-    assertThat(instanceHelper.isSupported(InfrastructureMappingType.PHYSICAL_DATA_CENTER_WINRM)).isFalse();
-    assertThat(instanceHelper.isSupported(InfrastructureMappingType.AWS_AWS_LAMBDA)).isTrue();
-    assertThat(instanceHelper.isSupported(InfrastructureMappingType.AWS_ECS)).isTrue();
-    assertThat(instanceHelper.isSupported(InfrastructureMappingType.AWS_AMI)).isTrue();
-    assertThat(instanceHelper.isSupported(InfrastructureMappingType.AWS_AWS_CODEDEPLOY)).isTrue();
-    assertThat(instanceHelper.isSupported(InfrastructureMappingType.GCP_KUBERNETES)).isTrue();
-    assertThat(instanceHelper.isSupported(InfrastructureMappingType.AWS_SSH)).isTrue();
-  }
-
-  @Test
   @Owner(developers = ADWAIT)
   @Category(UnitTests.class)
   public void testGetPrivateDnsName() throws Exception {
@@ -971,8 +971,8 @@ public class InstanceHelperTest extends WingsBaseTest {
   public void testManualSyncSuccess() throws Exception {
     InstanceHandlerFactory instanceHandlerFactory = spy(new InstanceHandlerFactory(containerInstanceHandler,
         awsInstanceHandler, awsAmiInstanceHandler, awsCodeDeployInstanceHandler, pcfInstanceHandler,
-        azureInstanceHandler, spotinstAmiInstanceHandler, awsLambdaInstanceHandler, customDeploymentInstanceHandler,
-        azureVMSSInstanceHandler, azureWebAppInstanceHandler));
+        azureInstanceHandler, spotinstAmiInstanceHandler, awsLambdaInstanceHandler, pdcInstanceHandler,
+        customDeploymentInstanceHandler, azureVMSSInstanceHandler, azureWebAppInstanceHandler));
     FieldUtils.writeField(instanceHelper, "instanceHandlerFactory", instanceHandlerFactory, true);
 
     doReturn(new InstanceHandler() {
@@ -1033,8 +1033,8 @@ public class InstanceHelperTest extends WingsBaseTest {
   public void testManualSyncFailure() throws Exception {
     InstanceHandlerFactory instanceHandlerFactory = spy(new InstanceHandlerFactory(containerInstanceHandler,
         awsInstanceHandler, awsAmiInstanceHandler, awsCodeDeployInstanceHandler, pcfInstanceHandler,
-        azureInstanceHandler, spotinstAmiInstanceHandler, awsLambdaInstanceHandler, customDeploymentInstanceHandler,
-        azureVMSSInstanceHandler, azureWebAppInstanceHandler));
+        azureInstanceHandler, spotinstAmiInstanceHandler, awsLambdaInstanceHandler, pdcInstanceHandler,
+        customDeploymentInstanceHandler, azureVMSSInstanceHandler, azureWebAppInstanceHandler));
     FieldUtils.writeField(instanceHelper, "instanceHandlerFactory", instanceHandlerFactory, true);
 
     doReturn(new InstanceHandler() {

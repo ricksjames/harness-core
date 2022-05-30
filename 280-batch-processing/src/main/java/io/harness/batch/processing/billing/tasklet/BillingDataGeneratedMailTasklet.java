@@ -7,6 +7,8 @@
 
 package io.harness.batch.processing.billing.tasklet;
 
+import static io.harness.telemetry.Destination.AMPLITUDE;
+
 import io.harness.batch.processing.billing.tasklet.dao.intfc.DataGeneratedNotificationDao;
 import io.harness.batch.processing.ccm.CCMJobConstants;
 import io.harness.batch.processing.mail.CEMailNotificationService;
@@ -20,6 +22,8 @@ import io.harness.ccm.views.dto.DefaultViewIdDto;
 import io.harness.ccm.views.entities.ViewFieldIdentifier;
 import io.harness.ccm.views.service.CEViewService;
 import io.harness.exception.InvalidRequestException;
+import io.harness.telemetry.Category;
+import io.harness.telemetry.TelemetryReporter;
 import io.harness.timescaledb.DBUtils;
 import io.harness.timescaledb.TimeScaleDBService;
 
@@ -60,6 +64,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 @Slf4j
 @Singleton
 public class BillingDataGeneratedMailTasklet implements Tasklet {
+  public static final String FIRST_DATA_RECEIVED = "First Data Received";
+  public static final String MODULE = "module";
+  public static final String DATA_TYPE = "dataType";
   @Autowired private CloudToHarnessMappingService cloudToHarnessMappingService;
   @Autowired private DataGeneratedNotificationDao notificationDao;
   @Autowired private TimeScaleDBService timeScaleDBService;
@@ -67,6 +74,7 @@ public class BillingDataGeneratedMailTasklet implements Tasklet {
   @Autowired private CEMailNotificationService emailNotificationService;
   @Autowired private CEMetadataRecordDao metadataRecordDao;
   @Autowired private CEViewService ceViewService;
+  @Autowired TelemetryReporter telemetryReporter;
 
   private static final int MAX_RETRY_COUNT = 3;
   private static final long ONE_DAY_MILLIS = 86400000;
@@ -101,11 +109,21 @@ public class BillingDataGeneratedMailTasklet implements Tasklet {
           }
         }
       }
+      Boolean isSegmentDataReadyEventSent = ceMetadataRecord.getSegmentDataReadyEventSent();
+      if (isSegmentDataReadyEventSent == null || !isSegmentDataReadyEventSent) {
+        HashMap<String, Object> properties = new HashMap<>();
+        properties.put(MODULE, "CCM");
+        properties.put(DATA_TYPE, "CLUSTER");
+        telemetryReporter.sendTrackEvent(FIRST_DATA_RECEIVED, null, accountId, properties,
+            Collections.singletonMap(AMPLITUDE, true), Category.GLOBAL);
+      }
+
       cloudToHarnessMappingService.upsertCEMetaDataRecord(CEMetadataRecord.builder()
                                                               .accountId(accountId)
                                                               .applicationDataPresent(isApplicationDataPresent)
                                                               .clusterDataConfigured(true)
                                                               .clusterConnectorConfigured(true)
+                                                              .segmentDataReadyEventSent(true)
                                                               .build());
       boolean notificationSend = notificationDao.isMailSent(accountId);
       if (!notificationSend) {

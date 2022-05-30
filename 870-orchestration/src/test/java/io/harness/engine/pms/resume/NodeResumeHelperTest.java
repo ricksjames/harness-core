@@ -89,12 +89,13 @@ public class NodeResumeHelperTest extends OrchestrationTestBase {
                           .setPlanExecutionId(planExecutionId)
                           .addLevels(Level.newBuilder().setSetupId(childSetupId).setRuntimeId(childId).build())
                           .build())
+            .nodeId(childSetupId)
             .build();
     when(nodeExecutionService.fetchNodeExecutionsByParentId(eq(nodeExecutionId), eq(false)))
         .thenReturn(Collections.singletonList(child));
     when(pmsOutcomeService.fetchOutcomeRefs(eq(nodeExecutionId))).thenReturn(Collections.emptyList());
     Map<String, ByteString> responseMap = resumeHelper.buildResponseMap(metadata, new HashMap<>());
-    assertThat(responseMap).containsKey(childSetupId);
+    assertThat(responseMap).containsKey(childId);
   }
 
   @Test

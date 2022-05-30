@@ -16,18 +16,12 @@ import static io.harness.data.structure.EmptyPredicate.isNotEmpty;
 import static io.harness.lock.mongo.MongoPersistentLocker.LOCKS_STORE;
 import static io.harness.logging.LoggingInitializer.initializeLogging;
 
-import static software.wings.common.VerificationConstants.CV_24X7_METRIC_LABELS;
-import static software.wings.common.VerificationConstants.CV_META_DATA;
-import static software.wings.common.VerificationConstants.VERIFICATION_DEPLOYMENTS;
-import static software.wings.common.VerificationConstants.VERIFICATION_METRIC_LABELS;
-
 import static com.google.common.collect.ImmutableMap.of;
 import static com.google.inject.matcher.Matchers.not;
 import static com.google.inject.name.Names.named;
 
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.app.GraphQLModule;
-import io.harness.artifact.ArtifactCollectionPTaskServiceClient;
 import io.harness.cache.CacheModule;
 import io.harness.capability.CapabilityModule;
 import io.harness.ccm.CEPerpetualTaskHandler;
@@ -44,7 +38,6 @@ import io.harness.config.DatadogConfig;
 import io.harness.config.PublisherConfiguration;
 import io.harness.config.WorkersConfiguration;
 import io.harness.configuration.DeployMode;
-import io.harness.cvng.core.services.api.VerificationServiceSecretManager;
 import io.harness.delegate.beans.DelegateAsyncTaskResponse;
 import io.harness.delegate.beans.DelegateSyncTaskResponse;
 import io.harness.delegate.beans.DelegateTaskProgressResponse;
@@ -66,8 +59,6 @@ import io.harness.health.HealthService;
 import io.harness.lock.DistributedLockImplementation;
 import io.harness.lock.PersistentLocker;
 import io.harness.maintenance.MaintenanceController;
-import io.harness.manifest.ManifestCollectionPTaskServiceClient;
-import io.harness.marketplace.gcp.GcpMarketplaceSubscriberService;
 import io.harness.metrics.HarnessMetricRegistry;
 import io.harness.metrics.MetricRegistryModule;
 import io.harness.migrations.MigrationModule;
@@ -82,26 +73,9 @@ import io.harness.observer.NoOpRemoteObserverInformerImpl;
 import io.harness.observer.RemoteObserver;
 import io.harness.observer.RemoteObserverInformer;
 import io.harness.observer.consumer.AbstractRemoteObserverModule;
-import io.harness.outbox.OutboxEventPollService;
-import io.harness.perpetualtask.AwsAmiInstanceSyncPerpetualTaskClient;
-import io.harness.perpetualtask.AwsCodeDeployInstanceSyncPerpetualTaskClient;
-import io.harness.perpetualtask.CustomDeploymentInstanceSyncClient;
 import io.harness.perpetualtask.PerpetualTaskService;
-import io.harness.perpetualtask.PerpetualTaskServiceClientRegistry;
 import io.harness.perpetualtask.PerpetualTaskServiceImpl;
-import io.harness.perpetualtask.PerpetualTaskType;
-import io.harness.perpetualtask.connector.ConnectorHeartbeatPerpetualTaskClient;
-import io.harness.perpetualtask.ecs.EcsPerpetualTaskServiceClient;
-import io.harness.perpetualtask.example.SamplePerpetualTaskServiceClient;
-import io.harness.perpetualtask.instancesync.AwsLambdaInstanceSyncPerpetualTaskClient;
-import io.harness.perpetualtask.instancesync.AwsSshPerpetualTaskServiceClient;
-import io.harness.perpetualtask.instancesync.AzureVMSSInstanceSyncPerpetualTaskClient;
-import io.harness.perpetualtask.instancesync.AzureWebAppInstanceSyncPerpetualTaskClient;
-import io.harness.perpetualtask.instancesync.ContainerInstanceSyncPerpetualTaskClient;
-import io.harness.perpetualtask.instancesync.PcfInstanceSyncPerpetualTaskClient;
-import io.harness.perpetualtask.instancesync.SpotinstAmiInstanceSyncPerpetualTaskClient;
 import io.harness.perpetualtask.internal.PerpetualTaskRecordHandler;
-import io.harness.perpetualtask.k8s.watch.K8sWatchPerpetualTaskServiceClient;
 import io.harness.persistence.HPersistence;
 import io.harness.persistence.Store;
 import io.harness.persistence.UserProvider;
@@ -148,7 +122,6 @@ import software.wings.app.TemplateModule;
 import software.wings.app.WingsModule;
 import software.wings.app.YamlModule;
 import software.wings.beans.User;
-import software.wings.core.managerConfiguration.ConfigurationController;
 import software.wings.dl.WingsPersistence;
 import software.wings.exception.GenericExceptionMapper;
 import software.wings.exception.JsonProcessingExceptionMapper;
@@ -158,7 +131,6 @@ import software.wings.filter.AuditResponseFilter;
 import software.wings.jersey.JsonViews;
 import software.wings.jersey.KryoFeature;
 import software.wings.licensing.LicenseService;
-import software.wings.search.framework.ElasticsearchSyncService;
 import software.wings.security.AuthResponseFilter;
 import software.wings.security.AuthRuleFilter;
 import software.wings.security.AuthenticationFilter;
@@ -182,10 +154,8 @@ import software.wings.service.impl.SettingsServiceImpl;
 import software.wings.service.impl.WorkflowExecutionServiceImpl;
 import software.wings.service.impl.applicationmanifest.ManifestPerpetualTaskManger;
 import software.wings.service.impl.artifact.ArtifactStreamPTaskManager;
-import software.wings.service.impl.artifact.ArtifactStreamPTaskMigrationJob;
 import software.wings.service.impl.artifact.ArtifactStreamSettingAttributePTaskManager;
 import software.wings.service.impl.infrastructuredefinition.InfrastructureDefinitionServiceImpl;
-import software.wings.service.impl.instance.InstanceSyncPerpetualTaskMigrationJob;
 import software.wings.service.impl.workflow.WorkflowServiceImpl;
 import software.wings.service.impl.yaml.YamlPushServiceImpl;
 import software.wings.service.intfc.AccountService;
@@ -193,12 +163,10 @@ import software.wings.service.intfc.ApplicationManifestService;
 import software.wings.service.intfc.ArtifactStreamService;
 import software.wings.service.intfc.AuditService;
 import software.wings.service.intfc.DelegateProfileService;
-import software.wings.service.intfc.DelegateService;
 import software.wings.service.intfc.InfrastructureDefinitionService;
 import software.wings.service.intfc.InfrastructureDefinitionServiceObserver;
 import software.wings.service.intfc.InfrastructureMappingService;
 import software.wings.service.intfc.InfrastructureMappingServiceObserver;
-import software.wings.service.intfc.MigrationService;
 import software.wings.service.intfc.SettingsService;
 import software.wings.service.intfc.account.AccountCrudObserver;
 import software.wings.service.intfc.applicationmanifest.ApplicationManifestServiceObserver;
@@ -211,6 +179,7 @@ import software.wings.sm.StateMachineExecutor;
 import software.wings.sm.StateStatusUpdate;
 
 import com.codahale.metrics.MetricRegistry;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.introspect.Annotated;
 import com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector;
@@ -333,6 +302,7 @@ public class NGMigrationApplication extends Application<MigratorConfig> {
   }
 
   public static void configureObjectMapper(final ObjectMapper mapper) {
+    mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     mapper.addMixIn(AssetsConfiguration.class, AssetsConfigurationMixin.class);
     final AnnotationAwareJsonSubtypeResolver subtypeResolver =
         AnnotationAwareJsonSubtypeResolver.newInstance(mapper.getSubtypeResolver());
@@ -400,15 +370,6 @@ public class NGMigrationApplication extends Application<MigratorConfig> {
 
     // Managed beans
     registerManagedBeansCommon(configuration, environment, injector);
-    if (isManager()) {
-      registerManagedBeansManager(configuration, environment, injector);
-    }
-
-    registerObservers(configuration, injector);
-
-    if (shouldEnableDelegateMgmt) {
-      registerInprocPerpetualTaskServiceClients(injector);
-    }
 
     // common for both manager and dms
     registerCorsFilter(configuration, environment);
@@ -432,13 +393,6 @@ public class NGMigrationApplication extends Application<MigratorConfig> {
         }
       }
     });
-
-    if (isManager()) {
-      harnessMetricRegistry = injector.getInstance(HarnessMetricRegistry.class);
-      initMetrics();
-      initializeServiceSecretKeys(injector);
-      runMigrations(injector);
-    }
 
     String deployMode = configuration.getDeployMode().name();
 
@@ -655,49 +609,6 @@ public class NGMigrationApplication extends Application<MigratorConfig> {
     dynamic.addMapping("/stream/*");
   }
 
-  private void registerInprocPerpetualTaskServiceClients(Injector injector) {
-    // will move to dms in the future, keep it in manager for now
-    PerpetualTaskServiceClientRegistry clientRegistry =
-        injector.getInstance(Key.get(PerpetualTaskServiceClientRegistry.class));
-
-    clientRegistry.registerClient(
-        PerpetualTaskType.K8S_WATCH, injector.getInstance(K8sWatchPerpetualTaskServiceClient.class));
-    clientRegistry.registerClient(
-        PerpetualTaskType.ECS_CLUSTER, injector.getInstance(EcsPerpetualTaskServiceClient.class));
-    clientRegistry.registerClient(
-        PerpetualTaskType.SAMPLE, injector.getInstance(SamplePerpetualTaskServiceClient.class));
-    clientRegistry.registerClient(
-        PerpetualTaskType.ARTIFACT_COLLECTION, injector.getInstance(ArtifactCollectionPTaskServiceClient.class));
-    clientRegistry.registerClient(
-        PerpetualTaskType.PCF_INSTANCE_SYNC, injector.getInstance(PcfInstanceSyncPerpetualTaskClient.class));
-    clientRegistry.registerClient(
-        PerpetualTaskType.AWS_SSH_INSTANCE_SYNC, injector.getInstance(AwsSshPerpetualTaskServiceClient.class));
-    clientRegistry.registerClient(
-        PerpetualTaskType.AWS_AMI_INSTANCE_SYNC, injector.getInstance(AwsAmiInstanceSyncPerpetualTaskClient.class));
-    clientRegistry.registerClient(PerpetualTaskType.AWS_CODE_DEPLOY_INSTANCE_SYNC,
-        injector.getInstance(AwsCodeDeployInstanceSyncPerpetualTaskClient.class));
-    clientRegistry.registerClient(PerpetualTaskType.SPOT_INST_AMI_INSTANCE_SYNC,
-        injector.getInstance(SpotinstAmiInstanceSyncPerpetualTaskClient.class));
-    clientRegistry.registerClient(PerpetualTaskType.AZURE_VMSS_INSTANCE_SYNC,
-        injector.getInstance(AzureVMSSInstanceSyncPerpetualTaskClient.class));
-    clientRegistry.registerClient(PerpetualTaskType.CONTAINER_INSTANCE_SYNC,
-        injector.getInstance(ContainerInstanceSyncPerpetualTaskClient.class));
-    clientRegistry.registerClient(PerpetualTaskType.AWS_LAMBDA_INSTANCE_SYNC,
-        injector.getInstance(AwsLambdaInstanceSyncPerpetualTaskClient.class));
-    clientRegistry.registerClient(PerpetualTaskType.CUSTOM_DEPLOYMENT_INSTANCE_SYNC,
-        injector.getInstance(CustomDeploymentInstanceSyncClient.class));
-    clientRegistry.registerClient(
-        PerpetualTaskType.MANIFEST_COLLECTION, injector.getInstance(ManifestCollectionPTaskServiceClient.class));
-    try {
-      clientRegistry.registerClient(PerpetualTaskType.CONNECTOR_TEST_CONNECTION,
-          injector.getInstance(ConnectorHeartbeatPerpetualTaskClient.class));
-    } catch (Exception ex) {
-      log.info("Could not create the connector task client", ex);
-    }
-    clientRegistry.registerClient(PerpetualTaskType.AZURE_WEB_APP_INSTANCE_SYNC,
-        injector.getInstance(AzureWebAppInstanceSyncPerpetualTaskClient.class));
-  }
-
   private void registerDatadogPublisherIfEnabled(MainConfiguration configuration) {
     DatadogConfig datadogConfig = configuration.getDatadogConfig();
     if (datadogConfig != null && datadogConfig.isEnabled()) {
@@ -714,12 +625,6 @@ public class NGMigrationApplication extends Application<MigratorConfig> {
         log.error("Error while initializing datadog", t);
       }
     }
-  }
-
-  private void initMetrics() {
-    harnessMetricRegistry.registerCounterMetric(
-        VERIFICATION_DEPLOYMENTS, VERIFICATION_METRIC_LABELS.toArray(new String[0]), " ");
-    harnessMetricRegistry.registerGaugeMetric(CV_META_DATA, CV_24X7_METRIC_LABELS, " ");
   }
 
   private void initializeFeatureFlags(MainConfiguration mainConfiguration, Injector injector) {
@@ -806,37 +711,8 @@ public class NGMigrationApplication extends Application<MigratorConfig> {
     environment.lifecycle().manage(injector.getInstance(MaintenanceController.class));
   }
 
-  private void registerManagedBeansManager(
-      MainConfiguration configuration, Environment environment, Injector injector) {
-    environment.lifecycle().manage(injector.getInstance(ConfigurationController.class));
-    environment.lifecycle().manage(injector.getInstance(GcpMarketplaceSubscriberService.class));
-    // Perpetual task
-    environment.lifecycle().manage(injector.getInstance(ArtifactStreamPTaskMigrationJob.class));
-    environment.lifecycle().manage(injector.getInstance(InstanceSyncPerpetualTaskMigrationJob.class));
-
-    environment.lifecycle().manage(injector.getInstance(OutboxEventPollService.class));
-
-    if (configuration.isSearchEnabled()) {
-      environment.lifecycle().manage(injector.getInstance(ElasticsearchSyncService.class));
-    }
-  }
-
   private void registerCorrelationFilter(Environment environment, Injector injector) {
     environment.jersey().register(injector.getInstance(CorrelationFilter.class));
-  }
-
-  public void registerObservers(MainConfiguration configuration, Injector injector) {
-    // Register Audit observer
-    DelegateServiceImpl delegateServiceImpl =
-        (DelegateServiceImpl) injector.getInstance(Key.get(DelegateService.class));
-
-    if (isManager()) {
-      registerManagerObservers(injector, delegateServiceImpl);
-    }
-
-    if (shouldEnableDelegateMgmt(configuration)) {
-      registerDelegateServiceObservers(injector, delegateServiceImpl);
-    }
   }
 
   /**
@@ -950,14 +826,6 @@ public class NGMigrationApplication extends Application<MigratorConfig> {
 
   private void registerCharsetResponseFilter(Environment environment, Injector injector) {
     environment.jersey().register(injector.getInstance(CharsetResponseFilter.class));
-  }
-
-  private void initializeServiceSecretKeys(Injector injector) {
-    injector.getInstance(VerificationServiceSecretManager.class).initializeServiceSecretKeys();
-  }
-
-  private void runMigrations(Injector injector) {
-    injector.getInstance(MigrationService.class).runMigrations();
   }
 
   public boolean isDms() {

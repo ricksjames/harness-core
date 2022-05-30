@@ -18,35 +18,35 @@ import static io.harness.cvng.core.entities.DeploymentDataCollectionTask.MAX_RET
 import static io.harness.cvng.core.services.CVNextGenConstants.DATA_COLLECTION_DELAY;
 import static io.harness.data.structure.UUIDGenerator.generateUuid;
 import static io.harness.rule.OwnerRule.ABHIJITH;
+import static io.harness.rule.OwnerRule.ARPITJ;
 import static io.harness.rule.OwnerRule.KAMAL;
 import static io.harness.rule.OwnerRule.KANHAIYA;
+import static io.harness.rule.OwnerRule.KAPIL;
 import static io.harness.rule.OwnerRule.NEMANJA;
 import static io.harness.rule.OwnerRule.RAGHU;
 import static io.harness.rule.OwnerRule.VUK;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 
 import io.harness.CvNextGenTestBase;
 import io.harness.category.element.UnitTests;
+import io.harness.cvng.BuilderFactory;
 import io.harness.cvng.CVNGTestConstants;
 import io.harness.cvng.beans.AppDynamicsDataCollectionInfo;
-import io.harness.cvng.beans.CVMonitoringCategory;
-import io.harness.cvng.beans.CVNGPerpetualTaskDTO;
-import io.harness.cvng.beans.CVNGPerpetualTaskUnassignedReason;
 import io.harness.cvng.beans.DataCollectionExecutionStatus;
 import io.harness.cvng.beans.DataCollectionInfo;
 import io.harness.cvng.beans.DataCollectionTaskDTO;
 import io.harness.cvng.beans.DataCollectionTaskDTO.DataCollectionTaskResult;
 import io.harness.cvng.beans.DataSourceType;
 import io.harness.cvng.beans.SplunkDataCollectionInfo;
+import io.harness.cvng.beans.cvnglog.ExecutionLogDTO;
+import io.harness.cvng.beans.cvnglog.ExecutionLogDTO.LogLevel;
 import io.harness.cvng.beans.job.Sensitivity;
 import io.harness.cvng.beans.job.TestVerificationJobDTO;
 import io.harness.cvng.beans.job.VerificationJobDTO;
-import io.harness.cvng.client.VerificationManagerService;
+import io.harness.cvng.core.beans.params.ProjectParams;
 import io.harness.cvng.core.entities.AppDynamicsCVConfig;
 import io.harness.cvng.core.entities.CVConfig;
 import io.harness.cvng.core.entities.DataCollectionTask;
@@ -58,12 +58,12 @@ import io.harness.cvng.core.entities.ServiceGuardDataCollectionTask;
 import io.harness.cvng.core.entities.SplunkCVConfig;
 import io.harness.cvng.core.services.CVNextGenConstants;
 import io.harness.cvng.core.services.api.CVConfigService;
+import io.harness.cvng.core.services.api.CVNGLogService;
 import io.harness.cvng.core.services.api.DataCollectionTaskManagementService;
 import io.harness.cvng.core.services.api.DataCollectionTaskService;
 import io.harness.cvng.core.services.api.MetricPackService;
 import io.harness.cvng.core.services.api.MonitoringSourcePerpetualTaskService;
 import io.harness.cvng.core.services.api.VerificationTaskService;
-import io.harness.cvng.models.VerificationType;
 import io.harness.cvng.verificationjob.entities.TestVerificationJob;
 import io.harness.cvng.verificationjob.entities.VerificationJob;
 import io.harness.cvng.verificationjob.entities.VerificationJobInstance;
@@ -93,7 +93,6 @@ import org.apache.commons.lang3.reflect.FieldUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
-import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mongodb.morphia.query.Query;
 import org.mongodb.morphia.query.UpdateOperations;
@@ -110,7 +109,7 @@ public class DataCollectionTaskServiceImplTest extends CvNextGenTestBase {
   @Inject private VerificationJobService verificationJobService;
   @Inject private VerificationJobInstanceService verificationJobInstanceService;
   @Inject private MonitoringSourcePerpetualTaskService monitoringSourcePerpetualTaskService;
-  @Mock private VerificationManagerService verificationManagerService;
+  @Inject private CVNGLogService cvngLogService;
   private String cvConfigId;
   private String accountId;
   private String orgIdentifier;
@@ -119,14 +118,16 @@ public class DataCollectionTaskServiceImplTest extends CvNextGenTestBase {
   private String dataCollectionWorkerId;
   private String verificationTaskId;
   private CVConfig cvConfig;
+  private BuilderFactory builderFactory;
   @Inject private Map<Type, DataCollectionTaskManagementService> dataCollectionTaskManagementServiceMapBinder;
 
   @Before
   public void setupTests() throws IllegalAccessException {
     initMocks(this);
-    accountId = generateUuid();
-    orgIdentifier = generateUuid();
-    projectIdentifier = generateUuid();
+    builderFactory = BuilderFactory.getDefault();
+    accountId = builderFactory.getContext().getAccountId();
+    orgIdentifier = builderFactory.getContext().getOrgIdentifier();
+    projectIdentifier = builderFactory.getContext().getProjectIdentifier();
     metricPackService.createDefaultMetricPackAndThresholds(accountId, orgIdentifier, projectIdentifier);
     cvConfig = cvConfigService.save(createCVConfig());
     cvConfigId = cvConfig.getUuid();
@@ -136,8 +137,6 @@ public class DataCollectionTaskServiceImplTest extends CvNextGenTestBase {
     FieldUtils.writeField(verificationJobInstanceService, "clock", clock, true);
     FieldUtils.writeField(
         dataCollectionTaskService, "verificationJobInstanceService", verificationJobInstanceService, true);
-    FieldUtils.writeField(
-        monitoringSourcePerpetualTaskService, "verificationManagerService", verificationManagerService, true);
     FieldUtils.writeField(
         dataCollectionTaskService, "monitoringSourcePerpetualTaskService", monitoringSourcePerpetualTaskService, true);
     fakeNow = clock.instant();
@@ -459,6 +458,26 @@ public class DataCollectionTaskServiceImplTest extends CvNextGenTestBase {
   }
 
   @Test
+  @Owner(developers = KAPIL)
+  @Category(UnitTests.class)
+  public void testUpdateTaskStatus_withExecutionLogService() {
+    DataCollectionTask dataCollectionTask = createAndSave(RUNNING);
+    DataCollectionTaskResult result = DataCollectionTaskDTO.DataCollectionTaskResult.builder()
+                                          .status(DataCollectionExecutionStatus.SUCCESS)
+                                          .dataCollectionTaskId(dataCollectionTask.getUuid())
+                                          .build();
+    dataCollectionTaskService.updateTaskStatus(result);
+    DataCollectionTask updated = dataCollectionTaskService.getDataCollectionTask(dataCollectionTask.getUuid());
+    assertThat(updated.getStatus()).isEqualTo(DataCollectionExecutionStatus.SUCCESS);
+    assertThat(updated.getException()).isNull();
+    List<ExecutionLogDTO> cvngLogs =
+        cvngLogService.getExecutionLogDTOs(accountId, dataCollectionTask.getVerificationTaskId());
+    assertThat(cvngLogs).hasSize(2);
+    assertThat(cvngLogs.get(0).getLog()).isEqualTo("Data collection task status: SUCCESS");
+    assertThat(cvngLogs.get(0).getLogLevel()).isEqualTo(LogLevel.INFO);
+  }
+
+  @Test
   @Owner(developers = KAMAL)
   @Category(UnitTests.class)
   public void testUpdateTaskStatus_multipleCallsWithSuccessAndThenFailure() {
@@ -585,6 +604,30 @@ public class DataCollectionTaskServiceImplTest extends CvNextGenTestBase {
     assertThat(updated.getRetryCount()).isEqualTo(1);
     assertThat(updated.getException()).isEqualTo(exception.getMessage());
     assertThat(updated.getStacktrace()).isEqualTo(ExceptionUtils.getStackTrace(exception));
+  }
+
+  @Test
+  @Owner(developers = KAMAL)
+  @Category(UnitTests.class)
+  public void testUpdateTaskStatus_executionLogForFailedTask() {
+    Exception exception = new RuntimeException("exception msg");
+    DataCollectionTask dataCollectionTask = createAndSave(RUNNING);
+    DataCollectionTaskResult result =
+        DataCollectionTaskResult.builder()
+            .status(DataCollectionExecutionStatus.FAILED)
+            .stacktrace(ExceptionUtils.getStackTrace(exception))
+            .dataCollectionTaskId(dataCollectionTask.getUuid())
+            .exception(exception.getMessage())
+            .executionLogs(Collections.singletonList(
+                DataCollectionTaskResult.ExecutionLog.builder().log("log message").logLevel(LogLevel.INFO).build()))
+            .build();
+    dataCollectionTaskService.updateTaskStatus(result);
+    List<ExecutionLogDTO> cvngLogs =
+        cvngLogService.getExecutionLogDTOs(accountId, dataCollectionTask.getVerificationTaskId());
+    assertThat(cvngLogs).hasSize(3);
+    assertThat(cvngLogs.stream().map(cvngLogDTO -> cvngLogDTO.getLog()).collect(Collectors.toList()))
+        .containsExactlyInAnyOrder("Data collection task status: FAILED",
+            "Data collection task failed with exception: exception msg", "log message");
   }
 
   @Test
@@ -724,6 +767,28 @@ public class DataCollectionTaskServiceImplTest extends CvNextGenTestBase {
   }
 
   @Test
+  @Owner(developers = ARPITJ)
+  @Category(UnitTests.class)
+  public void testUpdateRetry() throws IllegalAccessException {
+    DataCollectionTask dataCollectionTask = createAndSave(QUEUED);
+    ProjectParams projectParams = ProjectParams.builder()
+                                      .accountIdentifier(accountId)
+                                      .orgIdentifier(orgIdentifier)
+                                      .projectIdentifier(projectIdentifier)
+                                      .build();
+    Clock clock = Clock.fixed(this.clock.instant().plus(Duration.ofHours(3)), ZoneOffset.UTC);
+    FieldUtils.writeField(dataCollectionTaskService, "clock", clock, true);
+
+    dataCollectionTaskService.updateRetry(projectParams, dataCollectionTask.getUuid());
+    DataCollectionTask newTask = hPersistence.get(DataCollectionTask.class, dataCollectionTask.getUuid());
+
+    assertThat(newTask.getRetryCount()).isEqualTo(0);
+    assertThat(newTask.getValidAfter())
+        .isEqualTo(
+            CVNGTestConstants.FIXED_TIME_FOR_TESTS.instant().plus(3, ChronoUnit.HOURS).plus(300, ChronoUnit.SECONDS));
+  }
+
+  @Test
   @Owner(developers = KAMAL)
   @Category(UnitTests.class)
   public void handleCreateNextTask_forFirstTaskAndMetricsConfig() {
@@ -805,12 +870,6 @@ public class DataCollectionTaskServiceImplTest extends CvNextGenTestBase {
                           .dataCollectionWorkerId(dataCollectionTask.getDataCollectionWorkerId())
                           .perpetualTaskId(perpetualTaskId)
                           .build());
-    when(verificationManagerService.getPerpetualTaskStatus(perpetualTaskId))
-        .thenReturn(CVNGPerpetualTaskDTO.builder()
-                        .accountId(accountId)
-                        .delegateId("some-delegate-id")
-                        .cvngPerpetualTaskState(TASK_UNASSIGNED)
-                        .build());
     dataCollectionTaskService.updatePerpetualTaskStatus(dataCollectionTask);
     dataCollectionTask = dataCollectionTaskService.getDataCollectionTask(dataCollectionTask.getUuid());
     // checking for queued and not failed status as the status changes in retry logic.
@@ -833,15 +892,11 @@ public class DataCollectionTaskServiceImplTest extends CvNextGenTestBase {
                           .dataCollectionWorkerId(dataCollectionTask.getDataCollectionWorkerId())
                           .perpetualTaskId(perpetualTaskId)
                           .build());
-    when(verificationManagerService.getPerpetualTaskStatus(any()))
-        .thenReturn(CVNGPerpetualTaskDTO.builder()
-                        .accountId(accountId)
-                        .cvngPerpetualTaskUnassignedReason(CVNGPerpetualTaskUnassignedReason.NO_DELEGATE_AVAILABLE)
-                        .build());
     dataCollectionTaskService.updatePerpetualTaskStatus(dataCollectionTask);
     dataCollectionTask = dataCollectionTaskService.getDataCollectionTask(dataCollectionTask.getUuid());
     assertThat(dataCollectionTask.getException())
-        .isEqualTo("Perpetual task unassigned:" + CVNGPerpetualTaskUnassignedReason.NO_DELEGATE_AVAILABLE);
+        .isEqualTo(
+            "Perpetual task assigned but not in a valid state:TASK_UNASSIGNED and is assigned to delegate:some-delegate-id");
   }
 
   @Test
@@ -856,12 +911,6 @@ public class DataCollectionTaskServiceImplTest extends CvNextGenTestBase {
                           .dataCollectionWorkerId(dataCollectionTask.getDataCollectionWorkerId())
                           .perpetualTaskId(perpetualTaskId)
                           .build());
-    when(verificationManagerService.getPerpetualTaskStatus(perpetualTaskId))
-        .thenReturn(CVNGPerpetualTaskDTO.builder()
-                        .accountId(accountId)
-                        .delegateId("some-delegate-id")
-                        .cvngPerpetualTaskState(TASK_UNASSIGNED)
-                        .build());
     dataCollectionTask = dataCollectionTaskService.getDataCollectionTask(dataCollectionTask.getUuid());
     dataCollectionTaskService.updatePerpetualTaskStatus(dataCollectionTask);
     assertThat(dataCollectionTask.getException()).isNull();
@@ -928,23 +977,37 @@ public class DataCollectionTaskServiceImplTest extends CvNextGenTestBase {
     assertThat(nextTaskDTOs.size()).isEqualTo(CVNextGenConstants.CVNG_MAX_PARALLEL_THREADS);
   }
 
+  @Test
+  @Owner(developers = ARPITJ)
+  @Category(UnitTests.class)
+  public void testGetAllDataCollection() {
+    int numOfTasks = 10;
+    createAndSave(RUNNING);
+    for (int i = 0; i < numOfTasks - 1; i++) {
+      createAndSave(QUEUED);
+    }
+
+    List<DataCollectionTask> dataCollectionTaskList =
+        dataCollectionTaskService.getAllDataCollectionTasks(accountId, verificationTaskId);
+
+    assertThat(dataCollectionTaskList.size()).isEqualTo(numOfTasks);
+    assertThat(dataCollectionTaskList.get(0).getStatus()).isEqualTo(RUNNING);
+    long createdAt = dataCollectionTaskList.get(0).getCreatedAt();
+    for (int i = 1; i < numOfTasks; i++) {
+      assertThat(dataCollectionTaskList.get(i).getStatus()).isEqualTo(QUEUED);
+      long createdAtNext = dataCollectionTaskList.get(i).getCreatedAt();
+      assertThat(createdAtNext).isGreaterThanOrEqualTo(createdAt);
+      createdAt = createdAtNext;
+    }
+  }
+
   private AppDynamicsCVConfig getCVConfig() {
-    AppDynamicsCVConfig cvConfig = new AppDynamicsCVConfig();
-    cvConfig.setProjectIdentifier(projectIdentifier);
+    AppDynamicsCVConfig cvConfig = builderFactory.appDynamicsCVConfigBuilder().build();
     cvConfig.setUuid(cvConfigId);
-    cvConfig.setAccountId(accountId);
     cvConfig.setApplicationName("cv-app");
     cvConfig.setTierName("docker-tier");
-    cvConfig.setVerificationType(VerificationType.TIME_SERIES);
-    cvConfig.setConnectorIdentifier(generateUuid());
-    cvConfig.setServiceIdentifier("serviceIdentifier");
-    cvConfig.setEnvIdentifier("envIdentifier");
-    cvConfig.setIdentifier(generateUuid());
-    cvConfig.setMonitoringSourceName(generateUuid());
     cvConfig.setApplicationName("applicationName");
     cvConfig.setTierName("tierName");
-    cvConfig.setOrgIdentifier(orgIdentifier);
-    cvConfig.setEnabled(true);
     cvConfig.setMetricPack(
         metricPackService.getMetricPacks(accountId, orgIdentifier, projectIdentifier, DataSourceType.APP_DYNAMICS)
             .get(0));
@@ -952,21 +1015,8 @@ public class DataCollectionTaskServiceImplTest extends CvNextGenTestBase {
   }
 
   private SplunkCVConfig getSplunkCVConfig() {
-    SplunkCVConfig cvConfig = new SplunkCVConfig();
-    cvConfig.setEnabled(true);
-    cvConfig.setCreatedAt(clock.millis());
-    cvConfig.setProjectIdentifier(projectIdentifier);
+    SplunkCVConfig cvConfig = builderFactory.splunkCVConfigBuilder().build();
     cvConfig.setUuid(cvConfigId);
-    cvConfig.setAccountId(accountId);
-    cvConfig.setVerificationType(VerificationType.TIME_SERIES);
-    cvConfig.setConnectorIdentifier(generateUuid());
-    cvConfig.setServiceIdentifier("serviceIdentifier");
-    cvConfig.setEnvIdentifier("envIdentifier");
-    cvConfig.setOrgIdentifier(orgIdentifier);
-    cvConfig.setIdentifier(generateUuid());
-    cvConfig.setMonitoringSourceName(generateUuid());
-    cvConfig.setQuery("excetpion");
-    cvConfig.setServiceInstanceIdentifier("host");
     return cvConfig;
   }
 
@@ -1026,26 +1076,10 @@ public class DataCollectionTaskServiceImplTest extends CvNextGenTestBase {
   }
 
   private CVConfig createCVConfig() {
-    SplunkCVConfig cvConfig = new SplunkCVConfig();
-    fillCommon(cvConfig);
+    SplunkCVConfig cvConfig = builderFactory.splunkCVConfigBuilder().build();
     cvConfig.setQuery("exception");
     cvConfig.setServiceInstanceIdentifier(generateUuid());
     return cvConfig;
-  }
-
-  private void fillCommon(CVConfig cvConfig) {
-    cvConfig.setVerificationType(VerificationType.LOG);
-    cvConfig.setAccountId(accountId);
-    cvConfig.setEnabled(true);
-    cvConfig.setConnectorIdentifier(generateUuid());
-    cvConfig.setServiceIdentifier(generateUuid());
-    cvConfig.setEnvIdentifier(generateUuid());
-    cvConfig.setProjectIdentifier(projectIdentifier);
-    cvConfig.setOrgIdentifier(orgIdentifier);
-    cvConfig.setIdentifier(generateUuid());
-    cvConfig.setMonitoringSourceName(generateUuid());
-    cvConfig.setCategory(CVMonitoringCategory.PERFORMANCE);
-    cvConfig.setProductName(generateUuid());
   }
 
   private VerificationJobInstance createVerificationJobInstance() {

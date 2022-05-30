@@ -30,6 +30,7 @@ import io.harness.waiter.WaitNotifyEngine;
 import software.wings.beans.ScalyrConfig;
 import software.wings.beans.SettingAttribute;
 import software.wings.beans.TaskType;
+import software.wings.delegatetasks.cv.beans.CustomLogResponseMapper;
 import software.wings.service.impl.analysis.CustomLogDataCollectionInfo;
 import software.wings.service.intfc.AppService;
 import software.wings.service.intfc.DelegateService;
@@ -37,7 +38,7 @@ import software.wings.service.intfc.MetricDataAnalysisService;
 import software.wings.service.intfc.SettingsService;
 import software.wings.service.intfc.scalyr.ScalyrService;
 import software.wings.service.intfc.security.SecretManager;
-import software.wings.service.intfc.verification.CVActivityLogService;
+import software.wings.service.intfc.verification.CVActivityLogger;
 import software.wings.verification.VerificationStateAnalysisExecutionData;
 
 import com.google.common.collect.Sets;
@@ -110,24 +111,23 @@ public class ScalyrStateTest extends APMStateVerificationTestBase {
     assertThat(customLogDataCollectionInfo.getBody()).isEqualTo(scalyrConfig.fetchLogBodyMap(false));
     assertThat(customLogDataCollectionInfo.getHosts()).isEqualTo(Sets.newHashSet("host"));
 
-    final Map<String, Map<String, CustomLogVerificationState.ResponseMapper>> logCollectionMapping =
+    final Map<String, Map<String, CustomLogResponseMapper>> logCollectionMapping =
         customLogDataCollectionInfo.getLogResponseDefinition();
 
     assertThat(logCollectionMapping.size()).isEqualTo(1);
-    final Map<String, CustomLogVerificationState.ResponseMapper> responseMap =
-        logCollectionMapping.get(ScalyrConfig.QUERY_URL);
+    final Map<String, CustomLogResponseMapper> responseMap = logCollectionMapping.get(ScalyrConfig.QUERY_URL);
     assertThat(responseMap.get("host"))
-        .isEqualTo(CustomLogVerificationState.ResponseMapper.builder()
+        .isEqualTo(CustomLogResponseMapper.builder()
                        .fieldName("host")
                        .jsonPath(Collections.singletonList("resolved_host_name"))
                        .build());
     assertThat(responseMap.get("timestamp"))
-        .isEqualTo(CustomLogVerificationState.ResponseMapper.builder()
+        .isEqualTo(CustomLogResponseMapper.builder()
                        .fieldName("timestamp")
                        .jsonPath(Collections.singletonList("resolved_timestamp_field"))
                        .build());
     assertThat(responseMap.get("logMessage"))
-        .isEqualTo(CustomLogVerificationState.ResponseMapper.builder()
+        .isEqualTo(CustomLogResponseMapper.builder()
                        .fieldName("logMessage")
                        .jsonPath(Collections.singletonList("resolved_message_field"))
                        .build());
@@ -145,7 +145,7 @@ public class ScalyrStateTest extends APMStateVerificationTestBase {
     String resolvedAnalysisServerConfigId = generateUuid();
 
     when(cvActivityLogService.getLoggerByStateExecutionId(anyString(), anyString()))
-        .thenReturn(mock(CVActivityLogService.Logger.class));
+        .thenReturn(mock(CVActivityLogger.class));
 
     ScalyrConfig scalyrConfig = ScalyrConfig.builder().url(generateUuid()).build();
     SettingAttribute settingAttribute =
@@ -171,24 +171,23 @@ public class ScalyrStateTest extends APMStateVerificationTestBase {
     CustomLogDataCollectionInfo customLogDataCollectionInfo = (CustomLogDataCollectionInfo) parameters[0];
     assertThat(customLogDataCollectionInfo.getHosts()).isEqualTo(hosts.keySet());
 
-    final Map<String, Map<String, CustomLogVerificationState.ResponseMapper>> logCollectionMapping =
+    final Map<String, Map<String, CustomLogResponseMapper>> logCollectionMapping =
         customLogDataCollectionInfo.getLogResponseDefinition();
 
     assertThat(logCollectionMapping.size()).isEqualTo(1);
-    final Map<String, CustomLogVerificationState.ResponseMapper> responseMap =
-        logCollectionMapping.get(ScalyrConfig.QUERY_URL);
+    final Map<String, CustomLogResponseMapper> responseMap = logCollectionMapping.get(ScalyrConfig.QUERY_URL);
     assertThat(responseMap.get("host"))
-        .isEqualTo(CustomLogVerificationState.ResponseMapper.builder()
+        .isEqualTo(CustomLogResponseMapper.builder()
                        .fieldName("host")
                        .jsonPath(Collections.singletonList("resolved_host_name"))
                        .build());
     assertThat(responseMap.get("timestamp"))
-        .isEqualTo(CustomLogVerificationState.ResponseMapper.builder()
+        .isEqualTo(CustomLogResponseMapper.builder()
                        .fieldName("timestamp")
                        .jsonPath(Collections.singletonList("resolved_timestamp_field"))
                        .build());
     assertThat(responseMap.get("logMessage"))
-        .isEqualTo(CustomLogVerificationState.ResponseMapper.builder()
+        .isEqualTo(CustomLogResponseMapper.builder()
                        .fieldName("logMessage")
                        .jsonPath(Collections.singletonList("resolved_message_field"))
                        .build());

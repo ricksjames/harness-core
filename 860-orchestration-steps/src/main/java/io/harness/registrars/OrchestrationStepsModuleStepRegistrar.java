@@ -10,8 +10,11 @@ package io.harness.registrars;
 import static io.harness.annotations.dev.HarnessTeam.PIPELINE;
 
 import io.harness.annotations.dev.OwnedBy;
+import io.harness.engine.pms.execution.strategy.identity.IdentityStep;
 import io.harness.pms.contracts.steps.StepType;
 import io.harness.pms.sdk.core.steps.Step;
+import io.harness.registrar.NGCommonUtilStepsRegistrar;
+import io.harness.steps.StagesStep;
 import io.harness.steps.approval.stage.ApprovalStageStep;
 import io.harness.steps.approval.step.harness.HarnessApprovalStep;
 import io.harness.steps.approval.step.jira.JiraApprovalStep;
@@ -20,11 +23,14 @@ import io.harness.steps.barriers.BarrierStep;
 import io.harness.steps.cf.FeatureFlagStageStep;
 import io.harness.steps.cf.FlagConfigurationStep;
 import io.harness.steps.common.pipeline.PipelineSetupStep;
+import io.harness.steps.customstage.CustomStageStep;
 import io.harness.steps.http.HttpStep;
 import io.harness.steps.jira.create.JiraCreateStep;
 import io.harness.steps.jira.update.JiraUpdateStep;
 import io.harness.steps.policy.step.PolicyStep;
 import io.harness.steps.resourcerestraint.ResourceRestraintStep;
+import io.harness.steps.servicenow.create.ServiceNowCreateStep;
+import io.harness.steps.servicenow.update.ServiceNowUpdateStep;
 import io.harness.steps.shellscript.ShellScriptStep;
 
 import java.util.HashMap;
@@ -50,15 +56,20 @@ public class OrchestrationStepsModuleStepRegistrar {
     engineSteps.put(HttpStep.STEP_TYPE, HttpStep.class);
     engineSteps.put(ShellScriptStep.STEP_TYPE, ShellScriptStep.class);
     engineSteps.put(ServiceNowApprovalStep.STEP_TYPE, ServiceNowApprovalStep.class);
+    engineSteps.put(ServiceNowCreateStep.STEP_TYPE, ServiceNowCreateStep.class);
+    engineSteps.put(ServiceNowUpdateStep.STEP_TYPE, ServiceNowUpdateStep.class);
+    engineSteps.put(StagesStep.STEP_TYPE, StagesStep.class);
+    engineSteps.put(CustomStageStep.STEP_TYPE, CustomStageStep.class);
 
     // Feature Flag
     engineSteps.put(FlagConfigurationStep.STEP_TYPE, FlagConfigurationStep.class);
     engineSteps.put(FeatureFlagStageStep.STEP_TYPE, FeatureFlagStageStep.class);
-    engineSteps.put(ServiceNowApprovalStep.STEP_TYPE, ServiceNowApprovalStep.class);
 
     engineSteps.put(PolicyStep.STEP_TYPE, PolicyStep.class);
+    // IdentityStep
+    engineSteps.put(IdentityStep.STEP_TYPE, IdentityStep.class);
 
-    engineSteps.putAll(OrchestrationStepsModuleSdkStepRegistrar.getEngineSteps());
+    engineSteps.putAll(NGCommonUtilStepsRegistrar.getEngineSteps());
 
     return engineSteps;
   }

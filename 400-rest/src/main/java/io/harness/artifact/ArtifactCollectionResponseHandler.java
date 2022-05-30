@@ -40,6 +40,7 @@ import software.wings.service.intfc.AlertService;
 import software.wings.service.intfc.ArtifactService;
 import software.wings.service.intfc.ArtifactStreamService;
 import software.wings.service.intfc.TriggerService;
+import software.wings.utils.DelegateArtifactCollectionUtils;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Inject;
@@ -134,7 +135,7 @@ public class ArtifactCollectionResponseHandler {
 
   private void handleCleanup(ArtifactStream artifactStream, BuildSourceResponse buildSourceResponse) {
     String artifactStreamType = artifactStream.getArtifactStreamType();
-    if (!ArtifactCollectionUtils.supportsCleanup(artifactStreamType)) {
+    if (!DelegateArtifactCollectionUtils.supportsCleanup(artifactStreamType)) {
       return;
     }
 
@@ -147,6 +148,7 @@ public class ArtifactCollectionResponseHandler {
     boolean deleted =
         artifactService.deleteArtifactsByUniqueKey(artifactStream, artifactStreamAttributes, artifactKeys);
     log.info("Artifact cleanup completed: deleted = {}, count = {}", deleted, artifactKeys.size());
+    log.info("[{}] artifacts deleted for artifactStreamId {}", artifactKeys, artifactStream.getUuid());
   }
 
   private void onSuccess(ArtifactStream artifactStream) {

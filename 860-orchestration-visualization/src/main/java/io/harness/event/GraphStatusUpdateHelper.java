@@ -8,6 +8,8 @@
 package io.harness.event;
 
 import static io.harness.data.structure.EmptyPredicate.isEmpty;
+import static io.harness.pms.contracts.execution.Status.APPROVAL_WAITING;
+import static io.harness.pms.contracts.execution.Status.INTERVENTION_WAITING;
 
 import io.harness.DelegateInfoHelper;
 import io.harness.annotations.dev.HarnessTeam;
@@ -21,11 +23,13 @@ import io.harness.engine.pms.data.PmsOutcomeService;
 import io.harness.execution.NodeExecution;
 import io.harness.generator.OrchestrationAdjacencyListGenerator;
 import io.harness.pms.contracts.ambiance.Level;
+import io.harness.pms.contracts.execution.Status;
 import io.harness.pms.contracts.execution.events.OrchestrationEventType;
 import io.harness.pms.execution.utils.AmbianceUtils;
 import io.harness.pms.execution.utils.StatusUtils;
 import io.harness.pms.sdk.core.resolver.outcome.mapper.PmsOutcomeMapper;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import java.util.Map;
@@ -64,21 +68,21 @@ public class GraphStatusUpdateHelper {
 
       Map<String, GraphVertex> graphVertexMap = orchestrationGraph.getAdjacencyList().getGraphVertexMap();
       if (graphVertexMap.containsKey(nodeExecutionId)) {
-        if (nodeExecution.isOldRetry()) {
+        if (nodeExecution.getOldRetry()) {
           log.info("[PMS_GRAPH]  Removing graph vertex with id [{}] and status [{}]. PlanExecutionId: [{}]",
               nodeExecutionId, nodeExecution.getStatus(), planExecutionId);
           orchestrationAdjacencyListGenerator.removeVertex(orchestrationGraph.getAdjacencyList(), nodeExecution);
         } else {
           updateGraphVertex(graphVertexMap, nodeExecution, planExecutionId);
         }
-      } else if (!nodeExecution.isOldRetry()) {
-        log.info("[PMS_GRAPH] Adding graph vertex with id [{}] and status [{}]. PlanExecutionId: [{}]", nodeExecutionId,
-            nodeExecution.getStatus(), planExecutionId);
+      } else if (!nodeExecution.getOldRetry()) {
         orchestrationAdjacencyListGenerator.addVertex(orchestrationGraph.getAdjacencyList(), nodeExecution);
       }
     } catch (Exception e) {
-      log.error(
-          "[PMS_GRAPH]  [{}] event failed for [{}] for plan [{}]", eventType, nodeExecutionId, planExecutionId, e);
+      log.error(String.format("[GRAPH_ERROR]  [%s] event failed for [%s] for plan [%s]", eventType, nodeExecutionId,
+                    planExecutionId),
+          e);
+      throw e;
     }
     return orchestrationGraph;
   }
@@ -86,11 +90,9 @@ public class GraphStatusUpdateHelper {
   private void updateGraphVertex(
       Map<String, GraphVertex> graphVertexMap, NodeExecution nodeExecution, String planExecutionId) {
     String nodeExecutionId = nodeExecution.getUuid();
-    log.info("[PMS_GRAPH] Updating graph vertex for [{}] with status [{}]. PlanExecutionId: [{}]", nodeExecutionId,
-        nodeExecution.getStatus(), planExecutionId);
     graphVertexMap.computeIfPresent(nodeExecutionId, (key, prevValue) -> {
       GraphVertex newValue = convertFromNodeExecution(prevValue, nodeExecution);
-      if (StatusUtils.isFinalStatus(newValue.getStatus())) {
+      if (isOutcomeUpdateGraphStatus(newValue.getStatus())) {
         newValue.setOutcomeDocuments(PmsOutcomeMapper.convertJsonToOrchestrationMap(
             pmsOutcomeService.findAllOutcomesMapByRuntimeId(planExecutionId, nodeExecutionId)));
         newValue.setGraphDelegateSelectionLogParams(
@@ -110,7 +112,7 @@ public class GraphStatusUpdateHelper {
             .ambiance(nodeExecution.getAmbiance())
             .planNodeId(level.getSetupId())
             .identifier(level.getIdentifier())
-            .name(nodeExecution.name())
+            .name(nodeExecution.getName())
             .startTs(nodeExecution.getStartTs())
             .endTs(nodeExecution.getEndTs())
             .initialWaitDuration(nodeExecution.getInitialWaitDuration())
@@ -124,12 +126,17 @@ public class GraphStatusUpdateHelper {
             .executableResponses(CollectionUtils.emptyIfNull(nodeExecution.getExecutableResponses()))
             .interruptHistories(nodeExecution.getInterruptHistories())
             .retryIds(nodeExecution.getRetryIds())
-            .skipType(nodeExecution.skipGraphType())
+            .skipType(nodeExecution.getSkipGraphType())
             .unitProgresses(nodeExecution.getUnitProgresses())
             .progressData(nodeExecution.getPmsProgressData());
     if (nodeExecution.getResolvedInputs() != null) {
       prevValueBuilder.stepParameters(nodeExecution.getPmsStepParameters());
     }
     return prevValueBuilder.build();
+  }
+
+  @VisibleForTesting
+  boolean isOutcomeUpdateGraphStatus(Status status) {
+    return StatusUtils.isFinalStatus(status) || status.equals(INTERVENTION_WAITING) || status.equals(APPROVAL_WAITING);
   }
 }

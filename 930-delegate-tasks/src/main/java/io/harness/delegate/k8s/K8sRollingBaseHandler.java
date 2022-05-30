@@ -35,6 +35,7 @@ import io.harness.logging.LogCallback;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import java.io.IOException;
@@ -48,6 +49,8 @@ import lombok.extern.slf4j.Slf4j;
 @Singleton
 @Slf4j
 public class K8sRollingBaseHandler {
+  public static final Map.Entry<String, String> HARNESS_TRACK_STABLE_SELECTOR =
+      Maps.immutableEntry(HarnessLabels.track, HarnessLabelValues.trackStable);
   @Inject K8sTaskHelperBase k8sTaskHelperBase;
 
   @VisibleForTesting
@@ -86,11 +89,17 @@ public class K8sRollingBaseHandler {
   }
 
   public void addLabelsInDeploymentSelectorForCanary(
-      boolean inCanaryWorkflow, List<KubernetesResource> managedWorkloads) {
-    if (!inCanaryWorkflow || isEmpty(managedWorkloads)) {
+      boolean inCanaryWorkflow, List<KubernetesResource> workloads, boolean skipAddingTrackSelectorToDeployment) {
+    if (!inCanaryWorkflow && !skipAddingTrackSelectorToDeployment) {
       return;
     }
+    addDeploymentSelector(workloads);
+  }
 
+  private void addDeploymentSelector(List<KubernetesResource> managedWorkloads) {
+    if (isEmpty(managedWorkloads)) {
+      return;
+    }
     for (KubernetesResource kubernetesResource : managedWorkloads) {
       if (ImmutableSet.of(Kind.Deployment.name(), Kind.DeploymentConfig.name())
               .contains(kubernetesResource.getResourceId().getKind())) {
@@ -100,14 +109,30 @@ public class K8sRollingBaseHandler {
     }
   }
 
-  public void addLabelsInManagedWorkloadPodSpec(
-      boolean inCanaryWorkflow, List<KubernetesResource> managedWorkloads, String releaseName) {
-    Map<String, String> podLabels = inCanaryWorkflow
-        ? ImmutableMap.of(HarnessLabels.releaseName, releaseName, HarnessLabels.track, HarnessLabelValues.trackStable)
-        : ImmutableMap.of(HarnessLabels.releaseName, releaseName);
+  public void addLabelsInManagedWorkloadPodSpec(boolean inCanaryWorkflow, boolean skipAddingTrackSelectorToDeployment,
+      List<KubernetesResource> managedWorkloads, List<KubernetesResource> deploymentContainingTrackStableSelector,
+      String releaseName) {
+    addReleaseNameInPodSpec(managedWorkloads, releaseName);
 
-    for (KubernetesResource kubernetesResource : managedWorkloads) {
-      kubernetesResource.addLabelsInPodSpec(podLabels);
+    if (inCanaryWorkflow || skipAddingTrackSelectorToDeployment) {
+      List<KubernetesResource> workloadsToAddTrackLabel =
+          inCanaryWorkflow ? managedWorkloads : deploymentContainingTrackStableSelector;
+      addTrackLabelInPodSpec(workloadsToAddTrackLabel);
+    }
+  }
+
+  private void addTrackLabelInPodSpec(List<KubernetesResource> workloads) {
+    Map<String, String> releaseNameAndTrackPodLabels =
+        ImmutableMap.of(HarnessLabels.track, HarnessLabelValues.trackStable);
+    for (KubernetesResource kubernetesResource : workloads) {
+      kubernetesResource.addLabelsInPodSpec(releaseNameAndTrackPodLabels);
+    }
+  }
+
+  private void addReleaseNameInPodSpec(List<KubernetesResource> workloads, String releaseName) {
+    Map<String, String> releaseNamePodLabels = ImmutableMap.of(HarnessLabels.releaseName, releaseName);
+    for (KubernetesResource kubernetesResource : workloads) {
+      kubernetesResource.addLabelsInPodSpec(releaseNamePodLabels);
     }
   }
 
@@ -169,5 +194,15 @@ public class K8sRollingBaseHandler {
     logCallback.saveExecutionLog("\nDone.", INFO, CommandExecutionStatus.SUCCESS);
 
     return existingPodList;
+  }
+
+  public void addLabelsInDeploymentSelectorForCanary(boolean inCanaryWorkflow,
+      boolean skipAddingTrackSelectorToDeployment, List<KubernetesResource> managedWorkloads,
+      List<KubernetesResource> deploymentContainingTrackStableSelector) {
+    if (skipAddingTrackSelectorToDeployment) {
+      addLabelsInDeploymentSelectorForCanary(inCanaryWorkflow, deploymentContainingTrackStableSelector, true);
+    } else {
+      addLabelsInDeploymentSelectorForCanary(inCanaryWorkflow, managedWorkloads, false);
+    }
   }
 }

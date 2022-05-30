@@ -35,6 +35,7 @@ import io.harness.delegate.beans.storeconfig.GitStoreDelegateConfig;
 import io.harness.delegate.exception.TaskNGDataException;
 import io.harness.delegate.task.AbstractDelegateRunnableTask;
 import io.harness.delegate.task.TaskParameters;
+import io.harness.exception.sanitizer.ExceptionMessageSanitizer;
 import io.harness.git.model.FetchFilesResult;
 import io.harness.k8s.K8sCommandUnitConstants;
 import io.harness.logging.CommandExecutionStatus;
@@ -42,9 +43,11 @@ import io.harness.logging.LogCallback;
 import io.harness.security.encryption.SecretDecryptionService;
 import io.harness.shell.SshSessionConfig;
 
-import software.wings.delegatetasks.ExceptionMessageSanitizer;
+import software.wings.beans.LogColor;
+import software.wings.beans.LogWeight;
 
 import com.google.inject.Inject;
+import java.io.IOException;
 import java.nio.file.NoSuchFileException;
 import java.util.HashMap;
 import java.util.List;
@@ -84,6 +87,9 @@ public class GitFetchTaskNG extends AbstractDelegateRunnableTask {
       Map<String, FetchFilesResult> filesFromMultipleRepo = new HashMap<>();
       List<GitFetchFilesConfig> gitFetchFilesConfigs = gitFetchRequest.getGitFetchFilesConfigs();
 
+      executionLogCallback.saveExecutionLog(
+          color(format("%nStarting Git Fetch Files"), LogColor.White, LogWeight.Bold));
+
       for (GitFetchFilesConfig gitFetchFilesConfig : gitFetchFilesConfigs) {
         FetchFilesResult gitFetchFilesResult;
         if (gitFetchFilesConfig.isSucceedIfFileNotFound()) {
@@ -100,7 +106,7 @@ public class GitFetchTaskNG extends AbstractDelegateRunnableTask {
           gitFetchFilesResult =
               fetchFilesFromRepo(gitFetchFilesConfig, executionLogCallback, gitFetchRequest.getAccountId());
         } catch (Exception ex) {
-          String exceptionMsg = ex.getMessage();
+          String exceptionMsg = gitFetchFilesTaskHelper.extractErrorMessage(ex);
 
           // Values.yaml in service spec is optional.
           if (ex.getCause() instanceof NoSuchFileException && gitFetchFilesConfig.isSucceedIfFileNotFound()) {
@@ -117,8 +123,18 @@ public class GitFetchTaskNG extends AbstractDelegateRunnableTask {
           throw ex;
         }
 
-        filesFromMultipleRepo.put(gitFetchFilesConfig.getIdentifier(), gitFetchFilesResult);
+        if (filesFromMultipleRepo.containsKey(gitFetchFilesConfig.getIdentifier())) {
+          FetchFilesResult fetchFilesResult = filesFromMultipleRepo.get(gitFetchFilesConfig.getIdentifier());
+          if (fetchFilesResult.getFiles() != null && gitFetchFilesResult.getFiles() != null) {
+            fetchFilesResult.getFiles().addAll(gitFetchFilesResult.getFiles());
+            filesFromMultipleRepo.put(gitFetchFilesConfig.getIdentifier(), fetchFilesResult);
+          }
+        } else {
+          filesFromMultipleRepo.put(gitFetchFilesConfig.getIdentifier(), gitFetchFilesResult);
+        }
       }
+      executionLogCallback.saveExecutionLog(
+          color(format("%nGit Fetch Files completed successfully."), LogColor.White, LogWeight.Bold), INFO);
 
       if (gitFetchRequest.isCloseLogStream()) {
         executionLogCallback.saveExecutionLog("Done.", INFO, CommandExecutionStatus.SUCCESS);
@@ -136,7 +152,7 @@ public class GitFetchTaskNG extends AbstractDelegateRunnableTask {
   }
 
   private FetchFilesResult fetchFilesFromRepo(
-      GitFetchFilesConfig gitFetchFilesConfig, LogCallback executionLogCallback, String accountId) {
+      GitFetchFilesConfig gitFetchFilesConfig, LogCallback executionLogCallback, String accountId) throws IOException {
     GitStoreDelegateConfig gitStoreDelegateConfig = gitFetchFilesConfig.getGitStoreDelegateConfig();
     executionLogCallback.saveExecutionLog("Git connector Url: " + gitStoreDelegateConfig.getGitConfigDTO().getUrl());
     String fetchTypeInfo = gitStoreDelegateConfig.getFetchType() == FetchType.BRANCH

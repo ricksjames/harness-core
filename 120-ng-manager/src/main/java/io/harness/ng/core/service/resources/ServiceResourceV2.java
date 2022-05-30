@@ -29,13 +29,14 @@ import io.harness.accesscontrol.NGAccessControlCheck;
 import io.harness.accesscontrol.OrgIdentifier;
 import io.harness.accesscontrol.ProjectIdentifier;
 import io.harness.accesscontrol.ResourceIdentifier;
+import io.harness.accesscontrol.acl.api.AccessControlDTO;
+import io.harness.accesscontrol.acl.api.PermissionCheckDTO;
+import io.harness.accesscontrol.acl.api.Resource;
+import io.harness.accesscontrol.acl.api.ResourceScope;
 import io.harness.accesscontrol.clients.AccessControlClient;
-import io.harness.accesscontrol.clients.AccessControlDTO;
-import io.harness.accesscontrol.clients.PermissionCheckDTO;
-import io.harness.accesscontrol.clients.Resource;
-import io.harness.accesscontrol.clients.ResourceScope;
 import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
+import io.harness.data.structure.EmptyPredicate;
 import io.harness.exception.InvalidRequestException;
 import io.harness.ng.beans.PageResponse;
 import io.harness.ng.core.OrgAndProjectValidationHelper;
@@ -46,10 +47,12 @@ import io.harness.ng.core.service.dto.ServiceRequestDTO;
 import io.harness.ng.core.service.dto.ServiceResponse;
 import io.harness.ng.core.service.entity.ServiceEntity;
 import io.harness.ng.core.service.entity.ServiceEntity.ServiceEntityKeys;
+import io.harness.ng.core.service.mappers.NGServiceEntityMapper;
 import io.harness.ng.core.service.mappers.ServiceElementMapper;
 import io.harness.ng.core.service.mappers.ServiceFilterHelper;
 import io.harness.ng.core.service.services.ServiceEntityManagementService;
 import io.harness.ng.core.service.services.ServiceEntityService;
+import io.harness.ng.core.service.yaml.NGServiceConfig;
 import io.harness.pms.rbac.NGResourceType;
 import io.harness.rbac.CDNGRbacUtility;
 import io.harness.security.annotations.NextGenManagerAuth;
@@ -60,6 +63,7 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
+import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -76,6 +80,7 @@ import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
+import javax.ws.rs.NotFoundException;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
@@ -122,7 +127,7 @@ import org.springframework.data.mongodb.core.query.Criteria;
           @Content(mediaType = NGCommonEntityConstants.APPLICATION_YAML_MEDIA_TYPE,
               schema = @Schema(implementation = ErrorDTO.class))
     })
-@OwnedBy(HarnessTeam.PIPELINE)
+@OwnedBy(HarnessTeam.CDC)
 public class ServiceResourceV2 {
   private final ServiceEntityService serviceEntityService;
   private final AccessControlClient accessControlClient;
@@ -157,6 +162,13 @@ public class ServiceResourceV2 {
     String version = "0";
     if (serviceEntity.isPresent()) {
       version = serviceEntity.get().getVersion().toString();
+      if (EmptyPredicate.isEmpty(serviceEntity.get().getYaml())) {
+        NGServiceConfig ngServiceConfig = NGServiceEntityMapper.toNGServiceConfig(serviceEntity.get());
+        serviceEntity.get().setYaml(NGServiceEntityMapper.toYaml(ngServiceConfig));
+      }
+    } else {
+      throw new NotFoundException(String.format("Service with identifier [%s] in project [%s], org [%s] not found",
+          serviceIdentifier, projectIdentifier, orgIdentifier));
     }
     return ResponseDTO.newResponse(version, serviceEntity.map(ServiceElementMapper::toResponseWrapper).orElse(null));
   }
@@ -331,9 +343,14 @@ public class ServiceResourceV2 {
     } else {
       pageRequest = PageUtils.getPageRequest(page, size, sort);
     }
-    Page<ServiceResponse> serviceList =
-        serviceEntityService.list(criteria, pageRequest).map(ServiceElementMapper::toResponseWrapper);
-    return ResponseDTO.newResponse(getNGPageResponse(serviceList));
+    Page<ServiceEntity> serviceEntities = serviceEntityService.list(criteria, pageRequest);
+    serviceEntities.forEach(serviceEntity -> {
+      if (EmptyPredicate.isEmpty(serviceEntity.getYaml())) {
+        NGServiceConfig ngServiceConfig = NGServiceEntityMapper.toNGServiceConfig(serviceEntity);
+        serviceEntity.setYaml(NGServiceEntityMapper.toYaml(ngServiceConfig));
+      }
+    });
+    return ResponseDTO.newResponse(getNGPageResponse(serviceEntities.map(ServiceElementMapper::toResponseWrapper)));
   }
 
   @GET
@@ -373,14 +390,22 @@ public class ServiceResourceV2 {
     }
     List<ServiceResponse> serviceList = serviceEntityService.listRunTimePermission(criteria)
                                             .stream()
-                                            .map(ServiceElementMapper::toResponseWrapper)
+                                            .map(ServiceElementMapper::toAccessListResponseWrapper)
                                             .collect(Collectors.toList());
-
     List<PermissionCheckDTO> permissionCheckDTOS =
         serviceList.stream().map(CDNGRbacUtility::serviceResponseToPermissionCheckDTO).collect(Collectors.toList());
     List<AccessControlDTO> accessControlList =
         accessControlClient.checkForAccess(permissionCheckDTOS).getAccessControlList();
     return ResponseDTO.newResponse(filterByPermissionAndId(accessControlList, serviceList));
+  }
+
+  @GET
+  @Path("/dummy-serviceConfig-api")
+  @ApiOperation(value = "This is dummy api to expose NGServiceConfig", nickname = "dummyNGServiceConfigApi")
+  @Hidden
+  // do not delete this.
+  public ResponseDTO<NGServiceConfig> getNGServiceConfig() {
+    return ResponseDTO.newResponse(NGServiceConfig.builder().build());
   }
 
   private List<ServiceResponse> filterByPermissionAndId(

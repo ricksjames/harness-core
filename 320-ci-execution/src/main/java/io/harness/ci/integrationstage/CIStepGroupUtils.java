@@ -27,13 +27,16 @@ import io.harness.beans.executionargs.CIExecutionArgs;
 import io.harness.beans.serializer.RunTimeInputHandler;
 import io.harness.beans.stages.IntegrationStageConfig;
 import io.harness.beans.steps.CIStepInfo;
+import io.harness.beans.steps.CIStepInfoType;
 import io.harness.beans.steps.stepinfo.InitializeStepInfo;
 import io.harness.beans.steps.stepinfo.PluginStepInfo;
 import io.harness.beans.yaml.extended.infrastrucutre.Infrastructure;
 import io.harness.beans.yaml.extended.infrastrucutre.K8sDirectInfraYaml;
+import io.harness.beans.yaml.extended.infrastrucutre.OSType;
 import io.harness.ci.config.CIExecutionServiceConfig;
 import io.harness.exception.InvalidRequestException;
 import io.harness.exception.ngexception.CIStageExecutionException;
+import io.harness.execution.CIExecutionConfigService;
 import io.harness.plancreator.execution.ExecutionElementConfig;
 import io.harness.plancreator.execution.ExecutionWrapperConfig;
 import io.harness.plancreator.stages.stage.StageElementConfig;
@@ -61,6 +64,7 @@ import lombok.extern.slf4j.Slf4j;
 public class CIStepGroupUtils {
   private static final String INITIALIZE_TASK = InitializeStepInfo.STEP_TYPE.getType();
   @Inject private InitializeStepGenerator initializeStepGenerator;
+  @Inject private CIExecutionConfigService ciExecutionConfigService;
   @Inject private CIExecutionServiceConfig ciExecutionServiceConfig;
 
   public List<ExecutionWrapperConfig> createExecutionWrapperWithInitializeStep(StageElementConfig stageElementConfig,
@@ -75,15 +79,15 @@ public class CIStepGroupUtils {
 
     List<ExecutionWrapperConfig> executionSections = integrationStageConfig.getExecution().getSteps();
 
-    log.info(
-        "Creating CI execution wrapper step info with initialize step for integration stage {} and build number {}",
-        stageElementConfig.getIdentifier(), ciExecutionArgs.getBuildNumberDetails().getBuildNumber());
+    log.info("Creating CI execution wrapper step info with initialize step for integration stage {} ",
+        stageElementConfig.getIdentifier());
 
     List<ExecutionWrapperConfig> initializeExecutionSections = new ArrayList<>();
     boolean gitClone = RunTimeInputHandler.resolveGitClone(integrationStageConfig.getCloneCodebase());
 
     if (gitClone) {
-      initializeExecutionSections.add(getGitCloneStep(ciExecutionArgs, ciCodebase));
+      initializeExecutionSections.add(
+          getGitCloneStep(ciExecutionArgs, ciCodebase, accountId, IntegrationStageUtils.getK8OS(infrastructure)));
     }
     for (ExecutionWrapperConfig executionWrapper : executionSections) {
       initializeExecutionSections.add(executionWrapper);
@@ -97,9 +101,6 @@ public class CIStepGroupUtils {
       // Also execute each step individually on main engine
       mainEngineExecutionSections.addAll(initializeExecutionSections);
     }
-
-    log.info("Creation execution section for BuildId {} with lite engine step",
-        ciExecutionArgs.getBuildNumberDetails().getBuildNumber());
 
     return mainEngineExecutionSections;
   }
@@ -154,10 +155,6 @@ public class CIStepGroupUtils {
     }
   }
 
-  private boolean containsManagerStep(List<ExecutionWrapperConfig> executionSections) {
-    return executionSections.stream().anyMatch(this::isCIManagerStep);
-  }
-
   private boolean isCIManagerStep(ExecutionWrapperConfig executionWrapperConfig) {
     if (executionWrapperConfig != null) {
       if (executionWrapperConfig.getStep() != null && !executionWrapperConfig.getStep().isNull()) {
@@ -207,12 +204,13 @@ public class CIStepGroupUtils {
     return ciStepExecEnvironment;
   }
 
-  private ExecutionWrapperConfig getGitCloneStep(CIExecutionArgs ciExecutionArgs, CodeBase ciCodebase) {
+  private ExecutionWrapperConfig getGitCloneStep(
+      CIExecutionArgs ciExecutionArgs, CodeBase ciCodebase, String accountId, OSType os) {
     Map<String, JsonNode> settings = new HashMap<>();
     if (ciCodebase == null) {
       throw new CIStageExecutionException("Codebase is mandatory with enabled cloneCodebase flag");
     }
-    Integer depth = ciCodebase.getDepth();
+    Integer depth = ciCodebase.getDepth().getValue();
     ExecutionSource executionSource = ciExecutionArgs.getExecutionSource();
     if (depth == null) {
       if (executionSource.getType() == ExecutionSource.Type.MANUAL) {
@@ -227,24 +225,29 @@ public class CIStepGroupUtils {
       settings.put(GIT_CLONE_DEPTH_ATTRIBUTE, JsonNodeFactory.instance.textNode(depth.toString()));
     }
 
-    if (ciCodebase.getPrCloneStrategy() != null) {
+    if (ciCodebase.getPrCloneStrategy().getValue() != null) {
       settings.put(PR_CLONE_STRATEGY_ATTRIBUTE,
-          JsonNodeFactory.instance.textNode(ciCodebase.getPrCloneStrategy().getYamlName()));
+          JsonNodeFactory.instance.textNode(ciCodebase.getPrCloneStrategy().getValue().getYamlName()));
     }
 
     Map<String, String> envVariables = new HashMap<>();
-    if (ciCodebase.getSslVerify() != null && !ciCodebase.getSslVerify()) {
+    if (ciCodebase.getSslVerify().getValue() != null && !ciCodebase.getSslVerify().getValue()) {
       envVariables.put(GIT_SSL_NO_VERIFY, "true");
     }
 
+    List<String> entrypoint = ciExecutionServiceConfig.getStepConfig().getGitCloneConfig().getEntrypoint();
+    if (os == OSType.Windows) {
+      entrypoint = ciExecutionServiceConfig.getStepConfig().getGitCloneConfig().getWindowsEntrypoint();
+    }
+
+    String gitCloneImage = ciExecutionConfigService.getPluginVersion(CIStepInfoType.GIT_CLONE, accountId).getImage();
     PluginStepInfo step = PluginStepInfo.builder()
                               .identifier(GIT_CLONE_STEP_ID)
-                              .image(ParameterField.createValueField(
-                                  ciExecutionServiceConfig.getStepConfig().getGitCloneConfig().getImage()))
+                              .image(ParameterField.createValueField(gitCloneImage))
                               .name(GIT_CLONE_STEP_NAME)
                               .settings(ParameterField.createValueField(settings))
                               .envVariables(envVariables)
-                              .entrypoint(ciExecutionServiceConfig.getStepConfig().getGitCloneConfig().getEntrypoint())
+                              .entrypoint(entrypoint)
                               .harnessManagedImage(true)
                               .resources(ciCodebase.getResources())
                               .build();

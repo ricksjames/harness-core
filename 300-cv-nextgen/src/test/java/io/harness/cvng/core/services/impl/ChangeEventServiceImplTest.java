@@ -8,8 +8,10 @@
 package io.harness.cvng.core.services.impl;
 
 import static io.harness.rule.OwnerRule.ABHIJITH;
+import static io.harness.rule.OwnerRule.KAMAL;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.harness.CvNextGenTestBase;
 import io.harness.category.element.UnitTests;
@@ -69,12 +71,29 @@ public class ChangeEventServiceImplTest extends CvNextGenTestBase {
   public void testRegister_insert() {
     changeSourceService.create(builderFactory.getContext().getMonitoredServiceParams(),
         new HashSet<>(Arrays.asList(builderFactory.getHarnessCDChangeSourceDTOBuilder().build())));
-    ChangeEventDTO changeEventDTO = builderFactory.getHarnessCDChangeEventDTOBuilder().build();
+    ChangeEventDTO changeEventDTO = builderFactory.harnessCDChangeEventDTOBuilder().build();
 
     changeEventService.register(changeEventDTO);
 
     Activity activityFromDb = hPersistence.createQuery(Activity.class).get();
     Assertions.assertThat(activityFromDb).isNotNull();
+  }
+
+  @Test
+  @Owner(developers = KAMAL)
+  @Category(UnitTests.class)
+  public void testRegister_insertWithNoMonitoredService() {
+    changeSourceService.create(builderFactory.getContext().getMonitoredServiceParams(),
+        new HashSet<>(Arrays.asList(builderFactory.getHarnessCDChangeSourceDTOBuilder().build())));
+    ChangeEventDTO changeEventDTO =
+        builderFactory.harnessCDChangeEventDTOBuilder().monitoredServiceIdentifier(null).build();
+
+    boolean saved = changeEventService.register(changeEventDTO);
+    assertThat(saved).isTrue();
+    Activity activityFromDb = hPersistence.createQuery(Activity.class).get();
+    Assertions.assertThat(activityFromDb).isNotNull();
+    assertThat(activityFromDb.getMonitoredServiceIdentifier())
+        .isEqualTo(builderFactory.getContext().getMonitoredServiceParams().getMonitoredServiceIdentifier());
   }
 
   @Test
@@ -84,10 +103,10 @@ public class ChangeEventServiceImplTest extends CvNextGenTestBase {
     changeSourceService.create(builderFactory.getContext().getMonitoredServiceParams(),
         new HashSet<>(Arrays.asList(builderFactory.getHarnessCDChangeSourceDTOBuilder().build())));
 
-    ChangeEventDTO changeEventDTO = builderFactory.getHarnessCDChangeEventDTOBuilder().build();
+    ChangeEventDTO changeEventDTO = builderFactory.harnessCDChangeEventDTOBuilder().build();
     changeEventService.register(changeEventDTO);
     Long eventTime = 123L;
-    ChangeEventDTO changeEventDTO2 = builderFactory.getHarnessCDChangeEventDTOBuilder().eventTime(eventTime).build();
+    ChangeEventDTO changeEventDTO2 = builderFactory.harnessCDChangeEventDTOBuilder().eventTime(eventTime).build();
     changeEventService.register(changeEventDTO2);
 
     Assertions.assertThat(hPersistence.createQuery(Activity.class).count()).isEqualTo(1);
@@ -101,7 +120,7 @@ public class ChangeEventServiceImplTest extends CvNextGenTestBase {
   public void testRegister_noChangeSource() {
     changeSourceService.create(builderFactory.getContext().getMonitoredServiceParams(),
         new HashSet<>(Arrays.asList(builderFactory.getHarnessCDChangeSourceDTOBuilder().build())));
-    ChangeEventDTO changeEventDTO = builderFactory.getHarnessCDChangeEventDTOBuilder().build();
+    ChangeEventDTO changeEventDTO = builderFactory.harnessCDChangeEventDTOBuilder().build();
 
     changeEventService.register(changeEventDTO);
 
@@ -115,11 +134,8 @@ public class ChangeEventServiceImplTest extends CvNextGenTestBase {
   public void testGetPaginated() {
     Activity harnessCDActivity_1 =
         builderFactory.getDeploymentActivityBuilder().eventTime(Instant.ofEpochSecond(100)).build();
-    Activity harnessCDActivity_2 = builderFactory.getDeploymentActivityBuilder()
-                                       .serviceIdentifier("service2")
-                                       .environmentIdentifier("env2")
-                                       .eventTime(Instant.ofEpochSecond(200))
-                                       .build();
+    Activity harnessCDActivity_2 =
+        builderFactory.getDeploymentActivityBuilder().eventTime(Instant.ofEpochSecond(200)).build();
     Activity harnessCDActivity_3 =
         builderFactory.getDeploymentActivityBuilder().eventTime(Instant.ofEpochSecond(300)).build();
     hPersistence.save(Arrays.asList(harnessCDActivity_1, harnessCDActivity_2, harnessCDActivity_3));
@@ -150,8 +166,6 @@ public class ChangeEventServiceImplTest extends CvNextGenTestBase {
     Activity harnessCDActivity_1 =
         builderFactory.getDeploymentActivityBuilder().eventTime(Instant.ofEpochSecond(100)).build();
     Activity harnessCDActivity_2 = builderFactory.getDeploymentActivityBuilder()
-                                       .serviceIdentifier("service2")
-                                       .environmentIdentifier("env2")
                                        .monitoredServiceIdentifier("service2_env2")
                                        .eventTime(Instant.ofEpochSecond(200))
                                        .build();
@@ -159,9 +173,9 @@ public class ChangeEventServiceImplTest extends CvNextGenTestBase {
         builderFactory.getDeploymentActivityBuilder().eventTime(Instant.ofEpochSecond(300)).build();
     hPersistence.save(Arrays.asList(harnessCDActivity_1, harnessCDActivity_2, harnessCDActivity_3));
     PageResponse<ChangeEventDTO> firstPage = changeEventService.getChangeEvents(
-        builderFactory.getContext().getProjectParams(), Arrays.asList(harnessCDActivity_1.getServiceIdentifier()), null,
-        null, null, null, Instant.ofEpochSecond(100), Instant.ofEpochSecond(400),
-        PageRequest.builder().pageIndex(0).pageSize(2).build());
+        builderFactory.getContext().getProjectParams(),
+        Arrays.asList(builderFactory.getContext().getServiceIdentifier()), null, null, null, null,
+        Instant.ofEpochSecond(100), Instant.ofEpochSecond(400), PageRequest.builder().pageIndex(0).pageSize(2).build());
 
     assertThat(firstPage.getPageIndex()).isEqualTo(0);
     assertThat(firstPage.getPageItemCount()).isEqualTo(2);
@@ -182,8 +196,6 @@ public class ChangeEventServiceImplTest extends CvNextGenTestBase {
         builderFactory.getKubernetesClusterActivityForAppServiceBuilder().eventTime(Instant.ofEpochSecond(50)).build(),
         builderFactory.getDeploymentActivityBuilder().eventTime(Instant.ofEpochSecond(100)).build(),
         builderFactory.getDeploymentActivityBuilder()
-            .serviceIdentifier("service2")
-            .environmentIdentifier("env2")
             .monitoredServiceIdentifier("service_env2")
             .eventTime(Instant.ofEpochSecond(200))
             .build(),
@@ -251,11 +263,7 @@ public class ChangeEventServiceImplTest extends CvNextGenTestBase {
         builderFactory.getDeploymentActivityBuilder().eventTime(Instant.ofEpochSecond(50)).build(),
         builderFactory.getKubernetesClusterActivityForAppServiceBuilder().eventTime(Instant.ofEpochSecond(50)).build(),
         builderFactory.getDeploymentActivityBuilder().eventTime(Instant.ofEpochSecond(100)).build(),
-        builderFactory.getDeploymentActivityBuilder()
-            .serviceIdentifier("service2")
-            .environmentIdentifier("env2")
-            .eventTime(Instant.ofEpochSecond(200))
-            .build(),
+        builderFactory.getDeploymentActivityBuilder().eventTime(Instant.ofEpochSecond(200)).build(),
         builderFactory.getDeploymentActivityBuilder().eventTime(Instant.ofEpochSecond(300)).build(),
         builderFactory.getKubernetesClusterActivityForAppServiceBuilder()
             .eventTime(Instant.ofEpochSecond(300))
@@ -285,8 +293,6 @@ public class ChangeEventServiceImplTest extends CvNextGenTestBase {
         builderFactory.getKubernetesClusterActivityForAppServiceBuilder().eventTime(Instant.ofEpochSecond(50)).build(),
         builderFactory.getDeploymentActivityBuilder().eventTime(Instant.ofEpochSecond(100)).build(),
         builderFactory.getDeploymentActivityBuilder()
-            .serviceIdentifier("service2")
-            .environmentIdentifier("env2")
             .monitoredServiceIdentifier("service_env2")
             .eventTime(Instant.ofEpochSecond(200))
             .build(),
@@ -320,8 +326,6 @@ public class ChangeEventServiceImplTest extends CvNextGenTestBase {
         builderFactory.getKubernetesClusterActivityForAppServiceBuilder().eventTime(Instant.ofEpochSecond(50)).build(),
         builderFactory.getDeploymentActivityBuilder().eventTime(Instant.ofEpochSecond(100)).build(),
         builderFactory.getDeploymentActivityBuilder()
-            .serviceIdentifier("service2")
-            .environmentIdentifier("env2")
             .monitoredServiceIdentifier("service2_env2")
             .eventTime(Instant.ofEpochSecond(200))
             .build(),
@@ -357,8 +361,6 @@ public class ChangeEventServiceImplTest extends CvNextGenTestBase {
         builderFactory.getKubernetesClusterActivityForAppServiceBuilder().eventTime(Instant.ofEpochSecond(50)).build(),
         builderFactory.getDeploymentActivityBuilder().eventTime(Instant.ofEpochSecond(100)).build(),
         builderFactory.getDeploymentActivityBuilder()
-            .serviceIdentifier("service2")
-            .environmentIdentifier("env2")
             .monitoredServiceIdentifier("service_env2")
             .eventTime(Instant.ofEpochSecond(200))
             .build(),
@@ -391,17 +393,13 @@ public class ChangeEventServiceImplTest extends CvNextGenTestBase {
         builderFactory.getDeploymentActivityBuilder().eventTime(Instant.ofEpochSecond(50)).build(),
         builderFactory.getKubernetesClusterActivityForAppServiceBuilder().eventTime(Instant.ofEpochSecond(50)).build(),
         builderFactory.getDeploymentActivityBuilder().eventTime(Instant.ofEpochSecond(100)).build(),
-        builderFactory.getDeploymentActivityBuilder()
-            .serviceIdentifier("service2")
-            .environmentIdentifier("env2")
-            .eventTime(Instant.ofEpochSecond(200))
-            .build(),
+        builderFactory.getDeploymentActivityBuilder().eventTime(Instant.ofEpochSecond(200)).build(),
         builderFactory.getDeploymentActivityBuilder().eventTime(Instant.ofEpochSecond(300)).build(),
         builderFactory.getKubernetesClusterActivityForAppServiceBuilder()
             .eventTime(Instant.ofEpochSecond(300))
             .build()));
     ChangeTimeline changeTimeline = changeEventService.getTimeline(builderFactory.getContext().getProjectParams(), null,
-        null, null, null, null, Instant.ofEpochSecond(100), Instant.ofEpochSecond(500), 2);
+        null, null, null, null, null, Instant.ofEpochSecond(100), Instant.ofEpochSecond(500), 2);
 
     List<TimeRangeDetail> deploymentChanges = changeTimeline.getCategoryTimeline().get(ChangeCategory.DEPLOYMENT);
     assertThat(deploymentChanges.size()).isEqualTo(2);
@@ -428,8 +426,6 @@ public class ChangeEventServiceImplTest extends CvNextGenTestBase {
         builderFactory.getKubernetesClusterActivityForAppServiceBuilder().eventTime(Instant.ofEpochSecond(50)).build(),
         builderFactory.getDeploymentActivityBuilder().eventTime(Instant.ofEpochSecond(100)).build(),
         builderFactory.getDeploymentActivityBuilder()
-            .serviceIdentifier("service1")
-            .environmentIdentifier("env1")
             .monitoredServiceIdentifier("service1_env1")
             .eventTime(Instant.ofEpochSecond(500))
             .build(),
@@ -465,18 +461,14 @@ public class ChangeEventServiceImplTest extends CvNextGenTestBase {
         builderFactory.getDeploymentActivityBuilder().eventTime(Instant.ofEpochSecond(50)).build(),
         builderFactory.getKubernetesClusterActivityForAppServiceBuilder().eventTime(Instant.ofEpochSecond(50)).build(),
         builderFactory.getDeploymentActivityBuilder().eventTime(Instant.ofEpochSecond(100)).build(),
-        builderFactory.getDeploymentActivityBuilder()
-            .serviceIdentifier("service2")
-            .environmentIdentifier("env2")
-            .eventTime(Instant.ofEpochSecond(200))
-            .build(),
+        builderFactory.getDeploymentActivityBuilder().eventTime(Instant.ofEpochSecond(200)).build(),
         builderFactory.getDeploymentActivityBuilder().eventTime(Instant.ofEpochSecond(300)).build(),
         builderFactory.getPagerDutyActivityBuilder().eventTime(Instant.ofEpochSecond(300)).build(),
         builderFactory.getKubernetesClusterActivityForAppServiceBuilder()
             .eventTime(Instant.ofEpochSecond(300))
             .build()));
     ChangeTimeline changeTimeline = changeEventService.getTimeline(builderFactory.getContext().getProjectParams(), null,
-        null, null, Arrays.asList(ChangeCategory.DEPLOYMENT, ChangeCategory.ALERTS),
+        null, null, null, Arrays.asList(ChangeCategory.DEPLOYMENT, ChangeCategory.ALERTS),
         Arrays.asList(ChangeSourceType.HARNESS_CD, ChangeSourceType.KUBERNETES), Instant.ofEpochSecond(100),
         Instant.ofEpochSecond(500), 2);
 
@@ -503,11 +495,7 @@ public class ChangeEventServiceImplTest extends CvNextGenTestBase {
         builderFactory.getDeploymentActivityBuilder().eventTime(Instant.ofEpochSecond(50)).build(),
         builderFactory.getKubernetesClusterActivityForAppServiceBuilder().eventTime(Instant.ofEpochSecond(50)).build(),
         builderFactory.getDeploymentActivityBuilder().eventTime(Instant.ofEpochSecond(100)).build(),
-        builderFactory.getDeploymentActivityBuilder()
-            .serviceIdentifier("service2")
-            .environmentIdentifier("env2")
-            .eventTime(Instant.ofEpochSecond(200))
-            .build(),
+        builderFactory.getDeploymentActivityBuilder().eventTime(Instant.ofEpochSecond(200)).build(),
         builderFactory.getDeploymentActivityBuilder().eventTime(Instant.ofEpochSecond(300)).build(),
         builderFactory.getKubernetesClusterActivityForAppServiceBuilder().eventTime(Instant.ofEpochSecond(300)).build(),
         builderFactory.getKubernetesClusterActivityForAppServiceBuilder()
@@ -561,7 +549,7 @@ public class ChangeEventServiceImplTest extends CvNextGenTestBase {
             .eventTime(Instant.ofEpochSecond(300))
             .build()));
     ChangeTimeline changeTimeline = changeEventService.getTimeline(builderFactory.getContext().getProjectParams(),
-        Arrays.asList(builderFactory.getContext().getServiceIdentifier()), null, null, null, null,
+        Arrays.asList(builderFactory.getContext().getServiceIdentifier()), null, null, null, null, null,
         Instant.ofEpochSecond(100), Instant.ofEpochSecond(500), 2);
 
     List<TimeRangeDetail> deploymentChanges = changeTimeline.getCategoryTimeline().get(ChangeCategory.DEPLOYMENT);
@@ -581,6 +569,68 @@ public class ChangeEventServiceImplTest extends CvNextGenTestBase {
   }
 
   @Test
+  @Owner(developers = KAMAL)
+  @Category(UnitTests.class)
+  public void testGetTimeline_withMonitoredServiceFiltering() {
+    hPersistence.save(Arrays.asList(
+        builderFactory.getDeploymentActivityBuilder().eventTime(Instant.ofEpochSecond(50)).build(),
+        builderFactory.getKubernetesClusterActivityForAppServiceBuilder().eventTime(Instant.ofEpochSecond(50)).build(),
+        builderFactory.getDeploymentActivityBuilder().eventTime(Instant.ofEpochSecond(100)).build(),
+        builderFactory.getDeploymentActivityBuilder()
+            .monitoredServiceIdentifier("monitoredservice2")
+            .eventTime(Instant.ofEpochSecond(200))
+            .build(),
+        builderFactory.getDeploymentActivityBuilder().eventTime(Instant.ofEpochSecond(300)).build(),
+        builderFactory.getKubernetesClusterActivityForAppServiceBuilder()
+            .eventTime(Instant.ofEpochSecond(300))
+            .build()));
+    ChangeTimeline changeTimeline = changeEventService.getTimeline(builderFactory.getContext().getProjectParams(), null,
+        null, Arrays.asList(builderFactory.getContext().getMonitoredServiceParams().getMonitoredServiceIdentifier()),
+        null, null, null, Instant.ofEpochSecond(100), Instant.ofEpochSecond(500), 2);
+
+    List<TimeRangeDetail> deploymentChanges = changeTimeline.getCategoryTimeline().get(ChangeCategory.DEPLOYMENT);
+    assertThat(deploymentChanges.size()).isEqualTo(2);
+    assertThat(deploymentChanges.get(0).getCount()).isEqualTo(1);
+    assertThat(deploymentChanges.get(0).getStartTime()).isEqualTo(100000);
+    assertThat(deploymentChanges.get(0).getEndTime()).isEqualTo(300000);
+    assertThat(deploymentChanges.get(1).getCount()).isEqualTo(1);
+    assertThat(deploymentChanges.get(1).getStartTime()).isEqualTo(300000);
+    assertThat(deploymentChanges.get(1).getEndTime()).isEqualTo(500000);
+    List<TimeRangeDetail> infrastructureChanges =
+        changeTimeline.getCategoryTimeline().get(ChangeCategory.INFRASTRUCTURE);
+    assertThat(infrastructureChanges.size()).isEqualTo(1);
+    assertThat(infrastructureChanges.get(0).getCount()).isEqualTo(1);
+    assertThat(infrastructureChanges.get(0).getStartTime()).isEqualTo(300000);
+    assertThat(infrastructureChanges.get(0).getEndTime()).isEqualTo(500000);
+  }
+
+  @Test
+  @Owner(developers = KAMAL)
+  @Category(UnitTests.class)
+  public void testGetTimeline_withMonitoredServiceAndServiceFiltering() {
+    hPersistence.save(Arrays.asList(
+        builderFactory.getDeploymentActivityBuilder().eventTime(Instant.ofEpochSecond(50)).build(),
+        builderFactory.getKubernetesClusterActivityForAppServiceBuilder().eventTime(Instant.ofEpochSecond(50)).build(),
+        builderFactory.getDeploymentActivityBuilder().eventTime(Instant.ofEpochSecond(100)).build(),
+        builderFactory.getDeploymentActivityBuilder()
+            .monitoredServiceIdentifier("monitoredservice2")
+            .eventTime(Instant.ofEpochSecond(200))
+            .build(),
+        builderFactory.getDeploymentActivityBuilder().eventTime(Instant.ofEpochSecond(300)).build(),
+        builderFactory.getKubernetesClusterActivityForAppServiceBuilder()
+            .eventTime(Instant.ofEpochSecond(300))
+            .build()));
+    assertThatThrownBy(
+        ()
+            -> changeEventService.getTimeline(builderFactory.getContext().getProjectParams(),
+                Arrays.asList(builderFactory.getContext().getServiceIdentifier()), null,
+                Arrays.asList(builderFactory.getContext().getMonitoredServiceParams().getMonitoredServiceIdentifier()),
+                null, null, null, Instant.ofEpochSecond(100), Instant.ofEpochSecond(500), 2))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage("serviceIdentifier, envIdentifier filter can not be used with monitoredServiceIdentifier filter");
+  }
+
+  @Test
   @Owner(developers = ABHIJITH)
   @Category(UnitTests.class)
   public void testGetTimeline_withEnvironmentFiltering() {
@@ -589,8 +639,6 @@ public class ChangeEventServiceImplTest extends CvNextGenTestBase {
         builderFactory.getKubernetesClusterActivityForAppServiceBuilder().eventTime(Instant.ofEpochSecond(50)).build(),
         builderFactory.getDeploymentActivityBuilder().eventTime(Instant.ofEpochSecond(100)).build(),
         builderFactory.getDeploymentActivityBuilder()
-            .serviceIdentifier("service2")
-            .environmentIdentifier("env2")
             .monitoredServiceIdentifier("service2_env2")
             .eventTime(Instant.ofEpochSecond(200))
             .build(),
@@ -599,8 +647,8 @@ public class ChangeEventServiceImplTest extends CvNextGenTestBase {
             .eventTime(Instant.ofEpochSecond(300))
             .build()));
     ChangeTimeline changeTimeline = changeEventService.getTimeline(builderFactory.getContext().getProjectParams(), null,
-        Arrays.asList(builderFactory.getContext().getEnvIdentifier()), null, null, null, Instant.ofEpochSecond(100),
-        Instant.ofEpochSecond(500), 2);
+        Arrays.asList(builderFactory.getContext().getEnvIdentifier()), null, null, null, null,
+        Instant.ofEpochSecond(100), Instant.ofEpochSecond(500), 2);
 
     List<TimeRangeDetail> deploymentChanges = changeTimeline.getCategoryTimeline().get(ChangeCategory.DEPLOYMENT);
     assertThat(deploymentChanges.size()).isEqualTo(2);
@@ -628,8 +676,6 @@ public class ChangeEventServiceImplTest extends CvNextGenTestBase {
         builderFactory.getKubernetesClusterActivityForAppServiceBuilder().eventTime(Instant.ofEpochSecond(50)).build(),
         builderFactory.getDeploymentActivityBuilder().eventTime(Instant.ofEpochSecond(100)).build(),
         builderFactory.getDeploymentActivityBuilder()
-            .serviceIdentifier("service2")
-            .environmentIdentifier("env2")
             .monitoredServiceIdentifier("service_env2")
             .eventTime(Instant.ofEpochSecond(200))
             .build(),
@@ -660,7 +706,7 @@ public class ChangeEventServiceImplTest extends CvNextGenTestBase {
                           .eventTime(builderFactory.getClock().instant().minus(Duration.ofMinutes(15)))
                           .build());
     ChangeSummaryDTO changeSummaryDTO =
-        changeEventService.getChangeSummary(builderFactory.getContext().getServiceEnvironmentParams(),
+        changeEventService.getChangeSummary(builderFactory.getContext().getMonitoredServiceParams(),
             changeSourceIdentifiers, builderFactory.getClock().instant().minus(Duration.ofMinutes(10)),
             builderFactory.getClock().instant().plus(Duration.ofMinutes(10)));
     Assertions.assertThat(changeSummaryDTO.getCategoryCountMap().get(ChangeCategory.DEPLOYMENT).getCount())

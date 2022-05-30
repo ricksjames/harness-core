@@ -41,7 +41,7 @@ import lombok.experimental.SuperBuilder;
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class DatadogMetricHealthSourceSpec extends HealthSourceSpec {
+public class DatadogMetricHealthSourceSpec extends MetricHealthSourceSpec {
   @NotNull private String feature;
   @UniqueIdentifierCheck @Valid private List<DatadogMetricHealthDefinition> metricDefinitions;
 
@@ -114,8 +114,6 @@ public class DatadogMetricHealthSourceSpec extends HealthSourceSpec {
                                            .identifier(identifier)
                                            .connectorIdentifier(getConnectorRef())
                                            .monitoringSourceName(name)
-                                           .envIdentifier(environmentRef)
-                                           .serviceIdentifier(serviceRef)
                                            .productName(feature)
                                            .category(key.getCategory())
                                            .dashboardName(key.getDashboardName())

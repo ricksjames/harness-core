@@ -21,16 +21,21 @@ import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Builder.Default;
+import lombok.ToString;
 import lombok.Value;
+import lombok.experimental.FieldNameConstants;
 
 @Value
 @Builder
 @AllArgsConstructor
+@FieldNameConstants(innerTypeName = "DelegateTaskPackageKeys")
 @TargetModule(HarnessModule._955_DELEGATE_BEANS)
+@ToString(of = {"delegateId", "delegateInstanceId", "delegateTaskId"})
 public class DelegateTaskPackage {
   private String accountId;
   private String delegateTaskId;
   private String delegateId;
+  private String delegateInstanceId;
   private String logStreamingToken;
   private String delegateCallbackToken;
 

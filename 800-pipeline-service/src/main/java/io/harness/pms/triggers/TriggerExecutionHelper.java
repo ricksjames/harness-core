@@ -10,55 +10,93 @@ package io.harness.pms.triggers;
 import static io.harness.AuthorizationServiceHeader.PIPELINE_SERVICE;
 import static io.harness.data.structure.EmptyPredicate.isEmpty;
 import static io.harness.data.structure.EmptyPredicate.isNotEmpty;
+import static io.harness.data.structure.UUIDGenerator.generateUuid;
 import static io.harness.exception.WingsException.USER;
 import static io.harness.ngtriggers.Constants.EVENT_CORRELATION_ID;
 import static io.harness.ngtriggers.Constants.GIT_USER;
 import static io.harness.ngtriggers.Constants.PR;
 import static io.harness.ngtriggers.Constants.PUSH;
 import static io.harness.ngtriggers.Constants.TRIGGER_EXECUTION_TAG_TAG_VALUE_DELIMITER;
+import static io.harness.ngtriggers.Constants.TRIGGER_PAYLOAD_BRANCH;
 import static io.harness.ngtriggers.Constants.TRIGGER_REF;
 import static io.harness.ngtriggers.Constants.TRIGGER_REF_DELIMITER;
 import static io.harness.pms.contracts.plan.TriggerType.WEBHOOK;
 import static io.harness.pms.contracts.plan.TriggerType.WEBHOOK_CUSTOM;
 import static io.harness.pms.plan.execution.PlanExecutionInterruptType.ABORTALL;
 
+import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
+import io.harness.AuthorizationServiceHeader;
 import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
+import io.harness.beans.FeatureName;
+import io.harness.data.structure.EmptyPredicate;
 import io.harness.engine.executions.plan.PlanExecutionService;
+import io.harness.exception.InvalidRequestException;
 import io.harness.exception.TriggerException;
 import io.harness.execution.PlanExecution;
+import io.harness.execution.PlanExecutionMetadata;
+import io.harness.expression.EngineExpressionEvaluator;
+import io.harness.gitsync.interceptor.GitEntityInfo;
+import io.harness.gitsync.interceptor.GitSyncBranchContext;
+import io.harness.ng.core.template.TemplateMergeResponseDTO;
 import io.harness.ngtriggers.beans.config.NGTriggerConfigV2;
 import io.harness.ngtriggers.beans.dto.TriggerDetails;
 import io.harness.ngtriggers.beans.entity.NGTriggerEntity;
 import io.harness.ngtriggers.beans.entity.TriggerWebhookEvent;
+import io.harness.ngtriggers.beans.scm.WebhookPayloadData;
 import io.harness.ngtriggers.beans.source.webhook.v2.WebhookTriggerConfigV2;
 import io.harness.ngtriggers.beans.source.webhook.v2.git.GitAware;
+import io.harness.ngtriggers.expressions.TriggerExpressionEvaluator;
+import io.harness.ngtriggers.utils.WebhookEventPayloadParser;
+import io.harness.ngtriggers.utils.WebhookTriggerFilterUtils;
+import io.harness.pipeline.remote.PipelineServiceClient;
 import io.harness.pms.contracts.interrupts.InterruptConfig;
 import io.harness.pms.contracts.interrupts.IssuedBy;
 import io.harness.pms.contracts.interrupts.TriggerIssuer;
+import io.harness.pms.contracts.plan.ExecutionMetadata;
+import io.harness.pms.contracts.plan.ExecutionPrincipalInfo;
+import io.harness.pms.contracts.plan.ExecutionTriggerInfo;
 import io.harness.pms.contracts.plan.TriggerType;
 import io.harness.pms.contracts.plan.TriggeredBy;
 import io.harness.pms.contracts.triggers.ParsedPayload;
 import io.harness.pms.contracts.triggers.SourceType;
 import io.harness.pms.contracts.triggers.TriggerPayload;
 import io.harness.pms.contracts.triggers.Type;
-import io.harness.pms.plan.execution.PipelineExecutor;
-import io.harness.pms.plan.execution.beans.TriggerFlowPlanDetails;
+import io.harness.pms.gitsync.PmsGitSyncBranchContextGuard;
+import io.harness.pms.gitsync.PmsGitSyncHelper;
+import io.harness.pms.helpers.PmsFeatureFlagHelper;
+import io.harness.pms.inputset.MergeInputSetRequestDTOPMS;
+import io.harness.pms.inputset.MergeInputSetResponseDTOPMS;
+import io.harness.pms.merger.helpers.InputSetMergeHelper;
+import io.harness.pms.ngpipeline.inputset.helpers.InputSetSanitizer;
+import io.harness.pms.pipeline.PipelineEntity;
+import io.harness.pms.pipeline.service.PMSPipelineService;
+import io.harness.pms.pipeline.service.PMSPipelineServiceHelper;
+import io.harness.pms.pipeline.service.PMSPipelineTemplateHelper;
+import io.harness.pms.pipeline.service.PMSYamlSchemaService;
+import io.harness.pms.pipeline.service.PipelineEnforcementService;
+import io.harness.pms.pipeline.service.PipelineMetadataService;
+import io.harness.pms.pipeline.yaml.BasicPipeline;
+import io.harness.pms.plan.execution.ExecutionHelper;
 import io.harness.pms.plan.execution.service.PMSExecutionService;
+import io.harness.pms.yaml.YamlUtils;
 import io.harness.product.ci.scm.proto.PullRequest;
 import io.harness.product.ci.scm.proto.PullRequestHook;
 import io.harness.product.ci.scm.proto.PushHook;
 import io.harness.product.ci.scm.proto.User;
+import io.harness.remote.client.NGRestUtils;
 import io.harness.security.SecurityContextBuilder;
+import io.harness.security.SourcePrincipalContextBuilder;
 import io.harness.security.dto.ServicePrincipal;
 import io.harness.serializer.ProtoUtils;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Inject;
-import java.util.Collections;
+import com.google.protobuf.ByteString;
 import java.util.List;
+import java.util.Optional;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -66,51 +104,202 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @OwnedBy(HarnessTeam.PIPELINE)
 public class TriggerExecutionHelper {
+  private final PMSPipelineService pmsPipelineService;
+  private final PipelineMetadataService pipelineMetadataService;
+  private final PMSPipelineServiceHelper pmsPipelineServiceHelper;
   private final PlanExecutionService planExecutionService;
   private final PMSExecutionService pmsExecutionService;
-  private final PipelineExecutor pipelineExecutor;
+  private final PmsGitSyncHelper pmsGitSyncHelper;
+  private final PMSYamlSchemaService pmsYamlSchemaService;
+  private final ExecutionHelper executionHelper;
+  private final PMSPipelineTemplateHelper pipelineTemplateHelper;
+  private final PipelineEnforcementService pipelineEnforcementService;
+  private final WebhookEventPayloadParser webhookEventPayloadParser;
+  private final PipelineServiceClient pipelineServiceClient;
+  private final PmsFeatureFlagHelper featureFlagService;
 
-  public PlanExecution resolveRuntimeInputAndSubmitExecutionRequest(
+  public PlanExecution resolveRuntimeInputAndSubmitExecutionReques(
       TriggerDetails triggerDetails, TriggerPayload triggerPayload) {
-    return resolveRuntimeInputAndSubmitExecutionRequest(triggerDetails, triggerPayload, null, null);
+    String executionTag = generateExecutionTagForEvent(triggerDetails, triggerPayload);
+    TriggeredBy embeddedUser =
+        generateTriggerdBy(executionTag, triggerDetails.getNgTriggerEntity(), triggerPayload, null);
+
+    TriggerType triggerType = findTriggerType(triggerPayload);
+    ExecutionTriggerInfo triggerInfo =
+        ExecutionTriggerInfo.newBuilder().setTriggerType(triggerType).setTriggeredBy(embeddedUser).build();
+    return createPlanExecution(triggerDetails, triggerPayload, null, executionTag, triggerInfo, null);
   }
 
   public PlanExecution resolveRuntimeInputAndSubmitExecutionRequest(TriggerDetails triggerDetails,
       TriggerPayload triggerPayload, TriggerWebhookEvent triggerWebhookEvent, String payload) {
     String executionTagForGitEvent = generateExecutionTagForEvent(triggerDetails, triggerPayload);
-    String eventId = triggerWebhookEvent != null ? triggerWebhookEvent.getUuid() : null;
+    TriggeredBy embeddedUser = generateTriggerdBy(
+        executionTagForGitEvent, triggerDetails.getNgTriggerEntity(), triggerPayload, triggerWebhookEvent.getUuid());
 
-    TriggeredBy embeddedUser =
-        generateTriggerdBy(executionTagForGitEvent, triggerDetails.getNgTriggerEntity(), triggerPayload, eventId);
     TriggerType triggerType = findTriggerType(triggerPayload);
-
+    ExecutionTriggerInfo triggerInfo =
+        ExecutionTriggerInfo.newBuilder().setTriggerType(triggerType).setTriggeredBy(embeddedUser).build();
     return createPlanExecution(
-        triggerDetails, triggerPayload, payload, executionTagForGitEvent, triggerType, embeddedUser);
+        triggerDetails, triggerPayload, payload, executionTagForGitEvent, triggerInfo, triggerWebhookEvent);
   }
 
+  // Todo: Check if we can merge some logic with ExecutionHelper
   private PlanExecution createPlanExecution(TriggerDetails triggerDetails, TriggerPayload triggerPayload,
-      String payload, String executionTagForGitEvent, TriggerType triggerType, TriggeredBy triggeredBy) {
+      String payload, String executionTagForGitEvent, ExecutionTriggerInfo triggerInfo,
+      TriggerWebhookEvent triggerWebhookEvent) {
     try {
       NGTriggerEntity ngTriggerEntity = triggerDetails.getNgTriggerEntity();
-      String accountId = ngTriggerEntity.getAccountId();
-      String orgIdentifier = ngTriggerEntity.getOrgIdentifier();
-      String projectIdentifier = ngTriggerEntity.getProjectIdentifier();
-      String pipelineIdentifier = ngTriggerEntity.getTargetIdentifier();
-      String runtimeInputYaml = triggerDetails.getNgTriggerConfigV2().getInputYaml();
+      Optional<PipelineEntity> pipelineEntityToExecute;
+      String targetIdentifier = ngTriggerEntity.getTargetIdentifier();
 
-      TriggerFlowPlanDetails triggerFlowPlanDetails = TriggerFlowPlanDetails.builder()
-                                                          .payload(payload)
-                                                          .triggerPayload(triggerPayload)
-                                                          .triggeredBy(triggeredBy)
-                                                          .triggerType(triggerType)
-                                                          .build();
+      ByteString gitSyncBranchContextByteString;
+      if (isEmpty(triggerDetails.getNgTriggerConfigV2().getPipelineBranchName())
+          && isEmpty(triggerDetails.getNgTriggerConfigV2().getInputSetRefs())) {
+        pipelineEntityToExecute = pmsPipelineService.get(ngTriggerEntity.getAccountId(),
+            ngTriggerEntity.getOrgIdentifier(), ngTriggerEntity.getProjectIdentifier(), targetIdentifier, false);
+        if (!pipelineEntityToExecute.isPresent()) {
+          throw new TriggerException("Unable to continue trigger execution. Pipeline with identifier: "
+                  + ngTriggerEntity.getTargetIdentifier() + ", with org: " + ngTriggerEntity.getOrgIdentifier()
+                  + ", with ProjectId: " + ngTriggerEntity.getProjectIdentifier()
+                  + ", For Trigger: " + ngTriggerEntity.getIdentifier() + " does not exist.",
+              USER);
+        }
+        final GitEntityInfo branchInfo = GitEntityInfo.builder()
+                                             .branch(pipelineEntityToExecute.get().getBranch())
+                                             .yamlGitConfigId(pipelineEntityToExecute.get().getYamlGitConfigRef())
+                                             .build();
 
+        GitSyncBranchContext gitSyncBranchContext = GitSyncBranchContext.builder().gitBranchInfo(branchInfo).build();
+        gitSyncBranchContextByteString = pmsGitSyncHelper.serializeGitSyncBranchContext(gitSyncBranchContext);
+      } else {
+        SecurityContextBuilder.setContext(
+            new ServicePrincipal(AuthorizationServiceHeader.PIPELINE_SERVICE.getServiceId()));
+        SourcePrincipalContextBuilder.setSourcePrincipal(
+            new ServicePrincipal(AuthorizationServiceHeader.PIPELINE_SERVICE.getServiceId()));
+        String branch = null;
+        if (isNotEmpty(triggerDetails.getNgTriggerConfigV2().getPipelineBranchName())) {
+          if (isBranchExpr(triggerDetails.getNgTriggerConfigV2().getPipelineBranchName())) {
+            branch = resolveBranchExpression(
+                triggerDetails.getNgTriggerConfigV2().getPipelineBranchName(), triggerWebhookEvent);
+          } else {
+            branch = triggerDetails.getNgTriggerConfigV2().getPipelineBranchName();
+          }
+        }
+
+        GitSyncBranchContext gitSyncBranchContext =
+            GitSyncBranchContext.builder().gitBranchInfo(GitEntityInfo.builder().branch(branch).build()).build();
+        gitSyncBranchContextByteString = pmsGitSyncHelper.serializeGitSyncBranchContext(gitSyncBranchContext);
+
+        try (PmsGitSyncBranchContextGuard ignore =
+                 pmsGitSyncHelper.createGitSyncBranchContextGuardFromBytes(gitSyncBranchContextByteString, false)) {
+          pipelineEntityToExecute = pmsPipelineService.get(ngTriggerEntity.getAccountId(),
+              ngTriggerEntity.getOrgIdentifier(), ngTriggerEntity.getProjectIdentifier(), targetIdentifier, false);
+        }
+
+        if (!pipelineEntityToExecute.isPresent()) {
+          throw new TriggerException("Unable to continue trigger execution. Pipeline with identifier: "
+                  + ngTriggerEntity.getTargetIdentifier() + ", with org: " + ngTriggerEntity.getOrgIdentifier()
+                  + ", with ProjectId: " + ngTriggerEntity.getProjectIdentifier()
+                  + ", For Trigger: " + ngTriggerEntity.getIdentifier() + " does not exist in branch: " + branch
+                  + " configured in trigger.",
+              USER);
+        }
+
+        GitSyncBranchContext gitSyncContextWithRepoAndFilePath =
+            GitSyncBranchContext.builder()
+                .gitBranchInfo(GitEntityInfo.builder()
+                                   .repoName(pipelineEntityToExecute.get().getRepo())
+                                   .filePath(pipelineEntityToExecute.get().getFilePath())
+                                   .branch(branch)
+                                   .build())
+                .build();
+        gitSyncBranchContextByteString =
+            pmsGitSyncHelper.serializeGitSyncBranchContext(gitSyncContextWithRepoAndFilePath);
+
+        log.info(
+            "Triggering execution for pipeline with identifier:  {} , in org: {} , ProjectId: {} , accountIdentifier: {} , For Trigger: {},  in branch {}, repo {} , filePath {}",
+            ngTriggerEntity.getTargetIdentifier(), ngTriggerEntity.getOrgIdentifier(),
+            ngTriggerEntity.getProjectIdentifier(), ngTriggerEntity.getAccountId(), ngTriggerEntity.getIdentifier(),
+            branch, pipelineEntityToExecute.get().getRepo(), pipelineEntityToExecute.get().getFilePath());
+      }
+      PipelineEntity pipelineEntity = pipelineEntityToExecute.get();
+
+      String runtimeInputYaml = null;
+      if (isEmpty(triggerDetails.getNgTriggerConfigV2().getPipelineBranchName())
+          && isEmpty(triggerDetails.getNgTriggerConfigV2().getInputSetRefs())) {
+        runtimeInputYaml = triggerDetails.getNgTriggerConfigV2().getInputYaml();
+      } else {
+        runtimeInputYaml = fetchInputSetYAML(triggerDetails, triggerWebhookEvent);
+      }
+
+      final String executionId = generateUuid();
+      ExecutionMetadata.Builder executionMetaDataBuilder =
+          ExecutionMetadata.newBuilder()
+              .setExecutionUuid(executionId)
+              .setTriggerInfo(triggerInfo)
+              .setRunSequence(pipelineMetadataService.incrementRunSequence(pipelineEntity))
+              .setPipelineIdentifier(pipelineEntity.getIdentifier());
+
+      if (gitSyncBranchContextByteString != null) {
+        executionMetaDataBuilder.setGitSyncBranchContext(gitSyncBranchContextByteString);
+      }
+
+      PlanExecutionMetadata.Builder planExecutionMetadataBuilder =
+          PlanExecutionMetadata.builder().planExecutionId(executionId).triggerJsonPayload(payload);
+
+      String pipelineYaml;
+      if (isBlank(runtimeInputYaml)) {
+        pipelineYaml = pipelineEntity.getYaml();
+      } else {
+        String pipelineYamlBeforeMerge = pipelineEntity.getYaml();
+        String sanitizedRuntimeInputYaml =
+            InputSetSanitizer.sanitizeRuntimeInput(pipelineYamlBeforeMerge, runtimeInputYaml);
+        if (isBlank(sanitizedRuntimeInputYaml)) {
+          pipelineYaml = pipelineYamlBeforeMerge;
+        } else {
+          planExecutionMetadataBuilder.inputSetYaml(sanitizedRuntimeInputYaml);
+          pipelineYaml =
+              InputSetMergeHelper.mergeInputSetIntoPipeline(pipelineYamlBeforeMerge, sanitizedRuntimeInputYaml, true);
+        }
+      }
+      String pipelineYamlWithTemplateRef = pipelineYaml;
+      if (Boolean.TRUE.equals(pipelineEntity.getTemplateReference())) {
+        TemplateMergeResponseDTO templateMergeResponseDTO =
+            pipelineTemplateHelper.resolveTemplateRefsInPipeline(pipelineEntity.getAccountId(),
+                pipelineEntity.getOrgIdentifier(), pipelineEntity.getProjectIdentifier(), pipelineYaml, false,
+                featureFlagService.isEnabled(pipelineEntity.getAccountId(), FeatureName.OPA_PIPELINE_GOVERNANCE));
+        pipelineYaml = templateMergeResponseDTO.getMergedPipelineYaml();
+        pipelineYamlWithTemplateRef = templateMergeResponseDTO.getMergedPipelineYamlWithTemplateRef() == null
+            ? pipelineYaml
+            : templateMergeResponseDTO.getMergedPipelineYamlWithTemplateRef();
+      }
+
+      BasicPipeline basicPipeline = YamlUtils.read(pipelineYaml, BasicPipeline.class);
+
+      pipelineEnforcementService.validateExecutionEnforcementsBasedOnStage(pipelineEntity);
+
+      String expandedJson = pmsPipelineServiceHelper.fetchExpandedPipelineJSONFromYaml(pipelineEntity.getAccountId(),
+          pipelineEntity.getOrgIdentifier(), pipelineEntity.getProjectIdentifier(), pipelineYamlWithTemplateRef);
+
+      planExecutionMetadataBuilder.yaml(pipelineYaml);
+      planExecutionMetadataBuilder.processedYaml(YamlUtils.injectUuid(pipelineYaml));
+      planExecutionMetadataBuilder.triggerPayload(triggerPayload);
+      planExecutionMetadataBuilder.expandedPipelineJson(expandedJson);
+
+      executionMetaDataBuilder.setIsNotificationConfigured(
+          EmptyPredicate.isNotEmpty(basicPipeline.getNotificationRules()));
+      // Set Principle user as pipeline service.
       SecurityContextBuilder.setContext(new ServicePrincipal(PIPELINE_SERVICE.getServiceId()));
-      PlanExecution planExecution =
-          pipelineExecutor
-              .startPlanExecution(accountId, orgIdentifier, projectIdentifier, pipelineIdentifier, null, "",
-                  runtimeInputYaml, Collections.emptyList(), Collections.emptyMap(), false, triggerFlowPlanDetails)
-              .getPlanExecution();
+      pmsYamlSchemaService.validateYamlSchema(ngTriggerEntity.getAccountId(), ngTriggerEntity.getOrgIdentifier(),
+          ngTriggerEntity.getProjectIdentifier(), pipelineYaml);
+
+      executionMetaDataBuilder.setPrincipalInfo(
+          ExecutionPrincipalInfo.newBuilder().setShouldValidateRbac(false).build());
+
+      PlanExecution planExecution = executionHelper.startExecution(ngTriggerEntity.getAccountId(),
+          ngTriggerEntity.getOrgIdentifier(), ngTriggerEntity.getProjectIdentifier(), executionMetaDataBuilder.build(),
+          planExecutionMetadataBuilder.build(), false, null, null);
+      // check if abort prev execution needed.
       requestPipelineExecutionAbortForSameExecTagIfNeeded(triggerDetails, planExecution, executionTagForGitEvent);
       return planExecution;
     } catch (Exception e) {
@@ -275,6 +464,33 @@ public class TriggerExecutionHelper {
     return autoAbortPreviousExecutions;
   }
 
+  public String fetchInputSetYAML(TriggerDetails triggerDetails, TriggerWebhookEvent triggerWebhookEvent) {
+    NGTriggerEntity ngTriggerEntity = triggerDetails.getNgTriggerEntity();
+    NGTriggerConfigV2 triggerConfigV2 = triggerDetails.getNgTriggerConfigV2();
+    String pipelineBranch = triggerConfigV2.getPipelineBranchName();
+    if (isEmpty(triggerConfigV2.getInputSetRefs())) {
+      return null;
+    }
+
+    String branch = null;
+    if (isNotEmpty(pipelineBranch)) {
+      if (isBranchExpr(pipelineBranch)) {
+        branch = resolveBranchExpression(pipelineBranch, triggerWebhookEvent);
+      } else {
+        branch = pipelineBranch;
+      }
+    }
+
+    List<String> inputSetRefs = triggerConfigV2.getInputSetRefs();
+    MergeInputSetResponseDTOPMS mergeInputSetResponseDTOPMS =
+        NGRestUtils.getResponse(pipelineServiceClient.getMergeInputSetFromPipelineTemplate(
+            ngTriggerEntity.getAccountId(), ngTriggerEntity.getOrgIdentifier(), ngTriggerEntity.getProjectIdentifier(),
+            ngTriggerEntity.getTargetIdentifier(), branch,
+            MergeInputSetRequestDTOPMS.builder().inputSetReferences(inputSetRefs).build()));
+
+    return mergeInputSetResponseDTOPMS.getPipelineYaml();
+  }
+
   private void registerPipelineExecutionAbortInterrupt(
       PlanExecution execution, String executionTag, NGTriggerEntity ngTriggerEntity) {
     try {
@@ -299,5 +515,27 @@ public class TriggerExecutionHelper {
     } catch (Exception e) {
       log.error("Exception white requesting Pipeline Execution Abort: " + executionTag, e);
     }
+  }
+
+  public String resolveBranchExpression(String expression, TriggerWebhookEvent triggerWebhookEvent) {
+    if (triggerWebhookEvent == null || triggerWebhookEvent.getPayload() == null) {
+      throw new InvalidRequestException("Branch can not be expression for non webhook executions");
+    }
+
+    TriggerExpressionEvaluator triggerExpressionEvaluator;
+    if (!triggerWebhookEvent.getSourceRepoType().equals("CUSTOM")) {
+      WebhookPayloadData webhookPayloadData = webhookEventPayloadParser.parseEvent(triggerWebhookEvent);
+      triggerExpressionEvaluator = WebhookTriggerFilterUtils.generatorPMSExpressionEvaluator(webhookPayloadData);
+      return (String) triggerExpressionEvaluator.evaluateExpression(expression);
+    } else {
+      triggerExpressionEvaluator = WebhookTriggerFilterUtils.generatorPMSExpressionEvaluator(
+          null, triggerWebhookEvent.getHeaders(), triggerWebhookEvent.getPayload());
+      return (String) triggerExpressionEvaluator.evaluateExpression(TRIGGER_PAYLOAD_BRANCH);
+    }
+  }
+
+  public boolean isBranchExpr(String pipelineBranch) {
+    return pipelineBranch.startsWith(EngineExpressionEvaluator.EXPR_START)
+        && pipelineBranch.endsWith(EngineExpressionEvaluator.EXPR_END);
   }
 }

@@ -14,6 +14,7 @@ import static io.harness.exception.WingsException.USER;
 
 import static software.wings.beans.CGConstants.GLOBAL_APP_ID;
 import static software.wings.beans.artifact.ArtifactStreamType.AZURE_ARTIFACTS;
+import static software.wings.service.impl.artifact.ArtifactServiceImpl.metadataOnlyBehindFlag;
 
 import static java.lang.String.format;
 
@@ -44,8 +45,6 @@ import org.hibernate.validator.constraints.NotEmpty;
 @EqualsAndHashCode(callSuper = false)
 @BreakDependencyOn("io.harness.ff.FeatureFlagService")
 public class AzureArtifactsArtifactStream extends ArtifactStream {
-  public enum ProtocolType { maven, nuget }
-
   @NotEmpty private String protocolType;
   private String project;
   @NotEmpty private String feed;
@@ -74,7 +73,8 @@ public class AzureArtifactsArtifactStream extends ArtifactStream {
   @Override
   public String generateSourceName() {
     return packageName != null
-            && (ProtocolType.maven.name().equals(protocolType) || ProtocolType.nuget.name().equals(protocolType))
+            && (AzureArtifactsArtifactStreamProtocolType.maven.name().equals(protocolType)
+                || AzureArtifactsArtifactStreamProtocolType.nuget.name().equals(protocolType))
         ? packageName
         : "";
   }
@@ -88,7 +88,7 @@ public class AzureArtifactsArtifactStream extends ArtifactStream {
   public ArtifactStreamAttributes fetchArtifactStreamAttributes(FeatureFlagService featureFlagService) {
     return ArtifactStreamAttributes.builder()
         .artifactStreamType(getArtifactStreamType())
-        .metadataOnly(isMetadataOnly())
+        .metadataOnly(metadataOnlyBehindFlag(featureFlagService, getAccountId(), isMetadataOnly()))
         .protocolType(protocolType)
         .project(project)
         .feed(feed)
@@ -126,7 +126,8 @@ public class AzureArtifactsArtifactStream extends ArtifactStream {
 
       if (isEmpty(protocolType)) {
         throw new InvalidRequestException("Protocol type cannot be empty", USER);
-      } else if (ProtocolType.maven.name().equals(protocolType) || ProtocolType.nuget.name().equals(protocolType)) {
+      } else if (AzureArtifactsArtifactStreamProtocolType.maven.name().equals(protocolType)
+          || AzureArtifactsArtifactStreamProtocolType.nuget.name().equals(protocolType)) {
         if (isEmpty(packageName)) {
           throw new InvalidRequestException("Package name cannot be empty", USER);
         }

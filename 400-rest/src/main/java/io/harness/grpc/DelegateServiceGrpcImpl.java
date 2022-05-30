@@ -49,8 +49,10 @@ import io.harness.delegate.TaskSelector;
 import io.harness.delegate.beans.DelegateProgressData;
 import io.harness.delegate.beans.DelegateResponseData;
 import io.harness.delegate.beans.DelegateTaskResponse;
+import io.harness.delegate.beans.NoDelegatesException;
 import io.harness.delegate.beans.TaskData;
 import io.harness.delegate.beans.executioncapability.ExecutionCapability;
+import io.harness.exception.ExceptionUtils;
 import io.harness.perpetualtask.PerpetualTaskClientContext;
 import io.harness.perpetualtask.PerpetualTaskClientContext.PerpetualTaskClientContextBuilder;
 import io.harness.perpetualtask.PerpetualTaskId;
@@ -69,6 +71,7 @@ import com.google.protobuf.util.Durations;
 import com.google.protobuf.util.Timestamps;
 import io.grpc.stub.StreamObserver;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -132,6 +135,7 @@ public class DelegateServiceGrpcImpl extends DelegateServiceImplBase {
               .executionCapabilities(capabilities)
               .tags(taskSelectors)
               .selectionLogsTrackingEnabled(request.getSelectionTrackingLogEnabled())
+              .eligibleToExecuteDelegateIds(new LinkedList<>(request.getEligibleToExecuteDelegateIdsList()))
               .forceExecute(request.getForceExecute())
               .data(TaskData.builder()
                         .parked(taskDetails.getParked())
@@ -166,7 +170,12 @@ public class DelegateServiceGrpcImpl extends DelegateServiceImplBase {
       responseObserver.onCompleted();
 
     } catch (Exception ex) {
-      log.error("Unexpected error occurred while processing submit task request.", ex);
+      if (ex instanceof NoDelegatesException) {
+        log.error("No delegate exception found while processing submit task request. reason {}",
+            ExceptionUtils.getMessage(ex));
+      } else {
+        log.error("Unexpected error occurred while processing submit task request.", ex);
+      }
       responseObserver.onError(io.grpc.Status.INTERNAL.withDescription(ex.getMessage()).asRuntimeException());
     }
   }

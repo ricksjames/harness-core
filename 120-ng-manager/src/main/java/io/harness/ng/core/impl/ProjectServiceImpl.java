@@ -36,9 +36,9 @@ import static org.springframework.data.mongodb.core.aggregation.Aggregation.sort
 
 import io.harness.ModuleType;
 import io.harness.accesscontrol.AccountIdentifier;
+import io.harness.accesscontrol.acl.api.Resource;
+import io.harness.accesscontrol.acl.api.ResourceScope;
 import io.harness.accesscontrol.clients.AccessControlClient;
-import io.harness.accesscontrol.clients.Resource;
-import io.harness.accesscontrol.clients.ResourceScope;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.beans.Scope;
 import io.harness.beans.Scope.ScopeKeys;
@@ -75,6 +75,7 @@ import io.harness.outbox.api.OutboxService;
 import io.harness.repositories.core.spring.ProjectRepository;
 import io.harness.security.SourcePrincipalContextBuilder;
 import io.harness.security.dto.PrincipalType;
+import io.harness.telemetry.helpers.ProjectInstrumentationHelper;
 import io.harness.utils.PageUtils;
 import io.harness.utils.ScopeUtils;
 
@@ -87,7 +88,6 @@ import io.github.resilience4j.retry.RetryConfig;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -124,11 +124,13 @@ public class ProjectServiceImpl implements ProjectService {
   private final NgUserService ngUserService;
   private final AccessControlClient accessControlClient;
   private final ScopeAccessHelper scopeAccessHelper;
+  private final ProjectInstrumentationHelper instrumentationHelper;
 
   @Inject
   public ProjectServiceImpl(ProjectRepository projectRepository, OrganizationService organizationService,
       @Named(OUTBOX_TRANSACTION_TEMPLATE) TransactionTemplate transactionTemplate, OutboxService outboxService,
-      NgUserService ngUserService, AccessControlClient accessControlClient, ScopeAccessHelper scopeAccessHelper) {
+      NgUserService ngUserService, AccessControlClient accessControlClient, ScopeAccessHelper scopeAccessHelper,
+      ProjectInstrumentationHelper instrumentationHelper) {
     this.projectRepository = projectRepository;
     this.organizationService = organizationService;
     this.transactionTemplate = transactionTemplate;
@@ -136,6 +138,7 @@ public class ProjectServiceImpl implements ProjectService {
     this.ngUserService = ngUserService;
     this.accessControlClient = accessControlClient;
     this.scopeAccessHelper = scopeAccessHelper;
+    this.instrumentationHelper = instrumentationHelper;
   }
 
   @Override
@@ -145,7 +148,7 @@ public class ProjectServiceImpl implements ProjectService {
     validateCreateProjectRequest(accountIdentifier, orgIdentifier, projectDTO);
     Project project = toProject(projectDTO);
 
-    project.setModules(Arrays.asList(ModuleType.values()));
+    project.setModules(ModuleType.getModules());
     project.setOrgIdentifier(orgIdentifier);
     project.setAccountIdentifier(accountIdentifier);
     try {
@@ -159,6 +162,7 @@ public class ProjectServiceImpl implements ProjectService {
       setupProject(Scope.of(accountIdentifier, orgIdentifier, projectDTO.getIdentifier()));
       log.info(String.format("Project with identifier %s and orgIdentifier %s was successfully created",
           project.getIdentifier(), projectDTO.getOrgIdentifier()));
+      instrumentationHelper.sendProjectCreateEvent(createdProject, accountIdentifier);
       return createdProject;
     } catch (DuplicateKeyException ex) {
       throw new DuplicateFieldException(
@@ -545,7 +549,7 @@ public class ProjectServiceImpl implements ProjectService {
             projectIdentifier, orgIdentifier));
         outboxService.save(
             new ProjectDeleteEvent(deletedProject.getAccountIdentifier(), ProjectMapper.writeDTO(deletedProject)));
-
+        instrumentationHelper.sendProjectDeleteEvent(deletedProject, accountIdentifier);
       } else {
         log.error(String.format(
             "Project with identifier %s and orgIdentifier %s could not be deleted", projectIdentifier, orgIdentifier));

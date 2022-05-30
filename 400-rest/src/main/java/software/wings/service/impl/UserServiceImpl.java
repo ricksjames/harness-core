@@ -121,6 +121,8 @@ import io.harness.sanitizer.HtmlInputSanitizer;
 import io.harness.security.dto.UserPrincipal;
 import io.harness.serializer.KryoSerializer;
 import io.harness.signup.dto.SignupInviteDTO;
+import io.harness.telemetry.Destination;
+import io.harness.telemetry.TelemetryReporter;
 import io.harness.usermembership.remote.UserMembershipClient;
 import io.harness.version.VersionInfoManager;
 
@@ -254,6 +256,9 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -270,6 +275,7 @@ import org.apache.http.NameValuePair;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.message.BasicNameValuePair;
 import org.mindrot.jbcrypt.BCrypt;
+import org.mongodb.morphia.FindAndModifyOptions;
 import org.mongodb.morphia.query.CriteriaContainer;
 import org.mongodb.morphia.query.FindOptions;
 import org.mongodb.morphia.query.Query;
@@ -307,6 +313,7 @@ public class UserServiceImpl implements UserService {
   private static final String SYSTEM = "system";
   private static final String SETUP_ACCOUNT_FROM_MARKETPLACE = "Account Setup from Marketplace";
   private static final String NG_AUTH_UI_PATH_PREFIX = "auth/";
+  private static final String USER_INVITE = "user_invite";
 
   /**
    * The Executor service.
@@ -349,6 +356,7 @@ public class UserServiceImpl implements UserService {
   @Inject private SegmentHelper segmentHelper;
   @Inject private FeatureFlagService featureFlagService;
   @Inject @Named("PRIVILEGED") private UserMembershipClient userMembershipClient;
+  @Inject private TelemetryReporter telemetryReporter;
 
   private Cache<String, User> getUserCache() {
     if (configurationController.isPrimary()) {
@@ -984,10 +992,14 @@ public class UserServiceImpl implements UserService {
   }
 
   @Override
-  public User getUserByUserId(String userId) {
+  public User getUserByUserId(String accountId, String userId) {
     User user = null;
-    if (isNotEmpty(userId)) {
-      user = wingsPersistence.createQuery(User.class).filter(UserKeys.externalUserId, userId).get();
+    if (isNotEmpty(userId) && isNotEmpty(accountId)) {
+      user = wingsPersistence.createQuery(User.class)
+                 .filter(UserKeys.externalUserId, userId)
+                 .field(UserKeys.accounts)
+                 .hasThisOne(accountId)
+                 .get();
       loadSupportAccounts(user);
       if (user != null && isEmpty(user.getAccounts())) {
         user.setAccounts(newArrayList());
@@ -1272,7 +1284,7 @@ public class UserServiceImpl implements UserService {
 
     for (String email : userInvite.getEmails()) {
       UserInvite userInviteClone = kryoSerializer.clone(userInvite);
-      userInviteClone.setEmail(email.trim());
+      userInviteClone.setEmail(email.trim().toLowerCase());
       inviteOperationResponses.add(
           inviteUser(userInviteClone, !autoInviteAcceptanceEnabled, autoInviteAcceptanceEnabled));
     }
@@ -1297,11 +1309,24 @@ public class UserServiceImpl implements UserService {
     }
   }
 
+  private void updateEmailOfUser(User user, String newEmail) {
+    if (user != null && isNotEmpty(user.getUuid())) {
+      UpdateOperations<User> updateOperations = wingsPersistence.createUpdateOperations(User.class);
+      setUnset(updateOperations, UserKeys.email, newEmail);
+      Query<User> query = wingsPersistence.createQuery(User.class).filter("_id", user.getUuid());
+      wingsPersistence.findAndModify(query, updateOperations, new FindAndModifyOptions());
+    }
+  }
+
   @Override
   public InviteOperationResponse inviteUser(
       UserInvite userInvite, boolean isInviteAcceptanceRequired, boolean markEmailVerified) {
+    log.info("Inviting user {} with isInviteAcceptanceRequired {} and markEmailVerified {}", userInvite.getEmail(),
+        isInviteAcceptanceRequired, markEmailVerified);
+
     signupService.checkIfEmailIsValid(userInvite.getEmail());
 
+    log.info("LDAPIterator: email {} of account {} is valid", userInvite.getEmail(), userInvite.getAccountId());
     String accountId = userInvite.getAccountId();
     limitCheck(accountId, userInvite.getEmail());
 
@@ -1309,12 +1334,22 @@ public class UserServiceImpl implements UserService {
 
     User user = getUserByEmail(userInvite.getEmail());
     if (user == null) {
-      user = getUserByUserId(userInvite.getExternalUserId());
+      user = getUserByUserId(account.getUuid(), userInvite.getExternalUserId());
     }
 
     boolean createNewUser = user == null;
     if (createNewUser) {
       user = anUser().build();
+    }
+
+    String incomingEmail = userInvite.getEmail();
+    if (featureFlagService.isEnabled(FeatureName.LDAP_USER_ID_SYNC, accountId) && isNotEmpty(incomingEmail)
+        && isNotEmpty(user.getEmail()) && !incomingEmail.equals(user.getEmail())) {
+      String incomingEmailInLower = incomingEmail.trim().toLowerCase();
+      log.info("Updating email Id for user {} with current mail {} and new email {}", user.getUuid(), user.getEmail(),
+          incomingEmailInLower);
+      updateEmailOfUser(user, incomingEmailInLower);
+      user.setEmail(incomingEmailInLower);
     }
 
     List<UserGroup> userGroups = userGroupService.getUserGroupsFromUserInvite(userInvite);
@@ -1470,6 +1505,7 @@ public class UserServiceImpl implements UserService {
 
   private List<UserGroup> getUserGroupsOfUser(String accountId, String userId, boolean loadUsers) {
     PageRequest<UserGroup> pageRequest = aPageRequest()
+                                             .withLimit(Long.toString(userGroupService.getCountOfUserGroups(accountId)))
                                              .addFilter(UserGroupKeys.accountId, EQ, accountId)
                                              .addFilter(UserGroupKeys.memberIds, EQ, userId)
                                              .build();
@@ -1487,6 +1523,7 @@ public class UserServiceImpl implements UserService {
 
   private List<UserGroup> getUserGroups(String accountId, SetView<String> userGroupIds) {
     PageRequest<UserGroup> pageRequest = aPageRequest()
+                                             .withLimit(Long.toString(userGroupService.getCountOfUserGroups(accountId)))
                                              .addFilter("_id", IN, userGroupIds.toArray())
                                              .addFilter(UserGroupKeys.accountId, EQ, accountId)
                                              .build();
@@ -1731,9 +1768,49 @@ public class UserServiceImpl implements UserService {
     eventPublishHelper.publishUserRegistrationCompletionEvent(userInvite.getAccountId(), existingUser);
     auditServiceHelper.reportForAuditingUsingAccountId(
         userInvite.getAccountId(), null, userInvite, Type.ACCEPTED_INVITE);
+    sendInviteAcceptTelemetryEvents(existingUser, userInvite.getAccountId(), account.getAccountName());
     log.info(
         "Auditing accepted invite for userInvite={} in account={}", userInvite.getName(), userInvite.getAccountName());
     return ACCOUNT_INVITE_ACCEPTED;
+  }
+
+  private void sendInviteAcceptTelemetryEvents(User user, String accountId, String accountName) {
+    String userEmail = user.getEmail();
+
+    HashMap<String, Object> properties = new HashMap<>();
+    properties.put("email", userEmail);
+    properties.put("name", user.getName());
+    properties.put("id", user.getUuid());
+    properties.put("startTime", String.valueOf(Instant.now().toEpochMilli()));
+    properties.put("accountId", accountId);
+    properties.put("accountName", accountName);
+    properties.put("source", USER_INVITE);
+
+    // identify event to register new user
+    telemetryReporter.sendIdentifyEvent(
+        userEmail, properties, ImmutableMap.<Destination, Boolean>builder().put(Destination.MARKETO, true).build());
+
+    HashMap<String, Object> groupProperties = new HashMap<>();
+    groupProperties.put("group_id", accountId);
+    groupProperties.put("group_type", "Account");
+    groupProperties.put("group_name", accountName);
+
+    // group event to register new signed-up user with new account
+    telemetryReporter.sendGroupEvent(accountId, userEmail, groupProperties,
+        ImmutableMap.<Destination, Boolean>builder().put(Destination.MARKETO, true).build());
+
+    // flush all events so that event queue is empty
+    telemetryReporter.flush();
+
+    properties.put("platform", "CG");
+    // Wait 20 seconds, to ensure identify is sent before track
+    ScheduledExecutorService tempExecutor = Executors.newSingleThreadScheduledExecutor();
+    tempExecutor.schedule(
+        ()
+            -> telemetryReporter.sendTrackEvent("Invite Accepted", userEmail, accountId, properties,
+                ImmutableMap.<Destination, Boolean>builder().put(Destination.MARKETO, true).build(), null),
+        20, TimeUnit.SECONDS);
+    log.info("User Invite telemetry sent");
   }
 
   @Override
@@ -2672,7 +2749,10 @@ public class UserServiceImpl implements UserService {
 
   @Override
   public void loadUserGroupsForUsers(List<User> users, String accountId) {
-    PageRequest<UserGroup> req = aPageRequest().addFilter(UserGroupKeys.accountId, EQ, accountId).build();
+    PageRequest<UserGroup> req = aPageRequest()
+                                     .withLimit(Long.toString(userGroupService.getCountOfUserGroups(accountId)))
+                                     .addFilter(UserGroupKeys.accountId, EQ, accountId)
+                                     .build();
     PageResponse<UserGroup> res = userGroupService.list(accountId, req, false);
     List<UserGroup> allUserGroupList = res.getResponse();
     if (isEmpty(allUserGroupList)) {
@@ -2768,6 +2848,17 @@ public class UserServiceImpl implements UserService {
         }
       }
 
+      if (updateUsergroup) {
+        PageResponse<UserGroup> pageResponse = userGroupService.list(accountId,
+            aPageRequest()
+                .withLimit(Long.toString(userGroupService.getCountOfUserGroups(accountId)))
+                .addFilter(UserGroupKeys.memberIds, HAS, user.getUuid())
+                .build(),
+            true);
+        List<UserGroup> userGroupList = pageResponse.getResponse();
+        removeUserFromUserGroups(user, userGroupList, false);
+      }
+
       if (updatedActiveAccounts.isEmpty() && updatedPendingAccounts.isEmpty()) {
         deleteUser(user);
         return;
@@ -2784,13 +2875,6 @@ public class UserServiceImpl implements UserService {
         for (Role role : accountRoles) {
           updatedRolesForUser.remove(role);
         }
-      }
-
-      if (updateUsergroup) {
-        PageResponse<UserGroup> pageResponse = userGroupService.list(
-            accountId, aPageRequest().addFilter(UserGroupKeys.memberIds, HAS, user.getUuid()).build(), true);
-        List<UserGroup> userGroupList = pageResponse.getResponse();
-        removeUserFromUserGroups(user, userGroupList, false);
       }
 
       UpdateOperations<User> updateOp = wingsPersistence.createUpdateOperations(User.class)
@@ -2904,7 +2988,7 @@ public class UserServiceImpl implements UserService {
 
   @Override
   public List<User> getUsers(Set<String> userIds) {
-    Query<User> query = wingsPersistence.createQuery(User.class).field("uuid").in(userIds);
+    Query<User> query = wingsPersistence.createQuery(User.class, excludeAuthority).field("uuid").in(userIds);
     return query.asList();
   }
 
@@ -3661,6 +3745,7 @@ public class UserServiceImpl implements UserService {
     } else {
       query = getListUserQuery(accountId, includeUsersPendingInviteAcceptance);
     }
+    query.criteria(UserKeys.disabled).notEqual(true);
     applySortFilter(pageRequest, query);
     FindOptions findOptions = new FindOptions().skip(offset).limit(pageSize);
     List<User> userList = query.asList(findOptions);

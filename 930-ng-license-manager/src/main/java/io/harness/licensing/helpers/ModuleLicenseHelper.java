@@ -19,6 +19,7 @@ import io.harness.licensing.entities.modules.CEModuleLicense;
 import io.harness.licensing.entities.modules.CFModuleLicense;
 import io.harness.licensing.entities.modules.CIModuleLicense;
 import io.harness.licensing.entities.modules.ModuleLicense;
+import io.harness.licensing.entities.modules.STOModuleLicense;
 
 import com.google.inject.Singleton;
 import java.time.Duration;
@@ -34,7 +35,7 @@ public class ModuleLicenseHelper {
   public static Map<ModuleType, ModuleLicense> getLastExpiredLicenseForEachModuleType(
       List<ModuleLicense> allModuleLicenses) {
     Map<ModuleType, ModuleLicense> result = new HashMap<>();
-    for (ModuleType moduleType : ModuleType.values()) {
+    for (ModuleType moduleType : ModuleType.getModules()) {
       if (!moduleType.isInternal()) {
         result.put(moduleType, null);
       }
@@ -95,9 +96,8 @@ public class ModuleLicenseHelper {
   }
 
   public static boolean isTrialExisted(List<ModuleLicense> licensesWithSameModuleType) {
-    final long currentTime = Instant.now().toEpochMilli();
     return licensesWithSameModuleType.stream().anyMatch(
-        license -> LicenseType.TRIAL.equals(license.getLicenseType()) && license.checkExpiry(currentTime));
+        license -> license.getTrialExtended() != null && license.getTrialExtended());
   }
 
   public static boolean isTrialLicenseUnderExtendPeriod(long expiryTime) {
@@ -122,7 +122,8 @@ public class ModuleLicenseHelper {
           if (LicenseType.TRIAL.equals(latestLicense.getLicenseType())) {
             // expired trial
             if (currentLicenses.size() == 1
-                && ModuleLicenseHelper.isTrialLicenseUnderExtendPeriod(latestLicense.getExpiryTime())) {
+                && ModuleLicenseHelper.isTrialLicenseUnderExtendPeriod(latestLicense.getExpiryTime())
+                && !ModuleLicenseHelper.isTrialExisted(currentLicenses)) {
               return ModuleLicenseState.EXPIRED_TEAM_TRIAL_CAN_EXTEND;
             } else {
               return ModuleLicenseState.EXPIRED_TEAM_TRIAL;
@@ -147,7 +148,8 @@ public class ModuleLicenseHelper {
           if (LicenseType.TRIAL.equals(latestLicense.getLicenseType())) {
             // expired trial
             if (currentLicenses.size() == 1
-                && ModuleLicenseHelper.isTrialLicenseUnderExtendPeriod(latestLicense.getExpiryTime())) {
+                && ModuleLicenseHelper.isTrialLicenseUnderExtendPeriod(latestLicense.getExpiryTime())
+                && !ModuleLicenseHelper.isTrialExisted(currentLicenses)) {
               return ModuleLicenseState.EXPIRED_ENTERPRISE_TRIAL_CAN_EXTEND;
             } else {
               return ModuleLicenseState.EXPIRED_ENTERPRISE_TRIAL;
@@ -186,6 +188,9 @@ public class ModuleLicenseHelper {
     }
     if (update.getLicenseType() != null && !update.getLicenseType().equals(current.getLicenseType())) {
       current.setLicenseType(update.getLicenseType());
+    }
+    if (update.getTrialExtended() != null && !update.getTrialExtended().equals(current.getTrialExtended())) {
+      current.setTrialExtended(update.getTrialExtended());
     }
 
     switch (update.getModuleType()) {
@@ -232,6 +237,14 @@ public class ModuleLicenseHelper {
         if (ciLicense.getNumberOfCommitters() != null
             && !ciLicense.getNumberOfCommitters().equals(currentCILicense.getNumberOfCommitters())) {
           currentCILicense.setNumberOfCommitters(ciLicense.getNumberOfCommitters());
+        }
+        break;
+      case STO:
+        STOModuleLicense stoLicense = (STOModuleLicense) update;
+        STOModuleLicense currentSTOLicense = (STOModuleLicense) current;
+        if (stoLicense.getNumberOfDevelopers() != null
+            && !stoLicense.getNumberOfDevelopers().equals(currentSTOLicense.getNumberOfDevelopers())) {
+          currentSTOLicense.setNumberOfDevelopers(stoLicense.getNumberOfDevelopers());
         }
         break;
       default:

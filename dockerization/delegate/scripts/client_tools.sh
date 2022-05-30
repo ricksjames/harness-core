@@ -17,22 +17,24 @@ if [[ ( -z "$DISABLE_CLIENT_TOOLS") || ("$DISABLE_CLIENT_TOOLS" = "false") ]]; t
   && curl -s -L -o client-tools/helm/v2.13.1/helm https://app.harness.io/public/shared/tools/helm/release/v2.13.1/bin/linux/amd64/helm \
   && mkdir -m 777 -p client-tools/helm/v3.1.2 \
   && curl -s -L -o client-tools/helm/v3.1.2/helm https://app.harness.io/public/shared/tools/helm/release/v3.1.2/bin/linux/amd64/helm \
-  && mkdir -m 777 -p client-tools/chartmuseum/v0.13.0 \
-  && curl -s -L -o client-tools/chartmuseum/v0.13.0/chartmuseum https://app.harness.io/public/shared/tools/chartmuseum/release/v0.13.0/bin/linux/amd64/chartmuseum \
+  && mkdir -m 777 -p client-tools/helm/v3.8.0 \
+  && curl -s -L -o client-tools/helm/v3.8.0/helm https://app.harness.io/public/shared/tools/helm/release/v3.8.0/bin/linux/amd64/helm \
+  && mkdir -m 777 -p client-tools/chartmuseum/v0.12.0 \
+  && curl -s -L -o client-tools/chartmuseum/v0.12.0/chartmuseum https://app.harness.io/public/shared/tools/chartmuseum/release/v0.12.0/bin/linux/amd64/chartmuseum \
   && mkdir -m 777 -p client-tools/chartmuseum/v0.8.2 \
   && curl -s -L -o client-tools/chartmuseum/v0.8.2/chartmuseum https://app.harness.io/public/shared/tools/chartmuseum/release/v0.8.2/bin/linux/amd64/chartmuseum \
-  && mkdir -m 777 -p client-tools/tf-config-inspect/v1.0/linux/amd64 \
-  && curl -s -L -o client-tools/tf-config-inspect/v1.0/linux/amd64/terraform-config-inspect https://app.harness.io/public/shared/tools/terraform-config-inspect/v1.0/linux/amd64/terraform-config-inspect \
-  && mkdir -m 777 -p client-tools/tf-config-inspect/v1.1/linux/amd64 \
-  && curl -s -L -o client-tools/tf-config-inspect/v1.1/linux/amd64/terraform-config-inspect https://app.harness.io/public/shared/tools/terraform-config-inspect/v1.1/linux/amd64/terraform-config-inspect \
+  && mkdir -m 777 -p client-tools/tf-config-inspect/v1.0 \
+  && curl -s -L -o client-tools/tf-config-inspect/v1.0/terraform-config-inspect https://app.harness.io/public/shared/tools/terraform-config-inspect/v1.0/linux/amd64/terraform-config-inspect \
+  && mkdir -m 777 -p client-tools/tf-config-inspect/v1.1 \
+  && curl -s -L -o client-tools/tf-config-inspect/v1.1/terraform-config-inspect https://app.harness.io/public/shared/tools/terraform-config-inspect/v1.1/linux/amd64/terraform-config-inspect \
   && mkdir -m 777 -p client-tools/oc/v4.2.16 \
   && curl -s -L -o client-tools/oc/v4.2.16/oc https://app.harness.io/public/shared/tools/oc/release/v4.2.16/bin/linux/amd64/oc \
   && mkdir -m 777 -p client-tools/kustomize/v3.5.4 \
   && curl -s -L -o client-tools/kustomize/v3.5.4/kustomize https://app.harness.io/public/shared/tools/kustomize/release/v3.5.4/bin/linux/amd64/kustomize \
   && mkdir -m 777 -p client-tools/kustomize/v4.0.0 \
   && curl -s -L -o client-tools/kustomize/v4.0.0/kustomize https://app.harness.io/public/shared/tools/kustomize/release/v4.0.0/bin/linux/amd64/kustomize \
-  && mkdir -m 777 -p client-tools/scm/0e23b6f1/linux/amd64 \
-  && curl -s -L -o client-tools/scm/0e23b6f1/linux/amd64/scm https://app.harness.io/public/shared/tools/scm/release/0e23b6f1/bin/linux/amd64/scm
+  && mkdir -m 777 -p client-tools/scm/0487ccaf \
+  && curl -s -L -o client-tools/scm/0487ccaf/scm https://app.harness.io/public/shared/tools/scm/release/0487ccaf/bin/linux/amd64/scm
 else
   echo "Client tools are disabled"
 fi

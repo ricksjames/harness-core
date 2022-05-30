@@ -37,6 +37,8 @@ import io.harness.beans.Cd1SetupFields;
 import io.harness.beans.DelegateTask;
 import io.harness.category.element.UnitTests;
 import io.harness.delegate.beans.DelegateSelectionLogParams;
+import io.harness.delegate.beans.executioncapability.CapabilityType;
+import io.harness.delegate.beans.executioncapability.SelectorCapability;
 import io.harness.ff.FeatureFlagService;
 import io.harness.persistence.HPersistence;
 import io.harness.rule.Owner;
@@ -55,6 +57,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.inject.Inject;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -116,7 +119,7 @@ public class DelegateSelectionLogsServiceImplTest extends WingsBaseTest {
     Set<String> delegateIds = Sets.newHashSet(delegate);
     DelegateTask task =
         DelegateTask.builder().uuid(taskId).accountId(accountId).selectionLogsTrackingEnabled(true).build();
-    delegateSelectionLogsService.logEligibleDelegatesToExecuteTask(delegateIds, task);
+    delegateSelectionLogsService.logEligibleDelegatesToExecuteTask(delegateIds, task, false);
     List<DelegateSelectionLogParams> delegateSelectionLogParams =
         delegateSelectionLogsService.fetchTaskSelectionLogs(accountId, taskId);
 
@@ -130,13 +133,56 @@ public class DelegateSelectionLogsServiceImplTest extends WingsBaseTest {
   @Test
   @Owner(developers = JENNY)
   @Category(UnitTests.class)
+  public void shouldLogDelegateTaskInfoWithNoExecutionCapability() {
+    String taskId = generateUuid();
+    String accountId = generateUuid();
+    DelegateTask task =
+        DelegateTask.builder().uuid(taskId).accountId(accountId).selectionLogsTrackingEnabled(true).build();
+    delegateSelectionLogsService.logDelegateTaskInfo(task);
+    List<DelegateSelectionLogParams> delegateSelectionLogParams =
+        delegateSelectionLogsService.fetchTaskSelectionLogs(accountId, taskId);
+    assertThat(delegateSelectionLogParams).isEmpty();
+  }
+
+  @Test
+  @Owner(developers = JENNY)
+  @Category(UnitTests.class)
+  public void shouldLogDelegateTaskInfo() {
+    String taskId = generateUuid();
+    String accountId = generateUuid();
+    SelectorCapability selectorCapability = SelectorCapability.builder()
+                                                .selectorOrigin("taskSelector")
+                                                .capabilityType(CapabilityType.SELECTORS)
+                                                .selectors(Sets.newHashSet("sel1", "sel2", "sel2"))
+                                                .build();
+    DelegateTask task = DelegateTask.builder()
+                            .uuid(taskId)
+                            .accountId(accountId)
+                            .selectionLogsTrackingEnabled(true)
+                            .executionCapabilities(Collections.singletonList(selectorCapability))
+                            .build();
+
+    delegateSelectionLogsService.logDelegateTaskInfo(task);
+    List<DelegateSelectionLogParams> delegateSelectionLogParams =
+        delegateSelectionLogsService.fetchTaskSelectionLogs(accountId, taskId);
+
+    assertThat(delegateSelectionLogParams).isNotEmpty();
+    assertThat(delegateSelectionLogParams.size()).isEqualTo(1);
+    assertThat(delegateSelectionLogParams.get(0).getConclusion()).isEqualTo(INFO);
+    assertThat(delegateSelectionLogParams.get(0).getEventTimestamp()).isNotNull();
+    assertThat(delegateSelectionLogParams.get(0).getMessage()).isEqualTo("Selectors: sel1, sel2");
+  }
+
+  @Test
+  @Owner(developers = JENNY)
+  @Category(UnitTests.class)
   public void shouldNotLogEligibleDelegates() {
     DelegateTask task = DelegateTask.builder()
                             .uuid(generateUuid())
                             .accountId(generateUuid())
                             .selectionLogsTrackingEnabled(true)
                             .build();
-    assertThatCode(() -> delegateSelectionLogsService.logEligibleDelegatesToExecuteTask(Sets.newHashSet(), task))
+    assertThatCode(() -> delegateSelectionLogsService.logEligibleDelegatesToExecuteTask(Sets.newHashSet(), task, false))
         .doesNotThrowAnyException();
   }
 

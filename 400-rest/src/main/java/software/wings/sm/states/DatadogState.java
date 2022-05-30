@@ -36,6 +36,7 @@ import software.wings.api.DeploymentType;
 import software.wings.beans.DatadogConfig;
 import software.wings.beans.SettingAttribute;
 import software.wings.beans.TaskType;
+import software.wings.delegatetasks.DelegateStateType;
 import software.wings.delegatetasks.cv.DataCollectionException;
 import software.wings.metrics.MetricType;
 import software.wings.metrics.TimeSeriesMetricDefinition;
@@ -52,6 +53,7 @@ import software.wings.service.intfc.datadog.DatadogService;
 import software.wings.sm.ExecutionContext;
 import software.wings.sm.StateType;
 import software.wings.sm.WorkflowStandardParams;
+import software.wings.sm.WorkflowStandardParamsExtensionService;
 import software.wings.stencils.DefaultValue;
 import software.wings.verification.VerificationStateAnalysisExecutionData;
 import software.wings.verification.datadog.DatadogCVServiceConfiguration;
@@ -92,6 +94,8 @@ import org.slf4j.Logger;
 @BreakDependencyOn("software.wings.service.intfc.DelegateService")
 public class DatadogState extends AbstractMetricAnalysisState {
   @Inject @SchemaIgnore private transient DatadogService datadogService;
+  @Inject @SchemaIgnore private transient WorkflowStandardParamsExtensionService workflowStandardParamsExtensionService;
+
   private static final int DATA_COLLECTION_RATE_MINS = 5;
   private static final URL DATADOG_URL = DatadogState.class.getResource("/apm/datadog.yml");
   private static final URL DATADOG_METRICS_URL = DatadogState.class.getResource("/apm/datadog_metrics.yml");
@@ -183,7 +187,9 @@ public class DatadogState extends AbstractMetricAnalysisState {
                               .values()));
 
     WorkflowStandardParams workflowStandardParams = context.getContextElement(ContextElementType.STANDARD);
-    String envId = workflowStandardParams == null ? null : workflowStandardParams.getEnv().getUuid();
+    String envId = workflowStandardParams == null
+        ? null
+        : workflowStandardParamsExtensionService.getEnv(workflowStandardParams).getUuid();
     String serverConfigId =
         getResolvedConnectorId(context, DatadogStateKeys.analysisServerConfigId, analysisServerConfigId);
     String serviceName = this.datadogServiceName;
@@ -196,7 +202,7 @@ public class DatadogState extends AbstractMetricAnalysisState {
     final DatadogConfig datadogConfig = (DatadogConfig) settingAttribute.getValue();
     final long dataCollectionStartTimeStamp = dataCollectionStartTimestampMillis();
     String accountId = appService.get(context.getAppId()).getAccountId();
-    int timeDurationInInteger = Integer.parseInt(getTimeDuration());
+    int timeDurationInInteger = Integer.parseInt(getTimeDuration(context));
     final APMDataCollectionInfo dataCollectionInfo =
         APMDataCollectionInfo.builder()
             .baseUrl(datadogConfig.getUrl())
@@ -204,7 +210,7 @@ public class DatadogState extends AbstractMetricAnalysisState {
             .encryptedDataDetails(
                 secretManager.getEncryptionDetails(datadogConfig, context.getAppId(), context.getWorkflowExecutionId()))
             .hosts(hosts)
-            .stateType(StateType.DATA_DOG)
+            .stateType(DelegateStateType.DATA_DOG)
             .applicationId(context.getAppId())
             .stateExecutionId(context.getStateExecutionInstanceId())
             .workflowId(getWorkflowId(context))
@@ -244,7 +250,7 @@ public class DatadogState extends AbstractMetricAnalysisState {
             .stateExecutionId(context.getStateExecutionInstanceId())
             .dataCollectionStartTime(dataCollectionStartTimeStamp)
             .dataCollectionEndTime(
-                dataCollectionStartTimeStamp + TimeUnit.MINUTES.toMillis(Integer.parseInt(getTimeDuration())))
+                dataCollectionStartTimeStamp + TimeUnit.MINUTES.toMillis(Integer.parseInt(getTimeDuration(context))))
             .executionData(executionData)
             .build(),
         waitId);

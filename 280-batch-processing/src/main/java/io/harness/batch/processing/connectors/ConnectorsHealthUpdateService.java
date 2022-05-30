@@ -8,7 +8,6 @@
 package io.harness.batch.processing.connectors;
 
 import static io.harness.data.structure.EmptyPredicate.isNotEmpty;
-import static io.harness.logging.AutoLogContext.OverrideBehavior.OVERRIDE_ERROR;
 
 import io.harness.batch.processing.config.BatchMainConfig;
 import io.harness.batch.processing.shard.AccountShardService;
@@ -21,12 +20,8 @@ import io.harness.delegate.beans.connector.CEFeatures;
 import io.harness.delegate.beans.connector.CcmConnectorFilter;
 import io.harness.delegate.beans.connector.ConnectorType;
 import io.harness.filter.FilterType;
-import io.harness.logging.AccountLogContext;
-import io.harness.logging.AutoLogContext;
 import io.harness.ng.beans.PageResponse;
 import io.harness.utils.RestCallToNGManagerClientUtils;
-
-import software.wings.beans.Account;
 
 import com.google.inject.Singleton;
 import java.util.ArrayList;
@@ -45,22 +40,20 @@ public class ConnectorsHealthUpdateService {
   @Autowired private AccountShardService accountShardService;
 
   public void update() {
-    List<Account> accounts = accountShardService.getCeEnabledAccounts();
-    log.info("accounts size: {}", accounts.size());
-    for (Account account : accounts) {
-      AutoLogContext ignore = new AccountLogContext(account.getUuid(), OVERRIDE_ERROR);
-      log.info("Fetching connectors for account name {}, account id {}", account.getAccountName(), account.getUuid());
-      List<ConnectorResponseDTO> nextGenConnectorResponses = getNextGenConnectorResponses(account.getUuid());
+    List<String> accountIds = accountShardService.getCeEnabledAccountIds();
+    log.info("accounts size: {}", accountIds.size());
+    for (String accountId : accountIds) {
+      log.info("Fetching connectors for  account id {}", accountId);
+      List<ConnectorResponseDTO> nextGenConnectorResponses = getNextGenConnectorResponses(accountId);
       for (ConnectorResponseDTO connector : nextGenConnectorResponses) {
         ConnectorInfoDTO connectorInfo = connector.getConnector();
         try {
-          processConnector(connector, account.getUuid());
+          processConnector(connector, accountId);
         } catch (Exception e) {
-          log.error("Exception processing Connector id: {} for account id: {}", connectorInfo.getIdentifier(),
-              account.getUuid(), e);
+          log.error(
+              "Exception processing Connector id: {} for account id: {}", connectorInfo.getIdentifier(), accountId, e);
         }
       }
-      ignore.close();
     }
   }
 

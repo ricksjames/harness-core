@@ -41,7 +41,7 @@ import static software.wings.api.DeploymentType.valueOf;
 import static software.wings.beans.ConfigFile.DEFAULT_TEMPLATE_ID;
 import static software.wings.beans.EntityVersion.Builder.anEntityVersion;
 import static software.wings.beans.Service.GLOBAL_SERVICE_NAME_FOR_YAML;
-import static software.wings.beans.ServiceVariable.Type.ENCRYPTED_TEXT;
+import static software.wings.beans.ServiceVariableType.ENCRYPTED_TEXT;
 import static software.wings.beans.appmanifest.ManifestFile.VALUES_YAML_KEY;
 import static software.wings.beans.command.Command.Builder.aCommand;
 import static software.wings.beans.command.CommandUnitType.COMMAND;
@@ -150,6 +150,7 @@ import software.wings.beans.command.CodeDeployCommandUnit;
 import software.wings.beans.command.Command;
 import software.wings.beans.command.Command.CommandKeys;
 import software.wings.beans.command.CommandUnit;
+import software.wings.beans.command.CommandUnitDescriptor;
 import software.wings.beans.command.CommandUnitType;
 import software.wings.beans.command.ServiceCommand;
 import software.wings.beans.command.ServiceCommand.ServiceCommandKeys;
@@ -213,6 +214,8 @@ import software.wings.stencils.StencilCategory;
 import software.wings.stencils.StencilPostProcessor;
 import software.wings.utils.ApplicationManifestUtils;
 import software.wings.utils.ArtifactType;
+import software.wings.utils.ContainerFamilyCommandProviderFactory;
+import software.wings.utils.artifacts.ArtifactCommandHelper;
 import software.wings.verification.CVConfiguration;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -231,6 +234,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -356,6 +360,7 @@ public class ServiceResourceServiceImpl implements ServiceResourceService, DataP
   @Inject private CustomDeploymentTypeService customDeploymentTypeService;
   @Inject private CVConfigurationService cvConfigurationService;
   @Inject private UserGroupService userGroupService;
+  @Inject private ContainerFamilyCommandProviderFactory containerFamilyCommandProviderFactory;
 
   /**
    * {@inheritDoc}
@@ -848,9 +853,9 @@ public class ServiceResourceServiceImpl implements ServiceResourceService, DataP
     ArtifactType artifactType = service.getArtifactType();
     AppContainer appContainer = service.getAppContainer();
     if (appContainer != null && appContainer.getFamily() != null) {
-      isInternal = appContainer.getFamily().isInternal();
+      isInternal = this.containerFamilyCommandProviderFactory.getProvider(appContainer.getFamily()).isInternal();
     } else if (artifactType != null) {
-      isInternal = artifactType.isInternal();
+      isInternal = ArtifactCommandHelper.getArtifactCommands(artifactType).isInternal();
     }
     return isInternal;
   }
@@ -861,7 +866,8 @@ public class ServiceResourceServiceImpl implements ServiceResourceService, DataP
     ArtifactType artifactType = service.getArtifactType();
     AppContainer appContainer = service.getAppContainer();
     if (appContainer != null && appContainer.getFamily() != null) {
-      commands = appContainer.getFamily().getDefaultCommands(artifactType, appContainer);
+      commands = this.containerFamilyCommandProviderFactory.getProvider(appContainer.getFamily())
+                     .getDefaultCommands(artifactType, appContainer);
     } else if (artifactType != null) {
       Command command;
       Template template;
@@ -888,7 +894,7 @@ public class ServiceResourceServiceImpl implements ServiceResourceService, DataP
           }
           break;
         default:
-          commands = artifactType.getDefaultCommands();
+          commands = ArtifactCommandHelper.getArtifactCommands(artifactType).getDefaultCommands();
       }
     }
 
@@ -1124,6 +1130,27 @@ public class ServiceResourceServiceImpl implements ServiceResourceService, DataP
     List<Service> serviceList = wingsPersistence.createQuery(Service.class)
                                     .field(ServiceKeys.appId)
                                     .equal(appId)
+                                    .field(ServiceKeys.uuid)
+                                    .in(serviceIds)
+                                    .project(ServiceKeys.name, true)
+                                    .project(ServiceKeys.uuid, true)
+                                    .asList();
+
+    Map<String, String> mapServiceIdToServiceName = new HashMap<>();
+    for (Service service : serviceList) {
+      mapServiceIdToServiceName.put(service.getUuid(), service.getName());
+    }
+    return mapServiceIdToServiceName;
+  }
+
+  @Override
+  public Map<String, String> getServiceNamesWithAccountId(String accountId, @Nonnull Set<String> serviceIds) {
+    if (isEmpty(serviceIds)) {
+      return Collections.emptyMap();
+    }
+    List<Service> serviceList = wingsPersistence.createQuery(Service.class)
+                                    .field(ServiceKeys.accountId)
+                                    .equal(accountId)
                                     .field(ServiceKeys.uuid)
                                     .in(serviceIds)
                                     .project(ServiceKeys.name, true)
@@ -2211,7 +2238,7 @@ public class ServiceResourceServiceImpl implements ServiceResourceService, DataP
   @Override
   public List<Stencil> getCommandStencils(@NotEmpty String appId, @NotEmpty String serviceId, String commandName) {
     return stencilPostProcessor.postProcess(
-        asList(CommandUnitType.values()), appId, getEntityMap(serviceId, commandName));
+        this.getDescriptorsForAllCommandUnitTypes(), appId, getEntityMap(serviceId, commandName));
   }
 
   private Map<String, String> getEntityMap(@NotEmpty String serviceId, String commandName) {
@@ -2230,8 +2257,8 @@ public class ServiceResourceServiceImpl implements ServiceResourceService, DataP
   @Override
   public List<Stencil> getCommandStencils(
       String appId, String serviceId, String commandName, boolean onlyScriptCommands) {
-    List<Stencil> stencils =
-        stencilPostProcessor.postProcess(asList(CommandUnitType.values()), appId, getEntityMap(serviceId, commandName));
+    List<Stencil> stencils = stencilPostProcessor.postProcess(
+        this.getDescriptorsForAllCommandUnitTypes(), appId, getEntityMap(serviceId, commandName));
     if (onlyScriptCommands) {
       // Suppress Container commands
       Predicate<Stencil> predicate = stencil -> stencil.getStencilCategory() != StencilCategory.CONTAINERS;
@@ -2244,6 +2271,10 @@ public class ServiceResourceServiceImpl implements ServiceResourceService, DataP
       stencils = stencils.stream().filter(predicate).collect(toList());
     }
     return stencils;
+  }
+
+  private List<CommandUnitDescriptor> getDescriptorsForAllCommandUnitTypes() {
+    return Arrays.stream(CommandUnitType.values()).map(type -> CommandUnitDescriptor.forType(type)).collect(toList());
   }
 
   @Override
@@ -2914,6 +2945,10 @@ public class ServiceResourceServiceImpl implements ServiceResourceService, DataP
 
   private HelmVersion getHelmVersionWithDefault(Service service) {
     if (service.getHelmVersion() != null) {
+      if (service.getHelmVersion() == HelmVersion.V3
+          && featureFlagService.isEnabled(FeatureName.HELM_VERSION_3_8_0, service.getAccountId())) {
+        return HelmVersion.V380;
+      }
       return service.getHelmVersion();
     } else {
       return getDefaultHelmVersion(service.getDeploymentType());

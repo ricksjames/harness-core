@@ -20,6 +20,7 @@ import io.harness.delegate.beans.connector.awsconnector.CrossAccountAccessDTO;
 import io.harness.delegate.beans.connector.ceawsconnector.AwsCurAttributesDTO;
 import io.harness.delegate.beans.connector.ceawsconnector.CEAwsConnectorDTO;
 import io.harness.exception.InvalidArgumentsException;
+import io.harness.exception.InvalidRequestException;
 import io.harness.ng.core.dto.ErrorDetail;
 
 import com.amazonaws.auth.AWSCredentialsProvider;
@@ -30,7 +31,6 @@ import com.amazonaws.auth.policy.Statement;
 import com.amazonaws.services.costandusagereport.model.ReportDefinition;
 import com.amazonaws.services.identitymanagement.model.AmazonIdentityManagementException;
 import com.amazonaws.services.identitymanagement.model.EvaluationResult;
-import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.services.securitytoken.model.AWSSecurityTokenServiceException;
@@ -40,7 +40,6 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -59,10 +58,9 @@ public class CEAWSConnectorValidator extends io.harness.ccm.connectors.AbstractC
   private final String TIME_GRANULARITY = "HOURLY";
   private final String REPORT_VERSIONING = "OVERWRITE_REPORT";
   private final String RESOURCES = "RESOURCES";
-
+  private Instant connectorCreatedInstantForPolicyCheck;
   private final String GENERIC_LOGGING_ERROR =
       "Failed to validate accountIdentifier:{} orgIdentifier:{} projectIdentifier:{} connectorIdentifier:{}";
-  private String lastErrorSummary = "Some of the permissions were missing.";
 
   @Inject AwsClient awsClient;
   @Inject CENextGenConfiguration configuration;
@@ -70,8 +68,10 @@ public class CEAWSConnectorValidator extends io.harness.ccm.connectors.AbstractC
 
   @Override
   public ConnectorValidationResult validate(ConnectorResponseDTO connectorResponseDTO, String accountIdentifier) {
+    connectorCreatedInstantForPolicyCheck = Instant.parse(configuration.getAwsConnectorCreatedInstantForPolicyCheck());
     final CEAwsConnectorDTO ceAwsConnectorDTO =
         (CEAwsConnectorDTO) connectorResponseDTO.getConnector().getConnectorConfig();
+    Long createdAt = connectorResponseDTO.getCreatedAt();
     final List<CEFeatures> featuresEnabled = ceAwsConnectorDTO.getFeaturesEnabled();
     final CrossAccountAccessDTO crossAccountAccessDTO = ceAwsConnectorDTO.getCrossAccountAccess();
     final AwsCurAttributesDTO awsCurAttributesDTO = ceAwsConnectorDTO.getCurAttributes();
@@ -80,59 +80,88 @@ public class CEAWSConnectorValidator extends io.harness.ccm.connectors.AbstractC
     String connectorIdentifier = connectorResponseDTO.getConnector().getIdentifier();
 
     final List<ErrorDetail> errorList = new ArrayList<>();
-
     try {
       final AWSCredentialsProvider credentialsProvider = getCredentialProvider(crossAccountAccessDTO);
 
-      if (featuresEnabled.contains(CEFeatures.VISIBILITY)) {
-        final Policy eventsPolicy = getRequiredEventsPolicy();
-        errorList.addAll(validateIfPolicyIsCorrect(
-            credentialsProvider, crossAccountAccessDTO.getCrossAccountRoleArn(), CEFeatures.VISIBILITY, eventsPolicy));
-      }
-
-      if (featuresEnabled.contains(CEFeatures.OPTIMIZATION)) {
-        final Policy optimizationPolicy = getRequiredOptimizationPolicy();
-        errorList.addAll(validateIfPolicyIsCorrect(credentialsProvider, crossAccountAccessDTO.getCrossAccountRoleArn(),
-            CEFeatures.OPTIMIZATION, optimizationPolicy));
-      }
-
       if (featuresEnabled.contains(CEFeatures.BILLING)) {
-        log.info("Getting required CUR policy for destination bucket: {}",
-            configuration.getAwsConfig().getDestinationBucket());
-        final Policy curPolicy = getRequiredCurPolicy(
-            awsCurAttributesDTO.getS3BucketName(), configuration.getAwsConfig().getDestinationBucket());
-        errorList.addAll(validateIfPolicyIsCorrect(
-            credentialsProvider, crossAccountAccessDTO.getCrossAccountRoleArn(), CEFeatures.BILLING, curPolicy));
+        Optional<ReportDefinition> report =
+            validateReportResourceExists(credentialsProvider, awsCurAttributesDTO, errorList);
+        if (report == null || !report.isPresent() || !errorList.isEmpty()) {
+          return ConnectorValidationResult.builder()
+              .status(ConnectivityStatus.FAILURE)
+              .errors(errorList)
+              .errorSummary("CUR report setting is not found")
+              .testedAt(Instant.now().toEpochMilli())
+              .build();
+        } else {
+          validateReport(report.get(), awsCurAttributesDTO.getS3BucketName(), errorList);
+          if (!errorList.isEmpty()) {
+            ErrorDetail errorDetail = errorList.get(errorList.size() - 1);
+            errorDetail.setMessage(errorDetail.getMessage() + " For more information, refer to the documentation.");
+            return ConnectorValidationResult.builder()
+                .status(ConnectivityStatus.FAILURE)
+                .errors(errorList)
+                .errorSummary("CUR report settings validation failed")
+                .testedAt(Instant.now().toEpochMilli())
+                .build();
+          }
+        }
 
-        errorList.addAll(validateResourceExists(credentialsProvider, awsCurAttributesDTO, errorList));
+        String s3PathPrefix = report.get().getS3Prefix() + "/" + awsCurAttributesDTO.getReportName() + "/"
+            + ceConnectorsHelper.getReportMonth();
+        validateIfBucketAndFilesPresent(
+            credentialsProvider, awsCurAttributesDTO.getS3BucketName(), s3PathPrefix, errorList);
+        if (!errorList.isEmpty()) {
+          return ConnectorValidationResult.builder()
+              .status(ConnectivityStatus.FAILURE)
+              .errors(errorList)
+              .errorSummary("CUR report file presence check failed")
+              .testedAt(Instant.now().toEpochMilli())
+              .build();
+        }
       }
+
+      verifyPoliciesPerFeature(featuresEnabled, credentialsProvider, ceAwsConnectorDTO, errorList, createdAt);
+      if (!errorList.isEmpty()) {
+        return ConnectorValidationResult.builder()
+            .status(ConnectivityStatus.FAILURE)
+            .errors(errorList)
+            .errorSummary("Missing AWS access permissions")
+            .testedAt(Instant.now().toEpochMilli())
+            .build();
+      }
+
     } catch (AWSSecurityTokenServiceException ex) {
       return ConnectorValidationResult.builder()
           .status(ConnectivityStatus.FAILURE)
-          .errors(ImmutableList.of(ErrorDetail.builder()
-                                       .code(ex.getStatusCode())
-                                       .reason(ex.getErrorCode())
-                                       .message(ex.getErrorMessage())
-                                       .build()))
-          .errorSummary("Either the " + crossAccountAccessDTO.getCrossAccountRoleArn()
-              + " doesn't exist or Harness isn't a trusted entity on it or wrong externalId.")
+          .errors(ImmutableList.of(
+              ErrorDetail.builder()
+                  .code(ex.getStatusCode())
+                  .reason("Either the " + crossAccountAccessDTO.getCrossAccountRoleArn()
+                      + " doesn't exist or Harness isn't a trusted entity on it or wrong externalId.")
+                  .message(
+                      "Verify if the roleArn and externalId are entered correctly for this connector. For more information, refer to the documentation.")
+                  .build()))
+          .errorSummary(ex.getErrorMessage())
           .testedAt(Instant.now().toEpochMilli())
           .build();
     } catch (AmazonIdentityManagementException ex) {
       // assuming only one possible reason for AmazonIdentityManagementException here
       return ConnectorValidationResult.builder()
-          .errors(Collections.singletonList(ErrorDetail.builder()
-                                                .code(ex.getStatusCode())
-                                                .message(ex.getErrorCode())
-                                                .reason(ex.getErrorMessage())
-                                                .build()))
-          .errorSummary("Please allow " + crossAccountAccessDTO.getCrossAccountRoleArn()
-              + " to perform 'iam:SimulatePrincipalPolicy' on itself")
+          .errors(
+              Collections.singletonList(ErrorDetail.builder()
+                                            .code(ex.getStatusCode())
+                                            .message("Please allow " + crossAccountAccessDTO.getCrossAccountRoleArn()
+                                                + " to perform 'iam:SimulatePrincipalPolicy' on itself")
+                                            .reason(ex.getErrorMessage())
+                                            .build()))
+          .errorSummary(ex.getErrorMessage())
           .status(ConnectivityStatus.FAILURE)
           .build();
     } catch (InvalidArgumentsException ex) {
       return ConnectorValidationResult.builder()
           .status(ConnectivityStatus.FAILURE)
+          .errors(ImmutableList.of(ErrorDetail.builder().reason(ex.getMessage()).message("").build()))
           .errorSummary(ex.getMessage())
           .testedAt(Instant.now().toEpochMilli())
           .build();
@@ -141,27 +170,27 @@ public class CEAWSConnectorValidator extends io.harness.ccm.connectors.AbstractC
       log.error(GENERIC_LOGGING_ERROR, accountIdentifier, orgIdentifier, projectIdentifier, connectorIdentifier, ex);
       return ConnectorValidationResult.builder()
           .status(ConnectivityStatus.FAILURE)
-          .errorSummary(ex.getMessage())
+          .errors(ImmutableList.of(ErrorDetail.builder().reason("Unknown error occurred").message("").build()))
+          .errorSummary("Unknown error occurred")
           .testedAt(Instant.now().toEpochMilli())
           .build();
     }
 
-    if (!errorList.isEmpty()) {
-      return ConnectorValidationResult.builder()
-          .status(ConnectivityStatus.FAILURE)
-          .errors(errorList)
-          .errorSummary(lastErrorSummary)
-          .testedAt(Instant.now().toEpochMilli())
-          .build();
-    }
     // Check for data at destination only when 24 hrs have elapsed since connector last modified at
     long now = Instant.now().toEpochMilli() - 24 * 60 * 60 * 1000;
     if (featuresEnabled.contains(CEFeatures.BILLING) && connectorResponseDTO.getCreatedAt() < now) {
       if (!ceConnectorsHelper.isDataSyncCheck(accountIdentifier, connectorIdentifier, ConnectorType.CE_AWS,
               ceConnectorsHelper.JOB_TYPE_CLOUDFUNCTION)) {
-        // Issue with CFs
+        // Issue with CFs or Batch
+        log.error("Error with processing data"); // Used for log based metrics
         return ConnectorValidationResult.builder()
-            .errorSummary("Error with processing data. Please contact Harness support")
+            .errors(ImmutableList.of(
+                ErrorDetail.builder()
+                    .reason("Error with processing data")
+                    .message("") // UI adds "Contact Harness Support or Harness Community Forum." in this case
+                    .code(500)
+                    .build()))
+            .errorSummary("Error with processing data")
             .status(ConnectivityStatus.FAILURE)
             .build();
       }
@@ -173,33 +202,69 @@ public class CEAWSConnectorValidator extends io.harness.ccm.connectors.AbstractC
         .build();
   }
 
-  private Collection<ErrorDetail> validateIfPolicyIsCorrect(AWSCredentialsProvider credentialsProvider,
-      String crossAccountRoleArn, CEFeatures feature, @NotNull Policy policy) {
-    List<ErrorDetail> errorDetails = new ArrayList<>();
+  private void verifyPoliciesPerFeature(List<CEFeatures> featuresEnabled, AWSCredentialsProvider credentialsProvider,
+      CEAwsConnectorDTO ceAwsConnectorDTO, List<ErrorDetail> errorList, long createdAt) {
+    CrossAccountAccessDTO crossAccountAccessDTO = ceAwsConnectorDTO.getCrossAccountAccess();
+    AwsCurAttributesDTO awsCurAttributesDTO = ceAwsConnectorDTO.getCurAttributes();
+    if (featuresEnabled.contains(CEFeatures.VISIBILITY)) {
+      final Policy eventsPolicy = getRequiredEventsPolicy(createdAt);
+      validateIfPolicyIsCorrect(credentialsProvider, crossAccountAccessDTO.getCrossAccountRoleArn(),
+          CEFeatures.VISIBILITY, errorList, eventsPolicy);
+    }
+
+    if (featuresEnabled.contains(CEFeatures.OPTIMIZATION)) {
+      final Policy optimizationPolicy = getRequiredOptimizationPolicy(createdAt);
+      validateIfPolicyIsCorrect(credentialsProvider, crossAccountAccessDTO.getCrossAccountRoleArn(),
+          CEFeatures.OPTIMIZATION, errorList, optimizationPolicy);
+    }
+
+    if (featuresEnabled.contains(CEFeatures.BILLING)) {
+      log.info("Getting required CUR policy for destination bucket: {}",
+          configuration.getAwsConfig().getDestinationBucket());
+      final Policy curPolicy = getRequiredCurPolicy(
+          awsCurAttributesDTO.getS3BucketName(), configuration.getAwsConfig().getDestinationBucket(), createdAt);
+      validateIfPolicyIsCorrect(credentialsProvider, crossAccountAccessDTO.getCrossAccountRoleArn(), CEFeatures.BILLING,
+          errorList, curPolicy);
+    }
+  }
+
+  private void validateIfPolicyIsCorrect(AWSCredentialsProvider credentialsProvider, String crossAccountRoleArn,
+      CEFeatures feature, List<ErrorDetail> errorList, @NotNull Policy policy) {
+    int errorSize = errorList.size();
+    String reason = "";
     log.info("Verifying policy for features enabled {}", feature.name());
     for (Statement statement : policy.getStatements()) {
       List<String> actions = statement.getActions().stream().map(Action::getActionName).collect(Collectors.toList());
       List<String> resources = statement.getResources().stream().map(Resource::getId).collect(Collectors.toList());
 
       List<EvaluationResult> evaluationResults =
-          awsClient.simulatePrincipalPolicy(credentialsProvider, crossAccountRoleArn, actions, resources)
-              .stream()
-              .filter(x -> !"allowed".equals(x.getEvalDecision()))
-              .collect(Collectors.toList());
+          awsClient.simulatePrincipalPolicy(credentialsProvider, crossAccountRoleArn, actions, resources);
+      log.info(evaluationResults.toString());
+      evaluationResults =
+          evaluationResults.stream().filter(x -> !"allowed".equals(x.getEvalDecision())).collect(Collectors.toList());
 
       for (EvaluationResult result : evaluationResults) {
-        errorDetails.add(ErrorDetail.builder()
-                             .reason(result.getEvalDecision())
-                             .message("Action: " + result.getEvalActionName()
-                                 + " not allowed on Resource: " + result.getEvalResourceName())
-                             .code(403)
-                             .build());
+        if (result.getOrganizationsDecisionDetail() != null
+            && !result.getOrganizationsDecisionDetail().isAllowedByOrganizations()) {
+          reason = "Action: " + result.getEvalActionName() + " not allowed (" + result.getEvalDecision()
+              + ") on Resource: " + result.getEvalResourceName();
+        } else {
+          reason =
+              "Action: " + result.getEvalActionName() + " not allowed on Resource: " + result.getEvalResourceName();
+        }
+
+        errorList.add(
+            ErrorDetail.builder()
+                .message(
+                    "Check organization service control policy in your AWS account. Review AWS access permissions as per the documentation.")
+                .reason(reason)
+                .code(403)
+                .build());
       }
     }
-    if (0 == errorDetails.size()) {
+    if (errorSize == errorList.size()) {
       log.info("Policy verification successful for features enabled {}", feature.name());
     }
-    return errorDetails;
   }
 
   @VisibleForTesting
@@ -212,69 +277,72 @@ public class CEAWSConnectorValidator extends io.harness.ccm.connectors.AbstractC
     return credentialsProvider;
   }
 
-  private Collection<ErrorDetail> validateResourceExists(AWSCredentialsProvider credentialsProvider,
-      AwsCurAttributesDTO awsCurAttributesDTO, final List<ErrorDetail> errorList) {
+  private Optional<ReportDefinition> validateReportResourceExists(AWSCredentialsProvider credentialsProvider,
+      AwsCurAttributesDTO awsCurAttributesDTO, List<ErrorDetail> errorList) {
     Optional<ReportDefinition> report =
         awsClient.getReportDefinition(credentialsProvider, awsCurAttributesDTO.getReportName());
-    if (!report.isPresent()) {
-      return ImmutableList.of(
+    if (report == null || !report.isPresent()) {
+      errorList.add(
           ErrorDetail.builder()
-              .message(String.format("Can't access cost and usage report: %s", awsCurAttributesDTO.getReportName()))
-              .reason("Report Not Present")
+              .reason(String.format("Can't access cost and usage report: %s", awsCurAttributesDTO.getReportName()))
+              .message(
+                  "Review the Cost and Usage report settings in your AWS account. For more information, refer to the documentation.")
               .build());
     }
-    validateReport(report.get(), awsCurAttributesDTO.getS3BucketName(), errorList);
-    String s3PathPrefix = report.get().getS3Prefix() + "/" + awsCurAttributesDTO.getReportName() + "/"
-        + ceConnectorsHelper.getReportMonth();
-    return validateIfBucketIsPresent(credentialsProvider, awsCurAttributesDTO.getS3BucketName(), s3PathPrefix);
+    return report;
   }
 
   private void validateReport(
       @NotNull ReportDefinition report, @NotNull String s3BucketName, final List<ErrorDetail> errorList) {
-    log.info("Validating S3 report definition at source");
+    log.info("Validating cur report setting at source");
+
     if (!report.getS3Bucket().equals(s3BucketName)) {
-      lastErrorSummary = String.format("Provided s3Bucket Name: %s, Actual s3bucket associated with the report: %s",
+      String reason = String.format("Provided s3 bucket name: %s,\n Current s3 bucket associated with the report: %s",
           s3BucketName, report.getS3Bucket());
-      errorList.add(ErrorDetail.builder().reason(lastErrorSummary).message("Wrong s3Bucket Name").build());
+      errorList.add(ErrorDetail.builder()
+                        .reason(reason)
+                        .message("Provide the same s3 bucket name as associated with the report.")
+                        .build());
     }
     if (!report.getCompression().equals(COMPRESSION)) {
-      errorList.add(ErrorDetail.builder()
-                        .reason(String.format("Required: %s, Actual: %s", COMPRESSION, report.getCompression()))
-                        .message("Wrong Compression")
-                        .build());
+      errorList.add(
+          ErrorDetail.builder()
+              .reason(String.format("Required: %s, Current: %s", COMPRESSION, report.getCompression()))
+              .message("Select GZIP for 'Compression Type' for the chosen cost and usage report in your AWS account.")
+              .build());
     }
     if (!report.getTimeUnit().equals(TIME_GRANULARITY)) {
-      errorList.add(ErrorDetail.builder()
-                        .reason(String.format("Required: %s, Actual: %s", TIME_GRANULARITY, report.getTimeUnit()))
-                        .message("Wrong Time Granularity")
-                        .build());
+      errorList.add(
+          ErrorDetail.builder()
+              .reason(String.format("Required: %s, Current: %s", TIME_GRANULARITY, report.getTimeUnit()))
+              .message("Select Hourly for 'Time granularity' for the chosen cost and usage report in your AWS account.")
+              .build());
     }
     if (!report.getReportVersioning().equals(REPORT_VERSIONING)) {
       errorList.add(
           ErrorDetail.builder()
-              .reason(String.format("Required: %s, Actual: %s", REPORT_VERSIONING, report.getReportVersioning()))
-              .message("Wrong Report versioning")
+              .reason(String.format("Required: %s, Current: %s", REPORT_VERSIONING, report.getReportVersioning()))
+              .message("Select Overwrite existing report for 'Report versioning'.")
               .build());
     }
     if (!report.isRefreshClosedReports()) {
       errorList.add(
           ErrorDetail.builder()
-              .reason(
-                  "Required: Automatically refresh your Cost & Usage Report when charges are detected for previous months with closed bills.")
-              .message("Wrong Data refresh settings")
+              .reason("'Data refresh settings' is not enabled for the chosen cost and usage report")
+              .message("Enable the 'Data refresh settings' for the chosen cost and usage report in your AWS account.")
               .build());
     }
     if (!report.getAdditionalSchemaElements().contains(RESOURCES)) {
       errorList.add(ErrorDetail.builder()
-                        .reason("Required: Include resource IDs")
-                        .message("Wrong Additional report details")
+                        .reason("'Include resource IDs' is not enabled in CUR report")
+                        .message("Select 'Include resource IDs' in additional report details.")
                         .build());
     }
   }
 
   @VisibleForTesting
-  public Collection<ErrorDetail> validateIfBucketIsPresent(
-      AWSCredentialsProvider credentialsProvider, String s3BucketName, String s3PathPrefix) {
+  public void validateIfBucketAndFilesPresent(AWSCredentialsProvider credentialsProvider, String s3BucketName,
+      String s3PathPrefix, List<ErrorDetail> errorList) {
     Date latestFileLastmodifiedTime = Date.from(Instant.EPOCH);
     String latestFileName = "";
     try {
@@ -292,24 +360,30 @@ public class CEAWSConnectorValidator extends io.harness.ccm.connectors.AbstractC
           s3PathPrefix, latestFileName, latestFileLastmodifiedTime);
       long now = Instant.now().toEpochMilli() - 24 * 60 * 60 * 1000;
       if (!latestFileName.isEmpty() && latestFileLastmodifiedTime.getTime() < now) {
-        lastErrorSummary = String.format("No CUR file is found in last 24 hrs at %s/%s. "
-                + "Please verify your billing export config in your AWS account and CCM connector. "
-                + "Follow CCM documentation for more information",
-            s3BucketName, s3PathPrefix);
-        return ImmutableList.of(
-            ErrorDetail.builder().message("No CUR file is found in last 24 hrs").reason(lastErrorSummary).build());
+        String reason = String.format("No CUR file is found in last 24 hrs at %s/%s. ", s3BucketName, s3PathPrefix);
+        errorList.add(
+            ErrorDetail.builder()
+                .message("Please verify your billing export config in your AWS account and in CCM connector. \n"
+                    + "For more information, refer to the documentation.\n")
+                .reason(reason)
+                .build());
       }
-    } catch (AmazonS3Exception ex) {
-      lastErrorSummary = String.format(
+    } catch (InvalidRequestException ex) {
+      String reason = String.format(
           "Either bucket '%s' doesn't exist or there is a mismatch between bucketName entered in connector and the name present in the role policy.",
           s3BucketName);
-      return ImmutableList.of(ErrorDetail.builder().message(ex.getMessage()).reason(lastErrorSummary).build());
+      errorList.add(
+          ErrorDetail.builder()
+              .message(
+                  "Verify if the bucket exists and name matches in connector and in role policy. For more information, refer to the documentation.\n")
+              .reason(reason)
+              .build());
     }
-    return Collections.emptyList();
   }
 
-  private Policy getRequiredOptimizationPolicy() {
-    final String policyDocument = "{"
+  private Policy getRequiredOptimizationPolicy(long createdAt) {
+    String policyDocumentFinal = "";
+    final String policyDocument1 = "{"
         + "  \"Version\": \"2012-10-17\","
         + "  \"Statement\": ["
         + "    {"
@@ -340,16 +414,52 @@ public class CEAWSConnectorValidator extends io.harness.ccm.connectors.AbstractC
         + "        \"route53:ListResourceRecordSets\","
         + "        \"route53:GetHealthCheck\","
         + "        \"route53:GetHealthCheckStatus\","
-        + "        \"cloudwatch:GetMetricStatistics\""
-        + "      ],"
+        + "        \"cloudwatch:GetMetricStatistics\"";
+
+    final String policyDocument2 = "        \"ecs:ListClusters\","
+        + "        \"ecs:ListContainerInstances\","
+        + "        \"ecs:ListServices\","
+        + "        \"ecs:ListTaskDefinitions\","
+        + "        \"ecs:ListTasks\","
+        + "        \"ecs:DescribeCapacityProviders\","
+        + "        \"ecs:DescribeClusters\","
+        + "        \"ecs:DescribeContainerInstances\","
+        + "        \"ecs:DescribeServices\","
+        + "        \"ecs:DescribeTaskDefinition\","
+        + "        \"ecs:DescribeTasks\","
+        + "        \"ecs:DescribeTaskSets\","
+        + "        \"ecs:RunTask\","
+        + "        \"ecs:StopTask\","
+        + "        \"ecs:StartTask\","
+        + "        \"ecs:UpdateService\","
+        + "        \"rds:DescribeDBClusters\","
+        + "        \"rds:DescribeDBInstances\","
+        + "        \"rds:ListTagsForResource\","
+        + "        \"rds:AddTagsToResource\","
+        + "        \"rds:RemoveTagsFromResource\","
+        + "        \"rds:ModifyDBInstance\","
+        + "        \"rds:StartDBCluster\","
+        + "        \"rds:StartDBInstance\","
+        + "        \"rds:StopDBCluster\","
+        + "        \"rds:StopDBInstance\"";
+    final String policyDocument3 = "      ],"
         + "      \"Resource\": \"*\""
         + "    }"
         + "  ]"
         + "}";
-    return Policy.fromJson(policyDocument);
+
+    if (createdAt > connectorCreatedInstantForPolicyCheck.toEpochMilli()) {
+      log.info("Adding new policies for verification for optimization");
+      policyDocumentFinal = policyDocument1 + "," + policyDocument2 + policyDocument3;
+    } else {
+      policyDocumentFinal = policyDocument1 + policyDocument3;
+    }
+    log.info(policyDocumentFinal);
+    return Policy.fromJson(policyDocumentFinal);
   }
 
-  private Policy getRequiredCurPolicy(final String customerBucketName, final String destinationBucketName) {
+  private Policy getRequiredCurPolicy(
+      final String customerBucketName, final String destinationBucketName, long createdAt) {
     final String policyDocument = "{"
         + "  \"Version\": \"2012-10-17\","
         + "  \"Statement\": ["
@@ -384,8 +494,9 @@ public class CEAWSConnectorValidator extends io.harness.ccm.connectors.AbstractC
     return Policy.fromJson(policyDocument);
   }
 
-  private Policy getRequiredEventsPolicy() {
-    final String policyDocument = "{"
+  private Policy getRequiredEventsPolicy(long createdAt) {
+    String policyDocumentFinal = "";
+    final String policyDocument1 = "{"
         + "  \"Version\": \"2012-10-17\","
         + "  \"Statement\": ["
         + "    {"
@@ -403,12 +514,26 @@ public class CEAWSConnectorValidator extends io.harness.ccm.connectors.AbstractC
         + "        \"ec2:DescribeRegions\","
         + "        \"cloudwatch:GetMetricData\","
         + "        \"ec2:DescribeVolumes\","
-        + "        \"ec2:DescribeSnapshots\""
-        + "      ],"
+        + "        \"ec2:DescribeSnapshots\"";
+
+    final String policyDocument2 = "         \"rds:DescribeDBSnapshots\","
+        + "         \"rds:DescribeDBInstances\","
+        + "         \"rds:DescribeDBClusters\","
+        + "         \"rds:DescribeDBSnapshotAttributes\"";
+
+    final String policyDocument3 = "      ],"
         + "      \"Resource\": \"*\""
         + "    }"
         + "  ]"
         + "}";
-    return Policy.fromJson(policyDocument);
+
+    if (createdAt > connectorCreatedInstantForPolicyCheck.toEpochMilli()) {
+      log.info("Adding new policies for verification for visibility");
+      policyDocumentFinal = policyDocument1 + "," + policyDocument2 + policyDocument3;
+    } else {
+      policyDocumentFinal = policyDocument1 + policyDocument3;
+    }
+    log.info(policyDocumentFinal);
+    return Policy.fromJson(policyDocumentFinal);
   }
 }

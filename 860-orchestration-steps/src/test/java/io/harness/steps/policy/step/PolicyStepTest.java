@@ -22,17 +22,20 @@ import io.harness.exception.InvalidRequestException;
 import io.harness.network.SafeHttpCall;
 import io.harness.opaclient.OpaServiceClient;
 import io.harness.opaclient.model.OpaEvaluationResponseHolder;
+import io.harness.opaclient.model.OpaPolicySetEvaluationResponse;
 import io.harness.plancreator.steps.common.StepElementParameters;
 import io.harness.pms.contracts.ambiance.Ambiance;
 import io.harness.pms.contracts.execution.Status;
 import io.harness.pms.sdk.core.steps.io.StepResponse;
 import io.harness.pms.yaml.ParameterField;
-import io.harness.pms.yaml.YamlField;
 import io.harness.pms.yaml.YamlUtils;
 import io.harness.rule.Owner;
 import io.harness.steps.policy.PolicyStepSpecParameters;
 import io.harness.steps.policy.custom.CustomPolicyStepSpec;
+import io.harness.steps.policy.step.outcome.PolicyStepOutcome;
+import io.harness.steps.policy.step.outcome.PolicyStepOutcomeMapper;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
@@ -50,7 +53,7 @@ import retrofit2.Call;
 
 @RunWith(PowerMockRunner.class)
 @OwnedBy(PIPELINE)
-@PrepareForTest({SafeHttpCall.class})
+@PrepareForTest({SafeHttpCall.class, PolicyStepOutcomeMapper.class})
 public class PolicyStepTest extends CategoryTest {
   @InjectMocks PolicyStep policyStep;
   @Mock OpaServiceClient opaServiceClient;
@@ -59,6 +62,7 @@ public class PolicyStepTest extends CategoryTest {
   String accountId = "acc";
   String orgId = "org";
   String projectId = "proj";
+  String stepName = "step name";
   List<String> projLevelPolicySet;
   StepElementParameters stepParameters;
   Call<OpaEvaluationResponseHolder> request;
@@ -67,6 +71,7 @@ public class PolicyStepTest extends CategoryTest {
   public void setUp() {
     MockitoAnnotations.initMocks(this);
     PowerMockito.mockStatic(SafeHttpCall.class);
+    PowerMockito.mockStatic(PolicyStepOutcomeMapper.class);
     ambiance = Ambiance.newBuilder()
                    .putSetupAbstractions("accountId", accountId)
                    .putSetupAbstractions("orgIdentifier", orgId)
@@ -131,17 +136,18 @@ public class PolicyStepTest extends CategoryTest {
   @Category(UnitTests.class)
   public void testExecuteSyncWithApplicationFailure() throws IOException {
     String payload = "{\"this\" : \"that\"}";
-    YamlField payloadObj = YamlUtils.readTree(payload);
+    JsonNode payloadObj = YamlUtils.readTree(payload).getNode().getCurrJsonNode();
     PolicyStepSpecParameters policyStepSpecParameters =
         PolicyStepSpecParameters.builder()
             .policySets(ParameterField.createValueField(projLevelPolicySet))
             .type("Custom")
             .policySpec(CustomPolicyStepSpec.builder().payload(ParameterField.createValueField(payload)).build())
             .build();
-    stepParameters = StepElementParameters.builder().spec(policyStepSpecParameters).build();
+    stepParameters = StepElementParameters.builder().name(stepName).spec(policyStepSpecParameters).build();
 
     String urlPolicySets = "ps1";
-    when(opaServiceClient.evaluateWithCredentialsByID(accountId, orgId, projectId, urlPolicySets, payloadObj))
+    when(opaServiceClient.evaluateWithCredentialsByID(accountId, orgId, projectId, urlPolicySets,
+             PolicyStepHelper.getEntityMetadataString(stepName), payloadObj))
         .thenReturn(request);
     when(SafeHttpCall.executeWithErrorMessage(request)).thenThrow(new HttpResponseException(400, "My Invalid Request"));
     StepResponse stepResponse = policyStep.executeSync(ambiance, stepParameters, null, null);
@@ -155,17 +161,18 @@ public class PolicyStepTest extends CategoryTest {
   @Category(UnitTests.class)
   public void testExecuteSyncWithPolicyNotFoundError() throws IOException {
     String payload = "{\"this\" : \"that\"}";
-    YamlField payloadObj = YamlUtils.readTree(payload);
+    JsonNode payloadObj = YamlUtils.readTree(payload).getNode().getCurrJsonNode();
     PolicyStepSpecParameters policyStepSpecParameters =
         PolicyStepSpecParameters.builder()
             .policySets(ParameterField.createValueField(projLevelPolicySet))
             .type("Custom")
             .policySpec(CustomPolicyStepSpec.builder().payload(ParameterField.createValueField(payload)).build())
             .build();
-    stepParameters = StepElementParameters.builder().spec(policyStepSpecParameters).build();
+    stepParameters = StepElementParameters.builder().name(stepName).spec(policyStepSpecParameters).build();
 
     String urlPolicySets = "ps1";
-    when(opaServiceClient.evaluateWithCredentialsByID(accountId, orgId, projectId, urlPolicySets, payloadObj))
+    when(opaServiceClient.evaluateWithCredentialsByID(accountId, orgId, projectId, urlPolicySets,
+             PolicyStepHelper.getEntityMetadataString(stepName), payloadObj))
         .thenReturn(request);
     String errorString = "{\n"
         + "    \"identifier\" : \"thisSet\",\n"
@@ -183,25 +190,33 @@ public class PolicyStepTest extends CategoryTest {
   @Category(UnitTests.class)
   public void testExecuteSyncWithEvaluationFailure() throws IOException {
     String payload = "{\"this\" : \"that\"}";
-    YamlField payloadObj = YamlUtils.readTree(payload);
+    JsonNode payloadObj = YamlUtils.readTree(payload).getNode().getCurrJsonNode();
     PolicyStepSpecParameters policyStepSpecParameters =
         PolicyStepSpecParameters.builder()
             .policySets(ParameterField.createValueField(projLevelPolicySet))
             .type("Custom")
             .policySpec(CustomPolicyStepSpec.builder().payload(ParameterField.createValueField(payload)).build())
             .build();
-    stepParameters = StepElementParameters.builder().spec(policyStepSpecParameters).build();
+    stepParameters = StepElementParameters.builder().name(stepName).spec(policyStepSpecParameters).build();
 
     String urlPolicySets = "ps1";
-    when(opaServiceClient.evaluateWithCredentialsByID(accountId, orgId, projectId, urlPolicySets, payloadObj))
+    when(opaServiceClient.evaluateWithCredentialsByID(accountId, orgId, projectId, urlPolicySets,
+             PolicyStepHelper.getEntityMetadataString(stepName), payloadObj))
         .thenReturn(request);
 
-    OpaEvaluationResponseHolder evaluationResponse = OpaEvaluationResponseHolder.builder().status("error").build();
+    OpaEvaluationResponseHolder evaluationResponse =
+        OpaEvaluationResponseHolder.builder()
+            .status("error")
+            .details(Collections.singletonList(
+                OpaPolicySetEvaluationResponse.builder().status("error").name("myName").build()))
+            .build();
     when(SafeHttpCall.executeWithErrorMessage(request)).thenReturn(evaluationResponse);
+    when(PolicyStepOutcomeMapper.toOutcome(evaluationResponse))
+        .thenReturn(PolicyStepOutcome.builder().status("error").build());
     StepResponse stepResponse = policyStep.executeSync(ambiance, stepParameters, null, null);
     assertThat(stepResponse.getStatus()).isEqualTo(Status.FAILED);
     assertThat(stepResponse.getFailureInfo().getFailureData(0).getMessage())
-        .isEqualTo("Some Policies were not adhered to.");
+        .isEqualTo("The following Policy Set was not adhered to: myName");
   }
 
   @Test
@@ -209,21 +224,24 @@ public class PolicyStepTest extends CategoryTest {
   @Category(UnitTests.class)
   public void testExecuteSyncWithEvaluationSuccess() throws IOException {
     String payload = "{\"this\" : \"that\"}";
-    YamlField payloadObj = YamlUtils.readTree(payload);
+    JsonNode payloadObj = YamlUtils.readTree(payload).getNode().getCurrJsonNode();
     PolicyStepSpecParameters policyStepSpecParameters =
         PolicyStepSpecParameters.builder()
             .policySets(ParameterField.createValueField(projLevelPolicySet))
             .type("Custom")
             .policySpec(CustomPolicyStepSpec.builder().payload(ParameterField.createValueField(payload)).build())
             .build();
-    stepParameters = StepElementParameters.builder().spec(policyStepSpecParameters).build();
+    stepParameters = StepElementParameters.builder().name(stepName).spec(policyStepSpecParameters).build();
 
     String urlPolicySets = "ps1";
-    when(opaServiceClient.evaluateWithCredentialsByID(accountId, orgId, projectId, urlPolicySets, payloadObj))
+    when(opaServiceClient.evaluateWithCredentialsByID(accountId, orgId, projectId, urlPolicySets,
+             PolicyStepHelper.getEntityMetadataString(stepName), payloadObj))
         .thenReturn(request);
 
     OpaEvaluationResponseHolder evaluationResponse = OpaEvaluationResponseHolder.builder().status("pass").build();
     when(SafeHttpCall.executeWithErrorMessage(request)).thenReturn(evaluationResponse);
+    when(PolicyStepOutcomeMapper.toOutcome(evaluationResponse))
+        .thenReturn(PolicyStepOutcome.builder().status("pass").build());
     StepResponse stepResponse = policyStep.executeSync(ambiance, stepParameters, null, null);
     assertThat(stepResponse.getStatus()).isEqualTo(Status.SUCCEEDED);
   }

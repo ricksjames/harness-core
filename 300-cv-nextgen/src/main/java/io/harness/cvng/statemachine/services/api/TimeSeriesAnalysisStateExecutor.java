@@ -81,20 +81,6 @@ public abstract class TimeSeriesAnalysisStateExecutor<T extends TimeSeriesAnalys
   }
 
   @Override
-  public AnalysisState handleRetry(T analysisState) {
-    if (analysisState.getRetryCount() >= getMaxRetry()) {
-      analysisState.setStatus(AnalysisStatus.FAILED);
-    } else {
-      analysisState.setRetryCount(analysisState.getRetryCount() + 1);
-      log.info("In TimeSeriesAnalysisState for Inputs {}, cleaning up worker task. Old taskID: {}",
-          analysisState.getInputs(), analysisState.getWorkerTaskId());
-      analysisState.setWorkerTaskId(null);
-      execute(analysisState);
-    }
-    return analysisState;
-  }
-
-  @Override
   public AnalysisState handleTransition(T analysisState) {
     analysisState.setStatus(AnalysisStatus.SUCCESS);
     return analysisState;

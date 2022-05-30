@@ -17,11 +17,13 @@ import static io.harness.secrets.SecretPermissions.SECRET_DELETE_PERMISSION;
 import static io.harness.secrets.SecretPermissions.SECRET_EDIT_PERMISSION;
 import static io.harness.secrets.SecretPermissions.SECRET_RESOURCE_TYPE;
 import static io.harness.secrets.SecretPermissions.SECRET_VIEW_PERMISSION;
+import static io.harness.utils.PageUtils.getNGPageResponse;
 
 import io.harness.NGCommonEntityConstants;
 import io.harness.NGResourceFilterConstants;
-import io.harness.accesscontrol.clients.Resource;
-import io.harness.accesscontrol.clients.ResourceScope;
+import io.harness.accesscontrol.AccountIdentifier;
+import io.harness.accesscontrol.acl.api.Resource;
+import io.harness.accesscontrol.acl.api.ResourceScope;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.beans.DecryptableEntity;
 import io.harness.connector.ConnectorCategory;
@@ -289,8 +291,9 @@ public class NGSecretResourceV2 {
     if (secretType != null) {
       secretTypes.add(secretType);
     }
-    return ResponseDTO.newResponse(ngSecretService.list(accountIdentifier, orgIdentifier, projectIdentifier,
-        identifiers, secretTypes, includeSecretsFromEverySubScope, searchTerm, page, size, sourceCategory));
+    return ResponseDTO.newResponse(
+        getNGPageResponse(ngSecretService.list(accountIdentifier, orgIdentifier, projectIdentifier, identifiers,
+            secretTypes, includeSecretsFromEverySubScope, searchTerm, page, size, sourceCategory)));
   }
 
   @POST
@@ -316,10 +319,10 @@ public class NGSecretResourceV2 {
     secretPermissionValidator.checkForAccessOrThrow(
         ResourceScope.of(accountIdentifier, orgIdentifier, projectIdentifier), Resource.of(SECRET_RESOURCE_TYPE, null),
         SECRET_VIEW_PERMISSION, null);
-    return ResponseDTO.newResponse(ngSecretService.list(accountIdentifier, orgIdentifier, projectIdentifier,
-        secretResourceFilterDTO.getIdentifiers(), secretResourceFilterDTO.getSecretTypes(),
+    return ResponseDTO.newResponse(getNGPageResponse(ngSecretService.list(accountIdentifier, orgIdentifier,
+        projectIdentifier, secretResourceFilterDTO.getIdentifiers(), secretResourceFilterDTO.getSecretTypes(),
         secretResourceFilterDTO.isIncludeSecretsFromEverySubScope(), secretResourceFilterDTO.getSearchTerm(), page,
-        size, secretResourceFilterDTO.getSourceCategory()));
+        size, secretResourceFilterDTO.getSourceCategory())));
   }
 
   @GET
@@ -554,7 +557,9 @@ public class NGSecretResourceV2 {
       })
   @InternalApi
   public ResponseDTO<List<EncryptedDataDetail>>
-  getEncryptionDetails(@NotNull NGAccessWithEncryptionConsumer ngAccessWithEncryptionConsumer) {
+  getEncryptionDetails(@NotNull NGAccessWithEncryptionConsumer ngAccessWithEncryptionConsumer,
+      @Parameter(description = ACCOUNT_PARAM_MESSAGE, required = true) @NotNull @AccountIdentifier @QueryParam(
+          NGCommonEntityConstants.ACCOUNT_KEY) String accountIdentifier) {
     NGAccess ngAccess = ngAccessWithEncryptionConsumer.getNgAccess();
     DecryptableEntity decryptableEntity = ngAccessWithEncryptionConsumer.getDecryptableEntity();
     if (ngAccess == null || decryptableEntity == null) {
@@ -570,12 +575,11 @@ public class NGSecretResourceV2 {
         Scope secretScope = secretRefData.getScope();
         SecretResponseWrapper secret =
             ngSecretService
-                .get(ngAccess.getAccountIdentifier(), getOrgIdentifier(ngAccess.getOrgIdentifier(), secretScope),
+                .get(accountIdentifier, getOrgIdentifier(ngAccess.getOrgIdentifier(), secretScope),
                     getProjectIdentifier(ngAccess.getProjectIdentifier(), secretScope), secretRefData.getIdentifier())
                 .orElse(null);
         secretPermissionValidator.checkForAccessOrThrow(
-            ResourceScope.of(ngAccess.getAccountIdentifier(),
-                getOrgIdentifier(ngAccess.getOrgIdentifier(), secretScope),
+            ResourceScope.of(accountIdentifier, getOrgIdentifier(ngAccess.getOrgIdentifier(), secretScope),
                 getProjectIdentifier(ngAccess.getProjectIdentifier(), secretScope)),
             Resource.of(SECRET_RESOURCE_TYPE, secretRefData.getIdentifier()), SECRET_ACCESS_PERMISSION,
             secret != null ? secret.getSecret().getOwner() : null);

@@ -42,7 +42,7 @@ import org.apache.commons.lang3.StringUtils;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @NoArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class StackdriverMetricHealthSourceSpec extends HealthSourceSpec {
+public class StackdriverMetricHealthSourceSpec extends MetricHealthSourceSpec {
   @UniqueIdentifierCheck @Valid private List<StackdriverDefinition> metricDefinitions;
 
   public List<StackdriverDefinition> getMetricDefinitions() {
@@ -132,8 +132,6 @@ public class StackdriverMetricHealthSourceSpec extends HealthSourceSpec {
                                          .identifier(identifier)
                                          .connectorIdentifier(getConnectorRef())
                                          .monitoringSourceName(name)
-                                         .envIdentifier(environmentRef)
-                                         .serviceIdentifier(serviceRef)
                                          .category(key.getCategory())
                                          .dashboardName(key.getDashboardName())
                                          .dashboardPath(stackdriverDefinitions.get(0).getDashboardPath())

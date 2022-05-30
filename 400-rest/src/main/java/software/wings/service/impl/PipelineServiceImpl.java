@@ -42,6 +42,7 @@ import static software.wings.expression.ManagerExpressionEvaluator.getName;
 import static software.wings.expression.ManagerExpressionEvaluator.matchesVariablePattern;
 import static software.wings.service.impl.pipeline.PipelineServiceValidator.checkUniqueApprovalPublishedVariable;
 import static software.wings.service.impl.pipeline.PipelineServiceValidator.validateTemplateExpressions;
+import static software.wings.service.impl.pipeline.PipelineServiceValidator.validateUserGroupExpression;
 import static software.wings.sm.StateType.APPROVAL;
 import static software.wings.sm.StateType.ENV_STATE;
 
@@ -237,6 +238,9 @@ public class PipelineServiceImpl implements PipelineService {
   @Override
   public Pipeline update(Pipeline pipeline, boolean migration, boolean fromYaml) {
     validateTemplateExpressions(pipeline);
+    if (featureFlagService.isEnabled(FeatureName.USER_GROUP_AS_EXPRESSION, pipeline.getAccountId())) {
+      validateUserGroupExpression(pipeline);
+    }
     Pipeline savedPipeline = wingsPersistence.getWithAppId(Pipeline.class, pipeline.getAppId(), pipeline.getUuid());
     notNullCheck("Pipeline not saved", savedPipeline, USER);
 
@@ -1009,6 +1013,7 @@ public class PipelineServiceImpl implements PipelineService {
     pipeline.setEnvParameterized(envParameterized);
     pipeline.setDeploymentTypes(deploymentTypes);
     pipeline.setHasBuildWorkflow(hasBuildWorkflow);
+    pipeline.setEnvIds(envIds);
   }
 
   @VisibleForTesting
@@ -1066,10 +1071,14 @@ public class PipelineServiceImpl implements PipelineService {
   @VisibleForTesting
   void setPipelineVariablesApproval(PipelineStageElement pse, List<Variable> pipelineVariables, String stageName) {
     Map<String, Object> properties = pse.getProperties();
-    List<Map<String, Object>> templateExpressions = (List<Map<String, Object>>) properties.get("templateExpressions");
 
-    if (templateExpressions != null) {
-      addToUserVariablePipelineApproval(templateExpressions, pipelineVariables, pse.getType(), APPROVAL.name());
+    Object obj = properties.get("templateExpressions");
+    if (obj instanceof List) {
+      List<Map<String, Object>> templateExpressions = (List<Map<String, Object>>) obj;
+
+      if (templateExpressions != null) {
+        addToUserVariablePipelineApproval(templateExpressions, pipelineVariables, pse.getType(), APPROVAL.name());
+      }
     }
   }
 
@@ -1722,6 +1731,9 @@ public class PipelineServiceImpl implements PipelineService {
   @ValidationGroups(Create.class)
   public Pipeline save(Pipeline pipeline) {
     validateTemplateExpressions(pipeline);
+    if (featureFlagService.isEnabled(FeatureName.USER_GROUP_AS_EXPRESSION, pipeline.getAccountId())) {
+      validateUserGroupExpression(pipeline);
+    }
     validatePipelineNameForDuplicates(pipeline);
     ensurePipelineStageUuidAndParallelIndex(pipeline);
     checkUniquePipelineStepName(pipeline);
@@ -2077,6 +2089,7 @@ public class PipelineServiceImpl implements PipelineService {
   }
 
   public Set<String> getUserGroups(Pipeline pipeline) {
+    Map<String, Workflow> workflowCache = new HashMap<>();
     if (pipeline.getPipelineStages() == null) {
       return new HashSet<>();
     }
@@ -2086,10 +2099,33 @@ public class PipelineServiceImpl implements PipelineService {
       if (StateType.APPROVAL.name().equals(stageElement.getType())) {
         Map<String, Object> properties = stageElement.getProperties();
         properties.forEach((name, value) -> {
-          if (USER_GROUPS.equals(name)) {
+          if (USER_GROUPS.equals(name) && value instanceof List && isNotEmpty((List<String>) value)) {
             userGroups.addAll((List<String>) value);
           }
         });
+      } else {
+        String workflowId = (String) stageElement.getProperties().get("workflowId");
+        Workflow workflow = getWorkflow(pipeline, workflowCache, workflowId);
+        workflowCache.put(workflowId, workflow);
+        List<String> userGroupVariableNames = workflow.getOrchestrationWorkflow()
+                                                  .getUserVariables()
+                                                  .stream()
+                                                  .filter(v -> USER_GROUP.equals(v.obtainEntityType()))
+                                                  .map(Variable::getName)
+                                                  .collect(toList());
+        if (isNotEmpty(stageElement.getWorkflowVariables()) && isNotEmpty(userGroupVariableNames)) {
+          stageElement.getWorkflowVariables().forEach((variable, value) -> {
+            if (userGroupVariableNames.contains(variable)) {
+              if (!ExpressionEvaluator.matchesVariablePattern(value)) {
+                if (value.contains(",")) {
+                  userGroups.addAll(Arrays.asList(value.split(",")));
+                } else {
+                  userGroups.add(value);
+                }
+              }
+            }
+          });
+        }
       }
     }
     return userGroups;
@@ -2101,10 +2137,10 @@ public class PipelineServiceImpl implements PipelineService {
     Set<String> parentsToAdd = Sets.difference(currentUserGroups, previousUserGroups);
 
     for (String id : parentsToRemove) {
-      userGroupService.removeParentsReference(id, accountId, appId, pipelineId);
+      userGroupService.removeParentsReference(id, accountId, appId, pipelineId, EntityType.PIPELINE.name());
     }
     for (String id : parentsToAdd) {
-      userGroupService.addParentsReference(id, accountId, appId, pipelineId);
+      userGroupService.addParentsReference(id, accountId, appId, pipelineId, EntityType.PIPELINE.name());
     }
   }
 }

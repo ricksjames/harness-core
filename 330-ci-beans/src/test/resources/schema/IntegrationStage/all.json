@@ -6,6 +6,21 @@
     "type"
   ],
   "properties": {
+    "delegateSelectors": {
+      "oneOf": [
+        {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        {
+          "type": "string",
+          "pattern": "^<\\+input>(\\.(allowedValues|regex)\\(.+?\\))*$",
+          "minLength": 1
+        }
+      ]
+    },
     "description": {
       "type": "string"
     },
@@ -62,7 +77,7 @@
       "then": {
         "properties": {
           "spec": {
-            "$ref": "#/definitions/IntegrationStageConfig"
+            "$ref": "#/definitions/IntegrationStageConfigImpl"
           }
         }
       }
@@ -258,8 +273,7 @@
       "type": "object",
       "required": [
         "disallowPipelineExecutor",
-        "minimumCount",
-        "userGroups"
+        "minimumCount"
       ],
       "properties": {
         "disallowPipelineExecutor": {
@@ -289,14 +303,17 @@
               "type": "array",
               "items": {
                 "type": "string"
-              }
+              },
+              "maxItems": 2147483647,
+              "minItems": 1
             },
             {
               "type": "string",
               "pattern": "^<\\+input>(\\.(allowedValues|regex)\\(.+?\\))*$",
               "minLength": 1
             }
-          ]
+          ],
+          "minLength": 1
         }
       },
       "$schema": "http://json-schema.org/draft-07/schema#"
@@ -405,22 +422,6 @@
       },
       "$schema": "http://json-schema.org/draft-07/schema#"
     },
-    "BuildNumberDetails": {
-      "type": "object",
-      "required": [
-        "uuid"
-      ],
-      "properties": {
-        "buildNumber": {
-          "type": "integer",
-          "format": "int64"
-        },
-        "uuid": {
-          "type": "string"
-        }
-      },
-      "$schema": "http://json-schema.org/draft-07/schema#"
-    },
     "BuildSpec": {
       "type": "object",
       "$schema": "http://json-schema.org/draft-07/schema#"
@@ -428,17 +429,11 @@
     "CIExecutionArgs": {
       "type": "object",
       "properties": {
-        "branch": {
-          "type": "string"
-        },
-        "buildNumberDetails": {
-          "$ref": "#/definitions/BuildNumberDetails"
-        },
         "executionSource": {
           "$ref": "#/definitions/ExecutionSource"
         },
-        "inputSet": {
-          "$ref": "#/definitions/InputSet"
+        "runSequence": {
+          "type": "string"
         }
       },
       "$schema": "http://json-schema.org/draft-07/schema#"
@@ -456,46 +451,25 @@
           ],
           "properties": {
             "args": {
-              "oneOf": [
-                {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                },
-                {
-                  "type": "string"
-                }
-              ]
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
             },
             "connectorRef": {
               "type": "string"
             },
             "entrypoint": {
-              "oneOf": [
-                {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                },
-                {
-                  "type": "string"
-                }
-              ]
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
             },
             "envVariables": {
-              "oneOf": [
-                {
-                  "type": "object",
-                  "additionalProperties": {
-                    "type": "string"
-                  }
-                },
-                {
-                  "type": "string"
-                }
-              ]
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
             },
             "image": {
               "type": "string"
@@ -509,45 +483,75 @@
               ]
             },
             "portBindings": {
-              "oneOf": [
-                {
-                  "type": "object",
-                  "additionalProperties": {
-                    "type": "string"
-                  }
-                },
-                {
-                  "type": "string"
-                }
-              ]
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
             },
             "privileged": {
-              "oneOf": [
-                {
-                  "type": "boolean"
-                },
-                {
-                  "type": "string"
-                }
-              ]
+              "type": "boolean"
             },
             "resources": {
               "$ref": "#/definitions/ContainerResource"
             },
             "runAsUser": {
-              "oneOf": [
-                {
-                  "type": "integer",
-                  "format": "int32"
-                },
-                {
-                  "type": "string"
-                }
-              ]
+              "type": "integer",
+              "format": "int32"
             }
           }
         }
       ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "CIVolume": {
+      "type": "object",
+      "discriminator": "type",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "EmptyDir",
+            "PersistentVolumeClaim",
+            "HostPath"
+          ]
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "Capabilities": {
+      "type": "object",
+      "properties": {
+        "add": {
+          "oneOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "type": "string",
+              "pattern": "^<\\+input>(\\.(allowedValues|regex)\\(.+?\\))*$",
+              "minLength": 1
+            }
+          ]
+        },
+        "drop": {
+          "oneOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "type": "string",
+              "pattern": "^<\\+input>(\\.(allowedValues|regex)\\(.+?\\))*$",
+              "minLength": 1
+            }
+          ]
+        }
+      },
       "$schema": "http://json-schema.org/draft-07/schema#"
     },
     "Clause": {
@@ -620,9 +624,6 @@
             },
             "podName": {
               "type": "string"
-            },
-            "runAsUser": {
-              "$ref": "#/definitions/ParameterFieldInteger"
             }
           }
         }
@@ -697,8 +698,7 @@
       "type": "object",
       "required": [
         "key",
-        "operator",
-        "value"
+        "operator"
       ],
       "properties": {
         "key": {
@@ -714,7 +714,8 @@
           ]
         },
         "value": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         }
       },
       "$schema": "http://json-schema.org/draft-07/schema#"
@@ -948,6 +949,9 @@
         },
         {
           "type": "object",
+          "required": [
+            "payload"
+          ],
           "properties": {
             "payload": {
               "type": "string"
@@ -973,6 +977,9 @@
         "name": {
           "type": "string"
         },
+        "spec": {
+          "$ref": "#/definitions/DependencySpecType"
+        },
         "type": {
           "type": "string",
           "enum": [
@@ -980,25 +987,7 @@
           ]
         }
       },
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "allOf": [
-        {
-          "if": {
-            "properties": {
-              "type": {
-                "const": "Service"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "spec": {
-                "$ref": "#/definitions/CIServiceInfo"
-              }
-            }
-          }
-        }
-      ]
+      "$schema": "http://json-schema.org/draft-07/schema#"
     },
     "DependencySpecType": {
       "type": "object",
@@ -1061,6 +1050,9 @@
             "tags"
           ],
           "properties": {
+            "baseImageConnectorRefs": {
+              "$ref": "#/definitions/ParameterFieldListString"
+            },
             "buildArgs": {
               "oneOf": [
                 {
@@ -1165,6 +1157,19 @@
             "account": {
               "type": "string"
             },
+            "baseImageConnectorRefs": {
+              "oneOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            },
             "buildArgs": {
               "oneOf": [
                 {
@@ -1252,6 +1257,81 @@
           }
         }
       ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "EmptyDirVolume": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/PodVolume"
+        },
+        {
+          "type": "object",
+          "required": [
+            "mountPath",
+            "name"
+          ],
+          "properties": {
+            "medium": {
+              "type": "string"
+            },
+            "mountPath": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "sizeMib": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        }
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "EmptyDirYaml": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/CIVolume"
+        },
+        {
+          "type": "object",
+          "required": [
+            "mountPath",
+            "spec",
+            "type"
+          ],
+          "properties": {
+            "mountPath": {
+              "type": "string"
+            },
+            "spec": {
+              "$ref": "#/definitions/EmptyDirYamlSpec"
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "EmptyDir",
+                "PersistentVolumeClaim",
+                "HostPath"
+              ]
+            }
+          }
+        }
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "EmptyDirYamlSpec": {
+      "type": "object",
+      "properties": {
+        "medium": {
+          "type": "string"
+        },
+        "size": {
+          "type": "string",
+          "pattern": "^(([0-9]*[.])?[0-9]+)([GM]i?)|<\\+input>$"
+        }
+      },
       "$schema": "http://json-schema.org/draft-07/schema#"
     },
     "ExecutionElementConfig": {
@@ -1410,6 +1490,9 @@
             "tags"
           ],
           "properties": {
+            "baseImageConnectorRefs": {
+              "$ref": "#/definitions/ParameterFieldListString"
+            },
             "buildArgs": {
               "oneOf": [
                 {
@@ -1542,17 +1625,78 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#"
     },
-    "HoldingScope": {
+    "HostPathVolume": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/PodVolume"
+        },
+        {
+          "type": "object",
+          "required": [
+            "mountPath",
+            "name",
+            "path"
+          ],
+          "properties": {
+            "hostPathType": {
+              "type": "string"
+            },
+            "mountPath": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "path": {
+              "type": "string"
+            }
+          }
+        }
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "HostPathYaml": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/CIVolume"
+        },
+        {
+          "type": "object",
+          "required": [
+            "mountPath",
+            "spec",
+            "type"
+          ],
+          "properties": {
+            "mountPath": {
+              "type": "string"
+            },
+            "spec": {
+              "$ref": "#/definitions/HostPathYamlSpec"
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "EmptyDir",
+                "PersistentVolumeClaim",
+                "HostPath"
+              ]
+            }
+          }
+        }
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "HostPathYamlSpec": {
       "type": "object",
       "required": [
-        "nodeSetupId",
-        "scope"
+        "path"
       ],
       "properties": {
-        "nodeSetupId": {
+        "path": {
           "type": "string"
         },
-        "scope": {
+        "type": {
           "type": "string"
         }
       },
@@ -1697,7 +1841,8 @@
           "enum": [
             "KubernetesDirect",
             "UseFromStage",
-            "VM"
+            "VM",
+            "KubernetesHosted"
           ]
         }
       },
@@ -1712,7 +1857,6 @@
           "type": "object",
           "required": [
             "accountId",
-            "buildJobEnvInfo",
             "executionElementConfig",
             "infrastructure",
             "skipGitClone"
@@ -1730,33 +1874,30 @@
             "executionElementConfig": {
               "$ref": "#/definitions/ExecutionElementConfig"
             },
+            "executionSource": {
+              "$ref": "#/definitions/ExecutionSource"
+            },
             "infrastructure": {
               "$ref": "#/definitions/Infrastructure"
             },
             "skipGitClone": {
               "type": "boolean"
             },
-            "timeout": {
-              "type": "integer",
-              "format": "int32"
+            "stageElementConfig": {
+              "$ref": "#/definitions/IntegrationStageConfig"
+            },
+            "stageIdentifier": {
+              "type": "string"
+            },
+            "variables": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/NGVariable"
+              }
             }
           }
         }
       ],
-      "$schema": "http://json-schema.org/draft-07/schema#"
-    },
-    "InputSet": {
-      "type": "object",
-      "discriminator": "type",
-      "properties": {
-        "type": {
-          "type": "string",
-          "enum": [
-            "Manual",
-            "Webhook"
-          ]
-        }
-      },
       "$schema": "http://json-schema.org/draft-07/schema#"
     },
     "InputSetValidator": {
@@ -1777,12 +1918,42 @@
     },
     "IntegrationStageConfig": {
       "type": "object",
+      "properties": {
+        "cloneCodebase": {
+          "$ref": "#/definitions/ParameterFieldBoolean"
+        },
+        "execution": {
+          "$ref": "#/definitions/ExecutionElementConfig"
+        },
+        "infrastructure": {
+          "$ref": "#/definitions/Infrastructure"
+        },
+        "serviceDependencies": {
+          "$ref": "#/definitions/ParameterFieldListDependencyElement"
+        },
+        "sharedPaths": {
+          "$ref": "#/definitions/ParameterFieldListString"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "IntegrationStageConfigImpl": {
+      "type": "object",
       "required": [
         "infrastructure"
       ],
       "properties": {
         "cloneCodebase": {
-          "type": "boolean"
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "^<\\+input>(\\.(allowedValues|regex)\\(.+?\\))*$",
+              "minLength": 1
+            }
+          ]
         },
         "execution": {
           "$ref": "#/definitions/ExecutionElementConfig"
@@ -1793,6 +1964,9 @@
               "$ref": "#/definitions/K8sDirectInfraYaml"
             },
             {
+              "$ref": "#/definitions/K8sHostedInfraYaml"
+            },
+            {
               "$ref": "#/definitions/UseFromStageInfraYaml"
             },
             {
@@ -1801,10 +1975,19 @@
           ]
         },
         "serviceDependencies": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/DependencyElement"
-          }
+          "oneOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/DependencyElement"
+              }
+            },
+            {
+              "type": "string",
+              "pattern": "^<\\+input>(\\.(allowedValues|regex)\\(.+?\\))*$",
+              "minLength": 1
+            }
+          ]
         },
         "sharedPaths": {
           "oneOf": [
@@ -1830,6 +2013,21 @@
         "type"
       ],
       "properties": {
+        "delegateSelectors": {
+          "oneOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "type": "string",
+              "pattern": "^<\\+input>(\\.(allowedValues|regex)\\(.+?\\))*$",
+              "minLength": 1
+            }
+          ]
+        },
         "description": {
           "type": "string"
         },
@@ -1886,7 +2084,7 @@
           "then": {
             "properties": {
               "spec": {
-                "$ref": "#/definitions/IntegrationStageConfig"
+                "$ref": "#/definitions/IntegrationStageConfigImpl"
               }
             }
           }
@@ -2096,82 +2294,6 @@
     },
     "JsonNode": {
       "type": "object",
-      "properties": {
-        "array": {
-          "type": "boolean"
-        },
-        "bigDecimal": {
-          "type": "boolean"
-        },
-        "bigInteger": {
-          "type": "boolean"
-        },
-        "binary": {
-          "type": "boolean"
-        },
-        "boolean": {
-          "type": "boolean"
-        },
-        "containerNode": {
-          "type": "boolean"
-        },
-        "double": {
-          "type": "boolean"
-        },
-        "float": {
-          "type": "boolean"
-        },
-        "floatingPointNumber": {
-          "type": "boolean"
-        },
-        "int": {
-          "type": "boolean"
-        },
-        "integralNumber": {
-          "type": "boolean"
-        },
-        "long": {
-          "type": "boolean"
-        },
-        "missingNode": {
-          "type": "boolean"
-        },
-        "nodeType": {
-          "type": "string",
-          "enum": [
-            "ARRAY",
-            "BINARY",
-            "BOOLEAN",
-            "MISSING",
-            "NULL",
-            "NUMBER",
-            "OBJECT",
-            "POJO",
-            "STRING"
-          ]
-        },
-        "null": {
-          "type": "boolean"
-        },
-        "number": {
-          "type": "boolean"
-        },
-        "object": {
-          "type": "boolean"
-        },
-        "pojo": {
-          "type": "boolean"
-        },
-        "short": {
-          "type": "boolean"
-        },
-        "textual": {
-          "type": "boolean"
-        },
-        "valueNode": {
-          "type": "boolean"
-        }
-      },
       "$schema": "http://json-schema.org/draft-07/schema#"
     },
     "K8BuildJobEnvInfo": {
@@ -2188,7 +2310,10 @@
             "stepConnectorRefs": {
               "type": "object",
               "additionalProperties": {
-                "$ref": "#/definitions/ConnectorConversionInfo"
+                "type": "array",
+                "items": {
+                  "$ref": "#/definitions/ConnectorConversionInfo"
+                }
               }
             },
             "workDir": {
@@ -2219,7 +2344,8 @@
               "enum": [
                 "KubernetesDirect",
                 "UseFromStage",
-                "VM"
+                "VM",
+                "KubernetesHosted"
               ]
             }
           }
@@ -2247,7 +2373,34 @@
             }
           ]
         },
+        "automountServiceAccountToken": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "^<\\+input>(\\.(allowedValues|regex)\\(.+?\\))*$",
+              "minLength": 1
+            }
+          ]
+        },
         "connectorRef": {
+          "type": "string"
+        },
+        "containerSecurityContext": {
+          "oneOf": [
+            {
+              "$ref": "#/definitions/SecurityContext"
+            },
+            {
+              "type": "string",
+              "pattern": "^<\\+input>(\\.(allowedValues|regex)\\(.+?\\))*$",
+              "minLength": 1
+            }
+          ]
+        },
+        "harnessImageConnectorRef": {
           "type": "string"
         },
         "initTimeout": {
@@ -2269,6 +2422,41 @@
         "namespace": {
           "type": "string"
         },
+        "nodeSelector": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            {
+              "type": "string",
+              "pattern": "^<\\+input>(\\.(allowedValues|regex)\\(.+?\\))*$",
+              "minLength": 1
+            }
+          ]
+        },
+        "os": {
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "Linux",
+                "MacOS",
+                "Windows"
+              ]
+            },
+            {
+              "type": "string",
+              "pattern": "^<\\+input>(\\.(allowedValues|regex)\\(.+?\\))*$",
+              "minLength": 1
+            }
+          ]
+        },
+        "priorityClassName": {
+          "type": "string"
+        },
         "runAsUser": {
           "oneOf": [
             {
@@ -2281,6 +2469,77 @@
           ]
         },
         "serviceAccountName": {
+          "type": "string"
+        },
+        "tolerations": {
+          "oneOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Toleration"
+              }
+            },
+            {
+              "type": "string",
+              "pattern": "^<\\+input>(\\.(allowedValues|regex)\\(.+?\\))*$",
+              "minLength": 1
+            }
+          ]
+        },
+        "volumes": {
+          "oneOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/CIVolume"
+              }
+            },
+            {
+              "type": "string",
+              "pattern": "^<\\+input>(\\.(allowedValues|regex)\\(.+?\\))*$",
+              "minLength": 1
+            }
+          ]
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "K8sHostedInfraYaml": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/Infrastructure"
+        },
+        {
+          "type": "object",
+          "required": [
+            "spec",
+            "type"
+          ],
+          "properties": {
+            "spec": {
+              "$ref": "#/definitions/K8sHostedInfraYamlSpec"
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "KubernetesDirect",
+                "UseFromStage",
+                "VM",
+                "KubernetesHosted"
+              ]
+            }
+          }
+        }
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "K8sHostedInfraYamlSpec": {
+      "type": "object",
+      "required": [
+        "identifier"
+      ],
+      "properties": {
+        "identifier": {
           "type": "string"
         }
       },
@@ -2333,7 +2592,7 @@
         },
         "memory": {
           "type": "string",
-          "pattern": "^(([0-9]*[.])?[0-9]+)([GM]i?)$"
+          "pattern": "^(([0-9]*[.])?[0-9]+)([GM]i?)|<\\+input>$"
         }
       },
       "$schema": "http://json-schema.org/draft-07/schema#"
@@ -2540,7 +2799,8 @@
               "Timeout",
               "Authorization",
               "Verification",
-              "DelegateProvisioning"
+              "DelegateProvisioning",
+              "PolicyEvaluationFailure"
             ]
           }
         }
@@ -2713,6 +2973,36 @@
       },
       "$schema": "http://json-schema.org/draft-07/schema#"
     },
+    "PVCVolume": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/PodVolume"
+        },
+        {
+          "type": "object",
+          "required": [
+            "claimName",
+            "mountPath",
+            "name"
+          ],
+          "properties": {
+            "claimName": {
+              "type": "string"
+            },
+            "mountPath": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "readOnly": {
+              "type": "boolean"
+            }
+          }
+        }
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
     "ParallelStepElementConfig": {
       "type": "object",
       "required": [
@@ -2755,7 +3045,7 @@
       },
       "$schema": "http://json-schema.org/draft-07/schema#"
     },
-    "ParameterFieldInteger": {
+    "ParameterFieldBoolean": {
       "type": "object",
       "properties": {
         "expression": {
@@ -2777,8 +3067,67 @@
           "type": "boolean"
         },
         "value": {
-          "type": "integer",
-          "format": "int32"
+          "type": "boolean"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "ParameterFieldListDependencyElement": {
+      "type": "object",
+      "properties": {
+        "expression": {
+          "type": "boolean"
+        },
+        "expressionValue": {
+          "type": "string"
+        },
+        "inputSetValidator": {
+          "$ref": "#/definitions/InputSetValidator"
+        },
+        "jsonResponseField": {
+          "type": "boolean"
+        },
+        "responseField": {
+          "type": "string"
+        },
+        "typeString": {
+          "type": "boolean"
+        },
+        "value": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DependencyElement"
+          }
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "ParameterFieldListString": {
+      "type": "object",
+      "properties": {
+        "expression": {
+          "type": "boolean"
+        },
+        "expressionValue": {
+          "type": "string"
+        },
+        "inputSetValidator": {
+          "$ref": "#/definitions/InputSetValidator"
+        },
+        "jsonResponseField": {
+          "type": "boolean"
+        },
+        "responseField": {
+          "type": "string"
+        },
+        "typeString": {
+          "type": "boolean"
+        },
+        "value": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       },
       "$schema": "http://json-schema.org/draft-07/schema#"
@@ -2835,6 +3184,53 @@
       },
       "$schema": "http://json-schema.org/draft-07/schema#"
     },
+    "PersistentVolumeClaimYaml": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/CIVolume"
+        },
+        {
+          "type": "object",
+          "required": [
+            "mountPath",
+            "spec",
+            "type"
+          ],
+          "properties": {
+            "mountPath": {
+              "type": "string"
+            },
+            "spec": {
+              "$ref": "#/definitions/PersistentVolumeClaimYamlSpec"
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "EmptyDir",
+                "PersistentVolumeClaim",
+                "HostPath"
+              ]
+            }
+          }
+        }
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "PersistentVolumeClaimYamlSpec": {
+      "type": "object",
+      "required": [
+        "claimName"
+      ],
+      "properties": {
+        "claimName": {
+          "type": "string"
+        },
+        "readOnly": {
+          "type": "boolean"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
     "PluginStepInfo": {
       "allOf": [
         {
@@ -2854,11 +3250,20 @@
               "type": "string"
             },
             "imagePullPolicy": {
-              "type": "string",
-              "enum": [
-                "Always",
-                "Never",
-                "IfNotPresent"
+              "oneOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "Always",
+                    "Never",
+                    "IfNotPresent"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "pattern": "^<\\+input>(\\.(allowedValues|regex)\\(.+?\\))*$",
+                  "minLength": 1
+                }
               ]
             },
             "privileged": {
@@ -2867,12 +3272,23 @@
                   "type": "boolean"
                 },
                 {
-                  "type": "string"
+                  "type": "string",
+                  "pattern": "^<\\+input>(\\.(allowedValues|regex)\\(.+?\\))*$",
+                  "minLength": 1
                 }
               ]
             },
             "reports": {
-              "$ref": "#/definitions/UnitTestReport"
+              "oneOf": [
+                {
+                  "$ref": "#/definitions/UnitTestReport"
+                },
+                {
+                  "type": "string",
+                  "pattern": "^<\\+input>(\\.(allowedValues|regex)\\(.+?\\))*$",
+                  "minLength": 1
+                }
+              ]
             },
             "resources": {
               "$ref": "#/definitions/ContainerResource"
@@ -2950,6 +3366,12 @@
             "type": "string"
           }
         },
+        "volumes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/PodVolume"
+          }
+        },
         "workDirPath": {
           "type": "string"
         }
@@ -2964,6 +3386,21 @@
           "items": {
             "$ref": "#/definitions/ContainerDefinitionInfo"
           }
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "PodVolume": {
+      "type": "object",
+      "discriminator": "type",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "EmptyDir",
+            "PersistentVolumeClaim",
+            "HostPath"
+          ]
         }
       },
       "$schema": "http://json-schema.org/draft-07/schema#"
@@ -2997,15 +3434,27 @@
         },
         {
           "type": "object",
+          "required": [
+            "policySets"
+          ],
           "properties": {
             "metadata": {
               "type": "string"
             },
             "policySets": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
+              "oneOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "string",
+                  "pattern": "^<\\+input>(\\.(allowedValues|regex)\\(.+?\\))*$",
+                  "minLength": 1
+                }
+              ]
             },
             "type": {
               "type": "string"
@@ -3182,7 +3631,13 @@
               ]
             },
             "holdingScope": {
-              "$ref": "#/definitions/HoldingScope"
+              "type": "string",
+              "enum": [
+                "PLAN",
+                "PIPELINE",
+                "STAGE",
+                "STEP_GROUP"
+              ]
             },
             "name": {
               "type": "string"
@@ -3213,11 +3668,23 @@
           ],
           "properties": {
             "archiveFormat": {
-              "type": "string",
-              "enum": [
-                "Tar",
-                "Gzip"
+              "oneOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "Tar",
+                    "Gzip"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "pattern": "^<\\+input>(\\.(allowedValues|regex)\\(.+?\\))*$",
+                  "minLength": 1
+                }
               ]
+            },
+            "baseImageConnectorRefs": {
+              "$ref": "#/definitions/ParameterFieldListString"
             },
             "bucket": {
               "type": "string"
@@ -3271,11 +3738,23 @@
           ],
           "properties": {
             "archiveFormat": {
-              "type": "string",
-              "enum": [
-                "Tar",
-                "Gzip"
+              "oneOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "Tar",
+                    "Gzip"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "pattern": "^<\\+input>(\\.(allowedValues|regex)\\(.+?\\))*$",
+                  "minLength": 1
+                }
               ]
+            },
+            "baseImageConnectorRefs": {
+              "$ref": "#/definitions/ParameterFieldListString"
             },
             "bucket": {
               "type": "string"
@@ -3418,18 +3897,36 @@
               "type": "string"
             },
             "imagePullPolicy": {
-              "type": "string",
-              "enum": [
-                "Always",
-                "Never",
-                "IfNotPresent"
+              "oneOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "Always",
+                    "Never",
+                    "IfNotPresent"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "pattern": "^<\\+input>(\\.(allowedValues|regex)\\(.+?\\))*$",
+                  "minLength": 1
+                }
               ]
             },
             "outputVariables": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/OutputNGVariable"
-              }
+              "oneOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/OutputNGVariable"
+                  }
+                },
+                {
+                  "type": "string",
+                  "pattern": "^<\\+input>(\\.(allowedValues|regex)\\(.+?\\))*$",
+                  "minLength": 1
+                }
+              ]
             },
             "privileged": {
               "oneOf": [
@@ -3437,12 +3934,23 @@
                   "type": "boolean"
                 },
                 {
-                  "type": "string"
+                  "type": "string",
+                  "pattern": "^<\\+input>(\\.(allowedValues|regex)\\(.+?\\))*$",
+                  "minLength": 1
                 }
               ]
             },
             "reports": {
-              "$ref": "#/definitions/UnitTestReport"
+              "oneOf": [
+                {
+                  "$ref": "#/definitions/UnitTestReport"
+                },
+                {
+                  "type": "string",
+                  "pattern": "^<\\+input>(\\.(allowedValues|regex)\\(.+?\\))*$",
+                  "minLength": 1
+                }
+              ]
             },
             "resources": {
               "$ref": "#/definitions/ContainerResource"
@@ -3459,12 +3967,21 @@
               ]
             },
             "shell": {
-              "type": "string",
-              "enum": [
-                "Sh",
-                "Bash",
-                "Powershell",
-                "Pwsh"
+              "oneOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "Sh",
+                    "Bash",
+                    "Powershell",
+                    "Pwsh"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "pattern": "^<\\+input>(\\.(allowedValues|regex)\\(.+?\\))*$",
+                  "minLength": 1
+                }
               ]
             }
           }
@@ -3488,14 +4005,39 @@
             "args": {
               "type": "string"
             },
+            "buildEnvironment": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "Core",
+                    "Framework"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "pattern": "^<\\+input>(\\.(allowedValues|regex)\\(.+?\\))*$",
+                  "minLength": 1
+                }
+              ]
+            },
             "buildTool": {
-              "type": "string",
-              "enum": [
-                "Maven",
-                "Bazel",
-                "Gradle",
-                "Dotnet",
-                "Nunitconsole"
+              "oneOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "Maven",
+                    "Bazel",
+                    "Gradle",
+                    "Dotnet",
+                    "Nunitconsole"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "pattern": "^<\\+input>(\\.(allowedValues|regex)\\(.+?\\))*$",
+                  "minLength": 1
+                }
               ]
             },
             "connectorRef": {
@@ -3514,29 +4056,75 @@
                 }
               ]
             },
+            "frameworkVersion": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "5.0",
+                    "6.0"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "pattern": "^<\\+input>(\\.(allowedValues|regex)\\(.+?\\))*$",
+                  "minLength": 1
+                }
+              ]
+            },
             "image": {
               "type": "string"
             },
             "imagePullPolicy": {
-              "type": "string",
-              "enum": [
-                "Always",
-                "Never",
-                "IfNotPresent"
+              "oneOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "Always",
+                    "Never",
+                    "IfNotPresent"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "pattern": "^<\\+input>(\\.(allowedValues|regex)\\(.+?\\))*$",
+                  "minLength": 1
+                }
               ]
             },
             "language": {
-              "type": "string",
-              "enum": [
-                "Java",
-                "Csharp"
+              "oneOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "Java",
+                    "Csharp"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "pattern": "^<\\+input>(\\.(allowedValues|regex)\\(.+?\\))*$",
+                  "minLength": 1
+                }
               ]
             },
+            "namespaces": {
+              "type": "string"
+            },
             "outputVariables": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/OutputNGVariable"
-              }
+              "oneOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/OutputNGVariable"
+                  }
+                },
+                {
+                  "type": "string",
+                  "pattern": "^<\\+input>(\\.(allowedValues|regex)\\(.+?\\))*$",
+                  "minLength": 1
+                }
+              ]
             },
             "packages": {
               "type": "string"
@@ -3553,12 +4141,23 @@
                   "type": "boolean"
                 },
                 {
-                  "type": "string"
+                  "type": "string",
+                  "pattern": "^<\\+input>(\\.(allowedValues|regex)\\(.+?\\))*$",
+                  "minLength": 1
                 }
               ]
             },
             "reports": {
-              "$ref": "#/definitions/UnitTestReport"
+              "oneOf": [
+                {
+                  "$ref": "#/definitions/UnitTestReport"
+                },
+                {
+                  "type": "string",
+                  "pattern": "^<\\+input>(\\.(allowedValues|regex)\\(.+?\\))*$",
+                  "minLength": 1
+                }
+              ]
             },
             "resources": {
               "$ref": "#/definitions/ContainerResource"
@@ -3585,12 +4184,21 @@
               ]
             },
             "shell": {
-              "type": "string",
-              "enum": [
-                "Sh",
-                "Bash",
-                "Powershell",
-                "Pwsh"
+              "oneOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "Sh",
+                    "Bash",
+                    "Powershell",
+                    "Pwsh"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "pattern": "^<\\+input>(\\.(allowedValues|regex)\\(.+?\\))*$",
+                  "minLength": 1
+                }
               ]
             },
             "testAnnotations": {
@@ -3616,11 +4224,23 @@
           ],
           "properties": {
             "archiveFormat": {
-              "type": "string",
-              "enum": [
-                "Tar",
-                "Gzip"
+              "oneOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "Tar",
+                    "Gzip"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "pattern": "^<\\+input>(\\.(allowedValues|regex)\\(.+?\\))*$",
+                  "minLength": 1
+                }
               ]
+            },
+            "baseImageConnectorRefs": {
+              "$ref": "#/definitions/ParameterFieldListString"
             },
             "bucket": {
               "type": "string"
@@ -3688,11 +4308,23 @@
           ],
           "properties": {
             "archiveFormat": {
-              "type": "string",
-              "enum": [
-                "Tar",
-                "Gzip"
+              "oneOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "Tar",
+                    "Gzip"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "pattern": "^<\\+input>(\\.(allowedValues|regex)\\(.+?\\))*$",
+                  "minLength": 1
+                }
               ]
+            },
+            "baseImageConnectorRefs": {
+              "$ref": "#/definitions/ParameterFieldListString"
             },
             "bucket": {
               "type": "string"
@@ -3793,6 +4425,90 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#"
     },
+    "SecurityContext": {
+      "type": "object",
+      "properties": {
+        "allowPrivilegeEscalation": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "^<\\+input>(\\.(allowedValues|regex)\\(.+?\\))*$",
+              "minLength": 1
+            }
+          ]
+        },
+        "capabilities": {
+          "$ref": "#/definitions/Capabilities"
+        },
+        "privileged": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "^<\\+input>(\\.(allowedValues|regex)\\(.+?\\))*$",
+              "minLength": 1
+            }
+          ]
+        },
+        "procMount": {
+          "type": "string"
+        },
+        "readOnlyRootFilesystem": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "^<\\+input>(\\.(allowedValues|regex)\\(.+?\\))*$",
+              "minLength": 1
+            }
+          ]
+        },
+        "runAsGroup": {
+          "oneOf": [
+            {
+              "type": "integer",
+              "format": "int32"
+            },
+            {
+              "type": "string",
+              "pattern": "^<\\+input>(\\.(allowedValues|regex)\\(.+?\\))*$",
+              "minLength": 1
+            }
+          ]
+        },
+        "runAsNonRoot": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "^<\\+input>(\\.(allowedValues|regex)\\(.+?\\))*$",
+              "minLength": 1
+            }
+          ]
+        },
+        "runAsUser": {
+          "oneOf": [
+            {
+              "type": "integer",
+              "format": "int32"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
     "SecurityStepInfo": {
       "allOf": [
         {
@@ -3804,22 +4520,43 @@
             "connectorRef"
           ],
           "properties": {
+            "baseImageConnectorRefs": {
+              "$ref": "#/definitions/ParameterFieldListString"
+            },
             "connectorRef": {
               "type": "string"
             },
             "imagePullPolicy": {
-              "type": "string",
-              "enum": [
-                "Always",
-                "Never",
-                "IfNotPresent"
+              "oneOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "Always",
+                    "Never",
+                    "IfNotPresent"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "pattern": "^<\\+input>(\\.(allowedValues|regex)\\(.+?\\))*$",
+                  "minLength": 1
+                }
               ]
             },
             "outputVariables": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/OutputNGVariable"
-              }
+              "oneOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/OutputNGVariable"
+                  }
+                },
+                {
+                  "type": "string",
+                  "pattern": "^<\\+input>(\\.(allowedValues|regex)\\(.+?\\))*$",
+                  "minLength": 1
+                }
+              ]
             },
             "privileged": {
               "oneOf": [
@@ -3827,7 +4564,9 @@
                   "type": "boolean"
                 },
                 {
-                  "type": "string"
+                  "type": "string",
+                  "pattern": "^<\\+input>(\\.(allowedValues|regex)\\(.+?\\))*$",
+                  "minLength": 1
                 }
               ]
             },
@@ -3915,6 +4654,128 @@
             },
             "ticketType": {
               "type": "string"
+            }
+          }
+        }
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "ServiceNowCreateStepInfo": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/StepSpecType"
+        },
+        {
+          "type": "object",
+          "required": [
+            "connectorRef",
+            "ticketType",
+            "useServiceNowTemplate"
+          ],
+          "properties": {
+            "connectorRef": {
+              "type": "string"
+            },
+            "delegateSelectors": {
+              "oneOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "string",
+                  "pattern": "^<\\+input>(\\.(allowedValues|regex)\\(.+?\\))*$",
+                  "minLength": 1
+                }
+              ]
+            },
+            "fields": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ServiceNowField"
+              }
+            },
+            "templateName": {
+              "type": "string"
+            },
+            "ticketType": {
+              "type": "string"
+            },
+            "useServiceNowTemplate": {
+              "type": "boolean"
+            }
+          }
+        }
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "ServiceNowField": {
+      "type": "object",
+      "required": [
+        "value"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "ServiceNowUpdateStepInfo": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/StepSpecType"
+        },
+        {
+          "type": "object",
+          "required": [
+            "connectorRef",
+            "ticketNumber",
+            "ticketType",
+            "useServiceNowTemplate"
+          ],
+          "properties": {
+            "connectorRef": {
+              "type": "string"
+            },
+            "delegateSelectors": {
+              "oneOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "string",
+                  "pattern": "^<\\+input>(\\.(allowedValues|regex)\\(.+?\\))*$",
+                  "minLength": 1
+                }
+              ]
+            },
+            "fields": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ServiceNowField"
+              }
+            },
+            "templateName": {
+              "type": "string"
+            },
+            "ticketNumber": {
+              "type": "string"
+            },
+            "ticketType": {
+              "type": "string"
+            },
+            "useServiceNowTemplate": {
+              "type": "boolean"
             }
           }
         }
@@ -4693,6 +5554,38 @@
           "if": {
             "properties": {
               "type": {
+                "const": "ServiceNowCreate"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "spec": {
+                "$ref": "#/definitions/ServiceNowCreateStepInfo"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "ServiceNowUpdate"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "spec": {
+                "$ref": "#/definitions/ServiceNowUpdateStepInfo"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
                 "const": "ShellScript"
               }
             }
@@ -4714,6 +5607,21 @@
         "steps"
       ],
       "properties": {
+        "delegateSelectors": {
+          "oneOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "type": "string",
+              "pattern": "^<\\+input>(\\.(allowedValues|regex)\\(.+?\\))*$",
+              "minLength": 1
+            }
+          ]
+        },
         "failureStrategies": {
           "type": "array",
           "items": {
@@ -4840,6 +5748,28 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#"
     },
+    "Toleration": {
+      "type": "object",
+      "properties": {
+        "effect": {
+          "type": "string"
+        },
+        "key": {
+          "type": "string"
+        },
+        "operator": {
+          "type": "string"
+        },
+        "tolerationSeconds": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
     "TransitionTo": {
       "type": "object",
       "required": [
@@ -4957,6 +5887,9 @@
             "target"
           ],
           "properties": {
+            "baseImageConnectorRefs": {
+              "$ref": "#/definitions/ParameterFieldListString"
+            },
             "connectorRef": {
               "type": "string"
             },
@@ -4998,6 +5931,9 @@
             "sourcePath"
           ],
           "properties": {
+            "baseImageConnectorRefs": {
+              "$ref": "#/definitions/ParameterFieldListString"
+            },
             "bucket": {
               "type": "string"
             },
@@ -5039,9 +5975,13 @@
           "required": [
             "bucket",
             "connectorRef",
+            "region",
             "sourcePath"
           ],
           "properties": {
+            "baseImageConnectorRefs": {
+              "$ref": "#/definitions/ParameterFieldListString"
+            },
             "bucket": {
               "type": "string"
             },
@@ -5069,6 +6009,9 @@
               ]
             },
             "sourcePath": {
+              "type": "string"
+            },
+            "stripPrefix": {
               "type": "string"
             },
             "target": {
@@ -5195,7 +6138,8 @@
               "enum": [
                 "KubernetesDirect",
                 "UseFromStage",
-                "VM"
+                "VM",
+                "KubernetesHosted"
               ]
             }
           }
@@ -5231,11 +6175,31 @@
     },
     "VmPoolYamlSpec": {
       "type": "object",
-      "required": [
-        "identifier"
-      ],
       "properties": {
+        "harnessImageConnectorRef": {
+          "type": "string"
+        },
         "identifier": {
+          "type": "string"
+        },
+        "os": {
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "Linux",
+                "MacOS",
+                "Windows"
+              ]
+            },
+            {
+              "type": "string",
+              "pattern": "^<\\+input>(\\.(allowedValues|regex)\\(.+?\\))*$",
+              "minLength": 1
+            }
+          ]
+        },
+        "poolName": {
           "type": "string"
         }
       },
@@ -5338,22 +6302,6 @@
           "type": "string"
         }
       },
-      "$schema": "http://json-schema.org/draft-07/schema#"
-    },
-    "WebhookTriggerExecutionInputSet": {
-      "allOf": [
-        {
-          "$ref": "#/definitions/InputSet"
-        },
-        {
-          "type": "object",
-          "properties": {
-            "payload": {
-              "type": "string"
-            }
-          }
-        }
-      ],
       "$schema": "http://json-schema.org/draft-07/schema#"
     },
     "WeightedVariation": {

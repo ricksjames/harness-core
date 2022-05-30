@@ -32,6 +32,7 @@ import static io.harness.validation.Validator.notNullCheck;
 import static software.wings.beans.TaskType.CUSTOM_MANIFEST_FETCH_TASK;
 import static software.wings.beans.TaskType.GIT_FETCH_FILES_TASK;
 import static software.wings.beans.TaskType.PCF_COMMAND_TASK;
+import static software.wings.service.impl.artifact.ArtifactServiceImpl.metadataOnlyBehindFlag;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
@@ -84,7 +85,7 @@ import software.wings.beans.TaskType;
 import software.wings.beans.appmanifest.AppManifestKind;
 import software.wings.beans.appmanifest.ApplicationManifest;
 import software.wings.beans.artifact.Artifact;
-import software.wings.beans.artifact.Artifact.ArtifactMetadataKeys;
+import software.wings.beans.artifact.ArtifactMetadataKeys;
 import software.wings.beans.artifact.ArtifactStream;
 import software.wings.beans.artifact.ArtifactStreamAttributes;
 import software.wings.beans.command.CommandUnit;
@@ -112,6 +113,7 @@ import software.wings.sm.StateExecutionContext;
 import software.wings.sm.StateExecutionData;
 import software.wings.sm.StateType;
 import software.wings.sm.WorkflowStandardParams;
+import software.wings.sm.WorkflowStandardParamsExtensionService;
 import software.wings.stencils.DefaultValue;
 import software.wings.utils.ApplicationManifestUtils;
 import software.wings.utils.ServiceVersionConvention;
@@ -151,6 +153,7 @@ public class PcfSetupState extends State {
   @Inject private transient FeatureFlagService featureFlagService;
   @Inject private ApplicationManifestUtils applicationManifestUtils;
   @Inject private transient SweepingOutputService sweepingOutputService;
+  @Inject private transient WorkflowStandardParamsExtensionService workflowStandardParamsExtensionService;
 
   public static final String PCF_SETUP_COMMAND = "PCF Setup";
   public static final String URL = "url";
@@ -245,7 +248,7 @@ public class PcfSetupState extends State {
     PhaseElement phaseElement = context.getContextElement(ContextElementType.PARAM, PhaseElement.PHASE_PARAM);
     WorkflowStandardParams workflowStandardParams = context.getContextElement(ContextElementType.STANDARD);
     Application app = appService.get(context.getAppId());
-    Environment env = workflowStandardParams.getEnv();
+    Environment env = workflowStandardParamsExtensionService.getEnv(workflowStandardParams);
     notNullCheck("Env can not be null", env);
     ServiceElement serviceElement = phaseElement.getServiceElement();
 
@@ -282,8 +285,8 @@ public class PcfSetupState extends State {
     List<EncryptedDataDetail> encryptedDataDetails =
         secretManager.getEncryptionDetails(pcfConfig, context.getAppId(), context.getWorkflowExecutionId());
 
-    PcfManifestsPackage pcfManifestsPackage =
-        pcfStateHelper.generateManifestMap(context, appManifestMap, serviceElement, activityId);
+    PcfManifestsPackage pcfManifestsPackage = pcfStateHelper.generateManifestMap(
+        context, appManifestMap, serviceElement, activityId, pcfConfig.getAccountId());
 
     String applicationManifestYmlContent = pcfManifestsPackage.getManifestYml();
     String pcfAppNameSuffix = generateAppNamePrefix(context, app, serviceElement, env, pcfManifestsPackage, pcfConfig);
@@ -474,10 +477,7 @@ public class PcfSetupState extends State {
         }
         return artifact.getArtifactFileMetadata().get(0).getUrl();
       case ARTIFACTORY:
-        String artifactUrl = artifactStreamAttributes.getMetadata().get(URL);
-        return "."
-            + artifactUrl.substring(artifactUrl.lastIndexOf(artifactStreamAttributes.getJobName())
-                + artifactStreamAttributes.getJobName().length());
+        return artifactStreamAttributes.getMetadata().get("artifactPath");
       default:
         return artifactStreamAttributes.getMetadata().get(URL);
     }
@@ -511,7 +511,8 @@ public class PcfSetupState extends State {
       case ARTIFACTORY:
       case NEXUS:
       case S3:
-        return artifactStream.isMetadataOnly();
+        return metadataOnlyBehindFlag(
+            featureFlagService, artifactStream.getAccountId(), artifactStream.isMetadataOnly());
       default:
         return false;
     }

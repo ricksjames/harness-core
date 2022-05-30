@@ -36,5 +36,5 @@ pipeline:
                 method: "POST.allowedValues(POST, PUT, GET)"
                 headers: []
                 outputVariables: []
-                requestBody: "11.regex(^1*)"
+                requestBody: ""
               timeout: "10s"

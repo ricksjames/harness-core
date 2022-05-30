@@ -21,6 +21,7 @@ git log -1000 --oneline --format='%aN <%aE>' | sort -u |\
     grep -iv "^Achyuth Prakash <achyuth.prakash@harness.io>$" |\
     grep -iv "^Adam Hancock <adam.hancock@harness.io>$" |\
     grep -iv "^Adarsh Agarwal <adarsh.agarwal@harness.io>$" |\
+    grep -iv "^Adithya Viswanathan <adithya.viswnathan@harness.io>$" |\
     grep -iv "^Adwait Bhandare <adwait.bhandare@harness.io>$" |\
     grep -iv "^Akash Nagarajan <akash.nagarajan@harness.io>$" |\
     grep -iv "^akriti-harness <akriti.garg@harness.io>$" |\
@@ -29,6 +30,7 @@ git log -1000 --oneline --format='%aN <%aE>' | sort -u |\
     grep -iv "^Alexandru Bosii <alexandru.bosii@harness.io>$" |\
     grep -iv "^Alexandru Casian <alexandru.casian@harness.io>$" |\
     grep -iv "^Alexei Stirbul <alexei.stirbul@harness.io>$" |\
+    grep -iv "^Allen Thomas <allen.thomas@harness.io>$" |\
     grep -iv "^Aman Singh <aman.singh@harness.io>$" |\
     grep -iv "^aman-harness <aman.singh@harness.io>$" |\
     grep -iv "^aman-iitj <aman.singh@harness.io>$" |\
@@ -75,6 +77,7 @@ git log -1000 --oneline --format='%aN <%aE>' | sort -u |\
     grep -iv "^Guna Chandrasekaran <guna.chandrasekaran@harness.io>$" |\
     grep -iv "^Hannah Tang <hannah.tang@harness.io>$" |\
     grep -iv "^Harsh Jain <harsh.jain@harness.io>$" |\
+    grep -iv "^Hen Amar <hen.amar@harness.io>$" |\
     grep -iv "^Hitesh Aringa <hitesh.aringa@harness.io>$" |\
     grep -iv "^Igor Gere <igor.gere@harness.io>$" |\
     grep -iv "^Inderpreet Chera <inderpreet.chera@harness.io>$" |\
@@ -139,6 +142,7 @@ git log -1000 --oneline --format='%aN <%aE>' | sort -u |\
     grep -iv "^Prashant Sharma <prashant.sharma@harness.io>$" |\
     grep -iv "^prashantsharma04 <prashant.sharma@harness.io>$" |\
     grep -iv "^Prasun Banerjee <prasun.banerjee@harness.io>$" |\
+    grep -iv "^Pratyush Goel <goel.pratyush@harness.io>$" |\
     grep -iv "^Praveen Kambam Sugavanam <praveen.sugavanam@harness.io>$" |\
     grep -iv "^Praveen Sugavanam <praveen.sugavanam@harness.io>$" |\
     grep -iv "^Puneet Saraswat <puneet.saraswat@harness.io>$" |\
@@ -186,6 +190,7 @@ git log -1000 --oneline --format='%aN <%aE>' | sort -u |\
     grep -iv "^Swapnil Mahajan <swapnil@harness.io>$" |\
     grep -iv "^Tan Nhu <tan@harness.io>$" |\
     grep -iv "^Tathagat Chaurasiya <tathagat.chaurasiya@harness.io>$" |\
+    grep -iv "^Thomas Grasman <thomas.grasman@harness.io>$" |\
     grep -iv "^TP Honey <tp@harness.io>$" |\
     grep -iv "^Tudor Macari <tudor.macari@harness.io>$" |\
     grep -iv "^Udham Singh <udham.singh@harness.io>$" |\
@@ -240,6 +245,9 @@ git log -1000 --oneline --format='%aN <%aE>' | sort -u |\
     grep -iv "^William Wissemann william.wissemann@harness.io$" |\
     grep -iv "^Shubham Maheshwari <shubham.maheshwari@harness.io>$" |\
     grep -iv "^Alexandru Ciofu <alexandru.ciofu@harness.io>$" |\
+    grep -iv "^Vaibhav Kumar Singh <vaibhav.kumar@harness.io>$" |\
+    grep -iv "^James Cox <james.cox@harness.io>$" |\
+    grep -iv "^Vasile Lica <vasile.lica@harness.io>$" |\
     grep -iv "^Dev Mittal <devki.mittal@harness.io>$"` || :
 
 if [ ! -z "$UNKNOWN_USERS" ]

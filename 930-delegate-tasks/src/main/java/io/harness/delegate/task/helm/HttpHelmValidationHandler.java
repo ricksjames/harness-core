@@ -22,10 +22,9 @@ import io.harness.delegate.beans.connector.ConnectorValidationParams;
 import io.harness.delegate.beans.connector.helm.HttpHelmValidationParams;
 import io.harness.errorhandling.NGErrorHelper;
 import io.harness.exception.ExceptionUtils;
+import io.harness.exception.sanitizer.ExceptionMessageSanitizer;
 import io.harness.k8s.model.HelmVersion;
 import io.harness.security.encryption.SecretDecryptionService;
-
-import software.wings.delegatetasks.ExceptionMessageSanitizer;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
@@ -67,7 +66,7 @@ public class HttpHelmValidationHandler implements ConnectorValidationHandler {
           helmValidationParams.getHttpHelmConnectorDTO().getHelmRepoUrl(),
           helmTaskHelperBase.getHttpHelmUsername(helmValidationParams.getHttpHelmConnectorDTO()),
           helmTaskHelperBase.getHttpHelmPassword(helmValidationParams.getHttpHelmConnectorDTO()), workingDirectory,
-          defaultHelmVersion, DEFAULT_TIMEOUT_IN_MILLIS, false);
+          defaultHelmVersion, DEFAULT_TIMEOUT_IN_MILLIS, "");
 
       helmTaskHelperBase.removeRepo(repoName, workingDirectory, defaultHelmVersion, DEFAULT_TIMEOUT_IN_MILLIS);
       helmTaskHelperBase.cleanup(workingDirectory);

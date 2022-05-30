@@ -29,6 +29,7 @@ import io.harness.execution.PlanExecutionMetadata;
 import io.harness.gitsync.sdk.EntityGitDetails;
 import io.harness.pms.contracts.plan.ExecutionMetadata;
 import io.harness.pms.contracts.plan.ExecutionTriggerInfo;
+import io.harness.pms.instrumentaion.PipelineTelemetryHelper;
 import io.harness.pms.ngpipeline.inputset.helpers.ValidateAndMergeHelper;
 import io.harness.pms.pipeline.PipelineEntity;
 import io.harness.pms.plan.execution.beans.ExecArgs;
@@ -50,6 +51,7 @@ public class PipelineExecutorTest extends CategoryTest {
   @InjectMocks PipelineExecutor pipelineExecutor;
   @Mock ExecutionHelper executionHelper;
   @Mock ValidateAndMergeHelper validateAndMergeHelper;
+  @Mock PipelineTelemetryHelper pipelineTelemetryHelper;
 
   String accountId = "accountId";
   String orgId = "orgId";
@@ -184,17 +186,17 @@ public class PipelineExecutorTest extends CategoryTest {
 
     RetryExecutionParameters retryExecutionParameters = RetryExecutionParameters.builder().isRetry(false).build();
     doReturn(pipelineEntity).when(executionHelper).fetchPipelineEntity(accountId, orgId, projectId, pipelineId);
-    doReturn(executionTriggerInfo).when(executionHelper).buildTriggerInfo(null, originalExecutionId);
+    doReturn(executionTriggerInfo).when(executionHelper).buildTriggerInfo(originalExecutionId);
     if (EmptyPredicate.isEmpty(stageIdentifiers)) {
       doReturn(execArgs)
           .when(executionHelper)
           .buildExecutionArgs(pipelineEntity, moduleType, runtimeInputYaml, Collections.emptyList(),
-              Collections.emptyMap(), executionTriggerInfo, originalExecutionId, retryExecutionParameters, null);
+              Collections.emptyMap(), executionTriggerInfo, originalExecutionId, retryExecutionParameters);
     } else {
       doReturn(execArgs)
           .when(executionHelper)
           .buildExecutionArgs(pipelineEntity, moduleType, runtimeInputYaml, stageIdentifiers, Collections.emptyMap(),
-              executionTriggerInfo, originalExecutionId, retryExecutionParameters, null);
+              executionTriggerInfo, originalExecutionId, retryExecutionParameters);
     }
 
     doReturn(planExecution)
@@ -212,15 +214,15 @@ public class PipelineExecutorTest extends CategoryTest {
 
     RetryExecutionParameters retryExecutionParameters = RetryExecutionParameters.builder().isRetry(false).build();
     verify(executionHelper, times(1)).fetchPipelineEntity(accountId, orgId, projectId, pipelineId);
-    verify(executionHelper, times(1)).buildTriggerInfo(null, originalExecutionId);
+    verify(executionHelper, times(1)).buildTriggerInfo(originalExecutionId);
     if (EmptyPredicate.isEmpty(stageIdentifiers)) {
       verify(executionHelper, times(1))
           .buildExecutionArgs(pipelineEntity, moduleType, runtimeInputYaml, Collections.emptyList(),
-              Collections.emptyMap(), executionTriggerInfo, originalExecutionId, retryExecutionParameters, null);
+              Collections.emptyMap(), executionTriggerInfo, originalExecutionId, retryExecutionParameters);
     } else {
       verify(executionHelper, times(1))
           .buildExecutionArgs(pipelineEntity, moduleType, runtimeInputYaml, stageIdentifiers, Collections.emptyMap(),
-              executionTriggerInfo, originalExecutionId, retryExecutionParameters, null);
+              executionTriggerInfo, originalExecutionId, retryExecutionParameters);
     }
     verify(executionHelper, times(1))
         .startExecution(accountId, orgId, projectId, metadata, planExecutionMetadata, false, null, null);

@@ -201,21 +201,26 @@
         a factory and shared from all instances. -->
         <module name="io.harness.checks.LoggerCheck"/>
 
-        <!-- TODO: Every system handler should be responsible to handle all the exception in its execution threads.
-        When the thread is done or move to another task it should log or serialize the exception info to another
-        subsystem. If it is responsible to do so, this means that no one else should do it. This is why log and
-        rethrow pattern will either duplicate the logging or it is needed because the handler needs to be fixed.
-        In both cases having tis pattern in the code should be removed.
-        -->
-        <module name="com.github.sevntu.checkstyle.checks.coding.EitherLogOrThrowCheck">
-            <property name="loggerFullyQualifiedClassName" value="org.slf4j.Logger"/>
-            <property name="loggingMethodNames" value="error, warn, info, debug"/>
-        </module>
+        <!-- Temporarily commenting out BT-1014-->
+<!--        &lt;!&ndash; TODO: Every system handler should be responsible to handle all the exception in its execution threads.-->
+<!--        When the thread is done or move to another task it should log or serialize the exception info to another-->
+<!--        subsystem. If it is responsible to do so, this means that no one else should do it. This is why log and-->
+<!--        rethrow pattern will either duplicate the logging or it is needed because the handler needs to be fixed.-->
+<!--        In both cases having tis pattern in the code should be removed.-->
+<!--        &ndash;&gt;-->
+<!--        <module name="com.github.sevntu.checkstyle.checks.coding.EitherLogOrThrowCheck">-->
+<!--            <property name="loggerFullyQualifiedClassName" value="org.slf4j.Logger"/>-->
+<!--            <property name="loggingMethodNames" value="error, warn, info, debug"/>-->
+<!--        </module>-->
 
 
         <!-- PERFORMANCE -->
-
-        <module name="io.harness.checks.ForEachCheck"/>
+<!--        This check is broken, submit for removal, it doesn't support forEach over arrays using Arrays.stream().forEach which is the only valid way to stream array.
+            Other issues:
+            1. This check is very arbitrary. Streaming is slower than native iteration in general, but that doesn't mean we should not use streams.
+            2. The performance impact is only noticeable when dealing with collections several orders of magnitude larger than what we have (millions of records).
+            3. Stream performance has greatly improved since this was made. -->
+<!--        <module name="io.harness.checks.ForEachCheck"/>-->
 
         <!-- Best practices -->
 

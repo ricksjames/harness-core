@@ -32,7 +32,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -52,7 +51,6 @@ import lombok.extern.slf4j.Slf4j;
       @ApiResponse(code = 400, response = FailureDTO.class, message = "Bad Request")
       , @ApiResponse(code = 500, response = ErrorDTO.class, message = "Internal server error")
     })
-@Tag(name = "gcp clusters", description = "This contains APIs related to gcp clusters")
 @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Bad Request",
     content =
     {
@@ -79,7 +77,8 @@ public class GcpClusterResource {
       {
         @io.swagger.v3.oas.annotations.responses.
         ApiResponse(responseCode = "default", description = "Returns list of gcp cluster names")
-      })
+      },
+      hidden = true)
   public ResponseDTO<GcpResponseDTO>
   getClusterNames(@Parameter(description = GCP_CONNECTOR_IDENTIFIER) @NotNull @QueryParam(
                       "connectorRef") String gcpConnectorIdentifier,

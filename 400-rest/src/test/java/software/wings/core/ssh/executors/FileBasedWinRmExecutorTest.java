@@ -17,6 +17,7 @@ import static org.apache.commons.io.IOUtils.contentEquals;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyBoolean;
+import static org.mockito.Matchers.anyMapOf;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.spy;
@@ -29,6 +30,8 @@ import io.harness.CategoryTest;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.annotations.dev.TargetModule;
 import io.harness.category.element.UnitTests;
+import io.harness.delegate.clienttools.InstallUtils;
+import io.harness.delegate.task.shell.ConfigFileMetaData;
 import io.harness.delegate.task.winrm.WinRmSession;
 import io.harness.delegate.task.winrm.WinRmSessionConfig;
 import io.harness.logging.CommandExecutionStatus;
@@ -38,7 +41,6 @@ import io.harness.rule.OwnerRule;
 import io.harness.ssh.SshHelperUtils;
 
 import software.wings.beans.ConfigFile;
-import software.wings.beans.command.CopyConfigCommandUnit.ConfigFileMetaData;
 import software.wings.delegatetasks.DelegateFileManager;
 import software.wings.utils.ExecutionLogWriter;
 
@@ -63,7 +65,7 @@ import org.powermock.modules.junit4.PowerMockRunnerDelegate;
 
 @RunWith(PowerMockRunner.class)
 @PowerMockRunnerDelegate(JUnitParamsRunner.class)
-@PrepareForTest({WinRmSession.class, SshHelperUtils.class})
+@PrepareForTest({WinRmSession.class, SshHelperUtils.class, InstallUtils.class})
 @OwnedBy(CDP)
 @TargetModule(_930_DELEGATE_TASKS)
 public class FileBasedWinRmExecutorTest extends CategoryTest {
@@ -94,10 +96,13 @@ public class FileBasedWinRmExecutorTest extends CategoryTest {
 
   private void testCopyConfigFilesForExecutor(int size, FileBasedWinRmExecutor executor) throws IOException {
     mockStatic(SshHelperUtils.class);
+    mockStatic(InstallUtils.class);
     mockRemoteCommandStatus(executor, SUCCESS);
     PowerMockito
-        .when(SshHelperUtils.executeLocalCommand(anyString(), any(LogCallback.class), any(Writer.class), anyBoolean()))
+        .when(SshHelperUtils.executeLocalCommand(
+            anyString(), any(LogCallback.class), any(Writer.class), anyBoolean(), anyMapOf(String.class, String.class)))
         .thenReturn(true);
+    PowerMockito.when(InstallUtils.getPath(any(), any())).thenReturn("/tmp/dummypath/tool");
     doReturn(buildByteInputStream(size))
         .when(delegateFileManager)
         .downloadByConfigFileId(anyString(), anyString(), anyString(), anyString());

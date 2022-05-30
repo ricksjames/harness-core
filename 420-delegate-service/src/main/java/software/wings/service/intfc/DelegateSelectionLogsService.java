@@ -27,7 +27,7 @@ public interface DelegateSelectionLogsService {
 
   void logNoEligibleDelegatesToExecuteTask(DelegateTask delegateTask);
 
-  void logEligibleDelegatesToExecuteTask(Set<String> delegateIds, DelegateTask delegateTask);
+  void logEligibleDelegatesToExecuteTask(Set<String> delegateIds, DelegateTask delegateTask, boolean preAssigned);
 
   void logNonSelectedDelegates(DelegateTask delegateTask, Map<String, List<String>> nonAssignableDelegates);
 
@@ -45,4 +45,6 @@ public interface DelegateSelectionLogsService {
   DelegateSelectionLogResponse fetchTaskSelectionLogsData(String accountId, String taskId);
 
   Optional<DelegateSelectionLogParams> fetchSelectedDelegateForTask(String accountId, String taskId);
+
+  void logDelegateTaskInfo(DelegateTask delegateTask);
 }

@@ -14,6 +14,7 @@ import static io.harness.data.structure.UUIDGenerator.generateUuid;
 import static io.harness.exception.WingsException.USER;
 import static io.harness.reflection.ReflectionUtils.getFieldByName;
 import static io.harness.security.SimpleEncryption.CHARSET;
+import static io.harness.security.encryption.EncryptionType.LOCAL;
 
 import static java.lang.String.format;
 
@@ -22,6 +23,7 @@ import io.harness.annotations.dev.OwnedBy;
 import io.harness.annotations.dev.TargetModule;
 import io.harness.beans.DecryptableEntity;
 import io.harness.beans.IdentifierRef;
+import io.harness.beans.SecretManagerConfig;
 import io.harness.data.encoding.EncodingUtils;
 import io.harness.data.structure.EmptyPredicate;
 import io.harness.delegate.beans.SecretDetail;
@@ -34,6 +36,7 @@ import io.harness.ng.core.BaseNGAccess;
 import io.harness.secretmanagerclient.services.api.SecretManagerClientService;
 import io.harness.security.SimpleEncryption;
 import io.harness.security.encryption.EncryptedDataDetail;
+import io.harness.security.encryption.EncryptedRecordData;
 import io.harness.security.encryption.EncryptionConfig;
 import io.harness.security.encryption.EncryptionType;
 import io.harness.utils.IdentifierRefHelper;
@@ -46,6 +49,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import javax.cache.Cache;
 import lombok.Builder;
 import lombok.Value;
 
@@ -59,6 +63,7 @@ public class NgSecretManagerFunctor implements ExpressionFunctor, NgSecretManage
   private final String orgId;
   private final String projectId;
   private final SecretManager secretManager;
+  private final Cache<String, EncryptedRecordData> secretsCache;
   private final SecretManagerClientService ngSecretService;
   private SecretManagerMode mode;
 
@@ -107,6 +112,27 @@ public class NgSecretManagerFunctor implements ExpressionFunctor, NgSecretManage
                                               .type(SecretVariableDTO.Type.TEXT)
                                               .build();
 
+    int keyHash = SecretsCacheKey.builder()
+                      .accountIdentifier(accountId)
+                      .orgIdentifier(orgId)
+                      .projectIdentifier(projectId)
+                      .secretVariableDTO(secretVariableDTO)
+                      .build()
+                      .hashCode();
+
+    if (secretsCache != null) {
+      EncryptedRecordData locallyEncryptedData = secretsCache.get(String.valueOf(keyHash));
+      if (locallyEncryptedData != null) {
+        // Cache hit. Decrypt the value locally with previously saved encryption key.
+        if (locallyEncryptedData.getName().equals(secretIdentifier)) {
+          // Verify the name of secretIdentifier before returning cached value, there can be conflict in keyHash.
+          return new String(new SimpleEncryption(locallyEncryptedData.getEncryptionKey())
+                                .decryptChars(locallyEncryptedData.getEncryptedValue()));
+        }
+      }
+    }
+
+    // Cache miss.
     List<EncryptedDataDetail> encryptedDataDetails = ngSecretService.getEncryptionDetails(
         BaseNGAccess.builder().accountIdentifier(accountId).orgIdentifier(orgId).projectIdentifier(projectId).build(),
         secretVariableDTO);
@@ -124,9 +150,23 @@ public class NgSecretManagerFunctor implements ExpressionFunctor, NgSecretManage
     if (isNotEmpty(localEncryptedDetails)) {
       // ToDo Vikas said that we can have decrypt here for now. Later on it will be moved to proper service.
       decryptLocal(secretVariableDTO, localEncryptedDetails);
-      String value = new String(secretVariableDTO.getSecret().getDecryptedValue());
-      evaluatedSecrets.put(secretIdentifier, value);
-      return returnValue(secretIdentifier, value);
+      final String secretValue = new String(secretVariableDTO.getSecret().getDecryptedValue());
+      final String localEncryptionKey = generateUuid();
+
+      char[] reEncryptedValue =
+          new SimpleEncryption(localEncryptionKey).encryptChars(secretVariableDTO.getSecret().getDecryptedValue());
+      EncryptedRecordData locallyEncryptedData =
+          EncryptedRecordData.builder()
+              .uuid(localEncryptedDetails.get(0).getEncryptedData().getUuid())
+              .name(secretVariableDTO.getName())
+              .encryptionType(LOCAL)
+              .encryptionKey(localEncryptionKey)
+              .encryptedValue(reEncryptedValue)
+              .base64Encoded(localEncryptedDetails.get(0).getEncryptedData().isBase64Encoded())
+              .build();
+      secretsCache.put(String.valueOf(keyHash), locallyEncryptedData);
+      evaluatedSecrets.put(secretIdentifier, secretValue);
+      return returnValue(secretIdentifier, secretValue);
     }
 
     List<EncryptedDataDetail> nonLocalEncryptedDetails =
@@ -141,8 +181,11 @@ public class NgSecretManagerFunctor implements ExpressionFunctor, NgSecretManage
     }
 
     EncryptedDataDetail encryptedDataDetail = nonLocalEncryptedDetails.get(0);
-    String encryptionConfigUuid = encryptedDataDetail.getEncryptionConfig().getUuid();
-    encryptionConfigs.put(encryptionConfigUuid, encryptedDataDetail.getEncryptionConfig());
+    String encryptionConfigUuid = generateUuid();
+    SecretManagerConfig encryptionConfig = (SecretManagerConfig) encryptedDataDetail.getEncryptionConfig();
+    encryptionConfig.setUuid(encryptionConfigUuid);
+
+    encryptionConfigs.put(encryptionConfigUuid, encryptionConfig);
 
     SecretDetail secretDetail = SecretDetail.builder()
                                     .configUuid(encryptionConfigUuid)
@@ -186,4 +229,13 @@ public class NgSecretManagerFunctor implements ExpressionFunctor, NgSecretManage
           }
         });
   }
+}
+
+@Builder
+@lombok.EqualsAndHashCode
+class SecretsCacheKey {
+  String accountIdentifier;
+  String orgIdentifier;
+  String projectIdentifier;
+  SecretVariableDTO secretVariableDTO;
 }

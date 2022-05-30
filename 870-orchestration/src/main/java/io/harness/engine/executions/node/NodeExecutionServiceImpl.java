@@ -30,6 +30,8 @@ import io.harness.engine.observers.NodeStartInfo;
 import io.harness.engine.observers.NodeStatusUpdateObserver;
 import io.harness.engine.observers.NodeUpdateInfo;
 import io.harness.engine.observers.NodeUpdateObserver;
+import io.harness.event.OrchestrationLogConfiguration;
+import io.harness.event.OrchestrationLogPublisher;
 import io.harness.exception.InvalidRequestException;
 import io.harness.exception.UnexpectedException;
 import io.harness.execution.ExecutionModeUtils;
@@ -51,6 +53,7 @@ import io.harness.pms.execution.ExecutionStatus;
 import io.harness.pms.execution.utils.AmbianceUtils;
 import io.harness.pms.execution.utils.NodeProjectionUtils;
 import io.harness.pms.execution.utils.StatusUtils;
+import io.harness.springdata.TransactionHelper;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
@@ -70,6 +73,7 @@ import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
+import org.bson.Document;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Sort.Direction;
@@ -81,10 +85,16 @@ import org.springframework.data.mongodb.core.query.Update;
 @Slf4j
 @OwnedBy(PIPELINE)
 public class NodeExecutionServiceImpl implements NodeExecutionService {
-  private static Set<String> DEFAULT_FIELDS = ImmutableSet.of(NodeExecutionKeys.oldRetry);
+  private static final Set<String> GRAPH_FIELDS =
+      ImmutableSet.of(NodeExecutionKeys.mode, NodeExecutionKeys.progressData, NodeExecutionKeys.unitProgresses,
+          NodeExecutionKeys.executableResponses, NodeExecutionKeys.interruptHistories, NodeExecutionKeys.retryIds,
+          NodeExecutionKeys.oldRetry, NodeExecutionKeys.failureInfo, NodeExecutionKeys.endTs);
   @Inject private MongoTemplate mongoTemplate;
   @Inject private OrchestrationEventEmitter eventEmitter;
   @Inject private PlanExecutionMetadataService planExecutionMetadataService;
+  @Inject private TransactionHelper transactionHelper;
+  @Inject private OrchestrationLogPublisher orchestrationLogPublisher;
+  @Inject private OrchestrationLogConfiguration orchestrationLogConfiguration;
 
   @Getter private final Subject<NodeStatusUpdateObserver> stepStatusUpdateSubject = new Subject<>();
   @Getter private final Subject<NodeExecutionStartObserver> nodeExecutionStartSubject = new Subject<>();
@@ -108,7 +118,6 @@ public class NodeExecutionServiceImpl implements NodeExecutionService {
 
   @Override
   public NodeExecution getWithFieldsIncluded(String nodeExecutionId, Set<String> fieldsToInclude) {
-    fieldsToInclude.addAll(DEFAULT_FIELDS);
     Query query = query(where(NodeExecutionKeys.uuid).is(nodeExecutionId));
     for (String field : fieldsToInclude) {
       query.fields().include(field);
@@ -123,8 +132,8 @@ public class NodeExecutionServiceImpl implements NodeExecutionService {
   // TODO (alexi) : Handle the case where multiple instances are returned
   @Override
   public NodeExecution getByPlanNodeUuid(String planNodeUuid, String planExecutionId) {
-    Query query = query(where(NodeExecutionKeys.planNodeId).is(planNodeUuid))
-                      .addCriteria(where(NodeExecutionKeys.planExecutionId).is(planExecutionId));
+    Query query = query(where(NodeExecutionKeys.planExecutionId).is(planExecutionId))
+                      .addCriteria(where(NodeExecutionKeys.nodeId).is(planNodeUuid));
     NodeExecution nodeExecution = mongoTemplate.findOne(query, NodeExecution.class);
     if (nodeExecution == null) {
       throw new InvalidRequestException("Node Execution is null for planNodeUuid: " + planNodeUuid);
@@ -135,7 +144,7 @@ public class NodeExecutionServiceImpl implements NodeExecutionService {
   @Override
   public Optional<NodeExecution> getByNodeIdentifier(String nodeIdentifier, String planExecutionId) {
     Query query = query(where(NodeExecutionKeys.planExecutionId).is(planExecutionId))
-                      .addCriteria(where(NodeExecutionKeys.planNodeIdentifier).in(nodeIdentifier));
+                      .addCriteria(where(NodeExecutionKeys.identifier).in(nodeIdentifier));
     return Optional.ofNullable(mongoTemplate.findOne(query, NodeExecution.class));
   }
 
@@ -154,14 +163,29 @@ public class NodeExecutionServiceImpl implements NodeExecutionService {
   }
 
   @Override
+  public List<Status> fetchNodeExecutionsWithoutOldRetriesOnlyStatus(String planExecutionId) {
+    Query query = query(where(NodeExecutionKeys.planExecutionId).is(planExecutionId))
+                      .addCriteria(where(NodeExecutionKeys.oldRetry).is(false));
+    query.fields().exclude(NodeExecutionKeys.id).include(NodeExecutionKeys.status);
+    List<NodeExecution> nodeExecutions = mongoTemplate.find(query, NodeExecution.class);
+    return nodeExecutions.stream().map(NodeExecution::getStatus).collect(Collectors.toList());
+  }
+
+  // Important : This should be used in graph regeneration no where else
+  // Please check with prashant if you need any such methods
+  @Override
   public List<NodeExecution> fetchNodeExecutionsWithoutOldRetries(String planExecutionId) {
-    return fetchNodeExecutionsWithoutOldRetriesAndStatusIn(planExecutionId, EnumSet.noneOf(Status.class));
+    return fetchNodeExecutionsWithoutOldRetriesAndStatusIn(
+        planExecutionId, EnumSet.noneOf(Status.class), false, new HashSet<>());
   }
 
   @Override
-  public List<NodeExecution> fetchNodeExecutionsWithoutOldRetriesAndStatusIn(
-      String planExecutionId, EnumSet<Status> statuses) {
-    return fetchNodeExecutionsWithoutOldRetriesAndStatusIn(planExecutionId, statuses, false, new HashSet<>());
+  public List<NodeExecution> fetchWithoutRetriesAndStatusIn(String planExecutionId, EnumSet<Status> statuses) {
+    Query query = query(where(NodeExecutionKeys.planExecutionId).is(planExecutionId))
+                      .addCriteria(where(NodeExecutionKeys.oldRetry).is(false))
+                      .addCriteria(where(NodeExecutionKeys.status).in(statuses));
+    query.fields().include(NodeExecutionKeys.status);
+    return mongoTemplate.find(query, NodeExecution.class);
   }
 
   @Override
@@ -178,7 +202,6 @@ public class NodeExecutionServiceImpl implements NodeExecutionService {
     Query query = query(where(NodeExecutionKeys.planExecutionId).is(planExecutionId))
                       .addCriteria(where(NodeExecutionKeys.oldRetry).is(false));
     if (shouldUseProjections) {
-      fieldsToBeIncluded.addAll(DEFAULT_FIELDS);
       for (String field : fieldsToBeIncluded) {
         query.fields().include(field);
       }
@@ -203,7 +226,6 @@ public class NodeExecutionServiceImpl implements NodeExecutionService {
   @Override
   public List<NodeExecution> fetchChildrenNodeExecutions(
       String planExecutionId, String parentId, Set<String> fieldsToBeIncluded) {
-    fieldsToBeIncluded.addAll(DEFAULT_FIELDS);
     Query query = query(where(NodeExecutionKeys.planExecutionId).is(planExecutionId))
                       .addCriteria(where(NodeExecutionKeys.parentId).is(parentId))
                       .with(Sort.by(Direction.DESC, NodeExecutionKeys.createdAt));
@@ -228,15 +250,21 @@ public class NodeExecutionServiceImpl implements NodeExecutionService {
     Query query = query(where(NodeExecutionKeys.uuid).is(nodeExecutionId));
     Update updateOps = new Update().set(NodeExecutionKeys.lastUpdatedAt, System.currentTimeMillis());
     ops.accept(updateOps);
-    NodeExecution updated = mongoTemplate.findAndModify(query, updateOps, returnNewOptions, NodeExecution.class);
-    if (updated == null) {
-      throw new NodeExecutionUpdateFailedException(
-          "Node Execution Cannot be updated with provided operations" + nodeExecutionId);
-    }
-
+    boolean shouldLog = shouldLog(updateOps);
+    NodeExecution updatedNodeExecution = transactionHelper.performTransaction(() -> {
+      NodeExecution updated = mongoTemplate.findAndModify(query, updateOps, returnNewOptions, NodeExecution.class);
+      if (updated == null) {
+        throw new NodeExecutionUpdateFailedException(
+            "Node Execution Cannot be updated with provided operations" + nodeExecutionId);
+      }
+      if (shouldLog) {
+        orchestrationLogPublisher.onNodeUpdate(NodeUpdateInfo.builder().nodeExecution(updated).build());
+      }
+      return updated;
+    });
     nodeUpdateObserverSubject.fireInform(
-        NodeUpdateObserver::onNodeUpdate, NodeUpdateInfo.builder().nodeExecution(updated).build());
-    return updated;
+        NodeUpdateObserver::onNodeUpdate, NodeUpdateInfo.builder().nodeExecution(updatedNodeExecution).build());
+    return updatedNodeExecution;
   }
 
   @Override
@@ -244,20 +272,42 @@ public class NodeExecutionServiceImpl implements NodeExecutionService {
       @NonNull String nodeExecutionId, @NonNull Consumer<Update> ops, Set<String> fieldsToBeIncluded) {
     Query query = query(where(NodeExecutionKeys.uuid).is(nodeExecutionId));
     fieldsToBeIncluded.addAll(NodeProjectionUtils.fieldsForNodeUpdateObserver);
-    fieldsToBeIncluded.addAll(DEFAULT_FIELDS);
     for (String field : fieldsToBeIncluded) {
       query.fields().include(field);
     }
     Update updateOps = new Update().set(NodeExecutionKeys.lastUpdatedAt, System.currentTimeMillis());
     ops.accept(updateOps);
-    NodeExecution updated = mongoTemplate.findAndModify(query, updateOps, returnNewOptions, NodeExecution.class);
-    if (updated == null) {
-      throw new NodeExecutionUpdateFailedException(
-          "Node Execution Cannot be updated with provided operations" + nodeExecutionId);
-    }
+    boolean shouldLog = shouldLog(updateOps);
+    NodeExecution updatedNodeExecution = transactionHelper.performTransaction(() -> {
+      NodeExecution updated = mongoTemplate.findAndModify(query, updateOps, returnNewOptions, NodeExecution.class);
+      if (updated == null) {
+        throw new NodeExecutionUpdateFailedException(
+            "Node Execution Cannot be updated with provided operations" + nodeExecutionId);
+      }
+      if (shouldLog) {
+        orchestrationLogPublisher.onNodeUpdate(NodeUpdateInfo.builder().nodeExecution(updated).build());
+      }
+      return updated;
+    });
     nodeUpdateObserverSubject.fireInform(
-        NodeUpdateObserver::onNodeUpdate, NodeUpdateInfo.builder().nodeExecution(updated).build());
-    return updated;
+        NodeUpdateObserver::onNodeUpdate, NodeUpdateInfo.builder().nodeExecution(updatedNodeExecution).build());
+    return updatedNodeExecution;
+  }
+
+  @VisibleForTesting
+  @Override
+  public boolean shouldLog(Update updateOps) {
+    if (!orchestrationLogConfiguration.isReduceOrchestrationLog()) {
+      return false;
+    }
+    Set<String> fieldsUpdated = new HashSet<>();
+    if (updateOps.getUpdateObject().containsKey("$set")) {
+      fieldsUpdated.addAll(((Document) updateOps.getUpdateObject().get("$set")).keySet());
+    }
+    if (updateOps.getUpdateObject().containsKey("$addToSet")) {
+      fieldsUpdated.addAll(((Document) updateOps.getUpdateObject().get("$addToSet")).keySet());
+    }
+    return fieldsUpdated.stream().anyMatch(GRAPH_FIELDS::contains);
   }
 
   @Override
@@ -273,20 +323,34 @@ public class NodeExecutionServiceImpl implements NodeExecutionService {
                             .setAmbiance(nodeExecution.getAmbiance())
                             .setStatus(nodeExecution.getStatus())
                             .setEventType(OrchestrationEventType.NODE_EXECUTION_START)
-                            .setServiceName(nodeExecution.module());
+                            .setServiceName(nodeExecution.getModule());
 
       if (nodeExecution.getResolvedStepParameters() != null) {
         builder.setStepParameters(nodeExecution.getResolvedStepParametersBytes());
       }
       eventEmitter.emitEvent(builder.build());
-      NodeExecution nodeExecution1 = mongoTemplate.insert(nodeExecution);
+      NodeExecution savedNodeExecution = transactionHelper.performTransaction(() -> {
+        NodeExecution nodeExecution1 = mongoTemplate.insert(nodeExecution);
+        if (orchestrationLogConfiguration.isReduceOrchestrationLog()) {
+          orchestrationLogPublisher.onNodeStart(NodeStartInfo.builder().nodeExecution(nodeExecution).build());
+        }
+        return nodeExecution1;
+      });
+      if (savedNodeExecution != null) {
+        emitEvent(savedNodeExecution, OrchestrationEventType.NODE_EXECUTION_STATUS_UPDATE);
+      }
       nodeExecutionStartSubject.fireInform(
-          NodeExecutionStartObserver::onNodeStart, NodeStartInfo.builder().nodeExecution(nodeExecution).build());
-      return nodeExecution1;
+          NodeExecutionStartObserver::onNodeStart, NodeStartInfo.builder().nodeExecution(savedNodeExecution).build());
+      return savedNodeExecution;
     } else {
-      nodeExecutionStartSubject.fireInform(
-          NodeExecutionStartObserver::onNodeStart, NodeStartInfo.builder().nodeExecution(nodeExecution).build());
-      return mongoTemplate.save(nodeExecution);
+      NodeExecution savedNodeExecution = transactionHelper.performTransaction(() -> {
+        orchestrationLogPublisher.onNodeStart(NodeStartInfo.builder().nodeExecution(nodeExecution).build());
+        return mongoTemplate.save(nodeExecution);
+      });
+      if (savedNodeExecution != null) {
+        emitEvent(savedNodeExecution, OrchestrationEventType.NODE_EXECUTION_STATUS_UPDATE);
+      }
+      return savedNodeExecution;
     }
   }
 
@@ -333,22 +397,31 @@ public class NodeExecutionServiceImpl implements NodeExecutionService {
     Query query = query(where(NodeExecutionKeys.uuid).is(nodeExecutionId))
                       .addCriteria(where(NodeExecutionKeys.status).in(allowedStartStatuses));
     if (shouldUseProjections) {
-      includedFields.addAll(DEFAULT_FIELDS);
       for (String field : includedFields) {
         query.fields().include(field);
       }
     }
     Update updateOps =
         ops.set(NodeExecutionKeys.status, status).set(NodeExecutionKeys.lastUpdatedAt, System.currentTimeMillis());
-    NodeExecution updated = mongoTemplate.findAndModify(query, updateOps, returnNewOptions, NodeExecution.class);
-    if (updated == null) {
-      log.warn("Cannot update execution status for the node {} with {}", nodeExecutionId, status);
-    } else {
-      emitEvent(updated, OrchestrationEventType.NODE_EXECUTION_STATUS_UPDATE);
-      stepStatusUpdateSubject.fireInform(
-          NodeStatusUpdateObserver::onNodeStatusUpdate, NodeUpdateInfo.builder().nodeExecution(updated).build());
+    NodeExecution updatedNodeExecution = transactionHelper.performTransaction(() -> {
+      NodeExecution updated = mongoTemplate.findAndModify(query, updateOps, returnNewOptions, NodeExecution.class);
+      if (updated == null) {
+        log.warn("Cannot update execution status for the node {} with {}", nodeExecutionId, status);
+      } else {
+        if (updated.getStepType().getStepCategory() == StepCategory.STAGE || StatusUtils.isFinalStatus(status)) {
+          emitEvent(updated, OrchestrationEventType.NODE_EXECUTION_STATUS_UPDATE);
+        }
+        if (orchestrationLogConfiguration.isReduceOrchestrationLog()) {
+          orchestrationLogPublisher.onNodeStatusUpdate(NodeUpdateInfo.builder().nodeExecution(updated).build());
+        }
+      }
+      return updated;
+    });
+    if (updatedNodeExecution != null) {
+      stepStatusUpdateSubject.fireInform(NodeStatusUpdateObserver::onNodeStatusUpdate,
+          NodeUpdateInfo.builder().nodeExecution(updatedNodeExecution).build());
     }
-    return updated;
+    return updatedNodeExecution;
   }
 
   @Override
@@ -408,8 +481,7 @@ public class NodeExecutionServiceImpl implements NodeExecutionService {
       log.error("Failed to mark node as retry");
       return false;
     }
-    nodeUpdateObserverSubject.fireInform(
-        NodeUpdateObserver::onNodeUpdate, NodeUpdateInfo.builder().nodeExecution(nodeExecution).build());
+    orchestrationLogPublisher.onNodeUpdate(NodeUpdateInfo.builder().nodeExecution(nodeExecution).build());
     return true;
   }
 
@@ -466,6 +538,16 @@ public class NodeExecutionServiceImpl implements NodeExecutionService {
   public List<NodeExecution> findAllChildrenWithStatusIn(String planExecutionId, String parentId,
       EnumSet<Status> flowingStatuses, boolean includeParent, boolean shouldUseProjections,
       Set<String> fieldsToBeIncluded, Set<String> fieldsToBeExcluded) {
+    if (shouldUseProjections) {
+      if (!fieldsToBeIncluded.contains(NodeExecutionKeys.parentId)
+          || !fieldsToBeIncluded.contains(NodeExecutionKeys.status)) {
+        throw new InvalidRequestException(
+            "ParentId or Status fields are not included in projectionFields, which are necessary");
+      }
+      if (fieldsToBeExcluded.contains(NodeExecutionKeys.id)) {
+        throw new InvalidRequestException("Excluding nodeExecutionId is not allowed, as its a required field");
+      }
+    }
     List<NodeExecution> finalList = new ArrayList<>();
     List<NodeExecution> allExecutions = fetchNodeExecutionsWithoutOldRetriesAndStatusIn(
         planExecutionId, flowingStatuses, true, fieldsToBeIncluded, fieldsToBeExcluded);
@@ -477,7 +559,7 @@ public class NodeExecutionServiceImpl implements NodeExecutionService {
       String planExecutionId, String parentId, EnumSet<Status> flowingStatuses, boolean includeParent) {
     List<NodeExecution> finalList = new ArrayList<>();
     List<NodeExecution> allExecutions =
-        fetchNodeExecutionsWithoutOldRetriesAndStatusIn(planExecutionId, flowingStatuses);
+        fetchNodeExecutionsWithoutOldRetriesAndStatusIn(planExecutionId, flowingStatuses, false, new HashSet<>());
     return extractChildExecutions(parentId, includeParent, finalList, allExecutions);
   }
 
@@ -515,7 +597,8 @@ public class NodeExecutionServiceImpl implements NodeExecutionService {
     children.forEach(child -> extractChildList(parentChildrenMap, child.getUuid(), finalList));
   }
 
-  private void emitEvent(NodeExecution nodeExecution, OrchestrationEventType orchestrationEventType) {
+  @VisibleForTesting
+  void emitEvent(NodeExecution nodeExecution, OrchestrationEventType orchestrationEventType) {
     TriggerPayload triggerPayload = TriggerPayload.newBuilder().build();
     if (nodeExecution != null && nodeExecution.getAmbiance() != null) {
       PlanExecutionMetadata metadata =
@@ -531,7 +614,7 @@ public class NodeExecutionServiceImpl implements NodeExecutionService {
                                .setStatus(nodeExecution.getStatus())
                                .setStepParameters(nodeExecution.getResolvedStepParametersBytes())
                                .setEventType(orchestrationEventType)
-                               .setServiceName(nodeExecution.module())
+                               .setServiceName(nodeExecution.getModule())
                                .setTriggerPayload(triggerPayload);
 
     updateEventIfCausedByAutoAbortThroughTrigger(nodeExecution, orchestrationEventType, eventBuilder);
@@ -601,7 +684,7 @@ public class NodeExecutionServiceImpl implements NodeExecutionService {
   public List<NodeExecution> fetchStageExecutions(String planExecutionId) {
     Query query = query(where(NodeExecutionKeys.planExecutionId).is(planExecutionId))
                       .addCriteria(where(NodeExecutionKeys.status).ne(Status.SKIPPED))
-                      .addCriteria(where(NodeExecutionKeys.planNodeStepCategory).is(StepCategory.STAGE));
+                      .addCriteria(where(NodeExecutionKeys.stepCategory).is(StepCategory.STAGE));
     query.with(by(NodeExecutionKeys.createdAt));
     return mongoTemplate.find(query, NodeExecution.class);
   }
@@ -615,7 +698,7 @@ public class NodeExecutionServiceImpl implements NodeExecutionService {
   public List<NodeExecution> fetchStageExecutionsWithEndTsAndStatusProjection(String planExecutionId) {
     Query query = query(where(NodeExecutionKeys.planExecutionId).is(planExecutionId))
                       .addCriteria(where(NodeExecutionKeys.status).ne(SKIPPED))
-                      .addCriteria(where(NodeExecutionKeys.planNodeStepCategory).is(StepCategory.STAGE));
+                      .addCriteria(where(NodeExecutionKeys.stepCategory).is(StepCategory.STAGE));
     query.fields()
         .include(NodeExecutionKeys.uuid)
         .include(NodeExecutionKeys.status)
@@ -630,23 +713,6 @@ public class NodeExecutionServiceImpl implements NodeExecutionService {
     return mongoTemplate.find(query, NodeExecution.class);
   }
 
-  @Override
-  public Map<String, String> fetchNodeExecutionFromNodeUuidsAndPlanExecutionId(
-      List<String> identifierOfSkipStages, String planExecutionId) {
-    Query query = query(where(NodeExecutionKeys.planExecutionId).is(planExecutionId))
-                      .addCriteria(where(NodeExecutionKeys.planNodeId).in(identifierOfSkipStages));
-    List<NodeExecution> nodeExecutionList = mongoTemplate.find(query, NodeExecution.class);
-    return mapNodeExecutionUuidWithPlanNodeUuid(nodeExecutionList);
-  }
-
-  private Map<String, String> mapNodeExecutionUuidWithPlanNodeUuid(List<NodeExecution> nodeExecutionList) {
-    Map<String, String> uuidMapper = new HashMap<>();
-    for (NodeExecution nodeExecution : nodeExecutionList) {
-      uuidMapper.put(nodeExecution.nodeId(), nodeExecution.getUuid());
-    }
-    return uuidMapper;
-  }
-
   // TODO optimize this to remove n+1 queries
   public List<RetryStageInfo> fetchStageDetailFromNodeExecution(List<NodeExecution> nodeExecutionList) {
     List<RetryStageInfo> stageDetails = new ArrayList<>();
@@ -659,8 +725,8 @@ public class NodeExecutionServiceImpl implements NodeExecutionService {
       String nextId = nodeExecution.getNextId();
       String parentId = nodeExecution.getParentId();
       RetryStageInfo stageDetail = RetryStageInfo.builder()
-                                       .name(nodeExecution.name())
-                                       .identifier(nodeExecution.identifier())
+                                       .name(nodeExecution.getName())
+                                       .identifier(nodeExecution.getIdentifier())
                                        .parentId(parentId)
                                        .createdAt(nodeExecution.getCreatedAt())
                                        .status(ExecutionStatus.getExecutionStatus(nodeExecution.getStatus()))
@@ -674,8 +740,8 @@ public class NodeExecutionServiceImpl implements NodeExecutionService {
   @Override
   public List<String> fetchStageFqnFromStageIdentifiers(String planExecutionId, List<String> stageIdentifiers) {
     Query query = query(where(NodeExecutionKeys.planExecutionId).is(planExecutionId))
-                      .addCriteria(where(NodeExecutionKeys.planNodeStepCategory).is(StepCategory.STAGE))
-                      .addCriteria(where(NodeExecutionKeys.planNodeIdentifier).in(stageIdentifiers));
+                      .addCriteria(where(NodeExecutionKeys.stepCategory).is(StepCategory.STAGE))
+                      .addCriteria(where(NodeExecutionKeys.identifier).in(stageIdentifiers));
 
     List<NodeExecution> nodeExecutions = mongoTemplate.find(query, NodeExecution.class);
 

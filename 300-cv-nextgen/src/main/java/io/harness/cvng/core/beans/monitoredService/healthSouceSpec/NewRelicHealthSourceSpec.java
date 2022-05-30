@@ -39,7 +39,7 @@ import org.apache.commons.collections4.CollectionUtils;
 @SuperBuilder
 @NoArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class NewRelicHealthSourceSpec extends HealthSourceSpec {
+public class NewRelicHealthSourceSpec extends MetricHealthSourceSpec {
   String applicationName;
   String applicationId;
   String feature;
@@ -110,8 +110,6 @@ public class NewRelicHealthSourceSpec extends HealthSourceSpec {
                                               .monitoringSourceName(name)
                                               .applicationName(applicationName)
                                               .applicationId(Long.valueOf(applicationId))
-                                              .envIdentifier(environmentRef)
-                                              .serviceIdentifier(serviceRef)
                                               .metricPack(metricPackFromDb)
                                               .category(metricPackFromDb.getCategory())
                                               .productName(feature)
@@ -136,11 +134,10 @@ public class NewRelicHealthSourceSpec extends HealthSourceSpec {
                                               .productName(feature)
                                               .applicationName(applicationName)
                                               .applicationId(Long.valueOf(applicationId))
-                                              .envIdentifier(environmentRef)
-                                              .serviceIdentifier(serviceRef)
                                               .groupName(definitionList.get(0).getGroupName())
                                               .category(definitionList.get(0).getRiskProfile().getCategory())
                                               .monitoredServiceIdentifier(monitoredServiceIdentifier)
+                                              .customQuery(true)
                                               .build();
       newRelicCVConfig.populateFromMetricDefinitions(
           newRelicMetricDefinitions, newRelicMetricDefinitions.get(0).getRiskProfile().getCategory());
@@ -154,10 +151,14 @@ public class NewRelicHealthSourceSpec extends HealthSourceSpec {
     return Key.builder()
         .applicationId(cvConfig.getApplicationId())
         .applicationName(cvConfig.getApplicationName())
-        .envIdentifier(cvConfig.getEnvIdentifier())
-        .serviceIdentifier(cvConfig.getServiceIdentifier())
         .metricPack(cvConfig.getMetricPack())
+        .monitoredServiceIdentifier(cvConfig.getMonitoredServiceIdentifier())
         .build();
+  }
+
+  @Override
+  public List<? extends HealthSourceMetricDefinition> getMetricDefinitions() {
+    return this.newRelicMetricDefinitions;
   }
 
   @Data
@@ -175,8 +176,7 @@ public class NewRelicHealthSourceSpec extends HealthSourceSpec {
   private static class Key {
     private String applicationName;
     private long applicationId;
-    private String envIdentifier;
-    private String serviceIdentifier;
+    private String monitoredServiceIdentifier;
     MetricPack metricPack;
   }
 

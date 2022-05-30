@@ -37,7 +37,6 @@ import software.wings.service.impl.analysis.DataCollectionTaskResult;
 import software.wings.service.impl.apm.APMDataCollectionInfo;
 import software.wings.service.impl.apm.APMMetricInfo;
 import software.wings.service.intfc.security.EncryptionService;
-import software.wings.sm.StateType;
 
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableMap;
@@ -68,7 +67,6 @@ public class APMDataCollectionTaskTest extends WingsBaseTest {
   APMDataCollectionInfo dataCollectionInfo;
   @Mock private RequestExecutor requestExecutor;
   @Mock private EncryptionService encryptionService;
-  @Mock private DelegateLogService delegateLogService;
   @Mock private MetricDataStoreService metricStoreService;
   @Inject private DataCollectionExecutorService dataCollectionService;
   private APMDataCollectionTask dataCollectionTask;
@@ -85,7 +83,7 @@ public class APMDataCollectionTaskTest extends WingsBaseTest {
     dataCollectionInfo =
         APMDataCollectionInfo.builder()
             .startTime(12312321123L)
-            .stateType(StateType.APM_VERIFICATION)
+            .stateType(DelegateStateType.APM_VERIFICATION)
             .dataCollectionFrequency(2)
             .hosts(ImmutableMap.<String, String>builder()
                        .put("test.host.node1", DEFAULT_GROUP_NAME)
@@ -106,7 +104,6 @@ public class APMDataCollectionTaskTest extends WingsBaseTest {
 
     dataCollectionTask = new APMDataCollectionTask(
         DelegateTaskPackage.builder().delegateId(delegateId).data(taskData).build(), null, null, null);
-    FieldUtils.writeField(dataCollectionTask, "delegateLogService", delegateLogService, true);
     FieldUtils.writeField(dataCollectionTask, "metricStoreService", metricStoreService, true);
     FieldUtils.writeField(dataCollectionTask, "encryptionService", encryptionService, true);
     FieldUtils.writeField(dataCollectionTask, "requestExecutor", requestExecutor, true);

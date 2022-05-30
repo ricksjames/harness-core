@@ -43,6 +43,8 @@ public class ApiCallLogRecord extends CVNGLogRecord {
   private List<ApiCallLogField> responses;
   private Instant requestTime;
   private Instant responseTime;
+  private static final int ERROR_RESPONSE_CODE = 400;
+  private static final String RESPONSE_NAME = "Status Code";
 
   public void addFieldToRequest(ApiCallLogField field) {
     Preconditions.checkNotNull(field, "Api call log request field is null.");
@@ -120,6 +122,16 @@ public class ApiCallLogRecord extends CVNGLogRecord {
     return apiCallLogDTO;
   }
 
+  @Override
+  public boolean isErrorLog() {
+    for (ApiCallLogField response : responses) {
+      if (response.getName().equals(RESPONSE_NAME)) {
+        return Integer.parseInt(response.getValue()) >= ERROR_RESPONSE_CODE;
+      }
+    }
+    return false;
+  }
+
   private ApiCallLogDTOField toApiCallLogDTOField(ApiCallLogField apiCallLogField) {
     return ApiCallLogDTOField.builder()
         .name(apiCallLogField.getName())
@@ -143,8 +155,9 @@ public class ApiCallLogRecord extends CVNGLogRecord {
 
   @Override
   public void recordsMetrics(MetricService metricService, Map<String, String> tags) {
-    try (AutoMetricContext cvngLogMetricContext = new ApiCallLogMetricContext(
-             tags.get(TAG_ACCOUNT_ID), tags.get(TAG_DATA_SOURCE).toLowerCase(), tags.get(TAG_VERIFICATION_TYPE))) {
+    try (AutoMetricContext cvngLogMetricContext = new ApiCallLogMetricContext(tags.get(TAG_ACCOUNT_ID),
+             tags.containsKey(TAG_DATA_SOURCE) ? tags.get(TAG_DATA_SOURCE).toLowerCase() : null,
+             tags.get(TAG_VERIFICATION_TYPE))) {
       metricService.recordDuration(
           API_CALL_EXECUTION_TIME, Duration.between(this.getRequestTime(), this.getResponseTime()));
       metricService.recordMetric(API_CALL_RESPONSE_SIZE, this.getResponses().get(1).getValue().getBytes().length);

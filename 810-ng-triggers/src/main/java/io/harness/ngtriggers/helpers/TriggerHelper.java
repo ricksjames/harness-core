@@ -56,7 +56,9 @@ import io.harness.pms.contracts.triggers.TriggerPayload;
 import io.harness.product.ci.scm.proto.PullRequest;
 import io.harness.product.ci.scm.proto.User;
 
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import lombok.experimental.UtilityClass;
 
@@ -73,7 +75,7 @@ public class TriggerHelper {
     switch (parsedPayload.getPayloadCase()) {
       case PR:
         PullRequest pullRequest = parsedPayload.getPr().getPr();
-        jsonObject.put(BRANCH, pullRequest.getTarget());
+        jsonObject.put(BRANCH, pullRequest.getSource());
         jsonObject.put(TARGET_BRANCH, pullRequest.getTarget());
         jsonObject.put(SOURCE_BRANCH, pullRequest.getSource());
         jsonObject.put(EVENT, PR);
@@ -177,5 +179,9 @@ public class TriggerHelper {
         .append(':')
         .append(ngTriggerEntity.getIdentifier())
         .toString();
+  }
+
+  public List<String> getAllTriggerExpressions() {
+    return Arrays.asList("trigger.targetBranch", "trigger.sourceBranch", "trigger.prNumber", "trigger.prTitle");
   }
 }

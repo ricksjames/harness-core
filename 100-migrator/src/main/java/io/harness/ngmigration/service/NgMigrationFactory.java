@@ -7,6 +7,19 @@
 
 package io.harness.ngmigration.service;
 
+import io.harness.ngmigration.service.entity.AppMigrationService;
+import io.harness.ngmigration.service.entity.ArtifactStreamMigrationService;
+import io.harness.ngmigration.service.entity.ConnectorMigrationService;
+import io.harness.ngmigration.service.entity.DummyMigrationService;
+import io.harness.ngmigration.service.entity.EnvironmentMigrationService;
+import io.harness.ngmigration.service.entity.InfraMigrationService;
+import io.harness.ngmigration.service.entity.ManifestMigrationService;
+import io.harness.ngmigration.service.entity.PipelineMigrationService;
+import io.harness.ngmigration.service.entity.SecretManagerMigrationService;
+import io.harness.ngmigration.service.entity.SecretMigrationService;
+import io.harness.ngmigration.service.entity.ServiceMigrationService;
+import io.harness.ngmigration.service.entity.WorkflowMigrationService;
+
 import software.wings.ngmigration.NGMigrationEntityType;
 
 import com.google.inject.Inject;
@@ -22,9 +35,15 @@ public class NgMigrationFactory {
   @Inject EnvironmentMigrationService environmentMigrationService;
   @Inject InfraMigrationService infraMigrationService;
   @Inject ManifestMigrationService manifestMigrationService;
+  @Inject DummyMigrationService dummyMigrationService;
+  @Inject AppMigrationService appMigrationService;
 
   public NgMigrationService getMethod(NGMigrationEntityType type) {
     switch (type) {
+      case DUMMY_HEAD:
+        return dummyMigrationService;
+      case APPLICATION:
+        return appMigrationService;
       case PIPELINE:
         return pipelineMigrationService;
       case WORKFLOW:

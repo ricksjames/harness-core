@@ -62,7 +62,10 @@ BAZEL_MODULES="\
   //295-cdng-contracts:module \
   //300-cv-nextgen:module \
   //310-ci-manager:module \
+  //315-sto-manager:module \
   //320-ci-execution:module \
+  //323-sto-utilities:module \
+  //325-sto-beans:module \
   //330-ci-beans:module \
   //340-ce-nextgen:module \
   //350-event-server:module \
@@ -85,12 +88,16 @@ BAZEL_MODULES="\
   //800-pipeline-service:module \
   //810-ng-triggers:module \
   //815-cg-triggers:module \
-  //820-platform-service:module \
-  //820-platform-service:module_deploy.jar \
-  //830-notification-service:module \
-  //830-resource-group:module \
-  //835-notification-senders:module \
-  //835-notification-senders:module \
+  //platform-service/service:module \
+  //platform-service/service:module_deploy.jar \
+  //platform-service/modules/audit-service/contracts:module \
+  //platform-service/modules/notification-service/contracts:module \
+  //platform-service/modules/notification-service/contracts/src/main/proto:all \
+  //platform-service/modules/notification-service/delegate-tasks:module \
+  //platform-service/modules/resource-group-service/contracts:module \
+  //platform-service/modules/audit-service:module \
+  //platform-service/modules/notification-service:module \
+  //platform-service/modules/resource-group-service:module \
   //840-template-service:module \
   //860-orchestration-steps:module \
   //860-orchestration-visualization:module \
@@ -104,8 +111,6 @@ BAZEL_MODULES="\
   //879-pms-sdk:module \
   //882-pms-sdk-core:module \
   //884-pms-commons:module \
-  //889-yaml-commons:module \
-  //890-pms-contracts:module \
   //890-sm-core:module \
   //900-git-sync-sdk:module \
   //910-delegate-service-driver:module \
@@ -123,19 +128,16 @@ BAZEL_MODULES="\
   //935-analyser-service:module \
   //937-persistence-tracer:module \
   //940-feature-flag:module \
-  //940-ng-audit-service:module \
-  //940-notification-client:module \
-  //940-notification-client:module_deploy.jar \
-  //940-resource-group-beans:module \
+  //clients/notification:module \
+  //clients/notification:module_deploy.jar \
   //940-secret-manager-client:module \
   //942-enforcement-sdk:module \
   //943-enforcement-beans:module \
   //945-account-mgmt:module \
   //945-license-usage-sdk:module \
-  //945-ng-audit-client:module \
+  //clients/audit:module \
   //947-scim-core:module \
-  //948-access-control-admin-client:module \
-  //948-access-control-sdk:module \
+  //948-cv-nextgen-beans:module \
   //950-command-library-common:module \
   //959-common-entities:module \
   //950-delegate-tasks-beans/src/main/proto:all \
@@ -144,21 +146,24 @@ BAZEL_MODULES="\
   //950-events-framework-monitor:module \
   //950-log-client:module \
   //951-cg-git-sync:module \
-  //951-ng-audit-commons:module \
+  //951-debezium-service:module \
+  //952-debezium-engine:module \
+  //959-debezium-beans:module \
   //950-ng-authentication-service:module \
   //950-ng-core:module \
   //950-ng-project-n-orgs:module \
   //950-ng-signup-beans:module \
   //950-telemetry:module \
   //950-wait-engine:module \
-  //950-walktree-visitor:module \
   //952-remote-observers:module \
   //952-scm-java-client:module \
   //953-events-api/src/main/proto:all \
   //953-events-api:module \
   //953-git-sync-commons/src/main/proto:all \
   //953-git-sync-commons:module \
+  //953-yaml-commons:module \
   //954-connector-beans:module \
+  //954-pms-contracts:module \
   //955-cg-yaml:module \
   //955-delegate-beans/src/main/proto:all \
   //955-delegate-beans:module \
@@ -178,11 +183,10 @@ BAZEL_MODULES="\
   //960-ng-core-beans:module \
   //960-ng-license-beans:module \
   //960-ng-license-usage-beans:module \
-  //960-notification-beans/src/main/proto:all \
-  //960-notification-beans:module \
   //960-persistence:module \
   //960-persistence:supporter-test \
   //960-yaml-sdk:module \
+  //967-walktree-visitor:module \
   //970-api-services-beans:module \
   //970-grpc:module \
   //970-ng-commons:module \
@@ -194,9 +198,11 @@ BAZEL_MODULES="\
   //990-commons-test:module \
   //999-annotations:module \
   //access-control/service:module \
-  //access-control/libraries/80-aggregator:module \
-  //access-control/libraries/90-core:module \
+  //access-control/libs/aggregator:module \
+  //access-control/libs/core:module \
   //access-control/contracts:module \
+  //clients/access-control/admin-client:module \
+  //clients/access-control/sdk:module \
   //product/ci/engine/proto:all \
   //product/ci/scm/proto:all \
 "
@@ -288,10 +294,10 @@ build_protocol_info(){
   rm module-deps.sh /tmp/ProtoDeps.text /tmp/KryoDeps.text
 }
 
-build_bazel_application 940-notification-client
-build_bazel_application 820-platform-service
-
+build_bazel_module 100-migrator
 build_bazel_module 320-ci-execution
+build_bazel_module 323-sto-utilities
+build_bazel_module 325-sto-beans
 build_bazel_module 330-ci-beans
 build_bazel_module 380-cg-graphql
 build_bazel_module 400-rest
@@ -308,9 +314,6 @@ build_bazel_module 460-capability
 build_bazel_module 490-ce-commons
 build_bazel_module 810-ng-triggers
 build_bazel_module 815-cg-triggers
-build_bazel_module 830-notification-service
-build_bazel_module 830-resource-group
-build_bazel_module 835-notification-senders
 build_bazel_module 865-cg-events
 build_bazel_module 860-orchestration-steps
 build_bazel_module 860-orchestration-visualization
@@ -323,8 +326,6 @@ build_bazel_module 878-ng-common-utilities
 build_bazel_module 879-pms-sdk
 build_bazel_module 882-pms-sdk-core
 build_bazel_module 884-pms-commons
-build_bazel_module 889-yaml-commons
-build_bazel_module 890-pms-contracts
 build_bazel_module 890-sm-core
 build_bazel_module 900-git-sync-sdk
 build_bazel_module 910-delegate-service-driver
@@ -335,13 +336,9 @@ build_bazel_module 930-delegate-tasks
 build_bazel_module 930-ng-core-clients
 build_bazel_module 932-connector-task
 build_bazel_module 940-feature-flag
-build_bazel_module 940-ng-audit-service
-build_bazel_module 940-resource-group-beans
 build_bazel_module 940-secret-manager-client
-build_bazel_module 945-ng-audit-client
 build_bazel_module 947-scim-core
-build_bazel_module 948-access-control-admin-client
-build_bazel_module 948-access-control-sdk
+build_bazel_module 948-cv-nextgen-beans
 build_bazel_module 950-command-library-common
 build_bazel_module 959-common-entities
 build_bazel_module 950-delegate-tasks-beans
@@ -350,14 +347,14 @@ build_bazel_module 950-log-client
 build_bazel_module 950-ng-core
 build_bazel_module 950-ng-project-n-orgs
 build_bazel_module 950-wait-engine
-build_bazel_module 950-walktree-visitor
 build_bazel_module 951-cg-git-sync
-build_bazel_module 951-ng-audit-commons
 build_bazel_module 952-remote-observers
 build_bazel_module 952-scm-java-client
 build_bazel_module 953-events-api
 build_bazel_module 953-git-sync-commons
+build_bazel_module 953-yaml-commons
 build_bazel_module 954-connector-beans
+build_bazel_module 954-pms-contracts
 build_bazel_module 955-cg-yaml
 build_bazel_module 955-delegate-beans
 build_bazel_module 955-filters-sdk
@@ -373,9 +370,9 @@ build_bazel_module 960-api-services
 build_bazel_module 960-continuous-features
 build_bazel_module 960-expression-service
 build_bazel_module 960-ng-core-beans
-build_bazel_module 960-notification-beans
 build_bazel_module 960-persistence
 build_bazel_module 960-yaml-sdk
+build_bazel_module 967-walktree-visitor
 build_bazel_module 970-api-services-beans
 build_bazel_module 970-grpc
 build_bazel_module 970-ng-commons
@@ -389,8 +386,6 @@ build_bazel_module 999-annotations
 build_bazel_tests 400-rest
 build_bazel_tests 960-persistence
 
-build_java_proto_module 960-notification-beans
-
 build_proto_module ciengine product/ci/engine/proto
 build_proto_module ciscm product/ci/scm/proto
 
@@ -399,4 +394,5 @@ bazel ${bazelrc} run ${BAZEL_ARGUMENTS} //001-microservice-intfc-tool:module | g
 if [ "${PLATFORM}" == "jenkins" ]; then
  build_protocol_info 800-pipeline-service pipeline-service
  build_protocol_info 310-ci-manager ci-manager
+ build_protocol_info 315-sto-manager sto-manager
 fi

@@ -7,7 +7,6 @@
 
 package io.harness.serializer;
 
-import io.harness.accesscontrol.serializer.AccessControlClientRegistrars;
 import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.filter.serializer.morphia.FiltersMorphiaRegistrar;
@@ -15,9 +14,10 @@ import io.harness.gitsync.serializer.GitSyncSdkRegistrar;
 import io.harness.morphia.MorphiaRegistrar;
 import io.harness.serializer.kryo.DelegateAgentBeansKryoRegister;
 import io.harness.serializer.kryo.DelegateServiceBeansKryoRegistrar;
+import io.harness.serializer.kryo.NotificationBeansKryoRegistrar;
 import io.harness.serializer.kryo.PipelineServiceKryoRegistrar;
 import io.harness.serializer.kryo.WatcherBeansKryoRegister;
-import io.harness.serializer.morphia.NotificationClientRegistrars;
+import io.harness.serializer.morphia.NotificationBeansMorphiaRegistrar;
 import io.harness.serializer.morphia.PMSPipelineMorphiaRegistrar;
 import io.harness.yaml.schema.beans.YamlSchemaKryoRegistrar;
 
@@ -37,11 +37,10 @@ public class PipelineServiceModuleRegistrars {
           .addAll(OrchestrationVisualizationModuleRegistrars.kryoRegistrars)
           .addAll(AccessControlClientRegistrars.kryoRegistrars)
           .addAll(NGTriggerRegistrars.kryoRegistrars)
-          .addAll(NotificationClientRegistrars.kryoRegistrars)
+          .add(NotificationBeansKryoRegistrar.class)
           .add(DelegateServiceBeansKryoRegistrar.class)
           .add(DelegateAgentBeansKryoRegister.class)
           .add(WatcherBeansKryoRegister.class)
-          .addAll(NGAuditCommonsRegistrars.kryoRegistrars)
           .addAll(DelegateTaskRegistrars.kryoRegistrars)
           .add(YamlSchemaKryoRegistrar.class)
           .build();
@@ -53,7 +52,7 @@ public class PipelineServiceModuleRegistrars {
           .add(PMSPipelineMorphiaRegistrar.class)
           .addAll(NGTriggerRegistrars.morphiaRegistrars)
           .add(FiltersMorphiaRegistrar.class)
-          .addAll(NotificationClientRegistrars.morphiaRegistrars)
+          .add(NotificationBeansMorphiaRegistrar.class)
           .addAll(PrimaryVersionManagerRegistrars.morphiaRegistrars)
           .addAll(SMCoreRegistrars.morphiaRegistrars)
           .addAll(GitSyncSdkRegistrar.morphiaRegistrars)

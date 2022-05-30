@@ -7,9 +7,12 @@
 
 package io.harness.delegate.task.artifacts;
 
+import static io.harness.delegate.task.artifacts.ArtifactSourceConstants.ACR_NAME;
+import static io.harness.delegate.task.artifacts.ArtifactSourceConstants.CUSTOM_ARTIFACT_NAME;
 import static io.harness.delegate.task.artifacts.ArtifactSourceConstants.DOCKER_REGISTRY_NAME;
 import static io.harness.delegate.task.artifacts.ArtifactSourceConstants.ECR_NAME;
 import static io.harness.delegate.task.artifacts.ArtifactSourceConstants.GCR_NAME;
+import static io.harness.delegate.task.artifacts.ArtifactSourceConstants.JENKINS_NAME;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -19,7 +22,14 @@ import java.util.Arrays;
 public enum ArtifactSourceType {
   @JsonProperty(DOCKER_REGISTRY_NAME) DOCKER_REGISTRY(DOCKER_REGISTRY_NAME),
   @JsonProperty(GCR_NAME) GCR(GCR_NAME),
-  @JsonProperty(ECR_NAME) ECR(ECR_NAME);
+  @JsonProperty(ECR_NAME) ECR(ECR_NAME),
+  @JsonProperty(ArtifactSourceConstants.NEXUS3_REGISTRY_NAME)
+  NEXUS3_REGISTRY(ArtifactSourceConstants.NEXUS3_REGISTRY_NAME),
+  @JsonProperty(ArtifactSourceConstants.ARTIFACTORY_REGISTRY_NAME)
+  ARTIFACTORY_REGISTRY(ArtifactSourceConstants.ARTIFACTORY_REGISTRY_NAME),
+  @JsonProperty(CUSTOM_ARTIFACT_NAME) CUSTOM_ARTIFACT(CUSTOM_ARTIFACT_NAME),
+  @JsonProperty(ACR_NAME) ACR(ACR_NAME),
+  @JsonProperty(JENKINS_NAME) JENKINS(JENKINS_NAME);
   private final String displayName;
 
   ArtifactSourceType(String displayName) {
@@ -35,7 +45,7 @@ public enum ArtifactSourceType {
     return displayName;
   }
 
-  @JsonCreator
+  @JsonCreator(mode = JsonCreator.Mode.DELEGATING)
   public static ArtifactSourceType getArtifactSourceType(@JsonProperty("type") String displayName) {
     for (ArtifactSourceType sourceType : ArtifactSourceType.values()) {
       if (sourceType.displayName.equalsIgnoreCase(displayName)) {

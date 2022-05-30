@@ -8,10 +8,16 @@
 package io.harness.steps.policy.step;
 
 import static io.harness.annotations.dev.HarnessTeam.PIPELINE;
+import static io.harness.pms.sdk.core.steps.io.StepResponse.StepOutcome;
+import static io.harness.pms.sdk.core.steps.io.StepResponse.builder;
 
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.eraro.ErrorCode;
 import io.harness.eraro.Level;
+import io.harness.exception.UnexpectedException;
+import io.harness.opaclient.model.OpaConstants;
+import io.harness.opaclient.model.OpaEvaluationResponseHolder;
+import io.harness.opaclient.model.OpaPolicySetEvaluationResponse;
 import io.harness.pms.contracts.execution.Status;
 import io.harness.pms.contracts.execution.failure.FailureData;
 import io.harness.pms.contracts.execution.failure.FailureInfo;
@@ -19,9 +25,16 @@ import io.harness.pms.contracts.execution.failure.FailureType;
 import io.harness.pms.sdk.core.steps.io.StepResponse;
 import io.harness.pms.yaml.YamlField;
 import io.harness.pms.yaml.YamlUtils;
+import io.harness.serializer.JsonUtils;
 
+import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 
@@ -58,13 +71,47 @@ public class PolicyStepHelper {
   }
 
   public StepResponse buildFailureStepResponse(ErrorCode errorCode, String message, FailureType failureType) {
+    return buildFailureStepResponse(errorCode, message, failureType, null);
+  }
+
+  public String getEntityMetadataString(String stepName) {
+    Map<String, String> metadataMap = ImmutableMap.<String, String>builder().put("entityName", stepName).build();
+    try {
+      return URLEncoder.encode(JsonUtils.asJson(metadataMap), StandardCharsets.UTF_8.toString());
+    } catch (UnsupportedEncodingException e) {
+      throw new UnexpectedException("Unable to encode entity metadata JSON into URL String");
+    }
+  }
+
+  public StepResponse buildFailureStepResponse(
+      ErrorCode errorCode, String message, FailureType failureType, StepOutcome stepOutcome) {
     FailureData failureData = FailureData.newBuilder()
                                   .setCode(errorCode.name())
                                   .setLevel(Level.ERROR.name())
                                   .setMessage(message)
                                   .addFailureTypes(failureType)
                                   .build();
-    FailureInfo failureInfo = FailureInfo.newBuilder().addFailureData(failureData).build();
-    return StepResponse.builder().status(Status.FAILED).failureInfo(failureInfo).build();
+    FailureInfo failureInfo = FailureInfo.newBuilder().addFailureData(failureData).setErrorMessage(message).build();
+    if (stepOutcome == null) {
+      // need a special if block so that an empty null element is not added to the overall step outcomes list later
+      return builder().status(Status.FAILED).failureInfo(failureInfo).build();
+    }
+    return builder().status(Status.FAILED).failureInfo(failureInfo).stepOutcome(stepOutcome).build();
+  }
+
+  public String buildPolicyEvaluationFailureMessage(OpaEvaluationResponseHolder opaEvaluationResponseHolder) {
+    List<OpaPolicySetEvaluationResponse> policySetResponses = opaEvaluationResponseHolder.getDetails();
+    List<String> failedPolicySets = policySetResponses.stream()
+                                        .filter(response -> response.getStatus().equals(OpaConstants.OPA_STATUS_ERROR))
+                                        .map(OpaPolicySetEvaluationResponse::getName)
+                                        .collect(Collectors.toList());
+    String failedPolicySetsString = String.join(", ", failedPolicySets);
+    if (failedPolicySets.isEmpty()) {
+      return "";
+    }
+    if (failedPolicySets.size() == 1) {
+      return "The following Policy Set was not adhered to: " + failedPolicySetsString;
+    }
+    return "The following Policy Sets were not adhered to: " + failedPolicySetsString;
   }
 }

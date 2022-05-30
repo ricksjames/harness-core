@@ -131,13 +131,15 @@ else
 fi
 
 cp 260-delegate/config-delegate.yml dist/delegate/config-delegate.yml
-jarsigner -storetype pkcs12 -keystore ${KEY_STORE} -storepass ${KEY_STORE_PASSWORD} dist/delegate/delegate-capsule.jar ${KEY_STORE_ALIAS}
+
+jarsigner -tsa http://timestamp.digicert.com -storetype pkcs12 -keystore ${KEY_STORE} -storepass ${KEY_STORE_PASSWORD} dist/delegate/delegate-capsule.jar ${KEY_STORE_ALIAS}
 cp dist/delegate/delegate-capsule.jar delegate-${VERSION}.jar
 cp protocol.info dist/delegate/.
 
 mkdir -p dist/watcher
 cp ${HOME}/.bazel-dirs/bin/960-watcher/module_deploy.jar dist/watcher/watcher-capsule.jar
-jarsigner -storetype pkcs12 -keystore ${KEY_STORE} -storepass ${KEY_STORE_PASSWORD} dist/watcher/watcher-capsule.jar ${KEY_STORE_ALIAS}
+
+jarsigner -tsa http://timestamp.digicert.com -storetype pkcs12 -keystore ${KEY_STORE} -storepass ${KEY_STORE_PASSWORD} dist/watcher/watcher-capsule.jar ${KEY_STORE_ALIAS}
 cp dist/watcher/watcher-capsule.jar watcher-${VERSION}.jar
 cp protocol.info dist/watcher/.
 
@@ -198,17 +200,41 @@ if [ ! -z ${PURPOSE} ]
 then
     echo ${PURPOSE} > purpose.txt
 fi
+cd ../..
+
+mkdir -p dist/sto-manager
+cd dist/sto-manager
+cp ${HOME}/.bazel-dirs/bin/315-sto-manager/module_deploy.jar sto-manager-capsule.jar
+cp ../../315-sto-manager/sto-manager-config.yml .
+cp ../../keystore.jks .
+cp ../../315-sto-manager/key.pem .
+cp ../../315-sto-manager/cert.pem .
+cp ../../315-sto-manager/src/main/resources/redisson-jcache.yaml .
+
+cp ../../alpn-boot-8.1.13.v20181017.jar .
+
+cp ../../dockerization/sto-manager/Dockerfile-sto-manager-jenkins-k8-openjdk ./Dockerfile
+cp ../../dockerization/sto-manager/Dockerfile-sto-manager-jenkins-k8-gcr-openjdk ./Dockerfile-gcr
+cp ../../dockerization/sto-manager/Dockerfile-sto-manager-jenkins-k8-gcr-openjdk-ubi ./Dockerfile-gcr-ubi
+cp -r ../../dockerization/sto-manager/scripts/ .
+cp ../../sto-manager-protocol.info .
+echo ${JDK} > jdk.txt
+echo ${VERSION} > version.txt
+if [ ! -z ${PURPOSE} ]
+then
+    echo ${PURPOSE} > purpose.txt
+fi
 
 cd ../..
 
 mkdir -p dist/platform-service
 cd dist/platform-service
 
-cp ${HOME}/.bazel-dirs/bin/820-platform-service/module_deploy.jar platform-service-capsule.jar
-cp ../../820-platform-service/config.yml .
-cp ../../820-platform-service/keystore.jks .
-cp ../../820-platform-service/key.pem .
-cp ../../820-platform-service/cert.pem .
+cp ${HOME}/.bazel-dirs/bin/platform-service/service/module_deploy.jar platform-service-capsule.jar
+cp ../../platform-service/config/config.yml .
+cp ../../platform-service/config/keystore.jks .
+cp ../../platform-service/config/key.pem .
+cp ../../platform-service/config/cert.pem .
 cp ../../alpn-boot-8.1.13.v20181017.jar .
 cp ../../dockerization/platform-service/Dockerfile-platform-service-jenkins-k8-openjdk ./Dockerfile
 cp ../../dockerization/platform-service/Dockerfile-platform-service-jenkins-k8-gcr-openjdk ./Dockerfile-gcr
@@ -246,6 +272,27 @@ then
     echo ${PURPOSE} > purpose.txt
 fi
 java -jar pipeline-service-capsule.jar scan-classpath-metadata
+
+cd ../..
+
+mkdir -p dist/debezium-service
+cd dist/debezium-service
+
+cp ${HOME}/.bazel-dirs/bin/951-debezium-service/module_deploy.jar debezium-service-capsule.jar
+cp ../../951-debezium-service/config.yml .
+cp ../../951-debezium-service/src/main/resources/redisson-jcache.yaml .
+
+cp ../../alpn-boot-8.1.13.v20181017.jar .
+cp ../../dockerization/debezium-service/Dockerfile-debezium-service-jenkins-k8-openjdk ./Dockerfile
+cp ../../dockerization/debezium-service/Dockerfile-debezium-service-jenkins-k8-gcr-openjdk ./Dockerfile-gcr
+cp -r ../../dockerization/debezium-service/scripts/ .
+cp ../../protocol.info .
+echo ${JDK} > jdk.txt
+echo ${VERSION} > version.txt
+if [ ! -z ${PURPOSE} ]
+then
+    echo ${PURPOSE} > purpose.txt
+fi
 
 cd ../..
 
@@ -297,12 +344,12 @@ mkdir -p dist/accesscontrol-service
 cd dist/accesscontrol-service
 
 cp ${HOME}/.bazel-dirs/bin/access-control/service/module_deploy.jar accesscontrol-service-capsule.jar
-cp ../../access-control/service/config.yml .
-cp ../../access-control/service/keystore.jks .
+cp ../../access-control/config/config.yml .
+cp ../../access-control/config/keystore.jks .
 cp ../../alpn-boot-8.1.13.v20181017.jar .
-cp ../../access-control/container/Dockerfile-accesscontrol-service-jenkins-k8-openjdk ./Dockerfile
-cp ../../access-control/container/Dockerfile-accesscontrol-service-jenkins-k8-gcr-openjdk ./Dockerfile-gcr
-cp -r ../../access-control/container/scripts/ .
+cp ../../access-control/build/container/Dockerfile-accesscontrol-service-jenkins-k8-openjdk ./Dockerfile
+cp ../../access-control/build/container/Dockerfile-accesscontrol-service-jenkins-k8-gcr-openjdk ./Dockerfile-gcr
+cp -r ../../access-control/build/container/scripts/ .
 cp ../../protocol.info .
 echo ${JDK} > jdk.txt
 echo ${VERSION} > version.txt
@@ -311,5 +358,29 @@ then
     echo ${PURPOSE} > purpose.txt
 fi
 java -jar accesscontrol-service-capsule.jar scan-classpath-metadata
+
+cd ../..
+
+mkdir -p dist/migrator ;
+cd dist/migrator
+
+cp ${BAZEL_BIN}/100-migrator/module_deploy.jar migrator-capsule.jar
+cp ../../400-rest/src/main/resources/hazelcast.xml .
+cp ../../keystore.jks .
+cp ../../360-cg-manager/key.pem .
+cp ../../360-cg-manager/cert.pem .
+cp ../../360-cg-manager/newrelic.yml .
+cp ../../100-migrator/config.yml .
+cp ../../400-rest/src/main/resources/redisson-jcache.yaml .
+cp ../../alpn-boot-8.1.13.v20181017.jar .
+
+cp ../../dockerization/migrator/Dockerfile-manager-jenkins-k8-openjdk ./Dockerfile
+cp ../../dockerization/migrator/Dockerfile-manager-jenkins-k8-gcr-openjdk ./Dockerfile-gcr
+cp -r ../../dockerization/migrator/scripts/ .
+mv scripts/start_process_bazel.sh scripts/start_process.sh
+
+copy_common_files
+
+java -jar migrator-capsule.jar scan-classpath-metadata
 
 cd ../..

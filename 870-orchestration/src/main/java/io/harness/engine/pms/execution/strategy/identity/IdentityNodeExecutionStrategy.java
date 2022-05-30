@@ -87,6 +87,8 @@ public class IdentityNodeExecutionStrategy
                                   .identifier(node.getIdentifier())
                                   .stepType(node.getStepType())
                                   .nodeId(node.getUuid())
+                                  .stageFqn(node.getStageFqn())
+                                  .group(node.getGroup())
                                   .notifyId(notifyId)
                                   .parentId(parentId)
                                   .previousId(previousId)
@@ -191,6 +193,7 @@ public class IdentityNodeExecutionStrategy
                                                 .failureInfo(nodeExecution.getFailureInfo())
                                                 .identifier(level.getIdentifier())
                                                 .status(nodeExecution.getStatus())
+                                                .nodeExecutionId(level.getRuntimeId())
                                                 .adviserResponse(nodeExecution.getAdviserResponse())
                                                 .build();
       waitNotifyEngine.doneWith(nodeExecution.getNotifyId(), responseData);

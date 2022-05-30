@@ -25,6 +25,7 @@ import static software.wings.utils.WingsTestConstants.SETTING_NAME;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.verify;
@@ -59,6 +60,7 @@ import software.wings.service.intfc.security.SecretManager;
 import software.wings.sm.ExecutionContextImpl;
 import software.wings.sm.ExecutionResponse;
 import software.wings.sm.WorkflowStandardParams;
+import software.wings.sm.WorkflowStandardParamsExtensionService;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.Collections;
@@ -99,6 +101,7 @@ public class JenkinsStateTest extends CategoryTest {
   @Mock private SettingsService settingsService;
   @Mock private InfrastructureMappingService infrastructureMappingService;
   @Mock private StateExecutionService stateExecutionService;
+  @Mock private WorkflowStandardParamsExtensionService workflowStandardParamsExtensionService;
 
   @InjectMocks private JenkinsState jenkinsState = new JenkinsState("jenkins");
 
@@ -123,7 +126,7 @@ public class JenkinsStateTest extends CategoryTest {
   @Owner(developers = BRETT)
   @Category(UnitTests.class)
   public void shouldExecute() {
-    when(settingsService.getFilteredSettingAttributes(any(), any(), any()))
+    when(settingsService.getFilteredSettingAttributes(any(), any(), any(), anyBoolean()))
         .thenReturn(Collections.singletonList(new SettingAttribute()));
     ExecutionResponse executionResponse = jenkinsState.execute(executionContext);
     assertThat(executionResponse).isNotNull().hasFieldOrPropertyWithValue("async", true);
@@ -144,7 +147,7 @@ public class JenkinsStateTest extends CategoryTest {
     when(templateExpressionProcessor.getTemplateExpression(jenkinsState.getTemplateExpressions(), "jenkinsConfigId"))
         .thenReturn(jenkinsExp);
     when(templateExpressionProcessor.resolveTemplateExpression(executionContext, jenkinsExp)).thenReturn(SETTING_ID);
-    when(settingsService.getFilteredSettingAttributes(any(), any(), any()))
+    when(settingsService.getFilteredSettingAttributes(any(), any(), any(), anyBoolean()))
         .thenReturn(Collections.singletonList(new SettingAttribute()));
     ArgumentCaptor<DelegateTask> delegateTaskArgumentCaptor = ArgumentCaptor.forClass(DelegateTask.class);
     ExecutionResponse response = jenkinsState.execute(executionContext);
@@ -171,7 +174,7 @@ public class JenkinsStateTest extends CategoryTest {
         .thenReturn(jenkinsExp);
     when(templateExpressionProcessor.resolveTemplateExpression(executionContext, jenkinsExp)).thenReturn(SETTING_NAME);
     when(settingsService.getSettingAttributeByName(ACCOUNT_ID, SETTING_NAME)).thenReturn(settingAttribute);
-    when(settingsService.getFilteredSettingAttributes(any(), any(), any()))
+    when(settingsService.getFilteredSettingAttributes(any(), any(), any(), anyBoolean()))
         .thenReturn(Collections.singletonList(new SettingAttribute()));
     ArgumentCaptor<DelegateTask> delegateTaskArgumentCaptor = ArgumentCaptor.forClass(DelegateTask.class);
     ExecutionResponse response = jenkinsState.execute(executionContext);

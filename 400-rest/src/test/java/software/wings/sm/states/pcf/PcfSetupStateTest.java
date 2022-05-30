@@ -27,6 +27,7 @@ import static io.harness.rule.OwnerRule.ANIL;
 import static io.harness.rule.OwnerRule.ANSHUL;
 import static io.harness.rule.OwnerRule.ARVIND;
 import static io.harness.rule.OwnerRule.TMACARI;
+import static io.harness.rule.OwnerRule.VAIBHAV_KUMAR;
 
 import static software.wings.beans.Application.Builder.anApplication;
 import static software.wings.beans.Environment.Builder.anEnvironment;
@@ -83,6 +84,7 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -90,6 +92,7 @@ import static org.mockito.Mockito.when;
 import io.harness.annotations.dev.HarnessModule;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.annotations.dev.TargetModule;
+import io.harness.beans.ArtifactMetadata;
 import io.harness.beans.DelegateTask;
 import io.harness.beans.EmbeddedUser;
 import io.harness.beans.ExecutionStatus;
@@ -114,6 +117,7 @@ import io.harness.rule.Owner;
 import io.harness.tasks.ResponseData;
 
 import software.wings.WingsBaseTest;
+import software.wings.api.ContextElementParamMapperFactory;
 import software.wings.api.PhaseElement;
 import software.wings.api.ServiceElement;
 import software.wings.api.pcf.InfoVariables;
@@ -131,15 +135,16 @@ import software.wings.beans.PcfInfrastructureMapping;
 import software.wings.beans.Service;
 import software.wings.beans.ServiceTemplate;
 import software.wings.beans.ServiceVariable;
-import software.wings.beans.ServiceVariable.Type;
+import software.wings.beans.ServiceVariableType;
 import software.wings.beans.SettingAttribute;
 import software.wings.beans.TaskType;
 import software.wings.beans.WorkflowExecution;
 import software.wings.beans.appmanifest.AppManifestKind;
 import software.wings.beans.appmanifest.ApplicationManifest;
 import software.wings.beans.artifact.Artifact;
-import software.wings.beans.artifact.Artifact.ArtifactMetadataKeys;
+import software.wings.beans.artifact.ArtifactMetadataKeys;
 import software.wings.beans.artifact.ArtifactStream;
+import software.wings.beans.artifact.ArtifactStreamAttributes;
 import software.wings.beans.artifact.DockerArtifactStream;
 import software.wings.beans.artifact.JenkinsArtifactStream;
 import software.wings.beans.command.CommandType;
@@ -174,11 +179,13 @@ import software.wings.service.intfc.StateExecutionService;
 import software.wings.service.intfc.WorkflowExecutionService;
 import software.wings.service.intfc.security.SecretManager;
 import software.wings.service.intfc.sweepingoutput.SweepingOutputService;
+import software.wings.settings.SettingVariableTypes;
 import software.wings.sm.ExecutionContext;
 import software.wings.sm.ExecutionContextImpl;
 import software.wings.sm.ExecutionResponse;
 import software.wings.sm.StateExecutionInstance;
 import software.wings.sm.WorkflowStandardParams;
+import software.wings.sm.WorkflowStandardParamsExtensionService;
 import software.wings.utils.ApplicationManifestUtils;
 
 import java.util.Arrays;
@@ -265,9 +272,9 @@ public class PcfSetupStateTest extends WingsBaseTest {
                                 .build();
   private Artifact artifact = anArtifact()
                                   .withArtifactSourceName("source")
-                                  .withMetadata(new HashMap<String, String>() {
+                                  .withMetadata(new ArtifactMetadata(new HashMap<String, String>() {
                                     { put(ArtifactMetadataKeys.buildNo, "bn"); }
-                                  })
+                                  }))
                                   .withArtifactStreamId(ARTIFACT_STREAM_ID)
                                   .build();
   private ArtifactStream artifactStream =
@@ -294,13 +301,21 @@ public class PcfSetupStateTest extends WingsBaseTest {
           .value(InfraMappingSweepingOutput.builder().infraMappingId(INFRA_MAPPING_ID).build())
           .build();
 
-  private List<ServiceVariable> serviceVariableList =
-      asList(ServiceVariable.builder().type(Type.TEXT).name("VAR_1").value("value1".toCharArray()).build(),
-          ServiceVariable.builder().type(Type.ENCRYPTED_TEXT).name("VAR_2").value("value2".toCharArray()).build());
+  private List<ServiceVariable> serviceVariableList = asList(
+      ServiceVariable.builder().type(ServiceVariableType.TEXT).name("VAR_1").value("value1".toCharArray()).build(),
+      ServiceVariable.builder()
+          .type(ServiceVariableType.ENCRYPTED_TEXT)
+          .name("VAR_2")
+          .value("value2".toCharArray())
+          .build());
 
-  private List<ServiceVariable> safeDisplayServiceVariableList =
-      asList(ServiceVariable.builder().type(Type.TEXT).name("VAR_1").value("value1".toCharArray()).build(),
-          ServiceVariable.builder().type(Type.ENCRYPTED_TEXT).name("VAR_2").value("*******".toCharArray()).build());
+  private List<ServiceVariable> safeDisplayServiceVariableList = asList(
+      ServiceVariable.builder().type(ServiceVariableType.TEXT).name("VAR_1").value("value1".toCharArray()).build(),
+      ServiceVariable.builder()
+          .type(ServiceVariableType.ENCRYPTED_TEXT)
+          .name("VAR_2")
+          .value("*******".toCharArray())
+          .build());
 
   @Before
   public void setup() throws IllegalAccessException {
@@ -324,16 +339,6 @@ public class PcfSetupStateTest extends WingsBaseTest {
 
     EmbeddedUser currentUser = EmbeddedUser.builder().name("test").email("test@harness.io").build();
     workflowStandardParams.setCurrentUser(currentUser);
-
-    on(workflowStandardParams).set("appService", appService);
-    on(workflowStandardParams).set("environmentService", environmentService);
-    on(workflowStandardParams).set("artifactService", artifactService);
-    on(workflowStandardParams).set("serviceTemplateService", serviceTemplateService);
-    on(workflowStandardParams).set("configuration", configuration);
-    on(workflowStandardParams).set("artifactStreamService", artifactStreamService);
-    on(workflowStandardParams).set("artifactStreamServiceBindingService", artifactStreamServiceBindingService);
-    on(workflowStandardParams).set("featureFlagService", featureFlagService);
-    on(workflowStandardParams).set("subdomainUrlHelper", subdomainUrlHelper);
 
     when(artifactService.get(any())).thenReturn(artifact);
     when(artifactStreamService.get(any())).thenReturn(artifactStream);
@@ -404,6 +409,53 @@ public class PcfSetupStateTest extends WingsBaseTest {
     doReturn("artifact-name").when(pcfSetupState).artifactFileNameForSource(any(), any());
     doReturn("artifact-path").when(pcfSetupState).artifactPathForSource(any(), any());
     doNothing().when(stateExecutionService).appendDelegateTaskDetails(anyString(), any());
+
+    WorkflowStandardParamsExtensionService workflowStandardParamsExtensionService =
+        spy(new WorkflowStandardParamsExtensionService(
+            appService, null, artifactService, environmentService, artifactStreamServiceBindingService, null));
+
+    on(context).set("workflowStandardParamsExtensionService", workflowStandardParamsExtensionService);
+    on(pcfSetupState).set("workflowStandardParamsExtensionService", workflowStandardParamsExtensionService);
+
+    ContextElementParamMapperFactory contextElementParamMapperFactory =
+        new ContextElementParamMapperFactory(subdomainUrlHelper, workflowExecutionService, artifactService,
+            artifactStreamService, null, featureFlagService, null, workflowStandardParamsExtensionService);
+    on(context).set("contextElementParamMapperFactory", contextElementParamMapperFactory);
+  }
+
+  @Test
+  @Owner(developers = VAIBHAV_KUMAR)
+  @Category(UnitTests.class)
+  public void testArtifactPathForSource() {
+    when(pcfSetupState.artifactPathForSource(any(), any())).thenCallRealMethod();
+
+    // Case1: when jobName occurs as a substring inside artifactPath
+    String path = "harness-internal/harness-internal/20211208.2.zip";
+    String jobName1 = "harness-internal";
+    String url1 = "https://harness.jfrog.io/artifactory/harness-internal/harness-internal/20211208.2.zip";
+    Map<String, String> metadata = new HashMap<String, String>() {
+      {
+        put("artifactPath", path);
+        put("url", url1);
+      }
+    };
+
+    Artifact artifact = new Artifact();
+    ArtifactStreamAttributes artifactStreamAttributes = ArtifactStreamAttributes.builder()
+                                                            .artifactStreamType(SettingVariableTypes.ARTIFACTORY.name())
+                                                            .jobName(jobName1)
+                                                            .metadata(metadata)
+                                                            .build();
+    String result = pcfSetupState.artifactPathForSource(artifact, artifactStreamAttributes);
+    assertThat(result).isEqualTo(path);
+
+    // Case2: when there is no overlap between jobName and artifactPath
+    String jobName2 = "test";
+    String url2 = "https://harness.jfrog.io/artifactory/test/harness-internal/20211208.2.zip";
+    artifactStreamAttributes.setJobName(jobName2);
+    metadata.put("url", url2);
+    result = pcfSetupState.artifactPathForSource(artifact, artifactStreamAttributes);
+    assertThat(result).isEqualTo(path);
   }
 
   @Test
@@ -419,7 +471,7 @@ public class PcfSetupStateTest extends WingsBaseTest {
     // With workflowV2 flag = true
     doReturn(PcfManifestsPackage.builder().manifestYml(MANIFEST_YAML_CONTENT).build())
         .when(pcfStateHelper)
-        .generateManifestMap(any(), anyMap(), any(), anyString());
+        .generateManifestMap(any(), anyMap(), any(), anyString(), anyString());
 
     ExecutionResponse executionResponse = pcfSetupState.execute(context);
     assertThat(executionResponse.getExecutionStatus()).isEqualTo(ExecutionStatus.SUCCESS);
@@ -452,7 +504,7 @@ public class PcfSetupStateTest extends WingsBaseTest {
 
     doReturn(PcfManifestsPackage.builder().manifestYml(MANIFEST_YAML_CONTENT).build())
         .when(pcfStateHelper)
-        .generateManifestMap(any(), anyMap(), any(), anyString());
+        .generateManifestMap(any(), anyMap(), any(), anyString(), anyString());
 
     doReturn(DockerArtifactStream.builder().build()).when(artifactStreamService).get(any());
 
@@ -475,7 +527,7 @@ public class PcfSetupStateTest extends WingsBaseTest {
 
     doReturn(PcfManifestsPackage.builder().manifestYml(MANIFEST_YAML_CONTENT).build())
         .when(pcfStateHelper)
-        .generateManifestMap(any(), anyMap(), any(), anyString());
+        .generateManifestMap(any(), anyMap(), any(), anyString(), anyString());
 
     ExecutionResponse executionResponse = pcfSetupState.execute(context);
 
@@ -595,7 +647,7 @@ public class PcfSetupStateTest extends WingsBaseTest {
 
     doReturn(PcfManifestsPackage.builder().manifestYml(MANIFEST_YAML_CONTENT).build())
         .when(pcfStateHelper)
-        .generateManifestMap(any(), any(), any(), anyString());
+        .generateManifestMap(any(), any(), any(), anyString(), anyString());
 
     pcfSetupState.handleAsyncInternal(context, response);
     verify(activityService, times(0)).updateStatus("activityId", APP_ID, FAILED);
@@ -634,7 +686,7 @@ public class PcfSetupStateTest extends WingsBaseTest {
 
     doReturn(PcfManifestsPackage.builder().manifestYml(MANIFEST_YAML_CONTENT).build())
         .when(pcfStateHelper)
-        .generateManifestMap(any(), any(), any(), anyString());
+        .generateManifestMap(any(), any(), any(), anyString(), anyString());
 
     Map<K8sValuesLocation, Collection<String>> valuesFiles = new HashMap<>();
     valuesFiles.put(K8sValuesLocation.Service, Arrays.asList("Content"));

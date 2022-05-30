@@ -20,9 +20,11 @@ import static io.harness.git.model.GitRepositoryType.YAML;
 import static io.harness.rule.OwnerRule.ABOSII;
 import static io.harness.rule.OwnerRule.ARVIND;
 import static io.harness.rule.OwnerRule.DEEPAK;
+import static io.harness.rule.OwnerRule.DEV_MITTAL;
 import static io.harness.rule.OwnerRule.HARSH;
 import static io.harness.rule.OwnerRule.JAMIE;
 import static io.harness.rule.OwnerRule.JELENA;
+import static io.harness.rule.OwnerRule.SOUMYAJIT;
 import static io.harness.rule.OwnerRule.YOGESH;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -39,6 +41,7 @@ import io.harness.annotations.dev.OwnedBy;
 import io.harness.category.element.UnitTests;
 import io.harness.exception.GitClientException;
 import io.harness.exception.GitConnectionDelegateException;
+import io.harness.exception.InvalidRequestException;
 import io.harness.exception.NonPersistentLockException;
 import io.harness.filesystem.FileIo;
 import io.harness.git.model.ChangeType;
@@ -432,5 +435,93 @@ public class GitClientHelperTest extends CategoryTest {
     assertThat(gitClientHelper.getChangeType(DELETE)).isEqualTo(ChangeType.DELETE);
     assertThat(gitClientHelper.getChangeType(RENAME)).isEqualTo(ChangeType.RENAME);
     assertThat(gitClientHelper.getChangeType(COPY)).isEqualTo(null);
+  }
+
+  @Test
+  @Owner(developers = DEV_MITTAL)
+  @Category(UnitTests.class)
+  public void testGetGithubApiURL() {
+    assertThat(GitClientHelper.getGithubApiURL("https://github.com/devkimittal/harness-core.git"))
+        .isEqualTo("https://api.github.com/");
+    assertThat(GitClientHelper.getGithubApiURL("https://www.github.com/devkimittal/harness-core.git"))
+        .isEqualTo("https://api.github.com/");
+    assertThat(GitClientHelper.getGithubApiURL("https://www.github.com/devkimittal/harness-core"))
+        .isEqualTo("https://api.github.com/");
+    assertThat(GitClientHelper.getGithubApiURL("https://paypal.github.com/devkimittal/harness-core.git"))
+        .isEqualTo("https://paypal.github.com/api/v3/");
+    assertThat(GitClientHelper.getGithubApiURL("https://github.paypal.com/devkimittal/harness-core.git"))
+        .isEqualTo("https://github.paypal.com/api/v3/");
+    assertThat(GitClientHelper.getGithubApiURL("git@github.com:harness/harness-core.git"))
+        .isEqualTo("https://api.github.com/");
+    assertThat(GitClientHelper.getGithubApiURL("git@www.github.com:harness/harness-core.git"))
+        .isEqualTo("https://api.github.com/");
+  }
+
+  @Test
+  @Owner(developers = DEV_MITTAL)
+  @Category(UnitTests.class)
+  public void testGetGitlabApiURL() {
+    assertThat(GitClientHelper.getGitlabApiURL("https://gitlab.com/devki.mittal/test.git"))
+        .isEqualTo("https://gitlab.com/");
+    assertThat(GitClientHelper.getGitlabApiURL("https://www.gitlab.com/devki.mittal/test.git"))
+        .isEqualTo("https://gitlab.com/");
+    assertThat(GitClientHelper.getGitlabApiURL("https://gitlab.com/devki.mittal/test"))
+        .isEqualTo("https://gitlab.com/");
+    assertThat(GitClientHelper.getGitlabApiURL("https://paypal.gitlab.com/devki.mittal/test.git"))
+        .isEqualTo("https://paypal.gitlab.com/");
+    assertThat(GitClientHelper.getGitlabApiURL("https://gitlab.paypal.com/devki.mittal/test.git"))
+        .isEqualTo("https://gitlab.paypal.com/");
+    assertThat(GitClientHelper.getGitlabApiURL("git@gitlab.com:devki.mittal/test.git"))
+        .isEqualTo("https://gitlab.com/");
+    assertThat(GitClientHelper.getGitlabApiURL("git@www.gitlab.com:devki.mittal/test.git"))
+        .isEqualTo("https://gitlab.com/");
+  }
+
+  @Test
+  @Owner(developers = DEV_MITTAL)
+  @Category(UnitTests.class)
+  public void testGetBitBucketApiURL() {
+    assertThat(GitClientHelper.getBitBucketApiURL("https://devmittalciv16@bitbucket.org/devmittalciv16/ci_3446.git"))
+        .isEqualTo("https://api.bitbucket.org/");
+    assertThat(
+        GitClientHelper.getBitBucketApiURL("https://www.devmittalciv16@bitbucket.org/devmittalciv16/ci_3446.git"))
+        .isEqualTo("https://api.bitbucket.org/");
+    assertThat(GitClientHelper.getBitBucketApiURL("https://devmittalciv16@bitbucket.org/devmittalciv16/ci_3446"))
+        .isEqualTo("https://api.bitbucket.org/");
+    assertThat(GitClientHelper.getBitBucketApiURL("https://devmittalciv16@bitbucket.paypal.org/devmittalciv16/ci_3446"))
+        .isEqualTo("https://bitbucket.paypal.org/");
+    assertThat(GitClientHelper.getBitBucketApiURL("https://devmittalciv16@paypal.bitbucket.org/devmittalciv16/ci_3446"))
+        .isEqualTo("https://paypal.bitbucket.org/");
+    assertThat(GitClientHelper.getBitBucketApiURL("git@bitbucket.org:devmittalciv16/ci_3446.git"))
+        .isEqualTo("https://api.bitbucket.org/");
+    assertThat(GitClientHelper.getBitBucketApiURL("git@www.bitbucket.org:devmittalciv16/ci_3446.git"))
+        .isEqualTo("https://api.bitbucket.org/");
+  }
+
+  @Test
+  @Owner(developers = SOUMYAJIT)
+  @Category(UnitTests.class)
+  public void testValidateURL() {
+    assertThatThrownBy(
+        () -> GitClientHelper.validateURL("https:/www.devmittalciv16@bitbucket.org/devmittalciv16/ci_3446.git"))
+        .isExactlyInstanceOf(InvalidRequestException.class);
+    assertThatThrownBy(
+        () -> GitClientHelper.validateURL("ssh:www.devmittalciv16@bitbucket.org/devmittalciv16/ci_3446.git"))
+        .isExactlyInstanceOf(InvalidRequestException.class);
+    assertThatThrownBy(
+        () -> GitClientHelper.validateURL("git:/www.devmittalciv16@bitbucket.org/devmittalciv16/ci_3446.git"))
+        .isExactlyInstanceOf(InvalidRequestException.class);
+    assertThatThrownBy(() -> GitClientHelper.validateURL("https:/github.com/smjt-h"))
+        .isExactlyInstanceOf(InvalidRequestException.class);
+    assertThatThrownBy(() -> GitClientHelper.validateURL("")).isExactlyInstanceOf(InvalidRequestException.class);
+    assertThatCode(
+        () -> GitClientHelper.validateURL("https://www.devmittalciv16@bitbucket.org/devmittalciv16/ci_3446.git"))
+        .doesNotThrowAnyException();
+    assertThatCode(() -> GitClientHelper.validateURL("https://github.com/smjt-h")).doesNotThrowAnyException();
+    assertThatCode(() -> GitClientHelper.validateURL("ssh://github.com/smjt-h")).doesNotThrowAnyException();
+    assertThatCode(() -> GitClientHelper.validateURL("git@github.com:smjt-h/goHelloWorldServer.git"))
+        .doesNotThrowAnyException();
+    assertThatCode(() -> GitClientHelper.validateURL("https://github.com/smjt-h/goHelloWorldServer.git"))
+        .doesNotThrowAnyException();
   }
 }

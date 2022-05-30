@@ -24,7 +24,7 @@ aeriform("//126-instance:module")
 
 aeriform("//126-instance:tests")
 
-aeriform("//127-cd-nextgen-beans:module")
+aeriform("//127-cd-nextgen-entities:module")
 
 aeriform("//136-git-sync-manager:module")
 
@@ -84,9 +84,21 @@ aeriform("//310-ci-manager:module")
 
 aeriform("//310-ci-manager:tests")
 
+aeriform("//315-sto-manager:module")
+
+aeriform("//315-sto-manager:tests")
+
 aeriform("//320-ci-execution:module")
 
 aeriform("//320-ci-execution:tests")
+
+aeriform("//323-sto-utilities:module")
+
+aeriform("//323-sto-utilities:tests")
+
+aeriform("//325-sto-beans:module")
+
+aeriform("//325-sto-beans:tests")
 
 aeriform("//330-ci-beans:module")
 
@@ -180,20 +192,6 @@ aeriform("//810-ng-triggers:tests")
 
 aeriform("//815-cg-triggers:module")
 
-aeriform("//820-platform-service:module")
-
-aeriform("//820-platform-service:tests")
-
-aeriform("//830-notification-service:module")
-
-aeriform("//830-notification-service:tests")
-
-aeriform("//830-resource-group:module")
-
-aeriform("//830-resource-group:tests")
-
-aeriform("//835-notification-senders:module")
-
 aeriform("//840-template-service:module")
 
 aeriform("//840-template-service:tests")
@@ -245,12 +243,6 @@ aeriform("//884-pms-commons:module")
 aeriform("//884-pms-commons:tests")
 
 aeriform("//888-pms-client:module")
-
-aeriform("//889-yaml-commons:module")
-
-aeriform("//889-yaml-commons:tests")
-
-aeriform("//890-pms-contracts:module")
 
 aeriform("//890-sm-core:module")
 
@@ -310,17 +302,9 @@ aeriform("//940-feature-flag:module")
 
 aeriform("//940-feature-flag:tests")
 
-aeriform("//940-ng-audit-service:module")
-
-aeriform("//940-ng-audit-service:tests")
-
-aeriform("//940-notification-client:module")
-
 aeriform("//940-primary-version-manager:module")
 
 aeriform("//940-primary-version-manager:tests")
-
-aeriform("//940-resource-group-beans:module")
 
 aeriform("//940-secret-manager-client:module")
 
@@ -332,17 +316,15 @@ aeriform("//945-account-mgmt:module")
 
 aeriform("//945-license-usage-sdk:module")
 
-aeriform("//945-ng-audit-client:module")
-
-aeriform("//945-ng-audit-client:tests")
-
 aeriform("//947-scim-core:module")
 
-aeriform("//948-access-control-admin-client:module")
+aeriform("//clients/access-control/admin-client:module")
 
-aeriform("//948-access-control-sdk:module")
+aeriform("//clients/access-control/sdk:module")
 
-aeriform("//948-access-control-sdk:tests")
+aeriform("//clients/access-control/sdk:tests")
+
+aeriform("//948-cv-nextgen-beans:module")
 
 aeriform("//950-command-library-common:module")
 
@@ -386,13 +368,11 @@ aeriform("//950-wait-engine:supporter-test")
 
 aeriform("//950-wait-engine:tests")
 
-aeriform("//950-walktree-visitor:module")
-
-aeriform("//950-walktree-visitor:tests")
-
 aeriform("//951-cg-git-sync:module")
 
-aeriform("//951-ng-audit-commons:module")
+aeriform("//951-debezium-service")
+
+aeriform("//952-debezium-engine")
 
 aeriform("//952-scm-java-client:module")
 
@@ -404,11 +384,17 @@ aeriform("//953-events-api:tests")
 
 aeriform("//953-git-sync-commons:module")
 
+aeriform("//953-yaml-commons:module")
+
+aeriform("//953-yaml-commons:tests")
+
 aeriform("//954-connector-beans:module")
 
 aeriform("//954-connector-beans:tests")
 
 aeriform("//954-feature-flag-sdk:module")
+
+aeriform("//954-pms-contracts:module")
 
 aeriform("//955-alert-beans:module")
 
@@ -440,6 +426,8 @@ aeriform("//958-ng-file-service-sdk:module")
 
 aeriform("//959-common-entities:module")
 
+aeriform("//959-debezium-beans")
+
 aeriform("//959-file-service-commons:module")
 
 aeriform("//959-psql-database-models:module")
@@ -466,8 +454,6 @@ aeriform("//960-ng-license-beans:module")
 
 aeriform("//960-ng-license-usage-beans:module")
 
-aeriform("//960-notification-beans:module")
-
 aeriform("//960-persistence:module")
 
 aeriform("//960-persistence:supporter-test")
@@ -485,6 +471,10 @@ aeriform("//960-yaml-sdk:tests")
 aeriform("//965-api-key-filter:module")
 
 aeriform("//965-api-key-filter:tests")
+
+aeriform("//967-walktree-visitor:module")
+
+aeriform("//967-walktree-visitor:tests")
 
 aeriform("//970-api-services-beans:module")
 
@@ -519,17 +509,3 @@ aeriform("//990-commons-test:module")
 aeriform("//990-commons-test:tests")
 
 aeriform("//999-annotations:module")
-
-aeriform("//access-control/contracts:module")
-
-aeriform("//access-control/service:module")
-
-aeriform("//access-control/service:tests")
-
-aeriform("//access-control/libraries/80-aggregator:module")
-
-aeriform("//access-control/libraries/80-aggregator:tests")
-
-aeriform("//access-control/libraries/90-core:module")
-
-aeriform("//access-control/libraries/90-core:tests")

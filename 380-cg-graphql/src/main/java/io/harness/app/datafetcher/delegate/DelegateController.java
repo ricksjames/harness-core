@@ -58,6 +58,7 @@ public class DelegateController {
         .version(delegate.getVersion())
         .pollingModeEnabled(delegate.isPolllingModeEnabled())
         .lastHeartBeat(delegate.getLastHeartBeat())
+        .lastHeartbeat(delegate.getLastHeartBeat())
         .includeScopes(delegate.getIncludeScopes())
         .excludeScopes(delegate.getExcludeScopes())
         .supportedTasks(delegate.getSupportedTaskTypes())
@@ -111,8 +112,8 @@ public class DelegateController {
   public static void populateQLDelegateScope(
       DelegateScope delegateScope, QLDelegateScopeBuilder qlDelegateScopeBuilder) {
     qlDelegateScopeBuilder.name(delegateScope.getName())
-        .applications(delegateScope.getServices())
-        .services(delegateScope.getApplications())
+        .applications(delegateScope.getApplications())
+        .services(delegateScope.getServices())
         .environments(delegateScope.getEnvironments())
         .uuid(delegateScope.getUuid())
         .environmentTypes(populateQLEnvironmentTypeList(delegateScope.getEnvironmentTypes()))
@@ -146,7 +147,7 @@ public class DelegateController {
 
   public static List<QLEnvironmentType> populateQLEnvironmentTypeList(List<EnvironmentType> environmentTypeList) {
     List<QLEnvironmentType> qlEnvironmentTypeList = new ArrayList<>();
-    if (environmentTypeList.isEmpty()) {
+    if (isEmpty(environmentTypeList)) {
       return qlEnvironmentTypeList;
     }
     qlEnvironmentTypeList = environmentTypeList.stream()

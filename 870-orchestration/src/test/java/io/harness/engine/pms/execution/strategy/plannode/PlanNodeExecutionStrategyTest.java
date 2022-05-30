@@ -34,6 +34,7 @@ import io.harness.engine.executions.plan.PlanService;
 import io.harness.engine.facilitation.facilitator.publisher.FacilitateEventPublisher;
 import io.harness.engine.interrupts.InterruptService;
 import io.harness.engine.pms.advise.NodeAdviseHelper;
+import io.harness.engine.pms.execution.SdkResponseProcessorFactory;
 import io.harness.engine.pms.execution.strategy.EndNodeExecutionHelper;
 import io.harness.engine.pms.resume.NodeResumeHelper;
 import io.harness.engine.pms.start.NodeStartHelper;
@@ -66,7 +67,6 @@ import io.harness.pms.contracts.steps.io.StepResponseProto;
 import io.harness.pms.execution.OrchestrationFacilitatorType;
 import io.harness.pms.execution.utils.AmbianceUtils;
 import io.harness.pms.execution.utils.NodeProjectionUtils;
-import io.harness.registries.SdkResponseProcessorFactory;
 import io.harness.rule.Owner;
 
 import com.google.common.collect.ImmutableMap;
@@ -141,46 +141,6 @@ public class PlanNodeExecutionStrategyTest extends OrchestrationTestBase {
         .createNodeExecution(ambiance, planNode, null, null, null, null);
     executionStrategy.runNode(ambiance, planNode, null);
     verify(executorService).submit(any(Runnable.class));
-  }
-
-  @Test
-  @Owner(developers = PRASHANT)
-  @Category(UnitTests.class)
-  public void shouldTestInitiateNode() {
-    String planExecutionId = generateUuid();
-    String planId = generateUuid();
-    String planNodeId = generateUuid();
-    String runtimeId = generateUuid();
-
-    Ambiance ambiance = Ambiance.newBuilder()
-                            .setPlanExecutionId(planExecutionId)
-                            .setPlanId(planId)
-                            .putAllSetupAbstractions(prepareInputArgs())
-                            .build();
-    PlanNode planNode =
-        PlanNode.builder()
-            .name("Test Node")
-            .uuid(planNodeId)
-            .identifier("test")
-            .stepType(TEST_STEP_TYPE)
-            .serviceName("CD")
-            .facilitatorObtainment(
-                FacilitatorObtainment.newBuilder()
-                    .setType(FacilitatorType.newBuilder().setType(OrchestrationFacilitatorType.SYNC).build())
-                    .build())
-            .build();
-
-    when(planService.fetchNode(eq(planId), eq(planNodeId))).thenReturn(planNode);
-
-    executionStrategy.initiateNode(ambiance, planNode.getUuid(), runtimeId, null);
-
-    ArgumentCaptor<Ambiance> ambianceCaptor = ArgumentCaptor.forClass(Ambiance.class);
-    verify(executionStrategy).runNode(ambianceCaptor.capture(), eq(planNode), eq(null));
-    Ambiance captured = ambianceCaptor.getValue();
-
-    assertThat(captured.getLevelsCount()).isEqualTo(1);
-    assertThat(captured.getLevels(0).getSetupId()).isEqualTo(planNode.getUuid());
-    assertThat(captured.getLevels(0).getRuntimeId()).isEqualTo(runtimeId);
   }
 
   @Test

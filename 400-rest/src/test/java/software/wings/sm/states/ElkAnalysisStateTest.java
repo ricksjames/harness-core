@@ -32,6 +32,7 @@ import software.wings.beans.Application;
 import software.wings.beans.ElkConfig;
 import software.wings.beans.SettingAttribute;
 import software.wings.beans.TemplateExpression;
+import software.wings.delegatetasks.DelegateStateType;
 import software.wings.delegatetasks.cv.DataCollectionException;
 import software.wings.metrics.RiskLevel;
 import software.wings.service.impl.analysis.AnalysisComparisonStrategy;
@@ -43,7 +44,7 @@ import software.wings.service.impl.elk.ElkQueryType;
 import software.wings.service.intfc.AccountService;
 import software.wings.service.intfc.AppService;
 import software.wings.service.intfc.elk.ElkAnalysisService;
-import software.wings.service.intfc.verification.CVActivityLogService.Logger;
+import software.wings.service.intfc.verification.CVActivityLogger;
 import software.wings.sm.ExecutionResponse;
 import software.wings.sm.StateType;
 import software.wings.sm.states.AbstractAnalysisState.CVInstanceApiResponse;
@@ -67,7 +68,7 @@ public class ElkAnalysisStateTest extends APMStateVerificationTestBase {
   @Mock private ElkAnalysisService elkAnalysisService;
   private ElkAnalysisState elkAnalysisState;
   private String elkConfigId;
-  @Mock private Logger activityLogger;
+  @Mock private CVActivityLogger activityLogger;
 
   @Before
   public void setup() throws IllegalAccessException {
@@ -237,7 +238,7 @@ public class ElkAnalysisStateTest extends APMStateVerificationTestBase {
     ElkDataCollectionInfoV2 elkDataCollectionInfoV2 =
         (ElkDataCollectionInfoV2) elkAnalysisState.createDataCollectionInfo(
             executionContext, Sets.newHashSet("host1", "host2"));
-    assertThat(StateType.ELK).isEqualTo(elkDataCollectionInfoV2.getStateType());
+    assertThat(DelegateStateType.ELK).isEqualTo(elkDataCollectionInfoV2.getStateType());
     assertThat(elkDataCollectionInfoV2.getElkConfig()).isNull();
     assertThat(elkDataCollectionInfoV2.getStateExecutionId()).isEqualTo(executionContext.getStateExecutionInstanceId());
     assertThat(elkDataCollectionInfoV2.getMessageField()).isEqualTo(elkAnalysisState.getMessageField());
@@ -274,7 +275,7 @@ public class ElkAnalysisStateTest extends APMStateVerificationTestBase {
     ElkDataCollectionInfoV2 elkDataCollectionInfoV2 = (ElkDataCollectionInfoV2) spyState.createDataCollectionInfo(
         executionContext, Sets.newHashSet("host1", "host2"));
 
-    assertThat(StateType.ELK).isEqualTo(elkDataCollectionInfoV2.getStateType());
+    assertThat(DelegateStateType.ELK).isEqualTo(elkDataCollectionInfoV2.getStateType());
     assertThat(elkDataCollectionInfoV2.getElkConfig()).isNull();
     assertThat(elkDataCollectionInfoV2.getStateExecutionId()).isEqualTo(executionContext.getStateExecutionInstanceId());
     assertThat(elkDataCollectionInfoV2.getMessageField()).isEqualTo(elkAnalysisState.getMessageField());
@@ -300,7 +301,7 @@ public class ElkAnalysisStateTest extends APMStateVerificationTestBase {
         (ElkDataCollectionInfoV2) elkAnalysisState.createDataCollectionInfo(
             executionContext, Sets.newHashSet("host1", "host2"));
 
-    assertThat(StateType.ELK).isEqualTo(elkDataCollectionInfoV2.getStateType());
+    assertThat(DelegateStateType.ELK).isEqualTo(elkDataCollectionInfoV2.getStateType());
     assertThat(elkDataCollectionInfoV2.getElkConfig()).isNull();
     assertThat(elkDataCollectionInfoV2.getStateExecutionId()).isEqualTo(executionContext.getStateExecutionInstanceId());
     assertThat(elkDataCollectionInfoV2.getMessageField()).isEqualTo(elkAnalysisState.getMessageField());

@@ -51,6 +51,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.output.NullOutputStream;
 import org.zeroturnaround.exec.ProcessExecutor;
 import org.zeroturnaround.exec.ProcessResult;
+import org.zeroturnaround.exec.stop.ProcessStopper;
 import org.zeroturnaround.exec.stream.LogOutputStream;
 
 /**
@@ -208,6 +209,8 @@ public class ScriptProcessExecutor extends AbstractScriptExecutor {
     CommandExecutionStatus commandExecutionStatus = FAILURE;
     File workingDirectory;
 
+    log.info("Shell script task parameters: accountId - {}, appId - {}, workingDir - {}, activityId - {}",
+        config.getAccountId(), config.getAppId(), config.getWorkingDirectory(), config.getExecutionId());
     if (isEmpty(config.getWorkingDirectory())) {
       String directoryPath = defaultParentWorkingDirectory + config.getExecutionId();
       createDirectoryIfDoesNotExist(directoryPath);
@@ -251,18 +254,20 @@ public class ScriptProcessExecutor extends AbstractScriptExecutor {
     Map<String, String> envVariablesMap = new HashMap<>();
     try (FileOutputStream outputStream = new FileOutputStream(scriptFile)) {
       outputStream.write(command.getBytes(Charset.forName("UTF-8")));
-
       Files.setPosixFilePermissions(scriptFile.toPath(),
           newHashSet(
               PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_EXECUTE, PosixFilePermission.OWNER_WRITE));
       log.info("Done setting file permissions for script {}", scriptFile);
 
       String[] commandList = new String[] {"/bin/bash", scriptFilename};
+      ProcessStopper processStopper = new ChildProcessStopper(
+          scriptFilename, workingDirectory, new ProcessExecutor().environment(environment).directory(workingDirectory));
       ProcessExecutor processExecutor = new ProcessExecutor()
                                             .command(commandList)
                                             .directory(workingDirectory)
                                             .environment(environment)
                                             .readOutput(true)
+                                            .stopper(processStopper)
                                             .redirectOutput(new LogOutputStream() {
                                               @Override
                                               protected void processLine(String line) {

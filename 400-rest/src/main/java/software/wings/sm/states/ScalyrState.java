@@ -19,11 +19,12 @@ import io.harness.delegate.beans.TaskData;
 import software.wings.beans.ScalyrConfig;
 import software.wings.beans.SettingAttribute;
 import software.wings.beans.TaskType;
+import software.wings.delegatetasks.DelegateStateType;
+import software.wings.delegatetasks.cv.beans.CustomLogResponseMapper;
 import software.wings.service.impl.analysis.CustomLogDataCollectionInfo;
 import software.wings.service.intfc.scalyr.ScalyrService;
 import software.wings.sm.ExecutionContext;
 import software.wings.sm.StateType;
-import software.wings.sm.states.CustomLogVerificationState.ResponseMapper;
 import software.wings.verification.VerificationStateAnalysisExecutionData;
 
 import com.github.reinert.jjschema.SchemaIgnore;
@@ -77,7 +78,7 @@ public class ScalyrState extends AbstractLogAnalysisState {
     final long dataCollectionStartTimeStamp = dataCollectionStartTimestampMillis();
     String accountId = appService.get(context.getAppId()).getAccountId();
 
-    Map<String, Map<String, ResponseMapper>> logDefinitions = scalyrService.createLogCollectionMapping(
+    Map<String, Map<String, CustomLogResponseMapper>> logDefinitions = scalyrService.createLogCollectionMapping(
         getResolvedFieldValue(context, AbstractAnalysisStateKeys.hostnameField, hostnameField),
         getResolvedFieldValue(context, ScalyrStateKeys.messageField, messageField),
         getResolvedFieldValue(context, ScalyrStateKeys.timestampField, timestampField));
@@ -96,7 +97,7 @@ public class ScalyrState extends AbstractLogAnalysisState {
             .encryptedDataDetails(secretManager.getEncryptionDetails(scalyrConfig, context.getAppId(), accountId))
             .query(getRenderedQuery())
             .hosts(hosts)
-            .stateType(StateType.SCALYR)
+            .stateType(DelegateStateType.SCALYR)
             .applicationId(context.getAppId())
             .stateExecutionId(context.getStateExecutionInstanceId())
             .workflowId(context.getWorkflowId())
@@ -124,7 +125,7 @@ public class ScalyrState extends AbstractLogAnalysisState {
                       .async(true)
                       .taskType(TaskType.CUSTOM_LOG_COLLECTION_TASK.name())
                       .parameters(new Object[] {dataCollectionInfo})
-                      .timeout(TimeUnit.MINUTES.toMillis(Integer.parseInt(getTimeDuration()) + 120))
+                      .timeout(TimeUnit.MINUTES.toMillis(Integer.parseInt(getTimeDuration(context)) + 120))
                       .build())
             .setupAbstraction(Cd1SetupFields.ENV_ID_FIELD, envId)
             .setupAbstraction(Cd1SetupFields.INFRASTRUCTURE_MAPPING_ID_FIELD, infrastructureMappingId)

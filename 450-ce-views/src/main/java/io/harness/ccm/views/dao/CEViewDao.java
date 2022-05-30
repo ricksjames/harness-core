@@ -43,6 +43,7 @@ public class CEViewDao {
                                                     .set(CEViewKeys.viewTimeRange, ceView.getViewTimeRange())
                                                     .set(CEViewKeys.viewRules, ceView.getViewRules())
                                                     .set(CEViewKeys.viewVisualization, ceView.getViewVisualization())
+                                                    .set(CEViewKeys.viewPreferences, ceView.getViewPreferences())
                                                     .set(CEViewKeys.viewType, ceView.getViewType())
                                                     .set(CEViewKeys.viewState, ViewState.COMPLETED)
                                                     .set(CEViewKeys.dataSources, ceView.getDataSources());
@@ -74,6 +75,15 @@ public class CEViewDao {
 
   public CEView get(String uuid) {
     return hPersistence.createQuery(CEView.class, excludeValidate).filter(CEViewKeys.uuid, uuid).get();
+  }
+
+  public List<CEView> list(String accountId, List<String> perspectiveIds) {
+    return hPersistence.createQuery(CEView.class)
+        .field(CEViewKeys.accountId)
+        .equal(accountId)
+        .field(CEViewKeys.uuid)
+        .in(perspectiveIds)
+        .asList();
   }
 
   public CEView findByName(String accountId, String name) {

@@ -52,6 +52,7 @@ serviceScheduler:
 enableIterators: true
 clusterName: ""
 deploymentClusterName: ""
+delegateMtlsSubdomain: "delegate.local.harness.io"
 
 jobsFrequencyConfig:
   accountLicenseCheckJobFrequencyInMinutes: 60
@@ -200,7 +201,7 @@ deployMode: KUBERNETES
 deployVariant: SAAS
 envPath: ""
 
-scmVersion: 0e23b6f1
+scmVersion: 0487ccaf
 
 portal:
   url: https://localhost:8000

@@ -24,7 +24,9 @@ import io.harness.delegate.beans.connector.scm.ScmConnector;
 import io.harness.delegate.beans.git.YamlGitConfigDTO;
 import io.harness.exception.InvalidRequestException;
 import io.harness.exception.UnexpectedException;
+import io.harness.gitsync.common.dtos.CreateGitFileRequestDTO;
 import io.harness.gitsync.common.dtos.GitFileContent;
+import io.harness.gitsync.common.dtos.UpdateGitFileRequestDTO;
 import io.harness.gitsync.common.helper.GitSyncConnectorHelper;
 import io.harness.gitsync.common.helper.UserProfileHelper;
 import io.harness.gitsync.common.service.ScmClientFacilitatorService;
@@ -91,6 +93,13 @@ public abstract class AbstractScmClientFacilitatorServiceImpl implements ScmClie
     return (ScmConnector) connectorResponseDTO.getConnector().getConnectorConfig();
   }
 
+  ScmConnector getSCMConnectorUsedInGitSyncConfig(String accountIdentifier, String orgIdentifier,
+      String projectIdentifier, String connectorIdentifierRef, String repoWhereConnectorIsStored,
+      String connectorBranch) {
+    return gitSyncConnectorHelper.getScmConnector(accountIdentifier, orgIdentifier, projectIdentifier,
+        connectorIdentifierRef, repoWhereConnectorIsStored, connectorBranch);
+  }
+
   YamlGitConfigDTO getYamlGitConfigDTO(
       String accountIdentifier, String orgIdentifier, String projectIdentifier, String yamlGitConfigIdentifier) {
     return yamlGitConfigService.get(projectIdentifier, orgIdentifier, accountIdentifier, yamlGitConfigIdentifier);
@@ -103,15 +112,14 @@ public abstract class AbstractScmClientFacilitatorServiceImpl implements ScmClie
   }
 
   void validateFileContentParams(String branch, String commitId) {
-    if (commitId != null && branch != null) {
-      throw new InvalidRequestException("Only one of branch or commit id can be present.", USER);
-    }
     if (commitId == null && branch == null) {
       throw new InvalidRequestException("One of branch or commit id should be present.", USER);
     }
   }
 
   GitFilePathDetails getGitFilePathDetails(String filePath, String branch, String commitId) {
+    // If commit id is present, branch is ignored
+    branch = isEmpty(commitId) ? branch : null;
     return GitFilePathDetails.builder().filePath(filePath).branch(branch).ref(commitId).build();
   }
 
@@ -144,7 +152,7 @@ public abstract class AbstractScmClientFacilitatorServiceImpl implements ScmClie
   }
 
   GitFileDetailsBuilder getGitFileDetails(String accountId, String yaml, String filePath, String folderPath,
-      String commitMsg, String branch, SCMType scmType) {
+      String commitMsg, String branch, SCMType scmType, String commitId) {
     final EmbeddedUser currentUser = ScmUserHelper.getCurrentUser();
     String filePathForPush = ScmGitUtils.createFilePath(folderPath, filePath);
     String scmUserName = getScmUserName(accountId, scmType);
@@ -154,6 +162,7 @@ public abstract class AbstractScmClientFacilitatorServiceImpl implements ScmClie
         .fileContent(yaml)
         .filePath(filePathForPush)
         .userEmail(currentUser.getEmail())
+        .commitId(commitId)
         .userName(isEmpty(scmUserName) ? currentUser.getName() : scmUserName);
   }
 
@@ -165,5 +174,33 @@ public abstract class AbstractScmClientFacilitatorServiceImpl implements ScmClie
       log.error("Error occurred while getting scm user", ex);
     }
     return scmUserName;
+  }
+
+  GitFileDetails getGitFileDetails(CreateGitFileRequestDTO createGitFileRequestDTO) {
+    final EmbeddedUser currentUser = ScmUserHelper.getCurrentUser();
+    return GitFileDetails.builder()
+        .branch(createGitFileRequestDTO.getBranchName())
+        .commitMessage(isEmpty(createGitFileRequestDTO.getCommitMessage()) ? GitSyncConstants.COMMIT_MSG
+                                                                           : createGitFileRequestDTO.getCommitMessage())
+        .fileContent(createGitFileRequestDTO.getFileContent())
+        .filePath(createGitFileRequestDTO.getFilePath())
+        .userEmail(currentUser.getEmail())
+        .userName(currentUser.getName())
+        .build();
+  }
+
+  GitFileDetails getGitFileDetails(UpdateGitFileRequestDTO updateGitFileRequestDTO) {
+    final EmbeddedUser currentUser = ScmUserHelper.getCurrentUser();
+    return GitFileDetails.builder()
+        .branch(updateGitFileRequestDTO.getBranchName())
+        .commitMessage(isEmpty(updateGitFileRequestDTO.getCommitMessage()) ? GitSyncConstants.COMMIT_MSG
+                                                                           : updateGitFileRequestDTO.getCommitMessage())
+        .fileContent(updateGitFileRequestDTO.getFileContent())
+        .filePath(updateGitFileRequestDTO.getFilePath())
+        .commitId(updateGitFileRequestDTO.getOldCommitId())
+        .oldFileSha(updateGitFileRequestDTO.getOldFileSha())
+        .userEmail(currentUser.getEmail())
+        .userName(currentUser.getName())
+        .build();
   }
 }

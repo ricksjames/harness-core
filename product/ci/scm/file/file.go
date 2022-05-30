@@ -55,9 +55,39 @@ func FindFile(ctx context.Context, fileRequest *pb.GetFileRequest, log *zap.Suga
 	}
 	log.Infow("Findfile success", "slug", fileRequest.GetSlug(), "path", fileRequest.GetPath(), "ref", ref, "commit id",
 		content.Sha, "blob id", content.BlobID, "elapsed_time_ms", utils.TimeSince(start))
+
+	commitID := string(content.Sha)
+	// If the caller has provided a ref than we return that ref as the commitId
+	if fileRequest.GetRef() != "" {
+	    commitID = fileRequest.GetRef()
+	}
+
+    // If the caller has provided a branch then we fetch latest commit of the branch
+	if commitID == "" {
+		// If the sha is not returned then we fetch the latest sha of the file
+		request := &pb.GetLatestCommitOnFileRequest{
+			Slug:     fileRequest.Slug,
+			Branch:   fileRequest.GetBranch(),
+			Provider: fileRequest.GetProvider(),
+			FilePath: fileRequest.GetPath(),
+		}
+		response, err := git.GetLatestCommitOnFile(ctx, request, log)
+		if err != nil {
+			log.Errorw("GetLatest Commit Failed", "slug", fileRequest.GetSlug(), "path", fileRequest.GetPath(), "ref", ref, "commit id",
+				content.Sha, "blob id", content.BlobID, "elapsed_time_ms", utils.TimeSince(start), zap.Error(err))
+			out = &pb.FileContent{
+				Error:  "Could not fetch the file content",
+				Status: 400,
+				Path:   fileRequest.GetPath(),
+			}
+			return out, nil
+		}
+		commitID = response.GetCommitId()
+	}
+
 	out = &pb.FileContent{
 		Content:  string(content.Data),
-		CommitId: content.Sha,
+		CommitId: commitID,
 		BlobId:   content.BlobID,
 		Status:   int32(response.Status),
 		Path:     fileRequest.Path,
@@ -108,7 +138,11 @@ func DeleteFile(ctx context.Context, fileRequest *pb.DeleteFileRequest, log *zap
 	case *pb.Provider_Github:
 		inputParams.BlobID = fileRequest.GetBlobId()
 	default:
-		inputParams.Sha = fileRequest.GetCommitId()
+		inputParams.Sha, err = getCommitIdIfEmptyInRequest(ctx, fileRequest.GetCommitId(), fileRequest.GetSlug(), fileRequest.GetBranch(),
+			fileRequest.GetProvider(), log)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	inputParams.Signature = scm.Signature{
@@ -162,7 +196,11 @@ func UpdateFile(ctx context.Context, fileRequest *pb.FileModifyRequest, log *zap
 	case *pb.Provider_Github:
 		inputParams.BlobID = fileRequest.GetBlobId()
 	default:
-		inputParams.Sha = fileRequest.GetCommitId()
+		inputParams.Sha, err = getCommitIdIfEmptyInRequest(ctx, fileRequest.GetCommitId(), fileRequest.GetSlug(), fileRequest.GetBranch(),
+			fileRequest.GetProvider(), log)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	inputParams.Signature = scm.Signature{
@@ -276,6 +314,13 @@ func CreateFile(ctx context.Context, fileRequest *pb.FileModifyRequest, log *zap
 		Name:  fileRequest.GetSignature().GetName(),
 		Email: fileRequest.GetSignature().GetEmail(),
 	}
+	// include the commitid if set, this is for azure
+	inputParams.Ref, err = getCommitIdIfEmptyInRequest(ctx, fileRequest.GetCommitId(), fileRequest.GetSlug(), fileRequest.GetBranch(),
+		fileRequest.GetProvider(), log)
+	if err != nil {
+		return nil, err
+	}
+
 	response, err := client.Contents.Create(ctx, fileRequest.GetSlug(), fileRequest.GetPath(), inputParams)
 	if err != nil {
 		log.Errorw("CreateFile failure", "slug", fileRequest.GetSlug(), "path", fileRequest.GetPath(), "branch", inputParams.Branch, "elapsed_time_ms", utils.TimeSince(start), zap.Error(err))
@@ -316,7 +361,7 @@ func FindFilesInBranch(ctx context.Context, fileRequest *pb.FindFilesInBranchReq
 		log.Errorw("FindFilesInBranch failure, bad ref/branch", "provider", gitclient.GetProvider(*fileRequest.GetProvider()), "slug", fileRequest.GetSlug(), "ref", ref, "filepath", fileRequest.GetPath(), "elapsed_time_ms", utils.TimeSince(start), zap.Error(err))
 		return nil, err
 	}
-	
+
 	files, response, err := client.Contents.List(ctx, fileRequest.GetSlug(), fileRequest.GetPath(), ref, getCustomListOptsFindFilesInBranch(ctx, fileRequest))
 	if err != nil {
 		log.Errorw("FindFilesInBranch failure", "provider", gitclient.GetProvider(*fileRequest.GetProvider()), "slug", fileRequest.GetSlug(), "ref", ref, "filepath", fileRequest.GetPath(), "elapsed_time_ms", utils.TimeSince(start), zap.Error(err))
@@ -327,7 +372,7 @@ func FindFilesInBranch(ctx context.Context, fileRequest *pb.FindFilesInBranchReq
 	out = &pb.FindFilesInBranchResponse{
 		File: convertContentList(files),
 		Pagination: &pb.PageResponse{
-			Next: int32(response.Page.Next),
+			Next:    int32(response.Page.Next),
 			NextUrl: response.Page.NextURL,
 		},
 	}
@@ -414,13 +459,13 @@ func parseCrudResponse(ctx context.Context, client *scm.Client, body io.Reader, 
 			return "", ""
 		}
 		return out.Commit.Sha, out.Content.Sha
-	case *pb.Provider_BitbucketCloud:
+	case *pb.Provider_BitbucketCloud, *pb.Provider_BitbucketServer:
 		// Bitbucket doesn't work on blobId concept for a file, thus it will  always be empty
 		// We try to find out the latest commit on the file, which is most-likely the commit done by SCM itself
 		// It works on best-effort basis
-		request := &pb.GetLatestCommitOnFileRequest {
-			Slug: request.Slug,
-			Branch: request.Branch,
+		request := &pb.GetLatestCommitOnFileRequest{
+			Slug:     request.Slug,
+			Branch:   request.Branch,
 			Provider: &p,
 			FilePath: request.FilePath,
 		}
@@ -429,12 +474,31 @@ func parseCrudResponse(ctx context.Context, client *scm.Client, body io.Reader, 
 			return "", ""
 		}
 		return response.CommitId, ""
+	case *pb.Provider_Azure:
+		// We try to find out the latest commit on the file, which is most-likely the commit done by SCM itself
+		// It works on best-effort basis. The commit id is confusingly called the new object ID.
+		type azureResponse struct {
+			RefUpdates []struct {
+				RepositoryID string `json:"repositoryId"`
+				Name         string `json:"name"`
+				OldObjectID  string `json:"oldObjectId"`
+				NewObjectID  string `json:"newObjectId"`
+			} `json:"refUpdates"`
+		}
+		out := azureResponse{}
+		err := json.Unmarshal([]byte(bodyStr), &out)
+		// there is no commit id or sha, no need to error
+		if err != nil || len(out.RefUpdates) == 0 {
+			log.Errorw("parseCrudResponse unable to get commitid/blobid from Azure CRUD operation", zap.Error(err))
+			return "", ""
+		}
+		return out.RefUpdates[0].NewObjectID, ""
 	default:
 		return "", ""
 	}
 }
 
-func getCustomListOptsFindFilesInBranch(ctx context.Context, fileRequest *pb.FindFilesInBranchRequest) (scm.ListOptions) {
+func getCustomListOptsFindFilesInBranch(ctx context.Context, fileRequest *pb.FindFilesInBranchRequest) scm.ListOptions {
 	opts := &scm.ListOptions{Page: int(fileRequest.GetPagination().GetPage())}
 	switch fileRequest.GetProvider().GetHook().(type) {
 	case *pb.Provider_BitbucketCloud:
@@ -447,7 +511,32 @@ func getCustomListOptsFindFilesInBranch(ctx context.Context, fileRequest *pb.Fin
 }
 
 type requestContext struct {
-	Slug string
-	Branch string
+	Slug     string
+	Branch   string
 	FilePath string
+}
+
+// getCommitIdIfEmptyInRequest returns the latest commit id of branch
+// if commit id is already set in request then it will return the same commit-id
+func getCommitIdIfEmptyInRequest(ctx context.Context, commitIdInRequest, slug, branch string, provider *pb.Provider, log *zap.SugaredLogger) (string, error) {
+	if commitIdInRequest != "" {
+		return commitIdInRequest, nil
+	}
+	// we only need to fetch the only commit-id for azure
+	switch provider.GetHook().(type) {
+	case *pb.Provider_Azure:
+		resp, err := git.GetLatestCommit(ctx, &pb.GetLatestCommitRequest{
+			Slug: slug,
+			Type: &pb.GetLatestCommitRequest_Branch{
+				Branch: branch,
+			},
+			Provider: provider,
+		}, log)
+		if err != nil {
+			return "", err
+		}
+		return resp.GetCommitId(), nil
+	default:
+		return commitIdInRequest, nil
+	}
 }

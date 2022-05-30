@@ -53,9 +53,12 @@ public class VmRunTestStepSerializer {
       throw new CIStageExecutionException("language cannot be null");
     }
     List<String> outputVarNames = new ArrayList<>();
-    if (isNotEmpty(runTestsStepInfo.getOutputVariables())) {
-      outputVarNames =
-          runTestsStepInfo.getOutputVariables().stream().map(OutputNGVariable::getName).collect(Collectors.toList());
+    if (isNotEmpty(runTestsStepInfo.getOutputVariables().getValue())) {
+      outputVarNames = runTestsStepInfo.getOutputVariables()
+                           .getValue()
+                           .stream()
+                           .map(OutputNGVariable::getName)
+                           .collect(Collectors.toList());
     }
     String connectorIdentifier = RunTimeInputHandler.resolveStringParameter(
         "connectorRef", "RunTest", identifier, runTestsStepInfo.getConnectorRef(), false);
@@ -70,6 +73,10 @@ public class VmRunTestStepSerializer {
         "TestAnnotations", stepName, identifier, runTestsStepInfo.getTestAnnotations(), false);
     String packages = RunTimeInputHandler.resolveStringParameter(
         "Packages", stepName, identifier, runTestsStepInfo.getPackages(), false);
+    String namespaces = RunTimeInputHandler.resolveStringParameter(
+        "Namespaces", stepName, identifier, runTestsStepInfo.getNamespaces(), false);
+    String buildEnvironment = RunTimeInputHandler.resolveDotNetBuildEnvName(runTestsStepInfo.getBuildEnvironment());
+    String frameworkVersion = RunTimeInputHandler.resolveDotNetVersion(runTestsStepInfo.getFrameworkVersion());
 
     boolean runOnlySelectedTests = resolveBooleanParameter(runTestsStepInfo.getRunOnlySelectedTests(), true);
 
@@ -90,13 +97,16 @@ public class VmRunTestStepSerializer {
             .language(language)
             .buildTool(buildTool)
             .packages(packages)
+            .namespaces(namespaces)
             .testAnnotations(testAnnotations)
             .runOnlySelectedTests(runOnlySelectedTests)
             .preCommand(preCommand)
             .postCommand(postCommand)
             .envVariables(envVars)
             .outputVariables(outputVarNames)
-            .timeoutSecs(timeout);
+            .timeoutSecs(timeout)
+            .buildEnvironment(buildEnvironment)
+            .frameworkVersion(frameworkVersion);
 
     ConnectorDetails connectorDetails;
     if (!StringUtils.isEmpty(image) && !StringUtils.isEmpty(connectorIdentifier)) {
@@ -105,9 +115,9 @@ public class VmRunTestStepSerializer {
       runTestStepBuilder.connector(connectorDetails);
     }
 
-    if (runTestsStepInfo.getReports() != null) {
-      if (runTestsStepInfo.getReports().getType() == UnitTestReportType.JUNIT) {
-        JUnitTestReport junitTestReport = (JUnitTestReport) runTestsStepInfo.getReports().getSpec();
+    if (runTestsStepInfo.getReports().getValue() != null) {
+      if (runTestsStepInfo.getReports().getValue().getType() == UnitTestReportType.JUNIT) {
+        JUnitTestReport junitTestReport = (JUnitTestReport) runTestsStepInfo.getReports().getValue().getSpec();
         List<String> resolvedReport = junitTestReport.resolve(identifier, stepName);
 
         runTestStepBuilder.unitTestReport(VmJunitTestReport.builder().paths(resolvedReport).build());

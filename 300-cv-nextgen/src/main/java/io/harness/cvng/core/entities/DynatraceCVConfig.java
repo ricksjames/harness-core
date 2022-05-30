@@ -17,14 +17,18 @@ import io.harness.cvng.beans.DataSourceType;
 import io.harness.cvng.beans.TimeSeriesMetricType;
 import io.harness.cvng.core.beans.HealthSourceQueryType;
 import io.harness.cvng.core.beans.monitoredService.healthSouceSpec.DynatraceHealthSourceSpec;
+import io.harness.cvng.core.entities.DynatraceCVConfig.DynatraceMetricInfo;
 import io.harness.cvng.core.services.CVNextGenConstants;
+import io.harness.cvng.core.utils.analysisinfo.AnalysisInfoUtility;
 import io.harness.cvng.core.utils.analysisinfo.DevelopmentVerificationTransformer;
 import io.harness.cvng.core.utils.analysisinfo.LiveMonitoringTransformer;
 import io.harness.cvng.core.utils.analysisinfo.SLIMetricTransformer;
 
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import lombok.AccessLevel;
 import lombok.Data;
@@ -42,7 +46,7 @@ import org.mongodb.morphia.query.UpdateOperations;
 @FieldNameConstants(innerTypeName = "DynatraceCVConfigKeys")
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
-public class DynatraceCVConfig extends MetricCVConfig {
+public class DynatraceCVConfig extends MetricCVConfig<DynatraceMetricInfo> {
   private String dynatraceServiceName;
   private String dynatraceServiceId;
   private String groupName;
@@ -113,6 +117,43 @@ public class DynatraceCVConfig extends MetricCVConfig {
     this.setMetricPack(metricPack);
   }
 
+  @Override
+  public boolean isSLIEnabled() {
+    if (!getMetricPack().getIdentifier().equals(CVNextGenConstants.CUSTOM_PACK_IDENTIFIER)) {
+      return false;
+    }
+    return AnalysisInfoUtility.anySLIEnabled(metricInfos);
+  }
+
+  @Override
+  public boolean isLiveMonitoringEnabled() {
+    if (!getMetricPack().getIdentifier().equals(CVNextGenConstants.CUSTOM_PACK_IDENTIFIER)) {
+      return true;
+    }
+    return AnalysisInfoUtility.anyLiveMonitoringEnabled(metricInfos);
+  }
+
+  @Override
+  public boolean isDeploymentVerificationEnabled() {
+    if (!getMetricPack().getIdentifier().equals(CVNextGenConstants.CUSTOM_PACK_IDENTIFIER)) {
+      return true;
+    }
+    return AnalysisInfoUtility.anyDeploymentVerificationEnabled(metricInfos);
+  }
+
+  @Override
+  public Optional<String> maybeGetGroupName() {
+    return Optional.ofNullable(groupName);
+  }
+
+  @Override
+  public List<DynatraceMetricInfo> getMetricInfos() {
+    if (metricInfos == null) {
+      return Collections.emptyList();
+    }
+    return metricInfos;
+  }
+
   public static class DynatraceCVConfigUpdatableEntity
       extends MetricCVConfigUpdatableEntity<DynatraceCVConfig, DynatraceCVConfig> {
     @Override
@@ -121,6 +162,9 @@ public class DynatraceCVConfig extends MetricCVConfig {
       setCommonOperations(updateOperations, dynatraceCVConfig);
       updateOperations.set(DynatraceCVConfigKeys.dynatraceServiceName, dynatraceCVConfig.getDynatraceServiceName())
           .set(DynatraceCVConfigKeys.dynatraceServiceId, dynatraceCVConfig.getDynatraceServiceId());
+      if (dynatraceCVConfig.getMetricInfos() != null) {
+        updateOperations.set(DynatraceCVConfigKeys.metricInfos, dynatraceCVConfig.getMetricInfos());
+      }
     }
   }
 
@@ -129,7 +173,6 @@ public class DynatraceCVConfig extends MetricCVConfig {
   @FieldDefaults(level = AccessLevel.PRIVATE)
   @EqualsAndHashCode(callSuper = true)
   public static class DynatraceMetricInfo extends AnalysisInfo {
-    String metricName;
     TimeSeriesMetricType metricType;
     String metricSelector;
     boolean isManualQuery;

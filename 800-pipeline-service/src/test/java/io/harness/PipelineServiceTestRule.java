@@ -23,6 +23,7 @@ import io.harness.callback.DelegateCallbackToken;
 import io.harness.delegate.DelegateServiceGrpc;
 import io.harness.engine.expressions.AmbianceExpressionEvaluatorProvider;
 import io.harness.factory.ClosingFactory;
+import io.harness.gitsync.HarnessToGitPushInfoServiceGrpc;
 import io.harness.gitsync.persistance.GitAwarePersistence;
 import io.harness.gitsync.persistance.GitSyncSdkService;
 import io.harness.gitsync.persistance.NoOpGitSyncSdkServiceImpl;
@@ -60,7 +61,6 @@ import io.harness.threading.CurrentThreadExecutor;
 import io.harness.threading.ExecutorModule;
 import io.harness.time.TimeModule;
 import io.harness.user.remote.UserClient;
-import io.harness.utils.NGObjectMapperHelper;
 
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
@@ -74,6 +74,7 @@ import com.google.inject.Singleton;
 import com.google.inject.TypeLiteral;
 import com.google.inject.name.Named;
 import io.grpc.inprocess.InProcessChannelBuilder;
+import io.serializer.HObjectMapper;
 import java.io.Closeable;
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
@@ -139,8 +140,7 @@ public class PipelineServiceTestRule implements InjectorRuleMixin, MethodRule, M
       @Provides
       @Singleton
       OutboxService getOutboxService(OutboxEventRepository outboxEventRepository) {
-        return new OutboxServiceImpl(
-            new OutboxDaoImpl(outboxEventRepository), NGObjectMapperHelper.NG_PIPELINE_OBJECT_MAPPER);
+        return new OutboxServiceImpl(new OutboxDaoImpl(outboxEventRepository), HObjectMapper.NG_DEFAULT_OBJECT_MAPPER);
       }
 
       @Provides
@@ -184,6 +184,9 @@ public class PipelineServiceTestRule implements InjectorRuleMixin, MethodRule, M
         bind(GitAwarePersistence.class).to(NoOpGitAwarePersistenceImpl.class);
         bind(GitSyncSdkService.class).to(NoOpGitSyncSdkServiceImpl.class);
         bind(PersistentLocker.class).toInstance(mock(PersistentLocker.class));
+        bind(HarnessToGitPushInfoServiceGrpc.HarnessToGitPushInfoServiceBlockingStub.class)
+            .toInstance(HarnessToGitPushInfoServiceGrpc.newBlockingStub(
+                InProcessChannelBuilder.forName(generateUuid()).build()));
       }
     });
 

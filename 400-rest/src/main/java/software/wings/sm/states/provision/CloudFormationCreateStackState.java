@@ -8,6 +8,7 @@
 package software.wings.sm.states.provision;
 
 import static io.harness.annotations.dev.HarnessTeam.CDP;
+import static io.harness.beans.FeatureName.CLOUDFORMATION_CHANGE_SET;
 import static io.harness.beans.FeatureName.CLOUDFORMATION_SKIP_WAIT_FOR_RESOURCES;
 import static io.harness.beans.FeatureName.GIT_HOST_CONNECTIVITY;
 import static io.harness.beans.FeatureName.SKIP_BASED_ON_STACK_STATUSES;
@@ -15,6 +16,9 @@ import static io.harness.data.structure.EmptyPredicate.isEmpty;
 import static io.harness.data.structure.EmptyPredicate.isNotEmpty;
 import static io.harness.data.structure.UUIDGenerator.generateUuid;
 import static io.harness.delegate.beans.TaskData.DEFAULT_ASYNC_CALL_TIMEOUT;
+import static io.harness.delegate.task.cloudformation.CloudformationBaseHelperImpl.CLOUDFORMATION_STACK_CREATE_BODY;
+import static io.harness.delegate.task.cloudformation.CloudformationBaseHelperImpl.CLOUDFORMATION_STACK_CREATE_GIT;
+import static io.harness.delegate.task.cloudformation.CloudformationBaseHelperImpl.CLOUDFORMATION_STACK_CREATE_URL;
 
 import static software.wings.beans.CGConstants.GLOBAL_APP_ID;
 import static software.wings.beans.TaskType.CLOUD_FORMATION_TASK;
@@ -147,13 +151,13 @@ public class CloudFormationCreateStackState extends CloudFormationState {
   }
 
   @Override
-  protected List<String> commandUnits() {
-    List<String> commandUnints = new ArrayList<>();
-    if (useParametersFile) {
-      commandUnints.add(FETCH_FILES_COMMAND_UNIT);
+  protected List<String> commandUnits(CloudFormationInfrastructureProvisioner provisioner) {
+    List<String> commandUnits = new ArrayList<>();
+    if (provisioner != null && (provisioner.provisionByGit() || useParametersFile)) {
+      commandUnits.add(FETCH_FILES_COMMAND_UNIT);
     }
-    commandUnints.add(mainCommandUnit());
-    return commandUnints;
+    commandUnits.add(mainCommandUnit());
+    return commandUnits;
   }
 
   @Override
@@ -219,16 +223,16 @@ public class CloudFormationCreateStackState extends CloudFormationState {
         return buildAndQueueFetchS3FilesTask(executionContext, awsConfig, activityId);
       }
       ensureNonEmptyStringField(provisioner.getTemplateFilePath(), "Template Url");
-      builder.createType(CloudFormationCreateStackRequest.CLOUD_FORMATION_STACK_CREATE_URL)
+      builder.createType(CLOUDFORMATION_STACK_CREATE_URL)
           .data(executionContext.renderExpression(provisioner.getTemplateFilePath()));
     } else if (provisioner.provisionByBody()) {
       String templateBody = provisioner.getTemplateBody();
       ensureNonEmptyStringField(templateBody, "Template Body");
       String renderedTemplate = executionContext.renderExpression(templateBody);
-      builder.createType(CloudFormationCreateStackRequest.CLOUD_FORMATION_STACK_CREATE_BODY).data(renderedTemplate);
+      builder.createType(CLOUDFORMATION_STACK_CREATE_BODY).data(renderedTemplate);
     } else if (provisioner.provisionByGit()) {
       String renderedGitTemplate = executionContext.renderExpression(gitTemplateBody);
-      builder.createType(CloudFormationCreateStackRequest.CLOUD_FORMATION_STACK_CREATE_GIT).data(renderedGitTemplate);
+      builder.createType(CLOUDFORMATION_STACK_CREATE_GIT).data(renderedGitTemplate);
     } else {
       throw new InvalidRequestException("Create type is not set on cloud provisioner");
     }
@@ -285,7 +289,9 @@ public class CloudFormationCreateStackState extends CloudFormationState {
         .encryptedVariables(renderedEncryptedInfrastructureVariables)
         .awsConfig(awsConfig)
         .skipWaitForResources(
-            featureFlagService.isEnabled(CLOUDFORMATION_SKIP_WAIT_FOR_RESOURCES, executionContext.getAccountId()));
+            featureFlagService.isEnabled(CLOUDFORMATION_SKIP_WAIT_FOR_RESOURCES, executionContext.getAccountId()))
+        .deploy(featureFlagService.isEnabled(CLOUDFORMATION_CHANGE_SET, executionContext.getAccountId()));
+
     CloudFormationCreateStackRequest request = builder.build();
     setTimeOutOnRequest(request);
     DelegateTask delegateTask = getCreateStackDelegateTask(executionContext, awsConfig, activityId, request);
@@ -554,6 +560,12 @@ public class CloudFormationCreateStackState extends CloudFormationState {
         (GitFetchFilesFromMultipleRepoResult) executionResponse.getGitCommandResult();
 
     List<GitFile> files = gitCommandResult.getFilesFromMultipleRepo().get(CF_PARAMETERS).getFiles();
+
+    CloudFormationInfrastructureProvisioner provisioner = getProvisioner(context);
+    GitFileConfig renderedGitFileConfig =
+        gitFileConfigHelperService.renderGitFileConfig(context, provisioner.getGitFileConfig());
+    gitTemplateFilePath = context.renderExpression(renderedGitFileConfig.getFilePath());
+
     for (GitFile file : files) {
       if (gitTemplateFilePath != null && !gitTemplateFilePath.equals("")
           && Paths.get(CURRENT_DIR_PREFIX, gitTemplateFilePath)
