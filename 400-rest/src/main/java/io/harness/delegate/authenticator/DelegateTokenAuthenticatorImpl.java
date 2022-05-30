@@ -97,8 +97,10 @@ public class DelegateTokenAuthenticatorImpl implements DelegateTokenAuthenticato
     final String tokenHash = DigestUtils.md5Hex(tokenString);
     // first validate it from DelegateJWTCache
     if (validateDelegateJWTFromCache(tokenHash)) {
+      log.info("Vishal: validated jwt from cache. JWT {}", tokenString);
       return;
     }
+    log.info("Vishal: failed to validate jwt from cache. JWT {}", tokenString);
 
     EncryptedJWT encryptedJWT;
     try {

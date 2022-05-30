@@ -66,6 +66,7 @@ public class TokenGenerator {
     try {
       readWriteLock.readLock().lock();
       if (lastEncryptedJWT != null && expiryTimeOfLastJWT > System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(5)) {
+        log.info("Vishal: Sending old jwt {}", lastEncryptedJWT);
         return lastEncryptedJWT;
       }
     } finally {
@@ -96,6 +97,7 @@ public class TokenGenerator {
 
       expiryTimeOfLastJWT = jwtClaims.getExpirationTime().getTime();
       lastEncryptedJWT = jwt.serialize();
+      log.info("Vishal: Sending new jwt {}", lastEncryptedJWT);
       return lastEncryptedJWT;
     } finally {
       readWriteLock.writeLock().unlock();
