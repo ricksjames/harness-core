@@ -55,7 +55,9 @@ public class PivotalUtilsTest extends WingsBaseTest {
     doReturn(processResult).when(processExecutor).execute();
     doReturn("asd").doReturn(null).doReturn(EMPTY).when(processResult).outputUTF8();
 
-    when(PcfUtils.createExecutorForAutoscalarPluginCheck(anyString(), anyMap())).thenReturn(processExecutor);
+    //    when(PcfUtils.createExecutorForAutoscalarPluginCheck(anyString(), anyMap())).thenReturn(processExecutor);
+    when(PcfUtils.createExecutorForAutoscalarPluginCheck(anyString(), anyMap())).thenAnswer(e -> processExecutor);
+
     when(PcfUtils.checkIfAppAutoscalarInstalled(DEFAULT_CF_CLI_PATH, CfCliVersion.V6)).thenCallRealMethod();
     assertThat(PcfUtils.checkIfAppAutoscalarInstalled(DEFAULT_CF_CLI_PATH, CfCliVersion.V6)).isTrue(); // asd
 
