@@ -7,7 +7,6 @@
 
 package software.wings.service.impl.yaml;
 
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.google.inject.Inject;
@@ -106,7 +105,6 @@ public class GitCommandCallback implements NotifyCallbackWithErrorHandling {
     try (AutoLogContext ignore1 = new AccountLogContext(accountId, OVERRIDE_ERROR);
          AutoLogContext ignore2 = new GitCommandCallbackLogContext(getContext(), OVERRIDE_ERROR)) {
       log.info("Git command response [{}]", notifyResponseData);
-
       if (notifyResponseData instanceof GitCommandExecutionResponse) {
         GitCommandExecutionResponse gitCommandExecutionResponse = (GitCommandExecutionResponse) notifyResponseData;
         GitCommandResult gitCommandResult = gitCommandExecutionResponse.getGitCommandResult();
