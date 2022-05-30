@@ -7,23 +7,10 @@
 
 package software.wings.service.impl.yaml;
 
-import static io.harness.data.structure.EmptyPredicate.isEmpty;
-import static io.harness.data.structure.EmptyPredicate.isNotEmpty;
-import static io.harness.logging.AutoLogContext.OverrideBehavior.OVERRIDE_ERROR;
-
-import static software.wings.beans.CGConstants.GLOBAL_APP_ID;
-import static software.wings.beans.yaml.GitCommand.GitCommandType.COMMIT_AND_PUSH;
-import static software.wings.beans.yaml.GitCommand.GitCommandType.DIFF;
-import static software.wings.beans.yaml.GitFileChange.Builder.aGitFileChange;
-import static software.wings.service.impl.yaml.YamlProcessingLogContext.CHANGESET_ID;
-import static software.wings.service.impl.yaml.sync.GitSyncErrorUtils.getCommitIdOfError;
-import static software.wings.service.impl.yaml.sync.GitSyncErrorUtils.getCommitMessageOfError;
-import static software.wings.service.impl.yaml.sync.GitSyncErrorUtils.getCommitTimeOfError;
-import static software.wings.service.impl.yaml.sync.GitSyncErrorUtils.getYamlContentOfError;
-
-import static org.apache.commons.collections4.ListUtils.emptyIfNull;
-import static org.apache.commons.lang3.StringUtils.isNotBlank;
-
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableMap;
+import com.google.inject.Inject;
+import com.mongodb.DuplicateKeyException;
 import io.harness.delegate.beans.NoAvailableDelegatesException;
 import io.harness.delegate.beans.NoInstalledDelegatesException;
 import io.harness.eraro.ErrorCode;
@@ -33,7 +20,8 @@ import io.harness.logging.AccountLogContext;
 import io.harness.logging.AutoLogContext;
 import io.harness.tasks.ResponseData;
 import io.harness.waiter.NotifyCallbackWithErrorHandling;
-
+import lombok.extern.slf4j.Slf4j;
+import org.mongodb.morphia.annotations.Transient;
 import software.wings.beans.GitCommit;
 import software.wings.beans.alert.AlertType;
 import software.wings.beans.alert.GitConnectionErrorAlert;
@@ -60,10 +48,6 @@ import software.wings.yaml.gitSync.YamlChangeSet;
 import software.wings.yaml.gitSync.YamlChangeSet.Status;
 import software.wings.yaml.gitSync.YamlGitConfig;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableMap;
-import com.google.inject.Inject;
-import com.mongodb.DuplicateKeyException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -72,8 +56,21 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import lombok.extern.slf4j.Slf4j;
-import org.mongodb.morphia.annotations.Transient;
+
+import static io.harness.data.structure.EmptyPredicate.isEmpty;
+import static io.harness.data.structure.EmptyPredicate.isNotEmpty;
+import static io.harness.logging.AutoLogContext.OverrideBehavior.OVERRIDE_ERROR;
+import static org.apache.commons.collections4.ListUtils.emptyIfNull;
+import static org.apache.commons.lang3.StringUtils.isNotBlank;
+import static software.wings.beans.CGConstants.GLOBAL_APP_ID;
+import static software.wings.beans.yaml.GitCommand.GitCommandType.COMMIT_AND_PUSH;
+import static software.wings.beans.yaml.GitCommand.GitCommandType.DIFF;
+import static software.wings.beans.yaml.GitFileChange.Builder.aGitFileChange;
+import static software.wings.service.impl.yaml.YamlProcessingLogContext.CHANGESET_ID;
+import static software.wings.service.impl.yaml.sync.GitSyncErrorUtils.getCommitIdOfError;
+import static software.wings.service.impl.yaml.sync.GitSyncErrorUtils.getCommitMessageOfError;
+import static software.wings.service.impl.yaml.sync.GitSyncErrorUtils.getCommitTimeOfError;
+import static software.wings.service.impl.yaml.sync.GitSyncErrorUtils.getYamlContentOfError;
 @Slf4j
 public class GitCommandCallback implements NotifyCallbackWithErrorHandling {
   private String accountId;
