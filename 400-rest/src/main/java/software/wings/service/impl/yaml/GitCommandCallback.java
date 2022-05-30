@@ -179,7 +179,6 @@ public class GitCommandCallback implements NotifyCallbackWithErrorHandling {
             yamlChangeSetService.updateStatus(accountId, changeSetId, Status.FAILED);
             handleDiffCommandFailure(null, accountId);
           }
-
         } else {
           log.warn("Unexpected commandType result: [{}]", gitCommandExecutionResponse.getErrorMessage());
           yamlChangeSetService.updateStatus(accountId, changeSetId, Status.FAILED);
