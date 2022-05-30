@@ -18,9 +18,8 @@ import io.harness.delegate.task.azure.resource.AzureResourceTaskParameters;
 import io.harness.delegate.task.azure.resource.AzureResourceTaskResponse;
 import io.harness.delegate.task.azure.resource.operation.AzureResourceOperation;
 import io.harness.delegate.task.azure.resource.operation.AzureResourceOperationResponse;
+import io.harness.exception.sanitizer.ExceptionMessageSanitizer;
 import io.harness.logging.CommandExecutionStatus;
-
-import software.wings.delegatetasks.ExceptionMessageSanitizer;
 
 import lombok.extern.slf4j.Slf4j;
 

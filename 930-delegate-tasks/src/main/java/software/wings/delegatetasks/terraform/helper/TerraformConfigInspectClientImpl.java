@@ -23,8 +23,8 @@ import io.harness.delegate.clienttools.TerraformConfigInspectVersion;
 import io.harness.exception.InvalidRequestException;
 import io.harness.exception.UnexpectedException;
 import io.harness.exception.WingsException;
+import io.harness.exception.sanitizer.ExceptionMessageSanitizer;
 
-import software.wings.delegatetasks.ExceptionMessageSanitizer;
 import software.wings.delegatetasks.terraform.TerraformConfigInspectClient;
 
 import com.google.inject.Singleton;

@@ -25,11 +25,10 @@ import io.harness.delegate.task.azure.arm.AzureARMTaskResponse;
 import io.harness.delegate.task.azure.arm.response.AzureARMDeploymentResponse;
 import io.harness.exception.AzureClientException;
 import io.harness.exception.InvalidRequestException;
+import io.harness.exception.sanitizer.ExceptionMessageSanitizer;
 import io.harness.logging.CommandExecutionStatus;
 import io.harness.logging.LogCallback;
 import io.harness.logging.LogLevel;
-
-import software.wings.delegatetasks.ExceptionMessageSanitizer;
 
 import lombok.extern.slf4j.Slf4j;
 

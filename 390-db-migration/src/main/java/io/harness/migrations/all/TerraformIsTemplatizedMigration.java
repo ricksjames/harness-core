@@ -12,6 +12,7 @@ import static io.harness.persistence.HQuery.excludeAuthority;
 
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.data.structure.EmptyPredicate;
+import io.harness.exception.sanitizer.ExceptionMessageSanitizer;
 import io.harness.migrations.Migration;
 import io.harness.persistence.HIterator;
 
@@ -19,7 +20,6 @@ import software.wings.beans.GitConfig;
 import software.wings.beans.InfrastructureProvisioner;
 import software.wings.beans.SettingAttribute;
 import software.wings.beans.TerraformInfrastructureProvisioner;
-import software.wings.delegatetasks.ExceptionMessageSanitizer;
 import software.wings.dl.WingsPersistence;
 import software.wings.service.intfc.InfrastructureProvisionerService;
 import software.wings.service.intfc.SettingsService;

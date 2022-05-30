@@ -15,6 +15,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.harness.CategoryTest;
 import io.harness.annotations.dev.OwnedBy;
+import io.harness.beans.DecryptableEntity;
 import io.harness.category.element.UnitTests;
 import io.harness.eraro.ErrorCode;
 import io.harness.exception.WingsException;
@@ -22,8 +23,6 @@ import io.harness.rule.Owner;
 import io.harness.rule.OwnerRule;
 import io.harness.secret.SecretSanitizerThreadLocal;
 import io.harness.security.encryption.EncryptedDataDetail;
-
-import software.wings.beans.GitConfig;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -38,7 +37,8 @@ import org.junit.experimental.categories.Category;
 
 @OwnedBy(CDP)
 public class ExceptionMessageSanitizerTest extends CategoryTest {
-  private GitConfig gitConfig;
+  class DummyConfigClass implements DecryptableEntity {}
+  private DummyConfigClass dummyConfigClass = new DummyConfigClass();
   private List<EncryptedDataDetail> sourceRepoEncryptionDetails;
 
   @Test
@@ -132,12 +132,12 @@ public class ExceptionMessageSanitizerTest extends CategoryTest {
   @Owner(developers = OwnerRule.PRATYUSH)
   @Category(UnitTests.class)
   public void testStoreAllSecretsForSanitizingWithEmptyFieldName() {
-    gitConfig = GitConfig.builder().build();
     sourceRepoEncryptionDetails = new ArrayList<>();
     sourceRepoEncryptionDetails.add(EncryptedDataDetail.builder().build());
     assertDoesNotThrow(
-        () -> ExceptionMessageSanitizer.storeAllSecretsForSanitizing(gitConfig, sourceRepoEncryptionDetails));
-    assertThatThrownBy(() -> getFieldByName(gitConfig.getClass(), sourceRepoEncryptionDetails.get(0).getFieldName()))
+        () -> ExceptionMessageSanitizer.storeAllSecretsForSanitizing(dummyConfigClass, sourceRepoEncryptionDetails));
+    assertThatThrownBy(
+        () -> getFieldByName(dummyConfigClass.getClass(), sourceRepoEncryptionDetails.get(0).getFieldName()))
         .isInstanceOf(NullPointerException.class);
   }
 

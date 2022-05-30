@@ -26,8 +26,8 @@ import io.harness.delegate.task.azure.arm.AzureARMTaskParameters;
 import io.harness.delegate.task.azure.arm.AzureARMTaskResponse;
 import io.harness.delegate.task.azure.arm.request.AzureARMDeploymentParameters;
 import io.harness.delegate.task.azure.arm.response.AzureARMDeploymentResponse;
+import io.harness.exception.sanitizer.ExceptionMessageSanitizer;
 
-import software.wings.delegatetasks.ExceptionMessageSanitizer;
 import software.wings.delegatetasks.azure.arm.AbstractAzureARMTaskHandler;
 import software.wings.delegatetasks.azure.arm.deployment.AzureARMDeploymentService;
 import software.wings.delegatetasks.azure.arm.deployment.context.DeploymentManagementGroupContext;

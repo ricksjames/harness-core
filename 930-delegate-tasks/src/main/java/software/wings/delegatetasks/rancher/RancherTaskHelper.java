@@ -17,6 +17,7 @@ import io.harness.annotations.dev.OwnedBy;
 import io.harness.annotations.dev.TargetModule;
 import io.harness.beans.KeyValuePair;
 import io.harness.exception.InvalidRequestException;
+import io.harness.exception.sanitizer.ExceptionMessageSanitizer;
 import io.harness.http.HttpService;
 import io.harness.http.beans.HttpInternalConfig;
 import io.harness.http.beans.HttpInternalResponse;
@@ -25,7 +26,6 @@ import io.harness.security.encryption.EncryptedDataDetail;
 import io.harness.serializer.JsonSubtypeResolver;
 
 import software.wings.beans.RancherConfig;
-import software.wings.delegatetasks.ExceptionMessageSanitizer;
 import software.wings.jersey.JsonViews;
 import software.wings.service.intfc.security.EncryptionService;
 

@@ -27,9 +27,9 @@ public class ApiServiceBeansRegistrars {
           .addAll(CommonsRegistrars.kryoRegistrars)
           .add(ApiServiceBeansKryoRegister.class)
           .add(ApiServiceBeansProtoKryoRegistrar.class)
-          .add(NGCommonsKryoRegistrar.class)
+          //          .add(NGCommonsKryoRegistrar.class)
           .add(RbacCoreKryoRegistrar.class)
-          .add(RecasterKryoRegistrar.class)
+          //          .add(RecasterKryoRegistrar.class)
           .build();
 
   public static final ImmutableSet<Class<? extends MorphiaRegistrar>> morphiaRegistrars =
