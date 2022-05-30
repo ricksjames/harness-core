@@ -7,42 +7,27 @@
 
 package software.wings.service.impl.yaml;
 
-import static io.harness.data.structure.EmptyPredicate.isEmpty;
-import static io.harness.data.structure.EmptyPredicate.isNotEmpty;
-import static io.harness.logging.AutoLogContext.OverrideBehavior.OVERRIDE_ERROR;
-
-import static software.wings.beans.CGConstants.GLOBAL_APP_ID;
-import static software.wings.beans.yaml.GitCommand.GitCommandType.COMMIT_AND_PUSH;
-import static software.wings.beans.yaml.GitCommand.GitCommandType.DIFF;
-import static software.wings.beans.yaml.GitFileChange.Builder.aGitFileChange;
-import static software.wings.service.impl.yaml.YamlProcessingLogContext.CHANGESET_ID;
-import static software.wings.service.impl.yaml.sync.GitSyncErrorUtils.getCommitIdOfError;
-import static software.wings.service.impl.yaml.sync.GitSyncErrorUtils.getCommitMessageOfError;
-import static software.wings.service.impl.yaml.sync.GitSyncErrorUtils.getCommitTimeOfError;
-import static software.wings.service.impl.yaml.sync.GitSyncErrorUtils.getYamlContentOfError;
-
-import static org.apache.commons.collections4.ListUtils.emptyIfNull;
-import static org.apache.commons.lang3.StringUtils.isNotBlank;
-
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableMap;
+import com.google.inject.Inject;
+import com.mongodb.DuplicateKeyException;
+import io.harness.delegate.beans.NoAvailableDelegatesException;
+import io.harness.delegate.beans.NoInstalledDelegatesException;
 import io.harness.eraro.ErrorCode;
 import io.harness.exception.UnexpectedException;
 import io.harness.git.model.ChangeType;
 import io.harness.logging.AccountLogContext;
 import io.harness.logging.AutoLogContext;
 import io.harness.tasks.ResponseData;
-import io.harness.waiter.OldNotifyCallback;
-
+import io.harness.waiter.NotifyCallbackWithErrorHandling;
+import lombok.extern.slf4j.Slf4j;
+import org.mongodb.morphia.annotations.Transient;
 import software.wings.beans.GitCommit;
 import software.wings.beans.alert.AlertType;
 import software.wings.beans.alert.GitConnectionErrorAlert;
 import software.wings.beans.yaml.GitCommand.GitCommandType;
-import software.wings.beans.yaml.GitCommandExecutionResponse;
+import software.wings.beans.yaml.*;
 import software.wings.beans.yaml.GitCommandExecutionResponse.GitCommandStatus;
-import software.wings.beans.yaml.GitCommandResult;
-import software.wings.beans.yaml.GitCommitAndPushResult;
-import software.wings.beans.yaml.GitCommitRequest;
-import software.wings.beans.yaml.GitDiffResult;
-import software.wings.beans.yaml.GitFileChange;
 import software.wings.service.impl.yaml.gitdiff.GitChangeSetHandler;
 import software.wings.service.impl.yaml.gitdiff.GitChangeSetProcesser;
 import software.wings.service.impl.yaml.sync.GitSyncFailureAlertDetails;
@@ -58,22 +43,25 @@ import software.wings.yaml.gitSync.YamlChangeSet;
 import software.wings.yaml.gitSync.YamlChangeSet.Status;
 import software.wings.yaml.gitSync.YamlGitConfig;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableMap;
-import com.google.inject.Inject;
-import com.mongodb.DuplicateKeyException;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import lombok.extern.slf4j.Slf4j;
-import org.mongodb.morphia.annotations.Transient;
+
+import static io.harness.data.structure.EmptyPredicate.isEmpty;
+import static io.harness.data.structure.EmptyPredicate.isNotEmpty;
+import static io.harness.logging.AutoLogContext.OverrideBehavior.OVERRIDE_ERROR;
+import static org.apache.commons.collections4.ListUtils.emptyIfNull;
+import static org.apache.commons.lang3.StringUtils.isNotBlank;
+import static software.wings.beans.CGConstants.GLOBAL_APP_ID;
+import static software.wings.beans.yaml.GitCommand.GitCommandType.COMMIT_AND_PUSH;
+import static software.wings.beans.yaml.GitCommand.GitCommandType.DIFF;
+import static software.wings.beans.yaml.GitFileChange.Builder.aGitFileChange;
+import static software.wings.service.impl.yaml.YamlProcessingLogContext.CHANGESET_ID;
+import static software.wings.service.impl.yaml.sync.GitSyncErrorUtils.*;
 
 @Slf4j
-public class GitCommandCallback implements OldNotifyCallback {
+public class GitCommandCallback implements NotifyCallbackWithErrorHandling {
   private String accountId;
   private String changeSetId;
   private GitCommandType gitCommandType;
@@ -81,10 +69,11 @@ public class GitCommandCallback implements OldNotifyCallback {
   private String repositoryName;
   private String branchName;
 
-  public GitCommandCallback() {}
+  public GitCommandCallback() {
+  }
 
   public GitCommandCallback(String accountId, String changeSetId, GitCommandType gitCommandType, String gitConnectorId,
-      String repositoryName, String branchName) {
+                            String repositoryName, String branchName) {
     this.accountId = accountId;
     this.changeSetId = changeSetId;
     this.gitCommandType = gitCommandType;
@@ -101,13 +90,11 @@ public class GitCommandCallback implements OldNotifyCallback {
   @Transient @Inject private GitSyncErrorService gitSyncErrorService;
   @Transient @Inject GitChangeSetHandler gitChangeSetHandler;
 
-  @Override
-  public void notify(Map<String, ResponseData> response) {
+  public void notify(ResponseData notifyResponseData) {
     try (AutoLogContext ignore1 = new AccountLogContext(accountId, OVERRIDE_ERROR);
          AutoLogContext ignore2 = new GitCommandCallbackLogContext(getContext(), OVERRIDE_ERROR)) {
-      log.info("Git command response [{}]", response);
+      log.info("Git command response [{}]", notifyResponseData);
 
-      ResponseData notifyResponseData = response.values().iterator().next();
       if (notifyResponseData instanceof GitCommandExecutionResponse) {
         GitCommandExecutionResponse gitCommandExecutionResponse = (GitCommandExecutionResponse) notifyResponseData;
         GitCommandResult gitCommandResult = gitCommandExecutionResponse.getGitCommandResult();
@@ -321,14 +308,6 @@ public class GitCommandCallback implements OldNotifyCallback {
     return gitCommitSaved;
   }
 
-  @Override
-  public void notifyError(Map<String, ResponseData> response) {
-    log.warn("Git request failed for command:[{}], changeSetId:[{}], account:[{}], response:[{}]", gitCommandType,
-        changeSetId, accountId, response);
-    updateChangeSetFailureStatusSafely();
-    updateGitCommitFailureSafely();
-  }
-
   protected void updateChangeSetFailureStatusSafely() {
     if (isNotEmpty(changeSetId) && (COMMIT_AND_PUSH == gitCommandType || DIFF == gitCommandType)) {
       yamlChangeSetService.updateStatus(accountId, changeSetId, Status.FAILED);
@@ -412,12 +391,36 @@ public class GitCommandCallback implements OldNotifyCallback {
       return allFilesProcessed;
     }
     Set<String> nameOfFilesProcessed =
-        fileChangesPartOfYamlChangeSet.stream().map(change -> change.getFilePath()).collect(Collectors.toSet());
+            fileChangesPartOfYamlChangeSet.stream().map(change -> change.getFilePath()).collect(Collectors.toSet());
     filesCommited.forEach(change -> {
       if (!nameOfFilesProcessed.contains(change.getFilePath())) {
         allFilesProcessed.add(change);
       }
     });
     return allFilesProcessed;
+  }
+
+  @Override
+  public void notify(Map<String, Supplier<ResponseData>> response) {
+    try (AutoLogContext ignore1 = new AccountLogContext(accountId, OVERRIDE_ERROR);
+         AutoLogContext ignore2 = new GitCommandCallbackLogContext(getContext(), OVERRIDE_ERROR)) {
+
+      Supplier<ResponseData> responseDataSupplier = response.values().iterator().next();
+      try {
+        ResponseData responseData = responseDataSupplier.get();
+        notify(responseData);
+      } catch (Exception e) {
+        log.warn("Git request failed for command:[{}], changeSetId:[{}], account:[{}], response:[{}]", gitCommandType,
+                changeSetId, accountId, response);
+        log.error("Failure in git command execution", e);
+        if (e instanceof NoAvailableDelegatesException || e instanceof NoInstalledDelegatesException) {
+          yamlChangeSetService.updateStatusAndIncrementRetryCountForYamlChangeSets(accountId, Status.QUEUED, Collections.singletonList(Status.RUNNING), Collections.singletonList(changeSetId));
+        } else {
+          log.error("Unknown error in git command execution", e);
+          updateChangeSetFailureStatusSafely();
+          updateGitCommitFailureSafely();
+        }
+      }
+    }
   }
 }
