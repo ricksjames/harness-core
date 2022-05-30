@@ -141,8 +141,8 @@ public class InfraDownloadServiceTest extends CategoryTest {
 
   @Test
   @Owner(developers = BRETT)
-  @Ignore(value="TODO")
   @Category(UnitTests.class)
+  @Ignore(value = "TODO")
   public void testStackdriverLoggingToken() throws Exception {
     String path = "tmp.json";
     File serviceAccFile = new File(path);
@@ -166,8 +166,8 @@ public class InfraDownloadServiceTest extends CategoryTest {
 
   @Test
   @Owner(developers = BRETT)
-  @Ignore(value = "TODO")
   @Category(UnitTests.class)
+  @Ignore(value = "TODO")
   public void testStackdriverLoggingTokenCached() throws Exception {
     String path = "tmp.json";
     File serviceAccFile = new File(path);

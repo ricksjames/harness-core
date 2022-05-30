@@ -17,7 +17,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.harness.category.element.UnitTests;
 import io.harness.rule.Owner;
 
-import software.wings.WingsBaseTest;
 import software.wings.graphql.scalar.GraphQLDateTimeScalar;
 
 import graphql.language.StringValue;

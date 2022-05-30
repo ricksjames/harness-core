@@ -116,10 +116,10 @@ public class YamlGitConfigServiceImplTest extends GitSyncTestBase {
     FieldUtils.writeField(yamlGitConfigService, "setupUsageEventProducer", setupUsageEventProducer, true);
   }
 
-  @Ignore("TODO")
   @Test
   @Owner(developers = ABHINAV)
   @Category(UnitTests.class)
+  @Ignore(value = "TODO")
   public void test_save() {
     GitSyncFolderConfigDTO rootFolder =
         GitSyncFolderConfigDTO.builder().isDefault(true).rootFolder(ROOT_FOLDER).build();
@@ -130,10 +130,10 @@ public class YamlGitConfigServiceImplTest extends GitSyncTestBase {
     assertThat(ret).isEqualTo(gitSyncConfigDTO);
   }
 
-  @Ignore("TODO")
   @Test
   @Owner(developers = DEEPAK)
   @Category(UnitTests.class)
+  @Ignore(value = "TODO")
   public void test_gitSyncEnabledEventIsSent() throws Exception {
     ArgumentCaptor<Message> messageArgumentCaptor = ArgumentCaptor.forClass(Message.class);
 
@@ -174,10 +174,10 @@ public class YamlGitConfigServiceImplTest extends GitSyncTestBase {
         .build();
   }
 
-  @Ignore("TODO")
   @Test
   @Owner(developers = ABHINAV)
   @Category(UnitTests.class)
+  @Ignore(value = "TODO")
   public void testConnectorUpdate() {
     GitSyncFolderConfigDTO rootFolder =
         GitSyncFolderConfigDTO.builder().isDefault(true).rootFolder(ROOT_FOLDER).build();
@@ -202,10 +202,10 @@ public class YamlGitConfigServiceImplTest extends GitSyncTestBase {
     return toSetupGitSyncDTO(yamlGitConfigService.save(toYamlGitConfigDTO(gitSyncConfigDTO, ACCOUNT_ID)));
   }
 
-  @Ignore("TODO")
   @Test
   @Owner(developers = DEEPAK)
   @Category(UnitTests.class)
+  @Ignore(value = "TODO")
   public void testValidateThatHarnessStringComesOnceWithValidInput() {
     List<YamlGitConfigDTO.RootFolder> rootFolders = Arrays.asList(getRootFolder(ROOT_FOLDER),
         getRootFolder(ROOT_FOLDER_1), getRootFolder("config/code/config-harness/config-.harness/.harness/"),
@@ -215,10 +215,10 @@ public class YamlGitConfigServiceImplTest extends GitSyncTestBase {
     yamlGitConfigService.validateThatHarnessStringShouldNotComeMoreThanOnce(yamlGitConfigDTO);
   }
 
-  @Ignore("TODO")
   @Test
   @Owner(developers = DEEPAK)
   @Category(UnitTests.class)
+  @Ignore(value = "TODO")
   public void testValidateThatHarnessStringComesOnceWithInvalidInput() {
     List<YamlGitConfigDTO.RootFolder> rootFolders = Arrays.asList(getRootFolder("/src/.harness/src1/.harness"),
         getRootFolder("harness-config/.harness/xyz-.harness/.harness"), getRootFolder(".harness/.harness"),
@@ -233,10 +233,10 @@ public class YamlGitConfigServiceImplTest extends GitSyncTestBase {
     });
   }
 
-  @Ignore("TODO")
   @Test
   @Owner(developers = BHAVYA)
   @Category(UnitTests.class)
+  @Ignore(value = "TODO")
   public void test_DuplicateSave() {
     GitSyncFolderConfigDTO rootFolder =
         GitSyncFolderConfigDTO.builder().isDefault(true).rootFolder(ROOT_FOLDER).build();
@@ -250,10 +250,10 @@ public class YamlGitConfigServiceImplTest extends GitSyncTestBase {
     }
   }
 
-  @Ignore("TODO")
   @Test(expected = InvalidRequestException.class)
   @Owner(developers = SATYAM_GOEL)
   @Category(UnitTests.class)
+  @Ignore(value = "TODO")
   public void test_checkIfBranchExists_shouldThrowExceptionIfBranchNotEists() {
     GitSyncFolderConfigDTO rootFolder =
         GitSyncFolderConfigDTO.builder().isDefault(true).rootFolder(ROOT_FOLDER).build();
@@ -264,10 +264,10 @@ public class YamlGitConfigServiceImplTest extends GitSyncTestBase {
     toSetupGitSyncDTO(yamlGitConfigService.save(toYamlGitConfigDTO(gitSyncConfigDTO, ACCOUNT_ID)));
   }
 
-  @Ignore("TODO")
   @Test(expected = InvalidRequestException.class)
   @Owner(developers = SATYAM_GOEL)
   @Category(UnitTests.class)
+  @Ignore(value = "TODO")
   public void test_checkIfBranchExists_shouldThrowExceptionIfRepoUrlIsIncorrect() {
     GitSyncFolderConfigDTO rootFolder =
         GitSyncFolderConfigDTO.builder().isDefault(true).rootFolder(ROOT_FOLDER).build();
@@ -278,10 +278,10 @@ public class YamlGitConfigServiceImplTest extends GitSyncTestBase {
     toSetupGitSyncDTO(yamlGitConfigService.save(toYamlGitConfigDTO(gitSyncConfigDTO, ACCOUNT_ID)));
   }
 
-  @Ignore("TODO")
   @Test
   @Owner(developers = MEET)
   @Category(UnitTests.class)
+  @Ignore(value = "TODO")
   public void testDeleteAllEntities() {
     GitSyncFolderConfigDTO rootFolder =
         GitSyncFolderConfigDTO.builder().isDefault(true).rootFolder(ROOT_FOLDER).build();

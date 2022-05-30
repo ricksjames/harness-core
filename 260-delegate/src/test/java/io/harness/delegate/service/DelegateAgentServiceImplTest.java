@@ -160,7 +160,7 @@ public class DelegateAgentServiceImplTest extends CategoryTest {
   @Category(UnitTests.class)
   public void whenClientToolsEnabledAndNotInstalledThenFalse() throws Exception {
     mockStatic(InstallUtils.class, CALLS_REAL_METHODS);
-    when(InstallUtils.areClientToolsInstalled()).thenAnswer((invocationOnMock -> false));
+    when(InstallUtils.areClientToolsInstalled()).thenAnswer(invocationOnMock -> false);
 
     final DelegateConfiguration delegateConfig = mock(DelegateConfiguration.class);
     final DelegateAgentServiceImpl underTest = mock(DelegateAgentServiceImpl.class);

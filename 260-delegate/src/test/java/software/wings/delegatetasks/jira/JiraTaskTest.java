@@ -20,9 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyObject;
 import static org.powermock.api.mockito.PowerMockito.doThrow;
-import static org.powermock.api.mockito.PowerMockito.mockStatic;
 import static org.powermock.api.mockito.PowerMockito.spy;
 import static org.powermock.api.mockito.PowerMockito.when;
 
@@ -46,7 +44,6 @@ import software.wings.beans.jira.JiraTaskParameters;
 import software.wings.service.intfc.security.EncryptionService;
 
 import com.google.inject.Inject;
-import com.microsoft.azure.management.Azure;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;

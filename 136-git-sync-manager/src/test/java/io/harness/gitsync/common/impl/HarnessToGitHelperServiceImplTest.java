@@ -67,30 +67,30 @@ public class HarnessToGitHelperServiceImplTest extends GitSyncTestBase {
     initializeLogging();
   }
 
-  @Ignore("TODO")
   @Test
   @Owner(developers = MOHIT_GARG)
   @Category(UnitTests.class)
+  @Ignore(value = "TODO")
   public void testIfConflictCommitIdPresent() {
     String lastCommitId = harnessToGitHelperService.fetchLastCommitIdForFile(
         getFileInfoDefault(commitId, ChangeType.MODIFY), getEntityDetailDefault());
     assertThat(lastCommitId).isEqualTo(commitId);
   }
 
-  @Ignore("TODO")
   @Test
   @Owner(developers = MOHIT_GARG)
   @Category(UnitTests.class)
+  @Ignore(value = "TODO")
   public void testFetchLastCommitIdForFileForAddChangeType() {
     String lastCommitId = harnessToGitHelperService.fetchLastCommitIdForFile(
         getFileInfoDefault(commitId, ChangeType.ADD), getEntityDetailDefault());
     assertThat(lastCommitId).isEqualTo(commitId);
   }
 
-  @Ignore("TODO")
   @Test
   @Owner(developers = MOHIT_GARG)
   @Category(UnitTests.class)
+  @Ignore(value = "TODO")
   public void testFetchLastCommitIdForFileUpdateCase() {
     ArgumentCaptor<String> branchArgumentCaptor = ArgumentCaptor.forClass(String.class);
     when(gitEntityService.get(any(), any(), any())).thenReturn(getGitSyncEntityDTODefault());
@@ -101,10 +101,10 @@ public class HarnessToGitHelperServiceImplTest extends GitSyncTestBase {
     assertThat(lastCommitId).isEqualTo(commitId);
   }
 
-  @Ignore("TODO")
   @Test
   @Owner(developers = MOHIT_GARG)
   @Category(UnitTests.class)
+  @Ignore(value = "TODO")
   public void testFetchLastCommitIdForFileUpdateToNewBranchCase() {
     ArgumentCaptor<String> branchArgumentCaptor = ArgumentCaptor.forClass(String.class);
     when(gitEntityService.get(any(), any(), any())).thenReturn(getGitSyncEntityDTODefault());
@@ -115,10 +115,10 @@ public class HarnessToGitHelperServiceImplTest extends GitSyncTestBase {
     assertThat(lastCommitId).isEqualTo(commitId);
   }
 
-  @Ignore("TODO")
   @Test
   @Owner(developers = MEET)
   @Category(UnitTests.class)
+  @Ignore(value = "TODO")
   public void testGetBranchDetails() {
     RepoDetails repoDetails = RepoDetails.newBuilder()
                                   .setAccountId(accountId)

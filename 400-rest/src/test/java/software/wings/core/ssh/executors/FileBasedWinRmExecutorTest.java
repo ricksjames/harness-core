@@ -90,7 +90,7 @@ public class FileBasedWinRmExecutorTest extends CategoryTest {
   @Owner(developers = OwnerRule.YOGESH)
   @Category(UnitTests.class)
   @Parameters({"1", "491", "1024", "4096", "8492", "31297"})
-  @Ignore("TODO")
+  @Ignore(value = "TODO")
   public void copyConfigFilesOptimized(int size) throws IOException {
     testCopyConfigFilesForExecutor(size, plainOldExecutor);
     testCopyConfigFilesForExecutor(size, executorWithDisableEncoding);

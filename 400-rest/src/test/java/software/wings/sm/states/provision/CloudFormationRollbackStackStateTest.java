@@ -62,7 +62,6 @@ import software.wings.beans.Environment;
 import software.wings.beans.NameValuePair;
 import software.wings.beans.SettingAttribute;
 import software.wings.beans.infrastructure.CloudFormationRollbackConfig;
-import software.wings.beans.infrastructure.CloudFormationRollbackConfig.CloudFormationRollbackConfigKeys;
 import software.wings.dl.WingsPersistence;
 import software.wings.helpers.ext.cloudformation.CloudFormationCompletionFlag;
 import software.wings.helpers.ext.cloudformation.request.CloudFormationCommandRequest;

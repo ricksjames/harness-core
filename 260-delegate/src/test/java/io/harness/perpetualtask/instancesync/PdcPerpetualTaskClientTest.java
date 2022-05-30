@@ -16,7 +16,6 @@ import static software.wings.service.InstanceSyncConstants.INFRASTRUCTURE_MAPPIN
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyBoolean;
-import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.isNull;
 import static org.mockito.Mockito.when;
 
