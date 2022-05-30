@@ -1731,9 +1731,8 @@ public class PipelineServiceImpl implements PipelineService {
   @ValidationGroups(Create.class)
   public Pipeline save(Pipeline pipeline) {
     validateTemplateExpressions(pipeline);
-    if (featureFlagService.isEnabled(FeatureName.USER_GROUP_AS_EXPRESSION, pipeline.getAccountId())) {
-      validateUserGroupExpression(pipeline);
-    }
+    validateUserGroupExpression(pipeline);
+
     validatePipelineNameForDuplicates(pipeline);
     ensurePipelineStageUuidAndParallelIndex(pipeline);
     checkUniquePipelineStepName(pipeline);
