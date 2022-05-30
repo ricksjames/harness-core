@@ -19,6 +19,7 @@ import io.harness.delegate.beans.TaskData.TaskDataKeys;
 import io.harness.delegate.beans.executioncapability.ExecutionCapability;
 import io.harness.delegate.task.HDelegateTask;
 import io.harness.iterator.PersistentIterable;
+import io.harness.iterator.PersistentRegularIterable;
 import io.harness.mongo.index.CompoundMongoIndex;
 import io.harness.mongo.index.FdIndex;
 import io.harness.mongo.index.FdTtlIndex;
@@ -60,7 +61,7 @@ import org.mongodb.morphia.annotations.Transient;
 @FieldNameConstants(innerTypeName = "DelegateTaskKeys")
 @TargetModule(HarnessModule._920_DELEGATE_SERVICE_BEANS)
 public class DelegateTask
-        implements PersistentEntity, UuidAware, CreatedAtAware, UpdatedAtAware, AccountAccess, HDelegateTask, PersistentIterable {
+        implements PersistentEntity, UuidAware, CreatedAtAware, UpdatedAtAware, AccountAccess, HDelegateTask, PersistentRegularIterable {
   public static List<MongoIndex> mongoIndexes() {
     return ImmutableList.<MongoIndex>builder()
         .add(CompoundMongoIndex.builder()
@@ -206,9 +207,53 @@ public class DelegateTask
 
   @Override
   public Long obtainNextIteration(String fieldName) {
+    if (DelegateTaskKeys.delegateTaskFailIteration.equals(fieldName)) {
+      return this.delegateTaskFailIteration;
+    }else if (DelegateTaskKeys.delegateTaskRebroadcastIteration.equals(fieldName)){
+      return this.delegateTaskRebroadcastIteration;
+    } else if (DelegateTaskKeys.delegateTaskFailValidationIteration.equals(fieldName)){
+      return this.delegateTaskFailValidationIteration;
+    }
     return null;
   }
 
+  @Override
+  public void updateNextIteration(String fieldName, long nextIteration) {
+
+    if (DelegateTaskKeys.delegateTaskFailIteration.equals(fieldName)) {
+      this.delegateTaskFailIteration = nextIteration;
+      return;
+    }
+    if (DelegateTaskKeys.delegateTaskRebroadcastIteration.equals(fieldName)) {
+      this.delegateTaskRebroadcastIteration = nextIteration;
+      return;
+    }
+    if (DelegateTaskKeys.delegateTaskFailValidationIteration.equals(fieldName)) {
+      this.delegateTaskFailValidationIteration = nextIteration;
+      return;
+    }
+  }
+
+  /* @Override
+   public Long obtainNextIteration(String fieldName) {
+     if (DelegateTaskKeys.delegateTaskFailIteration.equals(fieldName)) {
+       return this.delegateTaskFailIteration;
+     }else if (DelegateTaskKeys.delegateTaskRebroadcastIteration.equals(fieldName)){
+        return this.delegateTaskRebroadcastIteration;
+     } else if (DelegateTaskKeys.delegateTaskFailValidationIteration.equals(fieldName)){
+       return this.delegateTaskFailValidationIteration;
+     }
+     return null;
+   }
+
+   @Override
+   public void updateNextIteration(String fieldName, long nextIteration) {
+     if (DelegateTaskKeys.delegateTaskFailIteration.equals(fieldName)) {
+       this.delegateTaskFailIteration = nextIteration;
+       return;
+     }
+   }
+ */
   public enum Status {
     QUEUED,
     STARTED,

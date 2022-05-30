@@ -2,14 +2,15 @@ package io.harness.iterator;
 
 import static io.harness.beans.DelegateTask.Status.QUEUED;
 import static io.harness.beans.DelegateTask.Status.runningStatuses;
+import static io.harness.data.structure.EmptyPredicate.isEmpty;
 import static io.harness.logging.AutoLogContext.OverrideBehavior.OVERRIDE_ERROR;
 import static io.harness.metrics.impl.DelegateMetricsServiceImpl.DELEGATE_TASK_REBROADCAST;
 import static io.harness.mongo.iterator.MongoPersistenceIterator.SchedulingType.REGULAR;
+import static io.harness.persistence.HQuery.excludeAuthority;
 
 import static java.lang.System.currentTimeMillis;
 import static java.time.Duration.ofSeconds;
 
-import com.google.inject.Singleton;
 import io.harness.beans.DelegateTask;
 import io.harness.beans.DelegateTask.DelegateTaskKeys;
 import io.harness.delegate.task.TaskLogContext;
@@ -22,7 +23,6 @@ import io.harness.mongo.iterator.provider.MorphiaPersistenceProvider;
 import io.harness.persistence.HPersistence;
 import io.harness.service.intfc.DelegateTaskService;
 
-import lombok.extern.slf4j.Slf4j;
 import software.wings.beans.TaskType;
 import software.wings.service.impl.DelegateTaskBroadcastHelper;
 import software.wings.service.intfc.AssignDelegateService;
@@ -31,6 +31,7 @@ import software.wings.service.intfc.DelegateSelectionLogsService;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import java.time.Clock;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -38,7 +39,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import lombok.extern.slf4j.Slf4j;
+import org.mongodb.morphia.query.Query;
 import org.mongodb.morphia.query.UpdateOperations;
+import org.mongodb.morphia.query.UpdateResults;
 
 @Singleton
 @Slf4j
@@ -51,16 +55,17 @@ public class DelegateTaskRebroadcast implements MongoPersistenceIterator.Handler
   @Inject private DelegateTaskService delegateTaskService;
   @Inject private DelegateSelectionLogsService delegateSelectionLogsService;
   @Inject private Clock clock;
-    @Inject private DelegateTaskBroadcastHelper broadcastHelper;
+  @Inject private DelegateTaskBroadcastHelper broadcastHelper;
 
   private static final long DELEGATE_REBROADCAST_INTERVAL = 5;
   private static long BROADCAST_INTERVAL = TimeUnit.MINUTES.toMillis(1);
   private static int MAX_BROADCAST_ROUND = 3;
+  private static int BROADCAST_LIMIT = 10;
 
   public void registerIterators(int threadPoolSize) {
     persistenceIteratorFactory.createPumpIteratorWithDedicatedThreadPool(
         PersistenceIteratorFactory.PumpExecutorOptions.builder()
-            .name(this.getClass().getName())
+            .name("delegateTaskRebroadcast")
             .poolSize(threadPoolSize)
             .interval(ofSeconds(5))
             .build(),
@@ -89,19 +94,23 @@ public class DelegateTaskRebroadcast implements MongoPersistenceIterator.Handler
   @Override
   public void handle(DelegateTask delegateTask) {
     long now = clock.millis();
+    Query<DelegateTask> query = persistence.createQuery(DelegateTask.class, excludeAuthority)
+                                    .filter(DelegateTaskKeys.uuid, delegateTask.getUuid());
+
     LinkedList<String> eligibleDelegatesList = delegateTask.getEligibleToExecuteDelegateIds();
+
     // add connected eligible delegates to broadcast list. Also rotate the eligibleDelegatesList list
     List<String> broadcastToDelegates = Lists.newArrayList();
-    int broadcastLimit = Math.min(eligibleDelegatesList.size(), 10);
+    int broadcastLimit = Math.min(eligibleDelegatesList.size(), BROADCAST_LIMIT);
 
-    Iterator<String> delegateIdIterator = eligibleDelegatesList.iterator();
+    Iterator<String> eligibleDelegateIdsIterator = eligibleDelegatesList.iterator();
 
-    while (delegateIdIterator.hasNext() && broadcastLimit > broadcastToDelegates.size()) {
+    while (eligibleDelegateIdsIterator.hasNext() && broadcastLimit > broadcastToDelegates.size()) {
       String delegateId = eligibleDelegatesList.removeFirst();
       broadcastToDelegates.add(delegateId);
       eligibleDelegatesList.addLast(delegateId);
     }
-    long nextInterval = TimeUnit.SECONDS.toMillis(5);
+    long nextInterval = TimeUnit.SECONDS.toMillis(DELEGATE_REBROADCAST_INTERVAL);
     int broadcastRoundCount = delegateTask.getBroadcastRound();
     Set<String> alreadyTriedDelegates =
         Optional.ofNullable(delegateTask.getAlreadyTriedDelegates()).orElse(Sets.newHashSet());
@@ -122,8 +131,12 @@ public class DelegateTaskRebroadcast implements MongoPersistenceIterator.Handler
             .set(DelegateTaskKeys.nextBroadcast, now + nextInterval)
             .set(DelegateTaskKeys.alreadyTriedDelegates, alreadyTriedDelegates)
             .set(DelegateTaskKeys.broadcastRound, broadcastRoundCount);
-      persistence.update(delegateTask, updateOperations);
+    delegateTask = persistence.findAndModify(query, updateOperations, HPersistence.returnNewOptions);
 
+    if (delegateTask == null) {
+      log.info("Cannot find delegate task, update failed on broadcast");
+      return;
+    }
     delegateTask.setBroadcastToDelegateIds(broadcastToDelegates);
     delegateSelectionLogsService.logBroadcastToDelegate(Sets.newHashSet(broadcastToDelegates), delegateTask);
 
@@ -131,7 +144,7 @@ public class DelegateTaskRebroadcast implements MongoPersistenceIterator.Handler
              TaskType.valueOf(delegateTask.getData().getTaskType()).getTaskGroup().name(), OVERRIDE_ERROR);
          AutoLogContext ignore2 = new AccountLogContext(delegateTask.getAccountId(), OVERRIDE_ERROR)) {
       log.info("IT: Rebroadcast queued task id {} on broadcast attempt: {} on round {} to {} ", delegateTask.getUuid(),
-          delegateTask.getBroadcastCount(), delegateTask.getBroadcastRound(), delegateTask.getBroadcastToDelegateIds());
+          delegateTask.getBroadcastCount(), delegateTask.getBroadcastRound()+1, delegateTask.getBroadcastToDelegateIds());
       delegateMetricsService.recordDelegateTaskMetrics(delegateTask, DELEGATE_TASK_REBROADCAST);
       broadcastHelper.rebroadcastDelegateTask(delegateTask);
     }

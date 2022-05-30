@@ -2,17 +2,21 @@ package io.harness.iterator;
 
 import static io.harness.beans.DelegateTask.Status.runningStatuses;
 import static io.harness.data.structure.EmptyPredicate.isEmpty;
+import static io.harness.data.structure.EmptyPredicate.isNotEmpty;
 import static io.harness.delegate.task.TaskFailureReason.EXPIRED;
 import static io.harness.metrics.impl.DelegateMetricsServiceImpl.DELEGATE_TASK_EXPIRED;
 import static io.harness.mongo.iterator.MongoPersistenceIterator.SchedulingType.REGULAR;
-import io.harness.beans.DelegateTask.DelegateTaskKeys;
 
+import static java.lang.String.format;
 import static java.lang.System.currentTimeMillis;
 import static java.time.Duration.ofSeconds;
+import static java.util.stream.Collectors.joining;
 
 import io.harness.beans.DelegateTask;
+import io.harness.beans.DelegateTask.DelegateTaskKeys;
 import io.harness.delegate.beans.DelegateTaskResponse;
 import io.harness.delegate.beans.ErrorNotifyResponseData;
+import io.harness.delegate.beans.executioncapability.ExecutionCapability;
 import io.harness.metrics.intfc.DelegateMetricsService;
 import io.harness.mongo.iterator.MongoPersistenceIterator;
 import io.harness.mongo.iterator.filter.MorphiaFilterExpander;
@@ -64,7 +68,7 @@ public class DelegateTaskFailIterator implements MongoPersistenceIterator.Handle
             .redistribute(true));
   }
   @Override
-  public void handle(DelegateTask delegateTask) {
+  public void handle(DelegateTask delegateTask) throws IllegalArgumentException {
     boolean deleted = persistence.delete(delegateTask);
     if (deleted) {
       delegateMetricsService.recordDelegateTaskMetrics(delegateTask, DELEGATE_TASK_EXPIRED);
