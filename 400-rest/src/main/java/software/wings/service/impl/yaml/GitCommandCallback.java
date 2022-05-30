@@ -26,8 +26,13 @@ import software.wings.beans.GitCommit;
 import software.wings.beans.alert.AlertType;
 import software.wings.beans.alert.GitConnectionErrorAlert;
 import software.wings.beans.yaml.GitCommand.GitCommandType;
-import software.wings.beans.yaml.*;
+import software.wings.beans.yaml.GitCommandExecutionResponse;
 import software.wings.beans.yaml.GitCommandExecutionResponse.GitCommandStatus;
+import software.wings.beans.yaml.GitCommandResult;
+import software.wings.beans.yaml.GitCommitAndPushResult;
+import software.wings.beans.yaml.GitCommitRequest;
+import software.wings.beans.yaml.GitDiffResult;
+import software.wings.beans.yaml.GitFileChange;
 import software.wings.service.impl.yaml.gitdiff.GitChangeSetHandler;
 import software.wings.service.impl.yaml.gitdiff.GitChangeSetProcesser;
 import software.wings.service.impl.yaml.sync.GitSyncFailureAlertDetails;
@@ -44,7 +49,11 @@ import software.wings.yaml.gitSync.YamlChangeSet.Status;
 import software.wings.yaml.gitSync.YamlGitConfig;
 
 import java.time.Duration;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -58,8 +67,10 @@ import static software.wings.beans.yaml.GitCommand.GitCommandType.COMMIT_AND_PUS
 import static software.wings.beans.yaml.GitCommand.GitCommandType.DIFF;
 import static software.wings.beans.yaml.GitFileChange.Builder.aGitFileChange;
 import static software.wings.service.impl.yaml.YamlProcessingLogContext.CHANGESET_ID;
-import static software.wings.service.impl.yaml.sync.GitSyncErrorUtils.*;
-
+import static software.wings.service.impl.yaml.sync.GitSyncErrorUtils.getCommitIdOfError;
+import static software.wings.service.impl.yaml.sync.GitSyncErrorUtils.getCommitMessageOfError;
+import static software.wings.service.impl.yaml.sync.GitSyncErrorUtils.getCommitTimeOfError;
+import static software.wings.service.impl.yaml.sync.GitSyncErrorUtils.getYamlContentOfError;
 @Slf4j
 public class GitCommandCallback implements NotifyCallbackWithErrorHandling {
   private String accountId;
