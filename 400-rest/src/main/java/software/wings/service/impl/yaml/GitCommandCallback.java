@@ -171,7 +171,6 @@ public class GitCommandCallback implements NotifyCallbackWithErrorHandling {
             } else {
               log.info("No file changes found in git diff. Skip adding active errors for processing");
             }
-
             gitChangeSetProcesser.processGitChangeSet(accountId, gitDiffResult);
             yamlChangeSetService.updateStatus(accountId, changeSetId, Status.COMPLETED);
           } catch (Exception e) {
