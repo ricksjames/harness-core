@@ -40,6 +40,7 @@ http_archive(
 )
 
 
+
 http_archive(
     name = "bazel_gazelle",
     sha256 = "222e49f034ca7a1d1231422cdb67066b885819885c356673cb1f72f748a3c9d4",
@@ -4466,8 +4467,8 @@ plain_artifacts = [
     "com.hierynomus:asn-one:0.4.0",
     "com.hierynomus:smbj:0.9.0",
     "com.hierynomus:sshj:0.26.0",
-    "com.hubspot.jackson:jackson-datatype-protobuf:0.9.11-jackson2.7",
     "com.intellij:annotations:12.0",
+    "com.hubspot.jackson:jackson-datatype-protobuf:0.9.11-jackson2.7",
     "com.j256.two-factor-auth:two-factor-auth:1.0",
     "com.jakewharton.retrofit:retrofit1-okhttp3-client:1.1.0",
     "com.jayway.jsonpath:json-path:2.2.0",
