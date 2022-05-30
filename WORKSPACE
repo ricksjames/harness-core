@@ -4360,7 +4360,7 @@ plain_artifacts = [
     "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.13.1",
     "com.fasterxml.jackson.dataformat:jackson-dataformat-smile:2.13.1",
     "com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.13.1",
-    "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.7.9",
+    "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.13.1",
     "com.fasterxml.jackson.datatype:jackson-datatype-guava:2.13.1",
     "com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.13.1",
     "com.fasterxml.jackson.datatype:jackson-datatype-joda:2.13.1",
