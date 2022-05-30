@@ -156,6 +156,9 @@ public class MailServiceImpl implements ChannelService {
       NotificationTaskResponse notificationTaskResponse =
           (NotificationTaskResponse) delegateGrpcClientWrapper.executeSyncTask(delegateTaskRequest);
       notificationProcessingResponse = notificationTaskResponse.getProcessingResponse();
+    } else if (Objects.nonNull(smtpConfigResponse)) {
+      notificationProcessingResponse =
+          mailSender.send(emailIds, subject, body, notificationId, smtpConfigResponse.getSmtpConfig());
     } else {
       notificationProcessingResponse = mailSender.send(emailIds, subject, body, notificationId, smtpConfigDefault);
     }
