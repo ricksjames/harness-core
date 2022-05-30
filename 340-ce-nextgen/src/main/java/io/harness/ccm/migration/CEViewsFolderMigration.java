@@ -5,19 +5,20 @@
  * https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt.
  */
 
-package io.harness.migrations.all;
+package io.harness.ccm.migration;
 
+import io.harness.annotations.dev.HarnessTeam;
+import io.harness.annotations.dev.OwnedBy;
 import io.harness.ccm.views.dao.CEViewFolderDao;
 import io.harness.ccm.views.entities.CEView;
 import io.harness.ccm.views.entities.CEView.CEViewKeys;
 import io.harness.ccm.views.entities.CEViewFolder;
 import io.harness.ccm.views.entities.ViewType;
-import io.harness.migrations.Migration;
+import io.harness.migration.NGMigration;
 import io.harness.persistence.HPersistence;
 
 import com.google.common.collect.ImmutableList;
 import com.google.inject.Inject;
-import com.google.inject.Singleton;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.mongodb.morphia.query.Query;
@@ -25,8 +26,8 @@ import org.mongodb.morphia.query.UpdateOperations;
 import org.springframework.util.StringUtils;
 
 @Slf4j
-@Singleton
-public class CEViewsFolderMigration implements Migration {
+@OwnedBy(HarnessTeam.CE)
+public class CEViewsFolderMigration implements NGMigration {
   @Inject private HPersistence hPersistence;
   @Inject private CEViewFolderDao ceViewFolderDao;
 

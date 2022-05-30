@@ -80,7 +80,13 @@ public class CEViewFolderServiceImpl implements CEViewFolderService {
     List<CEView> perspectives = ceViewDao.findByAccountIdAndFolderId(accountId, uuid);
     List<String> perspectiveIds = perspectives.stream().map(CEView::getUuid).collect(Collectors.toList());
     CEViewFolder folder = ceViewFolderDao.getDefaultFolder(accountId);
-    ceViewDao.moveMultiplePerspectiveFolder(accountId, perspectiveIds, folder.getUuid());
+    String folderId;
+    if (folder == null) {
+      folderId = ceViewFolderDao.createDefaultOrSampleFolder(accountId, ViewType.DEFAULT);
+    } else {
+      folderId = folder.getUuid();
+    }
+    ceViewDao.moveMultiplePerspectiveFolder(accountId, perspectiveIds, folderId);
     return ceViewFolderDao.delete(accountId, uuid);
   }
 }
