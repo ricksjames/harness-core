@@ -8,8 +8,11 @@ import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
 
 import com.google.inject.Inject;
+import io.harness.beans.FeatureFlag;
 import io.harness.beans.ScopeLevel;
 import io.harness.category.element.UnitTests;
+//import io.harness.ff.FeatureFlagService;
+import io.harness.ff.FeatureFlagsClient;
 import io.harness.rule.Owner;
 import org.junit.Before;
 import org.junit.Test;
@@ -26,13 +29,15 @@ import static org.apache.commons.lang3.RandomStringUtils.randomAlphabetic;
 @OwnedBy(HarnessTeam.PL)
 public class AccountBasicRoleAssignmentAdditionMigrationTest extends AccessControlTestBase {
     @Inject private RoleAssignmentRepository roleAssignmentRepository;
+  //  @Inject private FeatureFlagService featureFlagService;
+    @Inject private FeatureFlagsClient featureFlagsClient;
     AccountBasicRoleAssignmentAdditionMigration accountBasicRoleAssignmentAdditionMigration;
     private static final String ACCOUNT_VIEWER_ROLE = "_account_viewer";
     private static final String ACCOUNT_BASIC_ROLE = "_account_basic";
 
     @Before
     public void setup() {
-        accountBasicRoleAssignmentAdditionMigration = new AccountBasicRoleAssignmentAdditionMigration(roleAssignmentRepository);
+        accountBasicRoleAssignmentAdditionMigration = new AccountBasicRoleAssignmentAdditionMigration(roleAssignmentRepository, featureFlagsClient);
     }
 
     @Test

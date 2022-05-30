@@ -25,7 +25,7 @@ import org.mongodb.morphia.annotations.Id;
 @Builder
 @Entity(value = "featureFlag", noClassnameStored = true)
 @HarnessEntity(exportable = true)
-@JsonIgnoreProperties({"obsolete", "accountIds"})
+@JsonIgnoreProperties({"obsolete"})
 @FieldNameConstants(innerTypeName = "FeatureFlagKeys")
 public final class FeatureFlag implements PersistentEntity, UuidAware, UpdatedAtAware {
   @Id private String uuid;

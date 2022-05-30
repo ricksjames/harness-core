@@ -12,6 +12,8 @@ import io.harness.annotations.dev.OwnedBy;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.util.List;
+import java.util.Set;
+
 import lombok.Builder;
 import lombok.Data;
 
@@ -23,5 +25,6 @@ public class FeatureFlagDTO {
   private String uuid;
   private String name;
   private List<String> accounts;
+  private Set<String> accountIds;
   private Boolean enabled;
 }
