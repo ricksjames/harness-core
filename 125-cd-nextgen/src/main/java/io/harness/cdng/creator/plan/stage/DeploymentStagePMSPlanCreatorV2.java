@@ -15,6 +15,7 @@ import io.harness.cdng.creator.plan.environment.EnvironmentPlanCreatorHelper;
 import io.harness.cdng.creator.plan.infrastructure.InfrastructurePmsPlanCreator;
 import io.harness.cdng.creator.plan.service.ServicePlanCreator;
 import io.harness.cdng.creator.plan.service.ServicePlanCreatorHelper;
+import io.harness.cdng.envgroup.yaml.EnvironmentGroupYaml;
 import io.harness.cdng.environment.yaml.EnvironmentPlanCreatorConfig;
 import io.harness.cdng.environment.yaml.EnvironmentYamlV2;
 import io.harness.cdng.pipeline.PipelineInfrastructure;
@@ -197,6 +198,7 @@ public class DeploymentStagePMSPlanCreatorV2 extends AbstractStagePlanCreator<De
       String serviceSpecNodeUuid) throws IOException {
     YamlField infraField = specField.getNode().getField(YamlTypes.PIPELINE_INFRASTRUCTURE);
     EnvironmentYamlV2 environmentV2 = stageNode.getDeploymentStageConfig().getEnvironment();
+    EnvironmentGroupYaml envGroupYaml = stageNode.getDeploymentStageConfig().getEnvironmentGroup();
 
     if (infraField != null && environmentV2 != null) {
       throw new InvalidRequestException("Infrastructure and Environment cannot be siblings of each other");
@@ -230,6 +232,9 @@ public class DeploymentStagePMSPlanCreatorV2 extends AbstractStagePlanCreator<De
       YamlNode infraNode = infraField.getNode();
       planCreationResponseMap.putAll(InfrastructurePmsPlanCreator.createPlanForInfraSectionV1(
           infraNode, infraDefPlanNode.getUuid(), pipelineInfrastructure, kryoSerializer, infraNode.getUuid()));
+    } else if (envGroupYaml != null) {
+      final boolean gitOpsEnabled = isGitopsEnabled(ctx, stageNode.getDeploymentStageConfig().getService());
+
     } else {
       final boolean gitOpsEnabled = isGitopsEnabled(ctx, stageNode.getDeploymentStageConfig().getService());
 
