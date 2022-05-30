@@ -57,6 +57,7 @@ import software.wings.service.impl.security.NGEncryptorService;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Locale;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -101,6 +102,8 @@ public class NGSecretManagerServiceImplTest extends CategoryTest {
   @Owner(developers = PHOENIKX)
   @Category(UnitTests.class)
   public void testCreateSecretManager() throws IOException {
+    String s = "Testing";
+    System.out.println(s.toLowerCase(Locale.ROOT));
     SecretManagerConfigDTO dto = random(VaultConfigDTO.class);
     Call<RestResponse<SecretManagerConfigDTO>> request = mock(Call.class);
 
