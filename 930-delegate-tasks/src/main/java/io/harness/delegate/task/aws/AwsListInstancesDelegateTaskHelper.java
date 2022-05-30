@@ -45,8 +45,8 @@ import com.amazonaws.services.ec2.model.Filter;
 import com.amazonaws.services.ec2.model.Reservation;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import io.jsonwebtoken.lang.Collections;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
@@ -67,7 +67,7 @@ public class AwsListInstancesDelegateTaskHelper {
 
     AwsInstanceFilterBuilder awsInstanceFilterBuilder = AwsInstanceFilter.builder().vpcIds(awsTaskParams.getVpcIds());
 
-    if (!Collections.isEmpty(awsTaskParams.getTags())) {
+    if (awsTaskParams.getTags() != null) {
       List<Tag> tags = awsTaskParams.getTags()
                            .entrySet()
                            .stream()
@@ -169,6 +169,10 @@ public class AwsListInstancesDelegateTaskHelper {
   }
 
   private List<AwsInstance> getInstanceList(DescribeInstancesResult result, boolean excludeWinRm) {
+    if (result.getReservations() == null) {
+      return Collections.emptyList();
+    }
+
     return result.getReservations()
         .stream()
         .map(Reservation::getInstances)

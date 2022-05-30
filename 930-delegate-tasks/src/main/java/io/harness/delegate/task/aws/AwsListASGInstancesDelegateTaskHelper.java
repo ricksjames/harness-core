@@ -86,9 +86,8 @@ public class AwsListASGInstancesDelegateTaskHelper {
       DescribeAutoScalingGroupsResult describeAutoScalingGroupsResult =
           closeableAmazonAutoScalingClient.getClient().describeAutoScalingGroups(describeAutoScalingGroupsRequest);
 
-      if (!describeAutoScalingGroupsResult.getAutoScalingGroups().isEmpty()) {
+      if (CollectionUtils.isNotEmpty(describeAutoScalingGroupsResult.getAutoScalingGroups())) {
         AutoScalingGroup autoScalingGroup = describeAutoScalingGroupsResult.getAutoScalingGroups().get(0);
-
         result = autoScalingGroup.getInstances().stream().map(Instance::getInstanceId).collect(toList());
       }
 
