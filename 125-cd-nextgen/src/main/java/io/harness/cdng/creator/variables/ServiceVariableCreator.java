@@ -83,8 +83,6 @@ public class ServiceVariableCreator {
     YamlField typeField = serviceDefNode.getNode().getField(YAMLFieldNameConstants.TYPE);
     if (typeField != null) {
       switch (typeField.getNode().getCurrJsonNode().textValue()) {
-        case ServiceSpecType.GITOPS:
-          // TODO: We need a new fn for GITOPS?
         case ServiceSpecType.KUBERNETES:
         case ServiceSpecType.NATIVE_HELM:
         case ServiceSpecType.SERVERLESS_AWS_LAMBDA:

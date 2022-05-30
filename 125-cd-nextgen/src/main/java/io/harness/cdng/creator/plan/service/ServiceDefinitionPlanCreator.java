@@ -295,7 +295,7 @@ public class ServiceDefinitionPlanCreator extends ChildrenPlanCreator<YamlField>
   @Override
   public Map<String, Set<String>> getSupportedTypes() {
     return Collections.singletonMap(YamlTypes.SERVICE_DEFINITION,
-        ImmutableSet.of(ServiceSpecType.GITOPS, ServiceSpecType.KUBERNETES, ServiceSpecType.SSH, ServiceSpecType.WINRM,
+        ImmutableSet.of(ServiceSpecType.KUBERNETES, ServiceSpecType.SSH, ServiceSpecType.WINRM,
             ServiceSpecType.NATIVE_HELM, ServiceSpecType.SERVERLESS_AWS_LAMBDA));
   }
 }

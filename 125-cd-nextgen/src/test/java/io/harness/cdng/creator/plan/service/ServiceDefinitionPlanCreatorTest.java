@@ -205,7 +205,7 @@ public class ServiceDefinitionPlanCreatorTest extends CDNGTestBase {
     assertThat(supportedTypes.containsKey(YamlTypes.SERVICE_DEFINITION)).isEqualTo(true);
     assertThat(supportedTypes.get(YamlTypes.SERVICE_DEFINITION).size()).isEqualTo(6);
     assertThat(supportedTypes.get(YamlTypes.SERVICE_DEFINITION))
-        .containsOnly(ServiceSpecType.GITOPS, ServiceSpecType.KUBERNETES, ServiceSpecType.SSH, ServiceSpecType.WINRM,
+        .containsOnly(ServiceSpecType.KUBERNETES, ServiceSpecType.SSH, ServiceSpecType.WINRM,
             ServiceSpecType.NATIVE_HELM, ServiceSpecType.SERVERLESS_AWS_LAMBDA);
   }
 
