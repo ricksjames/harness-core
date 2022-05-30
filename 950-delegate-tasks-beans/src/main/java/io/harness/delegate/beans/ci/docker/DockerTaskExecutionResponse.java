@@ -9,10 +9,7 @@ package io.harness.delegate.beans.ci.docker;
 
 import io.harness.delegate.beans.DelegateMetaInfo;
 import io.harness.delegate.beans.ci.CITaskExecutionResponse;
-import io.harness.delegate.beans.ci.vm.VmServiceStatus;
-import io.harness.logging.CommandExecutionStatus;
 
-import java.util.List;
 import java.util.Map;
 import lombok.Builder;
 import lombok.Data;

@@ -8,8 +8,6 @@
 package io.harness.delegate.beans.ci.docker;
 
 import io.harness.delegate.beans.ci.CIExecuteStepTaskParams;
-import io.harness.delegate.beans.ci.CIInitializeTaskParams;
-import io.harness.delegate.task.TaskParameters;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;

@@ -10,8 +10,6 @@ package io.harness.delegate.beans;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.harness.annotations.dev.HarnessModule;
 import io.harness.annotations.dev.TargetModule;
-import io.harness.delegate.TaskType;
-import io.harness.tasks.ResponseData;
 
 import software.wings.beans.TaskTypeV2;
 

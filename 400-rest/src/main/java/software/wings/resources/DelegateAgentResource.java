@@ -64,7 +64,6 @@ import io.harness.persistence.HPersistence;
 import io.harness.polling.client.PollingResourceClient;
 import io.harness.rest.RestResponse;
 import io.harness.security.annotations.DelegateAuth;
-import io.harness.security.encryption.EncryptedDataDetail;
 import io.harness.serializer.KryoSerializer;
 
 import software.wings.beans.Account;
@@ -91,7 +90,6 @@ import io.swagger.annotations.Api;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
@@ -354,8 +352,7 @@ public class DelegateAgentResource {
         log.error("task type {} has not been ported over to V2", delegateTaskPackage.getData().getTaskType());
       }
 
-      DelegateTaskPackageV2 delegateTaskPackageV2 =
-          DelegateTaskPackageV2.builder()
+      return DelegateTaskPackageV2.builder()
               .id(taskId)
               .delegate(delegateInfo)
               .async(delegateTaskPackage.getData().isAsync())
@@ -368,7 +365,6 @@ public class DelegateAgentResource {
               .secrets(delegateTaskPackage.getSecrets())
               .taskType(taskTypeV2)
               .build();
-      return delegateTaskPackageV2;
     }
   }
 

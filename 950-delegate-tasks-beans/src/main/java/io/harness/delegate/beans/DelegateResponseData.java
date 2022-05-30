@@ -13,8 +13,6 @@ import io.harness.annotations.dev.OwnedBy;
 import io.harness.annotations.dev.TargetModule;
 import io.harness.tasks.ResponseData;
 
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
-
 @TargetModule(HarnessModule._955_DELEGATE_BEANS)
 @OwnedBy(HarnessTeam.DEL)
 public interface DelegateResponseData extends ResponseData {}
