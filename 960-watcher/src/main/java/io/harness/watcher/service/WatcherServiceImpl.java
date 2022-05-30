@@ -1396,7 +1396,7 @@ public class WatcherServiceImpl implements WatcherService {
     try {
       log.info("[Old] Starting new watcher");
       process = new ProcessExecutor()
-                    .command("nohup", "./start.sh", "upgrade", WatcherApplication.getProcessId())
+                    .command("nohup", "./start.sh", "upgrade", WatcherApplication.getProcessId(), newVersion)
                     .redirectError(Slf4jStream.of("UpgradeScript").asError())
                     .setMessageLogger((log, format, arguments) -> log.info(format, arguments))
                     .start();

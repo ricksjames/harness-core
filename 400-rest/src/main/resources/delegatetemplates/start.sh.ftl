@@ -138,16 +138,31 @@ fi
 export DEPLOY_MODE=${deployMode}
 
 echo "Checking Watcher latest version..."
+
+REMOTE_WATCHER_VERSION=$3
+<#if useCdn == "true">
+if [ ! -e $REMOTE_WATCHER_VERSION ]; then
+  echo "Starting watcher with version $REMOTE_WATCHER_VERSION"
+  TRIMMED_WATHCER_VERSION=$(echo $3 | tr '.' '\n' | tail -1)
+  REMOTE_WATCHER_URL=https://qa.harness.io/public/shared/watchers/builds/openjdk-8u242/$TRIMMED_WATHCER_VERSION/watcher.jar
+else
+  WATCHER_STORAGE_URL=${watcherStorageUrl}
+  REMOTE_WATCHER_LATEST=$(curl $MANAGER_PROXY_CURL -ks $WATCHER_STORAGE_URL/${watcherCheckLocation})
+  if [[ $DEPLOY_MODE != "KUBERNETES" ]]; then
+    REMOTE_WATCHER_URL=$WATCHER_STORAGE_URL/$(echo $REMOTE_WATCHER_LATEST | cut -d " " -f2)
+  else
+  REMOTE_WATCHER_URL=${remoteWatcherUrlCdn}/$(echo $REMOTE_WATCHER_LATEST | cut -d " " -f2)
+  fi
+REMOTE_WATCHER_VERSION=$(echo $REMOTE_WATCHER_LATEST | cut -d " " -f1)
+fi
+<#else>
 WATCHER_STORAGE_URL=${watcherStorageUrl}
 REMOTE_WATCHER_LATEST=$(curl $MANAGER_PROXY_CURL -ks $WATCHER_STORAGE_URL/${watcherCheckLocation})
 if [[ $DEPLOY_MODE != "KUBERNETES" ]]; then
-REMOTE_WATCHER_URL=$WATCHER_STORAGE_URL/$(echo $REMOTE_WATCHER_LATEST | cut -d " " -f2)
-<#if useCdn == "true">
-else
-REMOTE_WATCHER_URL=${remoteWatcherUrlCdn}/$(echo $REMOTE_WATCHER_LATEST | cut -d " " -f2)
-</#if>
+  REMOTE_WATCHER_URL=$WATCHER_STORAGE_URL/$(echo $REMOTE_WATCHER_LATEST | cut -d " " -f2)
 fi
 REMOTE_WATCHER_VERSION=$(echo $REMOTE_WATCHER_LATEST | cut -d " " -f1)
+</#if>
 
 if [ ! -e watcher.jar ]; then
   echo "Downloading Watcher $REMOTE_WATCHER_VERSION ..."
