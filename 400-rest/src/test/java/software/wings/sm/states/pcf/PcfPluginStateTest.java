@@ -517,9 +517,7 @@ public class PcfPluginStateTest extends WingsBaseTest {
 
     assertThat(pcfSetupStateExecutionData.getFetchFilesResult()).isEqualTo(gitFetchFilesFromMultipleRepoResult);
 
-    verify(pcfPluginState, times(1))
-        .executePcfPluginTask(
-            any(), any(), any(ApplicationManifest.class), anyListOf(String.class), anyString(), eq("/"));
+    verify(pcfPluginState, times(1)).executePcfPluginTask(any(), any(), any(), any(), any(), eq("/"));
   }
 
   @Test

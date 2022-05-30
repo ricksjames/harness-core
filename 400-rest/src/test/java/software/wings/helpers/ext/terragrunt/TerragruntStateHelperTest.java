@@ -216,7 +216,7 @@ public class TerragruntStateHelperTest extends CategoryTest {
         .when(executionContext)
         .renderExpression(provisioner.getSourceRepoBranch());
     doReturn(provisioner.getCommitId()).when(executionContext).renderExpression(provisioner.getCommitId());
-    doReturn(gitConfig).when(gitUtilsManager).getGitConfig(anyString());
+    doReturn(gitConfig).when(gitUtilsManager).getGitConfig(any());
     GitConfig gitConfigOutput = terragruntStateHelper.populateAndGetGitConfig(executionContext, provisioner);
 
     assertThat(gitConfigOutput.getBranch()).isEqualTo(provisioner.getSourceRepoBranch());
@@ -363,7 +363,7 @@ public class TerragruntStateHelperTest extends CategoryTest {
 
     ArgumentCaptor<SweepingOutputInstance> sweepingOutputCaptor = ArgumentCaptor.forClass(SweepingOutputInstance.class);
     verify(sweepingOutputService, times(1)).save(sweepingOutputCaptor.capture());
-    verify(sweepingOutputService, times(1)).deleteById(anyString(), anyString());
+    verify(sweepingOutputService, times(1)).deleteById(any(), anyString());
     assertThat(((TerragruntOutputVariables) sweepingOutputCaptor.getValue().getValue()).keySet())
         .contains("output1", "output2", "existing");
   }

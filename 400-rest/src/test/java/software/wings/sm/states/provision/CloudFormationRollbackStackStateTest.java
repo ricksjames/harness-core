@@ -62,6 +62,7 @@ import software.wings.beans.Environment;
 import software.wings.beans.NameValuePair;
 import software.wings.beans.SettingAttribute;
 import software.wings.beans.infrastructure.CloudFormationRollbackConfig;
+import software.wings.beans.infrastructure.CloudFormationRollbackConfig.CloudFormationRollbackConfigKeys;
 import software.wings.dl.WingsPersistence;
 import software.wings.helpers.ext.cloudformation.CloudFormationCompletionFlag;
 import software.wings.helpers.ext.cloudformation.request.CloudFormationCommandRequest;
@@ -171,7 +172,7 @@ public class CloudFormationRollbackStackStateTest extends WingsBaseTest {
     Query mockQuery = mock(Query.class);
     doReturn(mockQuery).when(mockWingsPersistence).createQuery(any());
     doReturn(mockQuery).when(mockQuery).filter(any(), any());
-    doReturn(mockQuery).when(mockQuery).order(any(Sort[].class));
+    doReturn(mockQuery).when(mockQuery).order(any(Sort.class));
     MorphiaIterator mockIterator = mock(MorphiaIterator.class);
     doReturn(mockIterator).when(mockQuery).fetch();
     doReturn(false).when(mockIterator).hasNext();

@@ -621,7 +621,7 @@ public class ArtifactCollectionStateTest extends CategoryTest {
     ExecutionResponse executionResponse = artifactCollectionState.handleAsyncResponse(
         executionContext, Collections.singletonMap("response", buildSourceExecutionResponse));
     verify(artifactService).create(artifact, jenkinsArtifactStream, false);
-    verify(workflowExecutionService).refreshBuildExecutionSummary(anyString(), any());
+    verify(workflowExecutionService).refreshBuildExecutionSummary(any(), any());
     assertThat(executionResponse.getExecutionStatus()).isEqualTo(SUCCESS);
     assertThat(executionResponse.getStateExecutionData()).isNotNull();
   }
@@ -677,7 +677,7 @@ public class ArtifactCollectionStateTest extends CategoryTest {
     ExecutionResponse executionResponse = artifactCollectionState.handleAsyncResponse(
         executionContext, Collections.singletonMap("response", buildSourceExecutionResponse));
     verify(artifactService).create(artifact, nexusArtifactStream, false);
-    verify(workflowExecutionService).refreshBuildExecutionSummary(anyString(), any());
+    verify(workflowExecutionService).refreshBuildExecutionSummary(any(), any());
     verify(artifactStreamHelper).resolveArtifactStreamRuntimeValues(any(), anyMap());
     assertThat(executionResponse.getExecutionStatus()).isEqualTo(SUCCESS);
     assertThat(executionResponse.getStateExecutionData()).isNotNull();
@@ -705,8 +705,8 @@ public class ArtifactCollectionStateTest extends CategoryTest {
     ExecutionResponse executionResponse = artifactCollectionState.handleAsyncResponse(
         executionContext, Collections.singletonMap("response", buildSourceExecutionResponse));
     verify(artifactService).create(artifact, jenkinsArtifactStream, false);
-    verify(workflowExecutionService).refreshBuildExecutionSummary(anyString(), any());
-    verify(artifactService).updateMetadataAndRevision(anyString(), anyString(), anyMap(), anyString());
+    verify(workflowExecutionService).refreshBuildExecutionSummary(any(), any());
+    verify(artifactService).updateMetadataAndRevision(any(), any(), any(), any());
     assertThat(executionResponse.getExecutionStatus()).isEqualTo(SUCCESS);
     assertThat(executionResponse.getStateExecutionData()).isNotNull();
   }
