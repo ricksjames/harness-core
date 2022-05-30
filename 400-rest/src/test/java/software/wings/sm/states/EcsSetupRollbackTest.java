@@ -143,9 +143,7 @@ public class EcsSetupRollbackTest extends WingsBaseTest {
         anEcsSetupParams().withBlueGreen(false).withServiceName("EcsSvc").withClusterName(CLUSTER_NAME).build();
     doReturn(params).when(mockEcsStateHelper).buildContainerSetupParams(any(), any());
     CommandStateExecutionData executionData = aCommandStateExecutionData().build();
-    doReturn(executionData)
-        .when(mockEcsStateHelper)
-        .getStateExecutionData(any(), any(), any(), any(Activity.class));
+    doReturn(executionData).when(mockEcsStateHelper).getStateExecutionData(any(), any(), any(), any(Activity.class));
     EcsSetupContextVariableHolder holder = EcsSetupContextVariableHolder.builder().build();
     doReturn(holder).when(mockEcsStateHelper).renderEcsSetupContextVariables(any());
     doNothing().when(stateExecutionService).appendDelegateTaskDetails(any(), any());
@@ -220,8 +218,7 @@ public class EcsSetupRollbackTest extends WingsBaseTest {
     ContainerServiceElement containerServiceElement = ContainerServiceElement.builder().build();
     doReturn(containerServiceElement)
         .when(mockEcsStateHelper)
-        .buildContainerServiceElement(
-            any(), any(), any(), any(), any(), any(), any(), any(), anyInt(), any());
+        .buildContainerServiceElement(any(), any(), any(), any(), any(), any(), any(), any(), anyInt(), any());
     doReturn(SweepingOutputInstance.builder()).when(mockContext).prepareSweepingOutputBuilder(any());
     doReturn("foo").when(mockEcsStateHelper).getSweepingOutputName(any(), anyBoolean(), any());
 
@@ -264,8 +261,7 @@ public class EcsSetupRollbackTest extends WingsBaseTest {
     ContainerServiceElement containerServiceElement = ContainerServiceElement.builder().build();
     doReturn(containerServiceElement)
         .when(mockEcsStateHelper)
-        .buildContainerServiceElement(
-            any(), any(), any(), any(), any(), any(), any(), any(), anyInt(), any());
+        .buildContainerServiceElement(any(), any(), any(), any(), any(), any(), any(), any(), anyInt(), any());
     doReturn(SweepingOutputInstance.builder()).when(mockContext).prepareSweepingOutputBuilder(any());
     doReturn("foo").when(mockEcsStateHelper).getSweepingOutputName(any(), anyBoolean(), any());
 

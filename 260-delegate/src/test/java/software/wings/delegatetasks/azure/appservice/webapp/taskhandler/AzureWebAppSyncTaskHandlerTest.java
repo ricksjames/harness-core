@@ -151,7 +151,7 @@ public class AzureWebAppSyncTaskHandlerTest extends CategoryTest {
                                                           .build();
     ArtifactStreamAttributes artifactStreamAttributes = buildArtifactStreamAttributes(true);
 
-    doAnswer(invocationOnMock -> {throw new Exception();}).when(azureWebClient).listWebAppsByResourceGroupName(any());
+    doAnswer(invocationOnMock -> { throw new Exception(); }).when(azureWebClient).listWebAppsByResourceGroupName(any());
     listWebAppNamesTaskHandler.executeTask(
         parameters, getAzureConfig(), mockLogStreamingTaskClient, artifactStreamAttributes);
   }

@@ -68,21 +68,15 @@ public class AwsCloudWatchHelperServiceDelegateImplTest extends CategoryTest {
   @Owner(developers = ROHIT_KUMAR)
   @Category(UnitTests.class)
   public void getMetricStatistics() {
-    doReturn(null)
-        .when(mockEncryptionService)
-        .decrypt(any(AwsConfig.class), any(), eq(false));
+    doReturn(null).when(mockEncryptionService).decrypt(any(AwsConfig.class), any(), eq(false));
     final AmazonCloudWatchClient amazonCloudWatchClientMock = mock(AmazonCloudWatchClient.class);
-    doReturn(amazonCloudWatchClientMock)
-        .when(awsCloudWatchHelperServiceDelegate)
-        .getAwsCloudWatchClient(any(), any());
+    doReturn(amazonCloudWatchClientMock).when(awsCloudWatchHelperServiceDelegate).getAwsCloudWatchClient(any(), any());
     doNothing().when(mockTracker).trackCloudWatchCall(any());
 
     final GetMetricStatisticsResult getMetricStatisticsResult = new GetMetricStatisticsResult();
     final Datapoint datapoint = new Datapoint();
     getMetricStatisticsResult.withDatapoints(datapoint);
-    doReturn(getMetricStatisticsResult)
-        .when(amazonCloudWatchClientMock)
-        .getMetricStatistics(any());
+    doReturn(getMetricStatisticsResult).when(amazonCloudWatchClientMock).getMetricStatistics(any());
 
     final AwsCloudWatchStatisticsRequest awsCloudWatchStatisticsRequest =
         AwsCloudWatchStatisticsRequest.builder().build();
@@ -97,18 +91,12 @@ public class AwsCloudWatchHelperServiceDelegateImplTest extends CategoryTest {
   @Owner(developers = ROHIT_KUMAR)
   @Category(UnitTests.class)
   public void getMetricStatistics_error() {
-    doReturn(null)
-        .when(mockEncryptionService)
-        .decrypt(any(AwsConfig.class), any(), eq(false));
+    doReturn(null).when(mockEncryptionService).decrypt(any(AwsConfig.class), any(), eq(false));
     final AmazonCloudWatchClient amazonCloudWatchClientMock = mock(AmazonCloudWatchClient.class);
-    doReturn(amazonCloudWatchClientMock)
-        .when(awsCloudWatchHelperServiceDelegate)
-        .getAwsCloudWatchClient(any(), any());
+    doReturn(amazonCloudWatchClientMock).when(awsCloudWatchHelperServiceDelegate).getAwsCloudWatchClient(any(), any());
     doNothing().when(mockTracker).trackCloudWatchCall(any());
 
-    doThrow(new AmazonServiceException(""))
-        .when(amazonCloudWatchClientMock)
-        .getMetricStatistics(any());
+    doThrow(new AmazonServiceException("")).when(amazonCloudWatchClientMock).getMetricStatistics(any());
 
     final AwsCloudWatchStatisticsRequest awsCloudWatchStatisticsRequest =
         AwsCloudWatchStatisticsRequest.builder().build();
@@ -119,9 +107,7 @@ public class AwsCloudWatchHelperServiceDelegateImplTest extends CategoryTest {
     assertThatExceptionOfType(WingsException.class)
         .isThrownBy(() -> awsCloudWatchHelperServiceDelegate.getMetricStatistics(awsCloudWatchStatisticsRequest));
 
-    doThrow(new AmazonClientException(""))
-        .when(amazonCloudWatchClientMock)
-        .getMetricStatistics(any());
+    doThrow(new AmazonClientException("")).when(amazonCloudWatchClientMock).getMetricStatistics(any());
     doCallRealMethod().when(awsEcrApiHelperServiceDelegateBase).handleAmazonClientException(any());
     assertThatExceptionOfType(WingsException.class)
         .isThrownBy(() -> awsCloudWatchHelperServiceDelegate.getMetricStatistics(awsCloudWatchStatisticsRequest));
@@ -181,9 +167,7 @@ public class AwsCloudWatchHelperServiceDelegateImplTest extends CategoryTest {
   @Category(UnitTests.class)
   public void shouldHandleAmazonServiceExceptionWhenGetMetricData() {
     final AmazonCloudWatchClient amazonCloudWatchClientMock = mock(AmazonCloudWatchClient.class);
-    doReturn(amazonCloudWatchClientMock)
-        .when(awsCloudWatchHelperServiceDelegate)
-        .getAwsCloudWatchClient(any(), any());
+    doReturn(amazonCloudWatchClientMock).when(awsCloudWatchHelperServiceDelegate).getAwsCloudWatchClient(any(), any());
 
     final AwsCloudWatchMetricDataRequest awsCloudWatchMetricDataRequest =
         AwsCloudWatchMetricDataRequest.builder().build();

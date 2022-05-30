@@ -140,18 +140,14 @@ public class AzureVMSSDeployStateTest extends WingsBaseTest {
     doReturn(app).when(azureVMSSStateHelper).getApplication(context);
     doReturn(env).when(azureVMSSStateHelper).getEnvironment(context);
     doReturn(service).when(azureVMSSStateHelper).getServiceByAppId(any(), any());
-    doReturn(activity)
-        .when(azureVMSSStateHelper)
-        .createAndSaveActivity(any(), any(), any(), any(), any(), anyList());
+    doReturn(activity).when(azureVMSSStateHelper).createAndSaveActivity(any(), any(), any(), any(), any(), anyList());
     doReturn(managerExecutionLogCallback).when(azureVMSSStateHelper).getExecutionLogCallback(activity);
     doReturn(infraMappingId).when(context).fetchInfraMappingId();
     doReturn(azureVMSSInfrastructureMapping).when(infrastructureMappingService).get(infraMappingId, appId);
     doReturn(autoScalingSteadyStateVMSSTimeoutFixed)
         .when(azureVMSSStateHelper)
         .renderTimeoutExpressionOrGetDefault(any(), any(), anyInt());
-    doReturn(azureVMSSInfrastructureMapping)
-        .when(azureVMSSStateHelper)
-        .getAzureVMSSInfrastructureMapping(any(), any());
+    doReturn(azureVMSSInfrastructureMapping).when(azureVMSSStateHelper).getAzureVMSSInfrastructureMapping(any(), any());
     doReturn(azureConfig)
         .when(azureVMSSStateHelper)
         .getAzureConfig(azureVMSSInfrastructureMapping.getComputeProviderSettingId());
@@ -161,9 +157,7 @@ public class AzureVMSSDeployStateTest extends WingsBaseTest {
     doReturn(artifact).when(azureVMSSStateHelper).getArtifact(any(), any());
     doReturn(isBlueGreen).when(azureVMSSStateHelper).isBlueGreenWorkflow(context);
     doReturn(userData).when(azureVMSSStateHelper).getBase64EncodedUserData(context, appId, serviceId);
-    doReturn(namePrefix)
-        .when(azureVMSSStateHelper)
-        .fixNamePrefix(any(), any(), any(), any(), any());
+    doReturn(namePrefix).when(azureVMSSStateHelper).fixNamePrefix(any(), any(), any(), any(), any());
     doReturn(numberOfInstances).when(azureVMSSStateHelper).renderExpressionOrGetDefault(any(), any(), anyInt());
     doReturn(delegateResult).when(delegateService).queueTask(any());
     doReturn("newVirtualMachineScaleSetName-id")
@@ -276,9 +270,7 @@ public class AzureVMSSDeployStateTest extends WingsBaseTest {
     doReturn(5).when(azureVMSSStateHelper).renderTimeoutExpressionOrGetDefault(any(), any(), anyInt());
     doReturn(SUCCESS).when(azureVMSSStateHelper).getExecutionStatus(any());
     doReturn(sweepingOutputInstance).when(sweepingOutputService).save(any());
-    doReturn(getInfrastructureMapping())
-        .when(azureVMSSStateHelper)
-        .getAzureVMSSInfrastructureMapping(any(), any());
+    doReturn(getInfrastructureMapping()).when(azureVMSSStateHelper).getAzureVMSSInfrastructureMapping(any(), any());
     doNothing().when(azureVMSSStateHelper).saveInstanceInfoToSweepingOutput(any(), any());
     Map<String, ResponseData> responseMap = getDelegateResponse(instancesAdded, instancesExisting);
     AzureVMSSDeployStateExecutionData data = AzureVMSSDeployStateExecutionData.builder()

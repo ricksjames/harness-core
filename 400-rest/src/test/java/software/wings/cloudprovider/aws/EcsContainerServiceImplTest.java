@@ -462,9 +462,7 @@ public class EcsContainerServiceImplTest extends WingsBaseTest {
 
     DescribeTaskDefinitionResult describeTaskDefinitionResult = new DescribeTaskDefinitionResult().withTags(tag);
     doReturn(Arrays.asList(containerSideCar, container)).when(task).getContainers();
-    doReturn(describeTaskDefinitionResult)
-        .when(awsHelperService)
-        .describeTaskDefinition(any(), any(), any(), any());
+    doReturn(describeTaskDefinitionResult).when(awsHelperService).describeTaskDefinition(any(), any(), any(), any());
 
     mainHarnessDeployedContainer =
         ((EcsContainerServiceImpl) ecsContainerService).getMainHarnessDeployedContainer(task, "us", null, null);
@@ -588,9 +586,7 @@ public class EcsContainerServiceImplTest extends WingsBaseTest {
     com.amazonaws.services.ecs.model.Tag tag =
         new com.amazonaws.services.ecs.model.Tag().withKey(MAIN_ECS_CONTAINER_NAME_TAG).withValue("containerMain");
     DescribeTaskDefinitionResult describeTaskDefinitionResult = new DescribeTaskDefinitionResult().withTags(tag);
-    doReturn(describeTaskDefinitionResult)
-        .when(awsHelperService)
-        .describeTaskDefinition(any(), any(), any(), any());
+    doReturn(describeTaskDefinitionResult).when(awsHelperService).describeTaskDefinition(any(), any(), any(), any());
 
     List<ContainerInfo> containerInfos = ((EcsContainerServiceImpl) ecsContainerService)
                                              .generateContainerInfos(Arrays.asList(task), "cl1", "us-east-1", null,
@@ -635,9 +631,7 @@ public class EcsContainerServiceImplTest extends WingsBaseTest {
 
     DescribeContainerInstancesResult containerInstancesResult =
         new DescribeContainerInstancesResult().withContainerInstances(containerInstance);
-    doReturn(containerInstancesResult)
-        .when(awsHelperService)
-        .describeContainerInstances(any(), any(), any(), any());
+    doReturn(containerInstancesResult).when(awsHelperService).describeContainerInstances(any(), any(), any(), any());
 
     com.amazonaws.services.ec2.model.Instance ec2Instance =
         new com.amazonaws.services.ec2.model.Instance().withPrivateIpAddress("2.0.0.0");
@@ -648,9 +642,7 @@ public class EcsContainerServiceImplTest extends WingsBaseTest {
     com.amazonaws.services.ecs.model.Tag tag =
         new com.amazonaws.services.ecs.model.Tag().withKey(MAIN_ECS_CONTAINER_NAME_TAG).withValue("containerMain");
     DescribeTaskDefinitionResult describeTaskDefinitionResult = new DescribeTaskDefinitionResult().withTags(tag);
-    doReturn(describeTaskDefinitionResult)
-        .when(awsHelperService)
-        .describeTaskDefinition(any(), any(), any(), any());
+    doReturn(describeTaskDefinitionResult).when(awsHelperService).describeTaskDefinition(any(), any(), any(), any());
 
     List<ContainerInfo> containerInfos = ((EcsContainerServiceImpl) ecsContainerService)
                                              .generateContainerInfos(Arrays.asList(task), "cl1", "us-east-1", null,
@@ -698,9 +690,7 @@ public class EcsContainerServiceImplTest extends WingsBaseTest {
 
     DescribeContainerInstancesResult containerInstancesResult =
         new DescribeContainerInstancesResult().withContainerInstances(containerInstance);
-    doReturn(containerInstancesResult)
-        .when(awsHelperService)
-        .describeContainerInstances(any(), any(), any(), any());
+    doReturn(containerInstancesResult).when(awsHelperService).describeContainerInstances(any(), any(), any(), any());
 
     com.amazonaws.services.ec2.model.Instance ec2Instance =
         new com.amazonaws.services.ec2.model.Instance().withPrivateIpAddress("2.0.0.0");
@@ -711,9 +701,7 @@ public class EcsContainerServiceImplTest extends WingsBaseTest {
     com.amazonaws.services.ecs.model.Tag tag =
         new com.amazonaws.services.ecs.model.Tag().withKey(MAIN_ECS_CONTAINER_NAME_TAG).withValue("containerMain");
     DescribeTaskDefinitionResult describeTaskDefinitionResult = new DescribeTaskDefinitionResult().withTags(tag);
-    doReturn(describeTaskDefinitionResult)
-        .when(awsHelperService)
-        .describeTaskDefinition(any(), any(), any(), any());
+    doReturn(describeTaskDefinitionResult).when(awsHelperService).describeTaskDefinition(any(), any(), any(), any());
 
     List<ContainerInfo> containerInfos = ((EcsContainerServiceImpl) ecsContainerService)
                                              .generateContainerInfos(Arrays.asList(task), "cl1", "us-east-1", null,
@@ -748,9 +736,7 @@ public class EcsContainerServiceImplTest extends WingsBaseTest {
 
     doNothing().when(logCallback).saveExecutionLog(any(), any());
     doNothing().when(logCallback).saveExecutionLog(any(), any());
-    doNothing()
-        .when(awsHelperService)
-        .waitTillECSServiceIsStable(any(), any(), any(), any(), anyInt(), any());
+    doNothing().when(awsHelperService).waitTillECSServiceIsStable(any(), any(), any(), any(), anyInt(), any());
 
     ecsContainerService.waitForServiceToReachStableState(
         region, awsConfig, encryptionDetails, CLUSTER_NAME, SERVICE_NAME, logCallback, serviceSteadyStateTimeout);

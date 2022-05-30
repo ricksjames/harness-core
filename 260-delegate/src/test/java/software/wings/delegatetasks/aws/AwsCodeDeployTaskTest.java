@@ -74,7 +74,6 @@ public class AwsCodeDeployTaskTest extends WingsBaseTest {
     verify(mockAwsCodeDeployHelperServiceDelegate).listDeploymentInstances(any(), any(), any(), any());
     request = AwsCodeDeployListAppRevisionRequest.builder().build();
     task.run(new Object[] {request});
-    verify(mockAwsCodeDeployHelperServiceDelegate)
-        .listAppRevision(any(), any(), any(), any(), any());
+    verify(mockAwsCodeDeployHelperServiceDelegate).listAppRevision(any(), any(), any(), any(), any());
   }
 }

@@ -128,8 +128,8 @@ public class UsageMetricsService {
     Preconditions.checkNotNull(properties.get(IS_24X7_ENABLED));
 
     harnessMetricRegistry.recordGaugeValue(VerificationConstants.CV_META_DATA,
-        new String[] {properties.get(ACCOUNT_ID), properties.get(VERIFICATION_STATE_TYPE),
-            properties.get(IS_24X7_ENABLED)},
+        new String[] {
+            properties.get(ACCOUNT_ID), properties.get(VERIFICATION_STATE_TYPE), properties.get(IS_24X7_ENABLED)},
         metricValue);
   }
 

@@ -85,11 +85,12 @@ public class InstanceBillingAggregationDataTaskletTest extends BatchProcessingTe
     RepeatStatus repeatStatus = instanceBillingAggregationDataTasklet.execute(null, chunkContext);
 
     verify(billingDataService, times(1))
-        .cleanPreAggBillingData(
-            eq(ACCOUNT_ID), eq(Instant.ofEpochMilli(startMillis)), eq(Instant.ofEpochMilli(endMillis)), eq(BatchJobType.INSTANCE_BILLING_AGGREGATION));
+        .cleanPreAggBillingData(eq(ACCOUNT_ID), eq(Instant.ofEpochMilli(startMillis)),
+            eq(Instant.ofEpochMilli(endMillis)), eq(BatchJobType.INSTANCE_BILLING_AGGREGATION));
     verify(billingDataService, times(1))
-        .generatePreAggBillingData(eq(ACCOUNT_ID), eq(Instant.ofEpochMilli(startMillis)), eq(Instant.ofEpochMilli(endMillis)),
-            eq(BatchJobType.INSTANCE_BILLING_AGGREGATION), eq(BatchJobType.INSTANCE_BILLING));
+        .generatePreAggBillingData(eq(ACCOUNT_ID), eq(Instant.ofEpochMilli(startMillis)),
+            eq(Instant.ofEpochMilli(endMillis)), eq(BatchJobType.INSTANCE_BILLING_AGGREGATION),
+            eq(BatchJobType.INSTANCE_BILLING));
 
     assertThat(repeatStatus).isNull();
   }

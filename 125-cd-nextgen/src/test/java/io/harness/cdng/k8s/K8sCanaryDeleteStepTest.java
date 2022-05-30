@@ -141,8 +141,7 @@ public class K8sCanaryDeleteStepTest extends CategoryTest {
 
     doReturn(response)
         .when(k8sStepHelper)
-        .queueK8sTask(
-            eq(stepElementParameters), any(), eq(ambiance), eq(expectedPassThroughData));
+        .queueK8sTask(eq(stepElementParameters), any(), eq(ambiance), eq(expectedPassThroughData));
     doReturn(OptionalSweepingOutput.builder().found(true).output(k8sCanaryOutcome).build())
         .when(executionSweepingOutputService)
         .resolveOptional(ambiance,
@@ -326,8 +325,7 @@ public class K8sCanaryDeleteStepTest extends CategoryTest {
 
     doReturn(response)
         .when(k8sStepHelper)
-        .queueK8sTask(
-            eq(stepElementParameters), any(), eq(rollback), eq(expectedPassThroughData));
+        .queueK8sTask(eq(stepElementParameters), any(), eq(rollback), eq(expectedPassThroughData));
 
     doReturn(OptionalSweepingOutput.builder().found(true).output(K8sCanaryExecutionOutput.builder().build()).build())
         .when(executionSweepingOutputService)

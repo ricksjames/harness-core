@@ -139,8 +139,7 @@ public class EcsRunTaskDeployCommandHandlerTest extends WingsBaseTest {
     ArgumentCaptor<RunTaskRequest> captor = ArgumentCaptor.forClass(RunTaskRequest.class);
     verify(mockEcsDeployCommandTaskHelper).triggerRunTask(any(), any(), any(), captor.capture());
 
-    verify(mockEcsDeployCommandTaskHelper, times(0))
-        .getTasksFromTaskArn(any(), any(), any(), any(), any(), any());
+    verify(mockEcsDeployCommandTaskHelper, times(0)).getTasksFromTaskArn(any(), any(), any(), any(), any(), any());
 
     RunTaskRequest triggeredRunTaskRequest = captor.getValue();
     assertThat(triggeredRunTaskRequest.getTaskDefinition()).isEqualTo("taskArn1");
@@ -214,8 +213,7 @@ public class EcsRunTaskDeployCommandHandlerTest extends WingsBaseTest {
     ArgumentCaptor<RunTaskRequest> captor = ArgumentCaptor.forClass(RunTaskRequest.class);
     verify(mockEcsDeployCommandTaskHelper, times(1)).triggerRunTask(any(), any(), any(), captor.capture());
 
-    verify(mockEcsDeployCommandTaskHelper, times(2))
-        .getTasksFromTaskArn(any(), any(), any(), any(), any(), any());
+    verify(mockEcsDeployCommandTaskHelper, times(2)).getTasksFromTaskArn(any(), any(), any(), any(), any(), any());
 
     RunTaskRequest triggeredRunTaskRequest = captor.getValue();
     assertThat(triggeredRunTaskRequest.getTaskDefinition()).isEqualTo("taskArn1");
@@ -343,8 +341,7 @@ public class EcsRunTaskDeployCommandHandlerTest extends WingsBaseTest {
     ArgumentCaptor<RunTaskRequest> captor = ArgumentCaptor.forClass(RunTaskRequest.class);
     verify(mockEcsDeployCommandTaskHelper, times(1)).triggerRunTask(any(), any(), any(), captor.capture());
 
-    verify(mockEcsDeployCommandTaskHelper, times(2))
-        .getTasksFromTaskArn(any(), any(), any(), any(), any(), any());
+    verify(mockEcsDeployCommandTaskHelper, times(2)).getTasksFromTaskArn(any(), any(), any(), any(), any(), any());
 
     RunTaskRequest triggeredRunTaskRequest = captor.getValue();
     assertThat(triggeredRunTaskRequest.getTaskDefinition()).isEqualTo("taskArn1");

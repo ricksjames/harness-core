@@ -143,8 +143,7 @@ public class BudgetServiceImplTest extends CategoryTest {
                   .actualCost(50.0)
                   .alertThresholds(new AlertThreshold[] {alertThreshold})
                   .build();
-    when(billingDataQueryBuilder.formBudgetInsightQuery(any(), any(), any(), any(), any()))
-        .thenReturn(queryData);
+    when(billingDataQueryBuilder.formBudgetInsightQuery(any(), any(), any(), any(), any())).thenReturn(queryData);
     when(timeScaleDBService.getDBConnection()).thenReturn(connection);
     when(connection.createStatement()).thenReturn(statement);
     when(statement.executeQuery(any())).thenReturn(resultSet);

@@ -1425,8 +1425,10 @@ public class DelegateServiceImpl implements DelegateService {
       params.put(JRE_DIRECTORY, jreConfig.getJreDirectory());
       params.put(JRE_MAC_DIRECTORY, jreConfig.getJreMacDirectory());
       params.put(JRE_TAR_PATH, jreConfig.getJreTarPath());
-      params.put("isJdk11Delegate", String.valueOf(featureFlagService.isEnabledReloadCache(JDK11_DELEGATE, templateParameters.getAccountId())));
-      params.put("isJdk11Watcher", String.valueOf(featureFlagService.isEnabledReloadCache(JDK11_WATCHER, templateParameters.getAccountId())));
+      params.put("isJdk11Delegate",
+          String.valueOf(featureFlagService.isEnabledReloadCache(JDK11_DELEGATE, templateParameters.getAccountId())));
+      params.put("isJdk11Watcher",
+          String.valueOf(featureFlagService.isEnabledReloadCache(JDK11_WATCHER, templateParameters.getAccountId())));
 
       if (jreConfig.getAlpnJarPath() != null) {
         params.put(ALPN_JAR_PATH, jreConfig.getAlpnJarPath());

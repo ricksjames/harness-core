@@ -191,24 +191,15 @@ public class SettingValidationServiceTest extends WingsBaseTest {
     FieldUtils.writeField(settingValidationService, "secretManager", secretManager, true);
 
     spySplunkDelegateService = spy(splunkDelegateService);
-    when(delegateProxyFactory.get(eq(SplunkDelegateService.class), any()))
-        .thenReturn(spySplunkDelegateService);
-    when(delegateProxyFactory.get(eq(ElkDelegateService.class), any()))
-        .thenReturn(elkDelegateService);
-    when(delegateProxyFactory.get(eq(LogzDelegateService.class), any()))
-        .thenReturn(logzDelegateService);
-    when(delegateProxyFactory.get(eq(SumoDelegateService.class), any()))
-        .thenReturn(sumoDelegateService);
-    when(delegateProxyFactory.get(eq(InstanaDelegateService.class), any()))
-        .thenReturn(instanaDelegateService);
-    when(delegateProxyFactory.get(eq(NewRelicDelegateService.class), any()))
-        .thenReturn(newRelicDelegateService);
-    when(delegateProxyFactory.get(eq(AppdynamicsDelegateService.class), any()))
-        .thenReturn(appdynamicsDelegateService);
-    when(delegateProxyFactory.get(eq(DynaTraceDelegateService.class), any()))
-        .thenReturn(dynaTraceDelegateService);
-    when(delegateProxyFactory.get(eq(APMDelegateService.class), any()))
-        .thenReturn(apmDelegateService);
+    when(delegateProxyFactory.get(eq(SplunkDelegateService.class), any())).thenReturn(spySplunkDelegateService);
+    when(delegateProxyFactory.get(eq(ElkDelegateService.class), any())).thenReturn(elkDelegateService);
+    when(delegateProxyFactory.get(eq(LogzDelegateService.class), any())).thenReturn(logzDelegateService);
+    when(delegateProxyFactory.get(eq(SumoDelegateService.class), any())).thenReturn(sumoDelegateService);
+    when(delegateProxyFactory.get(eq(InstanaDelegateService.class), any())).thenReturn(instanaDelegateService);
+    when(delegateProxyFactory.get(eq(NewRelicDelegateService.class), any())).thenReturn(newRelicDelegateService);
+    when(delegateProxyFactory.get(eq(AppdynamicsDelegateService.class), any())).thenReturn(appdynamicsDelegateService);
+    when(delegateProxyFactory.get(eq(DynaTraceDelegateService.class), any())).thenReturn(dynaTraceDelegateService);
+    when(delegateProxyFactory.get(eq(APMDelegateService.class), any())).thenReturn(apmDelegateService);
     when(featureFlagService.isEnabled(NEW_KUBECTL_VERSION, ACCOUNT_ID)).thenReturn(false);
   }
 
@@ -333,7 +324,8 @@ public class SettingValidationServiceTest extends WingsBaseTest {
             .withValue(ElkConfig.builder().elkUrl("https://elk-example.com/").build())
             .build());
     assertThat(validationResult.isValid()).isFalse();
-    assertThat(validationResult.getErrorMessage()).isEqualTo("Error: elk-example.com: nodename nor servname provided, or not known");
+    assertThat(validationResult.getErrorMessage())
+        .isEqualTo("Error: elk-example.com: nodename nor servname provided, or not known");
   }
 
   @Test
@@ -372,7 +364,8 @@ public class SettingValidationServiceTest extends WingsBaseTest {
     final ValidationResult validationResult = settingValidationService.validateConnectivity(
         aSettingAttribute().withAccountId(accountId).withName(generateUuid()).withValue(logzConfig).build());
     assertThat(validationResult.isValid()).isFalse();
-    assertThat(validationResult.getErrorMessage()).isEqualTo("Error: logz-example.com: nodename nor servname provided, or not known");
+    assertThat(validationResult.getErrorMessage())
+        .isEqualTo("Error: logz-example.com: nodename nor servname provided, or not known");
   }
 
   @Test
@@ -482,7 +475,8 @@ public class SettingValidationServiceTest extends WingsBaseTest {
     final ValidationResult validationResult = settingValidationService.validateConnectivity(
         aSettingAttribute().withAccountId(accountId).withName(generateUuid()).withValue(instanaConfig).build());
     assertThat(validationResult.isValid()).isFalse();
-    assertThat(validationResult.getErrorMessage()).isEqualTo("Error: instana-example.com: nodename nor servname provided, or not known");
+    assertThat(validationResult.getErrorMessage())
+        .isEqualTo("Error: instana-example.com: nodename nor servname provided, or not known");
   }
 
   @Test
@@ -544,7 +538,8 @@ public class SettingValidationServiceTest extends WingsBaseTest {
     final ValidationResult validationResult = settingValidationService.validateConnectivity(
         aSettingAttribute().withAccountId(accountId).withName(generateUuid()).withValue(newRelicConfig).build());
     assertThat(validationResult.isValid()).isFalse();
-    assertThat(validationResult.getErrorMessage()).isEqualTo("Error: newrelic-example.com: nodename nor servname provided, or not known");
+    assertThat(validationResult.getErrorMessage())
+        .isEqualTo("Error: newrelic-example.com: nodename nor servname provided, or not known");
   }
 
   @Test
@@ -608,7 +603,8 @@ public class SettingValidationServiceTest extends WingsBaseTest {
     final ValidationResult validationResult = settingValidationService.validateConnectivity(
         aSettingAttribute().withAccountId(accountId).withName(generateUuid()).withValue(appDynamicsConfig).build());
     assertThat(validationResult.isValid()).isFalse();
-    assertThat(validationResult.getErrorMessage()).isEqualTo("Error: appd-example.com: nodename nor servname provided, or not known");
+    assertThat(validationResult.getErrorMessage())
+        .isEqualTo("Error: appd-example.com: nodename nor servname provided, or not known");
   }
 
   @Test
@@ -675,7 +671,8 @@ public class SettingValidationServiceTest extends WingsBaseTest {
     final ValidationResult validationResult = settingValidationService.validateConnectivity(
         aSettingAttribute().withAccountId(accountId).withName(generateUuid()).withValue(dynaTraceConfig).build());
     assertThat(validationResult.isValid()).isFalse();
-    assertThat(validationResult.getErrorMessage()).isEqualTo("Error: dynatrace-example.com: nodename nor servname provided, or not known");
+    assertThat(validationResult.getErrorMessage())
+        .isEqualTo("Error: dynatrace-example.com: nodename nor servname provided, or not known");
   }
 
   @Test
@@ -822,8 +819,7 @@ public class SettingValidationServiceTest extends WingsBaseTest {
     final String password = "password";
 
     when(wingsPersistence.createQuery(eq(SettingAttribute.class))).thenReturn(spyQuery);
-    when(elkAnalysisService.getVersion(any(), any(ElkConfig.class), any()))
-        .thenThrow(IOException.class);
+    when(elkAnalysisService.getVersion(any(), any(ElkConfig.class), any())).thenThrow(IOException.class);
 
     ElkConfig elkConfig = new ElkConfig();
     elkConfig.setAccountId(ACCOUNT_ID);
@@ -1033,9 +1029,7 @@ public class SettingValidationServiceTest extends WingsBaseTest {
         .hasMessageContaining("Specified Encrypted SSH key File doesn't exist")
         .isInstanceOf(InvalidRequestException.class);
 
-    when(secretManager.getSecretById(any(), any()))
-        .thenReturn(EncryptedData.builder().build())
-        .thenReturn(null);
+    when(secretManager.getSecretById(any(), any())).thenReturn(EncryptedData.builder().build()).thenReturn(null);
     assertThatThrownBy(() -> settingValidationService.validate(attribute))
         .hasMessageContaining("Specified Encrypted Passphrase field doesn't exist")
         .isInstanceOf(InvalidRequestException.class);

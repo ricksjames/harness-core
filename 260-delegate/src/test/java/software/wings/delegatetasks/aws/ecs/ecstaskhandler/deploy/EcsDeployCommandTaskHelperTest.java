@@ -169,11 +169,9 @@ public class EcsDeployCommandTaskHelperTest extends WingsBaseTest {
     DescribeScalableTargetsResult result = new DescribeScalableTargetsResult();
     doReturn(result).when(mockAwsAppAutoScalingService).listScalableTargets(any(), any(), any(), any());
     helper.restoreAutoScalarConfigs(data, mock(ContainerServiceData.class), mockCallback);
+    verify(mockEcsCommandTaskHelper).registerScalableTargetForEcsService(any(), any(), any(), any(), any(), any());
     verify(mockEcsCommandTaskHelper)
-        .registerScalableTargetForEcsService(any(), any(), any(), any(), any(), any());
-    verify(mockEcsCommandTaskHelper)
-        .upsertScalingPolicyIfRequired(
-            any(), any(), any(), any(), any(), any(), any(), any());
+        .upsertScalingPolicyIfRequired(any(), any(), any(), any(), any(), any(), any(), any());
   }
 
   @Test
@@ -210,11 +208,9 @@ public class EcsDeployCommandTaskHelperTest extends WingsBaseTest {
     assertThat(value).isNotNull();
     assertThat(value.getResourceId()).isEqualTo("resId");
     verify(mockEcsContainerService, times(1))
-        .waitForServiceToReachStableState(
-            any(), any(), any(), any(), any(), any(), anyInt());
+        .waitForServiceToReachStableState(any(), any(), any(), any(), any(), any(), anyInt());
     verify(mockEcsCommandTaskHelper)
-        .upsertScalingPolicyIfRequired(
-            any(), any(), any(), any(), any(), any(), any(), any());
+        .upsertScalingPolicyIfRequired(any(), any(), any(), any(), any(), any(), any(), any());
   }
 
   @Test
@@ -282,9 +278,7 @@ public class EcsDeployCommandTaskHelperTest extends WingsBaseTest {
     imageMap.put("foo__1", "img__1");
     imageMap.put("foo__2", "img__2");
     imageMap.put("foo__3", "img__3");
-    doReturn(imageMap)
-        .when(mockAwsClusterService)
-        .getActiveServiceImages(any(), any(), any(), any(), any(), any());
+    doReturn(imageMap).when(mockAwsClusterService).getActiveServiceImages(any(), any(), any(), any(), any(), any());
     List<ContainerServiceData> oldInstanceData = helper.getOldInstanceData(data, newServiceData);
     assertThat(oldInstanceData).isNotNull();
     assertThat(oldInstanceData.size()).isEqualTo(2);

@@ -503,8 +503,7 @@ public class CloudFormationCreateStackStateTest extends WingsBaseTest {
     GitConfig gitConfig = GitConfig.builder().urlType(GitConfig.UrlType.REPO).repoUrl(repoUrl).build();
     when(gitUtilsManager.getGitConfig("sourceRepoSettingId")).thenReturn(gitConfig);
 
-    when(mockInfrastructureProvisionerService.get(any(), any()))
-        .thenReturn(cloudFormationInfrastructureProvisioner);
+    when(mockInfrastructureProvisionerService.get(any(), any())).thenReturn(cloudFormationInfrastructureProvisioner);
 
     state.setUseParametersFile(true);
     state.setParametersFilePaths(Collections.singletonList("filePath"));
@@ -698,8 +697,7 @@ public class CloudFormationCreateStackStateTest extends WingsBaseTest {
     GitConfig gitConfig = GitConfig.builder().urlType(GitConfig.UrlType.REPO).repoUrl(repoUrl).build();
     when(gitUtilsManager.getGitConfig("sourceRepoSettingId")).thenReturn(gitConfig);
 
-    when(mockInfrastructureProvisionerService.get(any(), any()))
-        .thenReturn(cloudFormationInfrastructureProvisioner);
+    when(mockInfrastructureProvisionerService.get(any(), any())).thenReturn(cloudFormationInfrastructureProvisioner);
 
     state.setFileFetched(false);
     state.setTemplateExpressions(emptyList());

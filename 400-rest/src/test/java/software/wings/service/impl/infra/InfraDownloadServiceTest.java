@@ -23,7 +23,6 @@ import io.harness.ff.FeatureFlagService;
 import io.harness.logging.AccessTokenBean;
 import io.harness.rule.Owner;
 
-import org.junit.Ignore;
 import software.wings.app.MainConfiguration;
 import software.wings.app.PortalConfig;
 import software.wings.utils.GcsUtils;
@@ -36,6 +35,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.io.FileUtils;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;

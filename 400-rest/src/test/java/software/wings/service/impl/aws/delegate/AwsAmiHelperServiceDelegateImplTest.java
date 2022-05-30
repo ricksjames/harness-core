@@ -862,9 +862,8 @@ public class AwsAmiHelperServiceDelegateImplTest extends WingsBaseTest {
             .build();
     doAnswer(invocation -> { throw new Exception(); })
         .when(awsAmiHelperServiceDelegate)
-        .resizeAsgs(any(), any(), any(), any(), any(), any(), any(), anyBoolean(), any(),
-            anyInt(), anyInt(), any(), any(), any(), anyBoolean(), any(), anyInt(), anyBoolean(), any(),
-            anyBoolean());
+        .resizeAsgs(any(), any(), any(), any(), any(), any(), any(), anyBoolean(), any(), anyInt(), anyInt(), any(),
+            any(), any(), anyBoolean(), any(), anyInt(), anyBoolean(), any(), anyBoolean());
     AwsAmiServiceDeployResponse awsAmiServiceDeployResponse =
         awsAmiHelperServiceDelegate.deployAmiServiceTrafficShift(trafficShiftAlbDeployRequest);
     assertThat(awsAmiServiceDeployResponse.getExecutionStatus()).isEqualTo(ExecutionStatus.FAILED);

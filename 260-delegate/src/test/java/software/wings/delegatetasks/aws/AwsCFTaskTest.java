@@ -61,7 +61,6 @@ public class AwsCFTaskTest extends WingsBaseTest {
   public void testRun() {
     AwsCFRequest request = AwsCFGetTemplateParamsRequest.builder().awsConfig(AwsConfig.builder().build()).build();
     task.run(new Object[] {request});
-    verify(mockAwsCFHelperServiceDelegate)
-        .getParamsData(any(), any(), any(), any(), any(), any(), any());
+    verify(mockAwsCFHelperServiceDelegate).getParamsData(any(), any(), any(), any(), any(), any(), any());
   }
 }

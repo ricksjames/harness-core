@@ -328,8 +328,8 @@ public class K8sCanaryDeployTaskHandlerTest extends WingsBaseTest {
   public void testInitException() throws Exception {
     doThrow(new RuntimeException())
         .when(k8sTaskHelper)
-        .renderTemplate(any(K8sDelegateTaskParams.class), any(K8sDelegateManifestConfig.class), any(), any(),
-            any(), any(), any(), any(K8sTaskParameters.class));
+        .renderTemplate(any(K8sDelegateTaskParams.class), any(K8sDelegateManifestConfig.class), any(), any(), any(),
+            any(), any(), any(K8sTaskParameters.class));
     final boolean success = k8sCanaryDeployTaskHandler.init(K8sCanaryDeployTaskParameters.builder().build(),
         K8sDelegateTaskParams.builder().build(), mock(ExecutionLogCallback.class));
     assertThat(success).isFalse();
@@ -402,9 +402,7 @@ public class K8sCanaryDeployTaskHandlerTest extends WingsBaseTest {
     doReturn(helmChartInfo)
         .when(k8sTaskHelper)
         .getHelmChartDetails(manifestConfig, Paths.get(".", MANIFEST_FILES_DIR).toString());
-    doReturn(true)
-        .when(k8sTaskHelperBase)
-        .doStatusCheck(any(), any(), any(), any());
+    doReturn(true).when(k8sTaskHelperBase).doStatusCheck(any(), any(), any(), any());
 
     K8sTaskExecutionResponse response = handler.executeTask(K8sCanaryDeployTaskParameters.builder()
                                                                 .skipDryRun(true)

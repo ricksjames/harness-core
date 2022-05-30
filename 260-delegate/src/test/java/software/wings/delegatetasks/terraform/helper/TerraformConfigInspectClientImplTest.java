@@ -52,7 +52,7 @@ public class TerraformConfigInspectClientImplTest extends CategoryTest {
   @Before
   public void setUp() {
     mockStatic(InstallUtils.class);
-    PowerMockito.when(InstallUtils.getPath(any(), any())).thenAnswer(invocationOnMock ->"/tmp/dummypath/tool");
+    PowerMockito.when(InstallUtils.getPath(any(), any())).thenAnswer(invocationOnMock -> "/tmp/dummypath/tool");
   }
 
   @Test

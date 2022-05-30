@@ -129,8 +129,7 @@ public class CloudFormationDeleteStackStateTest extends WingsBaseTest {
   public void testExecuteInternal() {
     CloudFormationInfrastructureProvisioner cloudFormationInfrastructureProvisioner =
         CloudFormationInfrastructureProvisioner.builder().build();
-    when(infrastructureProvisionerService.get(any(), any()))
-        .thenReturn(cloudFormationInfrastructureProvisioner);
+    when(infrastructureProvisionerService.get(any(), any())).thenReturn(cloudFormationInfrastructureProvisioner);
     TemplateExpression templateExpression = TemplateExpression.builder().build();
     when(templateExpressionProcessor.getTemplateExpression(eq(Arrays.asList(templateExpression)), eq("awsConfigId")))
         .thenReturn(templateExpression);

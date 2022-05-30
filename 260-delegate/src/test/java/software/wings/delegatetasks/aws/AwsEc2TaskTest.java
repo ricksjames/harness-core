@@ -36,13 +36,12 @@ import software.wings.service.impl.aws.model.AwsEc2Request;
 import software.wings.service.impl.aws.model.AwsEc2ValidateCredentialsRequest;
 import software.wings.service.intfc.aws.delegate.AwsEc2HelperServiceDelegate;
 
+import java.util.Collections;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-
-import java.util.Collections;
 
 @TargetModule(HarnessModule._930_DELEGATE_TASKS)
 @OwnedBy(CDP)

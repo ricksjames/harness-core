@@ -1225,9 +1225,7 @@ public class ExecutionContextImplTest extends WingsBaseTest {
     on(context).set("settingsService", settingsService);
     on(context).set("customDeploymentTypeService", customDeploymentTypeService);
     doReturn(WingsTestConstants.INFRA_MAPPING_ID).when(context).fetchInfraMappingId();
-    doReturn(CustomDeploymentTypeDTO.builder().build())
-        .when(customDeploymentTypeService)
-        .get(any(), any(), any());
+    doReturn(CustomDeploymentTypeDTO.builder().build()).when(customDeploymentTypeService).get(any(), any(), any());
     InfraMappingElementBuilder builder = InfraMappingElement.builder();
 
     InfrastructureMapping infra = CustomInfrastructureMapping.builder().infraVariables(null).build();

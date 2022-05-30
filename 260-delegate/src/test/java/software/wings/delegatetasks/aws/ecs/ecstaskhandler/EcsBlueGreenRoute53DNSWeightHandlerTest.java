@@ -162,8 +162,7 @@ public class EcsBlueGreenRoute53DNSWeightHandlerTest extends WingsBaseTest {
             any(), any(), any(), any(), any(), eq(100), eq(newValue), eq(0), eq(oldValue), anyInt());
     verify(mockEcsSwapRoutesCommandTaskHelper)
         .updateServiceTags(any(), any(), any(), any(), any(), any(), anyBoolean(), any());
-    verify(mockEcsSwapRoutesCommandTaskHelper)
-        .downsizeOlderService(any(), any(), any(), any(), any(), any(), anyInt());
+    verify(mockEcsSwapRoutesCommandTaskHelper).downsizeOlderService(any(), any(), any(), any(), any(), any(), anyInt());
 
     assertThat(response).isNotNull();
     assertThat(response.getCommandExecutionStatus()).isEqualTo(SUCCESS);
@@ -198,8 +197,7 @@ public class EcsBlueGreenRoute53DNSWeightHandlerTest extends WingsBaseTest {
     verify(mockCallback, times(4)).saveExecutionLog(any());
 
     verify(mockEcsSwapRoutesCommandTaskHelper)
-        .upsizeOlderService(
-            any(), any(), any(), any(), anyInt(), any(), any(), anyInt(), anyBoolean());
+        .upsizeOlderService(any(), any(), any(), any(), anyInt(), any(), any(), anyInt(), anyBoolean());
     verify(mockAwsRoute53HelperServiceDelegate)
         .upsertRoute53ParentRecord(
             any(), any(), any(), any(), any(), eq(100), eq(oldValue), eq(0), eq(newValue), anyInt());

@@ -127,8 +127,7 @@ public class EcsDeployCommandHandlerTest extends WingsBaseTest {
     EcsCommandExecutionResponse response = handler.executeTaskInternal(ecsCommandRequest, null, mockCallback);
 
     verify(mockAwsClusterService, times(2))
-        .resizeCluster(
-            any(), any(), any(), any(), any(), anyInt(), anyInt(), anyInt(), any(), anyBoolean());
+        .resizeCluster(any(), any(), any(), any(), any(), anyInt(), anyInt(), anyInt(), any(), anyBoolean());
     verify(mockEcsDeployCommandTaskHelper, times(2)).restoreAutoScalarConfigs(any(), any(), any());
     verify(mockEcsDeployCommandTaskHelper, times(2)).createAutoScalarConfigIfServiceReachedMaxSize(any(), any(), any());
   }
@@ -164,8 +163,7 @@ public class EcsDeployCommandHandlerTest extends WingsBaseTest {
     EcsCommandExecutionResponse response = handler.executeTaskInternal(ecsCommandRequest, null, mockCallback);
     assertThat(response.getEcsCommandResponse().isTimeoutFailure()).isFalse();
     verify(mockAwsClusterService, times(2))
-        .resizeCluster(
-            any(), any(), any(), any(), any(), anyInt(), anyInt(), anyInt(), any(), anyBoolean());
+        .resizeCluster(any(), any(), any(), any(), any(), anyInt(), anyInt(), anyInt(), any(), anyBoolean());
     verify(mockEcsDeployCommandTaskHelper, times(2)).deregisterAutoScalarsIfExists(any(), any());
     verify(mockEcsDeployCommandTaskHelper, times(2)).createAutoScalarConfigIfServiceReachedMaxSize(any(), any(), any());
   }
@@ -200,15 +198,13 @@ public class EcsDeployCommandHandlerTest extends WingsBaseTest {
         .getOldInstanceData(any(), any());
     doThrow(new TimeoutException("", "", null))
         .when(mockAwsClusterService)
-        .resizeCluster(
-            any(), any(), any(), any(), any(), anyInt(), anyInt(), anyInt(), any(), anyBoolean());
+        .resizeCluster(any(), any(), any(), any(), any(), anyInt(), anyInt(), anyInt(), any(), anyBoolean());
 
     EcsCommandExecutionResponse response = handler.executeTaskInternal(ecsCommandRequest, null, mockCallback);
     assertThat(response.getEcsCommandResponse().isTimeoutFailure()).isTrue();
 
     verify(mockAwsClusterService)
-        .resizeCluster(
-            any(), any(), any(), any(), any(), anyInt(), anyInt(), anyInt(), any(), anyBoolean());
+        .resizeCluster(any(), any(), any(), any(), any(), anyInt(), anyInt(), anyInt(), any(), anyBoolean());
     verify(mockEcsDeployCommandTaskHelper, times(1)).deregisterAutoScalarsIfExists(any(), any());
   }
 }

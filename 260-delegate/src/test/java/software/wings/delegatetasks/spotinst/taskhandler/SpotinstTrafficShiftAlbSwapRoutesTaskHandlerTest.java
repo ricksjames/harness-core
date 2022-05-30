@@ -65,8 +65,7 @@ public class SpotinstTrafficShiftAlbSwapRoutesTaskHandlerTest extends WingsBaseT
     doNothing()
         .when(mockElbHelper)
         .updateRulesForAlbTrafficShift(any(), any(), anyList(), any(), any(), anyInt(), any());
-    doNothing().when(handler).updateElastiGroupAndWait(
-        any(), any(), any(), anyInt(), any(), any(), any());
+    doNothing().when(handler).updateElastiGroupAndWait(any(), any(), any(), anyInt(), any(), any(), any());
     SpotinstTrafficShiftAlbSwapRoutesParameters parameters =
         SpotinstTrafficShiftAlbSwapRoutesParameters.builder()
             .elastigroupNamePrefix("foo")
@@ -89,8 +88,7 @@ public class SpotinstTrafficShiftAlbSwapRoutesTaskHandlerTest extends WingsBaseT
     SpotInstTaskExecutionResponse response = handler.executeTaskInternal(parameters,
         SpotInstConfig.builder().spotInstAccountId("SPOTINST_ACCOUNT_ID").spotInstToken(new char[] {'a', 'b'}).build(),
         AwsConfig.builder().build());
-    verify(mockElbHelper)
-        .updateRulesForAlbTrafficShift(any(), any(), anyList(), anyList(), any(), anyInt(), any());
+    verify(mockElbHelper).updateRulesForAlbTrafficShift(any(), any(), anyList(), anyList(), any(), anyInt(), any());
     assertThat(response).isNotNull();
     assertThat(response.getCommandExecutionStatus()).isEqualTo(SUCCESS);
   }
@@ -111,8 +109,7 @@ public class SpotinstTrafficShiftAlbSwapRoutesTaskHandlerTest extends WingsBaseT
     doNothing()
         .when(mockElbHelper)
         .updateRulesForAlbTrafficShift(any(), any(), anyList(), any(), any(), anyInt(), any());
-    doNothing().when(handler).updateElastiGroupAndWait(
-        any(), any(), any(), anyInt(), any(), any(), any());
+    doNothing().when(handler).updateElastiGroupAndWait(any(), any(), any(), anyInt(), any(), any(), any());
     SpotinstTrafficShiftAlbSwapRoutesParameters parameters =
         SpotinstTrafficShiftAlbSwapRoutesParameters.builder()
             .elastigroupNamePrefix("foo")
@@ -134,8 +131,7 @@ public class SpotinstTrafficShiftAlbSwapRoutesTaskHandlerTest extends WingsBaseT
     SpotInstTaskExecutionResponse response = handler.executeTaskInternal(parameters,
         SpotInstConfig.builder().spotInstAccountId("SPOTINST_ACCOUNT_ID").spotInstToken(new char[] {'a', 'b'}).build(),
         AwsConfig.builder().build());
-    verify(mockElbHelper)
-        .updateRulesForAlbTrafficShift(any(), any(), anyList(), anyList(), any(), anyInt(), any());
+    verify(mockElbHelper).updateRulesForAlbTrafficShift(any(), any(), anyList(), anyList(), any(), anyInt(), any());
     assertThat(response).isNotNull();
     assertThat(response.getCommandExecutionStatus()).isEqualTo(SUCCESS);
   }

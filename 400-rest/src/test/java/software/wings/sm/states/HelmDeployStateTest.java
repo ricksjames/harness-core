@@ -2020,8 +2020,7 @@ public class HelmDeployStateTest extends CategoryTest {
 
     spyDeployState.handleAsyncResponse(context, responseDataMap);
 
-    verify(spyDeployState, times(1))
-        .executeHelmTask(any(ExecutionContext.class), any(), eq(appManifestMap), anyMap());
+    verify(spyDeployState, times(1)).executeHelmTask(any(ExecutionContext.class), any(), eq(appManifestMap), anyMap());
     assertThat(stateExecutionData.getValuesFiles()).isEqualTo(valuesMap);
     assertThat(stateExecutionData.getZippedManifestFileId()).isEqualTo("fileId");
 

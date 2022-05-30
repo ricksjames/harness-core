@@ -14,7 +14,6 @@ import static io.harness.rule.OwnerRule.ARVIND;
 import static io.harness.rule.OwnerRule.SATYAM;
 import static io.harness.rule.OwnerRule.TMACARI;
 
-import static org.mockito.ArgumentMatchers.anyString;
 import static software.wings.api.CommandStateExecutionData.Builder.aCommandStateExecutionData;
 import static software.wings.beans.Application.Builder.anApplication;
 import static software.wings.beans.EcsInfrastructureMapping.Builder.anEcsInfrastructureMapping;
@@ -34,6 +33,7 @@ import static software.wings.utils.WingsTestConstants.SERVICE_NAME;
 import static java.util.Collections.emptyList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyInt;
@@ -158,9 +158,7 @@ public class EcsServiceSetupTest extends WingsBaseTest {
         anEcsSetupParams().withBlueGreen(false).withServiceName("EcsSvc").withClusterName(CLUSTER_NAME).build();
     doReturn(params).when(mockEcsStateHelper).buildContainerSetupParams(any(), any());
     CommandStateExecutionData executionData = aCommandStateExecutionData().build();
-    doReturn(executionData)
-        .when(mockEcsStateHelper)
-        .getStateExecutionData(any(), any(), any(), any(Activity.class));
+    doReturn(executionData).when(mockEcsStateHelper).getStateExecutionData(any(), any(), any(), any(Activity.class));
     EcsSetupContextVariableHolder holder = EcsSetupContextVariableHolder.builder().build();
     doReturn(holder).when(mockEcsStateHelper).renderEcsSetupContextVariables(any());
     doNothing().when(stateExecutionService).appendDelegateTaskDetails(any(), any());
@@ -222,16 +220,14 @@ public class EcsServiceSetupTest extends WingsBaseTest {
     ContainerServiceElement containerServiceElement = ContainerServiceElement.builder().build();
     doReturn(containerServiceElement)
         .when(mockEcsStateHelper)
-        .buildContainerServiceElement(
-            any(), any(), any(), any(), any(), any(), any(), any(), anyInt(), any());
+        .buildContainerServiceElement(any(), any(), any(), any(), any(), any(), any(), any(), anyInt(), any());
     SweepingOutputInstanceBuilder builder = SweepingOutputInstance.builder();
     doReturn(builder).when(mockContext).prepareSweepingOutputBuilder(any());
     doReturn("foo").when(mockEcsStateHelper).getSweepingOutputName(any(), anyBoolean(), any());
     doReturn(null).when(mockSweepingOutputService).save(any());
     ExecutionResponse response = state.handleAsyncResponse(mockContext, ImmutableMap.of(ACTIVITY_ID, delegateResponse));
     verify(mockEcsStateHelper)
-        .buildContainerServiceElement(
-            any(), any(), any(), any(), any(), any(), any(), any(), anyInt(), any());
+        .buildContainerServiceElement(any(), any(), any(), any(), any(), any(), any(), any(), anyInt(), any());
     verify(mockEcsStateHelper).populateFromDelegateResponse(any(), any(), any());
     assertThat(response.getFailureTypes()).isNull();
   }
@@ -265,16 +261,14 @@ public class EcsServiceSetupTest extends WingsBaseTest {
     ContainerServiceElement containerServiceElement = ContainerServiceElement.builder().build();
     doReturn(containerServiceElement)
         .when(mockEcsStateHelper)
-        .buildContainerServiceElement(
-            any(), any(), any(), any(), any(), any(), any(), any(), anyInt(), any());
+        .buildContainerServiceElement(any(), any(), any(), any(), any(), any(), any(), any(), anyInt(), any());
     SweepingOutputInstanceBuilder builder = SweepingOutputInstance.builder();
     doReturn(builder).when(mockContext).prepareSweepingOutputBuilder(any());
     doReturn("foo").when(mockEcsStateHelper).getSweepingOutputName(any(), anyBoolean(), any());
     doReturn(null).when(mockSweepingOutputService).save(any());
     ExecutionResponse response = state.handleAsyncResponse(mockContext, ImmutableMap.of(ACTIVITY_ID, delegateResponse));
     verify(mockEcsStateHelper)
-        .buildContainerServiceElement(
-            any(), any(), any(), any(), any(), any(), any(), any(), anyInt(), any());
+        .buildContainerServiceElement(any(), any(), any(), any(), any(), any(), any(), any(), anyInt(), any());
     verify(mockEcsStateHelper).populateFromDelegateResponse(any(), any(), any());
     assertThat(response.getFailureTypes()).isEqualTo(TIMEOUT);
   }

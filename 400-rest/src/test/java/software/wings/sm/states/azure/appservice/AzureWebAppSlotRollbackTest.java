@@ -273,14 +273,10 @@ public class AzureWebAppSlotRollbackTest extends WingsBaseTest {
           .when(azureSweepingOutputServiceHelper)
           .getInfoFromSweepingOutput(eq(mockContext), eq(SWEEPING_OUTPUT_APP_SERVICE));
     }
-    doReturn(activity)
-        .when(azureVMSSStateHelper)
-        .createAndSaveActivity(any(), any(), any(), any(), any(), any());
+    doReturn(activity).when(azureVMSSStateHelper).createAndSaveActivity(any(), any(), any(), any(), any(), any());
     doReturn(managerExecutionLogCallback).when(azureVMSSStateHelper).getExecutionLogCallback(activity);
     doReturn(Optional.empty()).when(azureVMSSStateHelper).getUserDataSpecification(mockContext);
-    doReturn(appServiceStateData)
-        .when(azureVMSSStateHelper)
-        .populateAzureAppServiceData(eq(mockContext), any());
+    doReturn(appServiceStateData).when(azureVMSSStateHelper).populateAzureAppServiceData(eq(mockContext), any());
     doReturn("service-template-id").when(serviceTemplateHelper).fetchServiceTemplateId(any());
     doReturn(delegateResult).when(delegateService).queueTask(any());
     doNothing().when(stateExecutionService).appendDelegateTaskDetails(any(), any());

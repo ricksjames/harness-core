@@ -646,10 +646,7 @@ public class CloudFormationCommandTaskHandlerTest extends WingsBaseTest {
     List<Stack> existingStackList =
         singletonList(new Stack().withStackName("HarnessStack-" + stackNameSuffix).withStackId(stackId));
     List<Stack> stackList = singletonList(new Stack().withStackId(stackId).withStackStatus("DELETE_IN_PROGRESS"));
-    doReturn(existingStackList)
-        .doReturn(stackList)
-        .when(awsCloudformationClient)
-        .getAllStacks(any(), any(), any());
+    doReturn(existingStackList).doReturn(stackList).when(awsCloudformationClient).getAllStacks(any(), any(), any());
     CloudFormationCommandExecutionResponse response = deleteStackHandler.execute(request, null);
     assertThat(response).isNotNull();
     assertThat(response.getCommandExecutionStatus()).isEqualTo(CommandExecutionStatus.FAILURE);
@@ -1020,10 +1017,7 @@ public class CloudFormationCommandTaskHandlerTest extends WingsBaseTest {
     List<Stack> existingStackList =
         singletonList(new Stack().withStackName("HarnessStack-" + stackNameSuffix).withStackId(stackId));
     List<Stack> stackList = singletonList(new Stack().withStackId(stackId).withStackStatus(status));
-    doReturn(existingStackList)
-        .doReturn(stackList)
-        .when(awsCloudformationClient)
-        .getAllStacks(any(), any(), any());
+    doReturn(existingStackList).doReturn(stackList).when(awsCloudformationClient).getAllStacks(any(), any(), any());
     CloudFormationCommandExecutionResponse response = deleteStackHandler.execute(request, null);
     assertThat(response).isNotNull();
     assertThat(response.getCommandExecutionStatus()).isEqualTo(CommandExecutionStatus.FAILURE);
