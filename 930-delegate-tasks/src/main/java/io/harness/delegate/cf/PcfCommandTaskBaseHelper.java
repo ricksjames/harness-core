@@ -278,13 +278,15 @@ public class PcfCommandTaskBaseHelper {
       try {
         autoscalarStateChanged = disableAutoscalar(appAutoscalarRequestData, executionLogCallback);
       } catch (PivotalClientApiException e) {
-        executionLogCallback.saveExecutionLog(new StringBuilder()
-                                                  .append("# Error while disabling autoscaling for: ")
-                                                  .append(encodeColor(applicationDetail.getName()))
-                                                  .append(",")
-                                                  .append(e)
-                                                  .toString(),
-            LogLevel.ERROR);
+        executionLogCallback.saveExecutionLog(
+            new StringBuilder()
+                .append("# Error while disabling autoscaling for: ")
+                .append(encodeColor(applicationDetail.getName()))
+                .append(", ")
+                .append(e)
+                .append(", Continuing with the deployment, please disable autoscaler from the pcf portal\n")
+                .toString(),
+            ERROR);
       }
       cfServiceData.setDisableAutoscalarPerformed(autoscalarStateChanged);
     }
@@ -345,13 +347,15 @@ public class PcfCommandTaskBaseHelper {
         try {
           disableAutoscalar(appAutoscalarRequestData, executionLogCallback);
         } catch (PivotalClientApiException e) {
-          executionLogCallback.saveExecutionLog(new StringBuilder()
-                                                    .append("# Error while disabling autoscaling for: ")
-                                                    .append(encodeColor(applicationDetail.getName()))
-                                                    .append(",")
-                                                    .append(e)
-                                                    .toString(),
-              LogLevel.ERROR);
+          executionLogCallback.saveExecutionLog(
+              new StringBuilder()
+                  .append("# Error while disabling autoscaling for: ")
+                  .append(encodeColor(applicationDetail.getName()))
+                  .append(", ")
+                  .append(e)
+                  .append(", Continuing with the deployment, please disable autoscaler from the pcf portal\n")
+                  .toString(),
+              ERROR);
         }
       }
 

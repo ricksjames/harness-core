@@ -372,7 +372,7 @@ public class PcfSetupCommandTaskHandlerTest extends WingsBaseTest {
   @Test
   @Owner(developers = RISHABH)
   @Category(UnitTests.class)
-  public void testDownsizeApplicationToZero_failAutoscaler() throws Exception {
+  public void testDownsizeApplicationToZeroFailAutoscaler() throws Exception {
     reset(pcfDeploymentManager);
     ApplicationSummary applicationSummary = ApplicationSummary.builder()
                                                 .name("a_s_e__1")

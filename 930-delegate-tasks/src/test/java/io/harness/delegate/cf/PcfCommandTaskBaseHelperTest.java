@@ -251,7 +251,7 @@ public class PcfCommandTaskBaseHelperTest extends CategoryTest {
   @Test
   @Owner(developers = RISHABH)
   @Category(UnitTests.class)
-  public void testDownSizeListOfInstances_failAutoscaler() throws Exception {
+  public void testDownSizeListOfInstancesFailAutoscaler() throws Exception {
     reset(pcfDeploymentManager);
     ApplicationDetail detail = ApplicationDetail.builder()
                                    .diskQuota(1)
@@ -475,7 +475,7 @@ public class PcfCommandTaskBaseHelperTest extends CategoryTest {
   @Test
   @Owner(developers = RISHABH)
   @Category(UnitTests.class)
-  public void testDownsizePreviousReleases_failAutoscalar() throws Exception {
+  public void testDownsizePreviousReleasesFailAutoscalar() throws Exception {
     CfCommandDeployRequest request =
         CfCommandDeployRequest.builder().accountId(ACCOUNT_ID).downsizeAppDetail(null).useAppAutoscalar(true).build();
 

@@ -775,13 +775,15 @@ public class PcfSetupCommandTaskHandler extends PcfCommandTaskHandler {
       try {
         pcfCommandTaskBaseHelper.disableAutoscalar(appAutoscalarRequestData, executionLogCallback);
       } catch (PivotalClientApiException e) {
-        executionLogCallback.saveExecutionLog(new StringBuilder()
-                                                  .append("# Error while disabling autoscaling for: ")
-                                                  .append(encodeColor(applicationSummary.getName()))
-                                                  .append(",")
-                                                  .append(e)
-                                                  .toString(),
-            LogLevel.ERROR);
+        executionLogCallback.saveExecutionLog(
+            new StringBuilder()
+                .append("# Error while disabling autoscaling for: ")
+                .append(encodeColor(applicationSummary.getName()))
+                .append(", ")
+                .append(e)
+                .append(", Continuing with the deployment, please disable autoscaler from the pcf portal\n")
+                .toString(),
+            ERROR);
       }
     }
 
