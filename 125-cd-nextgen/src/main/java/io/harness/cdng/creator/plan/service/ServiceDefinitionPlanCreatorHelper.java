@@ -12,6 +12,7 @@ import io.harness.ng.core.service.yaml.NGServiceV2InfoConfig;
 import io.harness.pms.contracts.plan.Dependency;
 import io.harness.pms.contracts.plan.YamlUpdates;
 import io.harness.pms.sdk.core.plan.creation.beans.PlanCreationResponse;
+import io.harness.pms.sdk.core.plan.creation.beans.PlanCreationResponse.PlanCreationResponseBuilder;
 import io.harness.pms.yaml.DependenciesUtils;
 import io.harness.pms.yaml.YamlField;
 import io.harness.pms.yaml.YamlNode;
@@ -91,13 +92,12 @@ public class ServiceDefinitionPlanCreatorHelper {
 
     Map<String, YamlField> dependenciesMap = new HashMap<>();
     dependenciesMap.put(artifactsPlanNodeId, artifactYamlField);
-    PlanCreationResponse.PlanCreationResponseBuilder artifactPlanCreationResponse =
-        PlanCreationResponse.builder().dependencies(
-            DependenciesUtils.toDependenciesProto(dependenciesMap)
-                .toBuilder()
-                .putDependencyMetadata(
-                    artifactsPlanNodeId, Dependency.newBuilder().putAllMetadata(metadataDependency).build())
-                .build());
+    PlanCreationResponseBuilder artifactPlanCreationResponse = PlanCreationResponse.builder().dependencies(
+        DependenciesUtils.toDependenciesProto(dependenciesMap)
+            .toBuilder()
+            .putDependencyMetadata(
+                artifactsPlanNodeId, Dependency.newBuilder().putAllMetadata(metadataDependency).build())
+            .build());
     if (yamlUpdates.getFqnToYamlCount() > 0) {
       artifactPlanCreationResponse.yamlUpdates(yamlUpdates.build());
     }
@@ -118,13 +118,12 @@ public class ServiceDefinitionPlanCreatorHelper {
 
     Map<String, YamlField> dependenciesMap = new HashMap<>();
     dependenciesMap.put(artifactsPlanNodeId, artifactYamlField);
-    PlanCreationResponse.PlanCreationResponseBuilder artifactPlanCreationResponse =
-        PlanCreationResponse.builder().dependencies(
-            DependenciesUtils.toDependenciesProto(dependenciesMap)
-                .toBuilder()
-                .putDependencyMetadata(
-                    artifactsPlanNodeId, Dependency.newBuilder().putAllMetadata(metadataDependency).build())
-                .build());
+    PlanCreationResponseBuilder artifactPlanCreationResponse = PlanCreationResponse.builder().dependencies(
+        DependenciesUtils.toDependenciesProto(dependenciesMap)
+            .toBuilder()
+            .putDependencyMetadata(
+                artifactsPlanNodeId, Dependency.newBuilder().putAllMetadata(metadataDependency).build())
+            .build());
     if (yamlUpdates.getFqnToYamlCount() > 0) {
       artifactPlanCreationResponse.yamlUpdates(yamlUpdates.build());
     }
@@ -146,13 +145,12 @@ public class ServiceDefinitionPlanCreatorHelper {
 
     Map<String, YamlField> dependenciesMap = new HashMap<>();
     dependenciesMap.put(manifestsPlanNodeId, manifestsYamlField);
-    PlanCreationResponse.PlanCreationResponseBuilder manifestsPlanCreationResponse =
-        PlanCreationResponse.builder().dependencies(
-            DependenciesUtils.toDependenciesProto(dependenciesMap)
-                .toBuilder()
-                .putDependencyMetadata(
-                    manifestsPlanNodeId, Dependency.newBuilder().putAllMetadata(metadataDependency).build())
-                .build());
+    PlanCreationResponseBuilder manifestsPlanCreationResponse = PlanCreationResponse.builder().dependencies(
+        DependenciesUtils.toDependenciesProto(dependenciesMap)
+            .toBuilder()
+            .putDependencyMetadata(
+                manifestsPlanNodeId, Dependency.newBuilder().putAllMetadata(metadataDependency).build())
+            .build());
     if (yamlUpdates.getFqnToYamlCount() > 0) {
       manifestsPlanCreationResponse.yamlUpdates(yamlUpdates.build());
     }
@@ -173,13 +171,12 @@ public class ServiceDefinitionPlanCreatorHelper {
 
     Map<String, YamlField> dependenciesMap = new HashMap<>();
     dependenciesMap.put(manifestsPlanNodeId, manifestsYamlField);
-    PlanCreationResponse.PlanCreationResponseBuilder manifestsPlanCreationResponse =
-        PlanCreationResponse.builder().dependencies(
-            DependenciesUtils.toDependenciesProto(dependenciesMap)
-                .toBuilder()
-                .putDependencyMetadata(
-                    manifestsPlanNodeId, Dependency.newBuilder().putAllMetadata(metadataDependency).build())
-                .build());
+    PlanCreationResponseBuilder manifestsPlanCreationResponse = PlanCreationResponse.builder().dependencies(
+        DependenciesUtils.toDependenciesProto(dependenciesMap)
+            .toBuilder()
+            .putDependencyMetadata(
+                manifestsPlanNodeId, Dependency.newBuilder().putAllMetadata(metadataDependency).build())
+            .build());
     if (yamlUpdates.getFqnToYamlCount() > 0) {
       manifestsPlanCreationResponse.yamlUpdates(yamlUpdates.build());
     }
