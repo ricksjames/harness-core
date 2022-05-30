@@ -198,7 +198,7 @@ public class CDNGPlanCreatorProvider implements PipelineServiceInfoProvider {
             .setName("GitOps Create PR")
             .setType(StepSpecTypeConstants.GITOPS_CREATE_PR)
             .setFeatureFlag(FeatureName.NG_GITOPS.name())
-            .setStepMetaData(StepMetaData.newBuilder().addCategory("GitOps").setFolderPath("GitOps").build())
+            .setStepMetaData(StepMetaData.newBuilder().addCategory("Kubernetes").setFolderPath("Kubernetes").build())
             .build();
 
     StepInfo k8sRolling =
