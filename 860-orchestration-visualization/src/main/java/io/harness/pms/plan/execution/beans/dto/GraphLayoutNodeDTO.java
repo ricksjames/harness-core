@@ -12,6 +12,7 @@ import static io.harness.annotations.dev.HarnessTeam.PIPELINE;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.dto.FailureInfoDTO;
 import io.harness.pms.contracts.execution.ExecutionErrorInfo;
+import io.harness.pms.contracts.execution.StrategyMetadata;
 import io.harness.pms.contracts.execution.run.NodeRunInfo;
 import io.harness.pms.contracts.execution.skip.SkipInfo;
 import io.harness.pms.data.stepdetails.PmsStepDetails;
@@ -56,4 +57,5 @@ public class GraphLayoutNodeDTO {
   private Map<String, PmsStepDetails> stepDetails;
   private Boolean hidden;
   String nodeExecutionId;
+  StrategyMetadata strategyMetadata;
 }

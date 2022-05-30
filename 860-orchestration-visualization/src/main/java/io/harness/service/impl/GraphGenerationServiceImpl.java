@@ -230,16 +230,16 @@ public class GraphGenerationServiceImpl implements GraphGenerationService {
   }
 
   @Override
-  public OrchestrationGraphDTO generatePartialOrchestrationGraphFromSetupNodeId(
-      String startingSetupNodeId, String planExecutionId) {
+  public OrchestrationGraphDTO generatePartialOrchestrationGraphFromSetupNodeIdAndExecutionId(
+      String startingSetupNodeId, String planExecutionId, String startingExecutionId) {
     OrchestrationGraph orchestrationGraph = getCachedOrchestrationGraph(planExecutionId);
     if (orchestrationGraph == null) {
       orchestrationGraph = buildOrchestrationGraph(planExecutionId);
     } else {
       sendUpdateEventIfAny(orchestrationGraph);
     }
-    String startingNodeId =
-        obtainStartingIdFromSetupNodeId(orchestrationGraph.getAdjacencyList().getGraphVertexMap(), startingSetupNodeId);
+    String startingNodeId = obtainStartingIdFromSetupNodeIdAndExecutionId(
+        orchestrationGraph.getAdjacencyList().getGraphVertexMap(), startingSetupNodeId, startingExecutionId);
     try {
       return generatePartialGraph(startingNodeId, orchestrationGraph);
     } catch (Exception ex) {
@@ -331,6 +331,28 @@ public class GraphGenerationServiceImpl implements GraphGenerationService {
       throw new InvalidRequestException(
           "Repeated setupNodeIds are not supported. Check the plan for [" + startingSetupNodeId + "] planNodeId");
     }
+  }
+
+  private String obtainStartingIdFromSetupNodeIdAndExecutionId(
+      Map<String, GraphVertex> graphVertexMap, String startingSetupNodeId, String startingExecutionId) {
+    List<GraphVertex> vertexList = graphVertexMap.values()
+                                       .stream()
+                                       .filter(vertex -> {
+                                         if (startingExecutionId != null) {
+                                           return vertex.getPlanNodeId().equals(startingSetupNodeId)
+                                               && vertex.getUuid().equals(startingExecutionId);
+                                         }
+                                         return vertex.getPlanNodeId().equals(startingSetupNodeId);
+                                       })
+                                       .collect(Collectors.toList());
+    if (vertexList.size() == 1) {
+      return vertexList.get(0).getUuid();
+    }
+    if (vertexList.size() > 1) {
+      log.error(String.format("Multiple node Ids found for a given combination of setupId: %s and ExecutionId: %s",
+          startingSetupNodeId, startingExecutionId));
+    }
+    return null;
   }
 
   private String obtainStartingNodeExId(List<NodeExecution> nodeExecutions) {

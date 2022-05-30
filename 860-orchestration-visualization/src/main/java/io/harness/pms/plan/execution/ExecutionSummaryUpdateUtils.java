@@ -14,6 +14,7 @@ import io.harness.dto.converter.FailureInfoDTOConverter;
 import io.harness.engine.utils.OrchestrationUtils;
 import io.harness.execution.NodeExecution;
 import io.harness.plan.NodeType;
+import io.harness.pms.contracts.ambiance.Ambiance;
 import io.harness.pms.contracts.ambiance.Level;
 import io.harness.pms.contracts.steps.StepCategory;
 import io.harness.pms.execution.ExecutionStatus;
@@ -63,6 +64,9 @@ public class ExecutionSummaryUpdateUtils {
           nodeExecution.getIdentifier() + identifierPostFix);
       update.set(PipelineExecutionSummaryEntity.PlanExecutionSummaryKeys.layoutNodeMap + "." + stageUuid + ".name",
           nodeExecution.getName() + identifierPostFix);
+      update.set(
+          PipelineExecutionSummaryEntity.PlanExecutionSummaryKeys.layoutNodeMap + "." + stageUuid + ".strategyMetadata",
+          AmbianceUtils.obtainCurrentLevel(nodeExecution.getAmbiance()).getStrategyMetadata());
     }
     if (!level.getNodeType().equals(NodeType.IDENTITY_PLAN_NODE.toString())) {
       update.set(
