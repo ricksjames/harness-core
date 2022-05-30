@@ -49,7 +49,7 @@ public final class CEViewFolder implements PersistentEntity, UuidAware, CreatedA
   }
   @Id String uuid;
   String accountId;
-  @Size(min = 1, max = 80, message = "for view must be between 1 and 80 characters long") @NotBlank String name;
+  @Size(min = 1, max = 80, message = "for perspective folder must be between 1 and 80 characters long") @NotBlank String name;
   boolean pinned;
   List<String> tags;
   String description;

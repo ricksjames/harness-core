@@ -8,10 +8,12 @@ import lombok.Builder;
 import lombok.Value;
 import lombok.experimental.FieldDefaults;
 
+import javax.validation.Valid;
+
 @Value
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class CreatePerspectiveFolderDTO {
-  CEViewFolder ceViewFolder;
+  @Valid CEViewFolder ceViewFolder;
   List<String> perspectiveIds;
 }
