@@ -7,7 +7,13 @@
 
 package io.harness.ccm.views.service.impl;
 
-import com.google.inject.Inject;
+import static io.harness.rule.OwnerRule.*;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.times;
+
 import io.harness.CategoryTest;
 import io.harness.category.element.UnitTests;
 import io.harness.ccm.views.dao.CEViewDao;
@@ -15,21 +21,16 @@ import io.harness.ccm.views.dao.CEViewFolderDao;
 import io.harness.ccm.views.entities.CEView;
 import io.harness.ccm.views.entities.CEViewFolder;
 import io.harness.rule.Owner;
+
+import com.google.inject.Inject;
+import java.util.Collections;
+import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-
-import java.util.Collections;
-import java.util.List;
-
-import static io.harness.rule.OwnerRule.*;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.*;
-import static org.mockito.Mockito.times;
 
 public class CEViewFolderServiceImplTest extends CategoryTest {
   @InjectMocks @Inject private CEViewFolderServiceImpl ceViewFolderService;
@@ -130,20 +131,10 @@ public class CEViewFolderServiceImplTest extends CategoryTest {
   }
 
   private CEViewFolder ceViewFolder() {
-    return CEViewFolder.builder()
-        .uuid(UUID)
-        .name(FOLDER_NAME)
-        .accountId(ACCOUNT_ID)
-        .pinned(false)
-        .build();
+    return CEViewFolder.builder().uuid(UUID).name(FOLDER_NAME).accountId(ACCOUNT_ID).pinned(false).build();
   }
 
   private CEView ceView() {
-    return CEView.builder()
-        .uuid(UUID)
-        .name(VIEW_NAME)
-        .accountId(ACCOUNT_ID)
-        .folderId(UUID)
-        .build();
+    return CEView.builder().uuid(UUID).name(VIEW_NAME).accountId(ACCOUNT_ID).folderId(UUID).build();
   }
 }

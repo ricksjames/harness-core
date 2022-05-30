@@ -173,7 +173,7 @@ public class PerspectiveFolderResource {
       })
   public ResponseDTO<CEViewFolder>
   updateFolder(@Parameter(required = true, description = ACCOUNT_PARAM_MESSAGE) @QueryParam(
-             NGCommonEntityConstants.ACCOUNT_KEY) @AccountIdentifier @NotNull @Valid String accountId,
+                   NGCommonEntityConstants.ACCOUNT_KEY) @AccountIdentifier @NotNull @Valid String accountId,
       @RequestBody(required = true,
           description = "Request body containing ceViewFolder object") @Valid CEViewFolder ceViewFolder) {
     return ResponseDTO.newResponse(ceViewFolderService.updateFolder(accountId, ceViewFolder));

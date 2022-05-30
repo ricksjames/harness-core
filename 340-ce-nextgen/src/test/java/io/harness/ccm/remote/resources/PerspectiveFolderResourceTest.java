@@ -7,6 +7,11 @@
 
 package io.harness.ccm.remote.resources;
 
+import static io.harness.rule.OwnerRule.TRUNAPUSHPA;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.*;
+
 import io.harness.CategoryTest;
 import io.harness.category.element.UnitTests;
 import io.harness.ccm.remote.resources.perspectives.PerspectiveFolderResource;
@@ -21,17 +26,13 @@ import io.harness.ccm.views.service.CEViewFolderService;
 import io.harness.ccm.views.service.CEViewService;
 import io.harness.ng.core.dto.ResponseDTO;
 import io.harness.rule.Owner;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
 
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
-
-import static io.harness.rule.OwnerRule.TRUNAPUSHPA;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.*;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 public class PerspectiveFolderResourceTest extends CategoryTest {
   private CEViewService ceViewService = mock(CEViewService.class);
@@ -53,12 +54,8 @@ public class PerspectiveFolderResourceTest extends CategoryTest {
 
   @Before
   public void setUp() throws IllegalAccessException, IOException {
-    perspectiveFolder = CEViewFolder.builder()
-        .uuid(FOLDER_ID)
-        .name(FOLDER_NAME)
-        .accountId(ACCOUNT_ID)
-        .viewType(VIEW_TYPE)
-        .build();
+    perspectiveFolder =
+        CEViewFolder.builder().uuid(FOLDER_ID).name(FOLDER_NAME).accountId(ACCOUNT_ID).viewType(VIEW_TYPE).build();
     perspective = CEView.builder()
                       .uuid(PERSPECTIVE_ID)
                       .name(PERSPECTIVE_NAME)
@@ -67,16 +64,13 @@ public class PerspectiveFolderResourceTest extends CategoryTest {
                       .viewType(VIEW_TYPE)
                       .viewVersion(perspectiveVersion)
                       .build();
-    qlceView = QLCEView.builder()
-         .id(PERSPECTIVE_ID)
-         .name(PERSPECTIVE_NAME)
-         .folderId(FOLDER_ID)
-         .build();
+    qlceView = QLCEView.builder().id(PERSPECTIVE_ID).name(PERSPECTIVE_NAME).folderId(FOLDER_ID).build();
     when(ceViewService.getAllViews(any(), any(), anyBoolean())).thenReturn(Collections.singletonList(qlceView));
     when(ceViewFolderService.save(any())).thenReturn(perspectiveFolder);
     when(ceViewFolderService.getFolders(any())).thenReturn(Collections.singletonList(perspectiveFolder));
     when(ceViewFolderService.updateFolder(any(), any())).thenReturn(perspectiveFolder);
-    when(ceViewFolderService.moveMultipleCEViews(any(), any(), any())).thenReturn(Collections.singletonList(perspective));
+    when(ceViewFolderService.moveMultipleCEViews(any(), any(), any()))
+        .thenReturn(Collections.singletonList(perspective));
     when(ceViewFolderService.delete(any(), any())).thenReturn(true);
     perspectiveFolderResource = new PerspectiveFolderResource(ceViewFolderService, ceViewService);
   }
@@ -85,7 +79,8 @@ public class PerspectiveFolderResourceTest extends CategoryTest {
   @Owner(developers = TRUNAPUSHPA)
   @Category(UnitTests.class)
   public void testCreatePerspectiveFolder() {
-    perspectiveFolderResource.create(ACCOUNT_ID, CreatePerspectiveFolderDTO.builder().ceViewFolder(perspectiveFolder).build());
+    perspectiveFolderResource.create(
+        ACCOUNT_ID, CreatePerspectiveFolderDTO.builder().ceViewFolder(perspectiveFolder).build());
     verify(ceViewFolderService).save(perspectiveFolder);
   }
 
@@ -119,7 +114,11 @@ public class PerspectiveFolderResourceTest extends CategoryTest {
   @Owner(developers = TRUNAPUSHPA)
   @Category(UnitTests.class)
   public void movePerspectives() {
-    ResponseDTO<List<CEView>> response = perspectiveFolderResource.movePerspectives(ACCOUNT_ID, MovePerspectiveDTO.builder().perspectiveIds(Collections.singletonList(PERSPECTIVE_ID)).newFolderId(FOLDER_ID).build());
+    ResponseDTO<List<CEView>> response = perspectiveFolderResource.movePerspectives(ACCOUNT_ID,
+        MovePerspectiveDTO.builder()
+            .perspectiveIds(Collections.singletonList(PERSPECTIVE_ID))
+            .newFolderId(FOLDER_ID)
+            .build());
     assertThat(response.getData()).isEqualTo(Collections.singletonList(perspective));
   }
 

@@ -3,12 +3,11 @@ package io.harness.ccm.views.dto;
 import io.harness.ccm.views.entities.CEViewFolder;
 
 import java.util.List;
+import javax.validation.Valid;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Value;
 import lombok.experimental.FieldDefaults;
-
-import javax.validation.Valid;
 
 @Value
 @Builder
