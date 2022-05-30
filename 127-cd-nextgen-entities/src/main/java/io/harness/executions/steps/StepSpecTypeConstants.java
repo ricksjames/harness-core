@@ -38,4 +38,9 @@ public interface StepSpecTypeConstants {
 
   String SERVERLESS_AWS_LAMBDA_DEPLOY = "ServerlessAwsLambdaDeploy";
   String SERVERLESS_AWS_LAMBDA_ROLLBACK = "ServerlessAwsLambdaRollback";
+
+  String AZURE_WEBAPP_SLOT_SETUP = "AzureWebAppSlotSetup";
+  String AZURE_WEBAPP_TRAFFIC_SHIFT = "AzureWebAppTrafficShift";
+  String AZURE_WEBAPP_SWAP_SLOT = "AzureWebAppSwapSlot";
+  String AZURE_WEBAPP_ROLLBACK = "AzureWebAppRollback";
 }

@@ -14,6 +14,10 @@ import io.harness.cdng.artifact.steps.ArtifactStep;
 import io.harness.cdng.artifact.steps.ArtifactSyncStep;
 import io.harness.cdng.artifact.steps.ArtifactsStep;
 import io.harness.cdng.artifact.steps.SidecarsStep;
+import io.harness.cdng.azure.webapp.AzureWebAppRollbackStep;
+import io.harness.cdng.azure.webapp.AzureWebAppSlotSetupStep;
+import io.harness.cdng.azure.webapp.AzureWebAppSwapSlotStep;
+import io.harness.cdng.azure.webapp.AzureWebAppTrafficShiftStep;
 import io.harness.cdng.configfile.steps.ConfigFilesStep;
 import io.harness.cdng.configfile.steps.IndividualConfigFileStep;
 import io.harness.cdng.creator.plan.environment.steps.EnvironmentStepV2;
@@ -117,6 +121,10 @@ public class NgStepRegistrar {
     engineSteps.put(ServerlessAwsLambdaRollbackStep.STEP_TYPE, ServerlessAwsLambdaRollbackStep.class);
     engineSteps.put(IndividualConfigFileStep.STEP_TYPE, IndividualConfigFileStep.class);
     engineSteps.put(ConfigFilesStep.STEP_TYPE, ConfigFilesStep.class);
+    engineSteps.put(AzureWebAppSlotSetupStep.STEP_TYPE, AzureWebAppSlotSetupStep.class);
+    engineSteps.put(AzureWebAppTrafficShiftStep.STEP_TYPE, AzureWebAppTrafficShiftStep.class);
+    engineSteps.put(AzureWebAppSwapSlotStep.STEP_TYPE, AzureWebAppSwapSlotStep.class);
+    engineSteps.put(AzureWebAppRollbackStep.STEP_TYPE, AzureWebAppRollbackStep.class);
     engineSteps.putAll(NGCommonUtilStepsRegistrar.getEngineSteps());
     return engineSteps;
   }

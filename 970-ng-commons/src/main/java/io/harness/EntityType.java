@@ -238,7 +238,19 @@ public enum EntityType {
       IdentifierRef.class, EntityYamlRootNames.CLOUDFORMATION_ROLLBACK_STACK_STEP),
   @JsonProperty(EntityTypeConstants.INFRASTRUCTURE)
   INFRASTRUCTURE(
-      ModuleType.CORE, EntityTypeConstants.INFRASTRUCTURE, IdentifierRef.class, EntityYamlRootNames.INFRASTRUCTURE);
+      ModuleType.CORE, EntityTypeConstants.INFRASTRUCTURE, IdentifierRef.class, EntityYamlRootNames.INFRASTRUCTURE),
+  @JsonProperty(EntityTypeConstants.AZURE_WEBAPP_SLOT_SETUP)
+  AZURE_WEBAPP_SLOT_SETUP_STEP(ModuleType.CD, EntityTypeConstants.AZURE_WEBAPP_SLOT_SETUP, IdentifierRef.class,
+      EntityYamlRootNames.AZURE_WEBAPP_SLOT_SETUP),
+  @JsonProperty(EntityTypeConstants.AZURE_WEBAPP_TRAFFIC_SHIFT)
+  AZURE_WEBAPP_TRAFFIC_SHIFT(ModuleType.CD, EntityTypeConstants.AZURE_WEBAPP_TRAFFIC_SHIFT, IdentifierRef.class,
+      EntityYamlRootNames.AZURE_WEBAPP_TRAFFIC_SHIFT),
+  @JsonProperty(EntityTypeConstants.AZURE_WEBAPP_SWAP_SLOT)
+  AZURE_WEBAPP_SWAP_SLOT(ModuleType.CD, EntityTypeConstants.AZURE_WEBAPP_SWAP_SLOT, IdentifierRef.class,
+      EntityYamlRootNames.AZURE_WEBAPP_SWAP_SLOT),
+  @JsonProperty(EntityTypeConstants.AZURE_WEBAPP_ROLLBACK)
+  AZURE_WEBAPP_ROLLBACK(ModuleType.CD, EntityTypeConstants.AZURE_WEBAPP_ROLLBACK, IdentifierRef.class,
+      EntityYamlRootNames.AZURE_WEBAPP_ROLLBACK);
 
   private final ModuleType moduleType;
   String yamlName;

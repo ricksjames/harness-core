@@ -10,6 +10,10 @@ package io.harness.cdng.pipeline;
 import io.harness.advisers.rollback.OnFailRollbackParameters;
 import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
+import io.harness.cdng.azure.webapp.AzureWebAppRollbackStep;
+import io.harness.cdng.azure.webapp.AzureWebAppSlotSetupStep;
+import io.harness.cdng.azure.webapp.AzureWebAppSwapSlotStep;
+import io.harness.cdng.azure.webapp.AzureWebAppTrafficShiftStep;
 import io.harness.cdng.helm.HelmDeployStepInfo;
 import io.harness.cdng.helm.rollback.HelmRollbackStepInfo;
 import io.harness.cdng.k8s.K8sApplyStepInfo;
@@ -48,7 +52,8 @@ import io.swagger.annotations.ApiModel;
         TerraformPlanStepInfo.class, TerraformDestroyStepInfo.class, TerraformRollbackStepInfo.class,
         HelmDeployStepInfo.class, HelmRollbackStepInfo.class, CloudformationCreateStackStepInfo.class,
         CloudformationDeleteStackStepInfo.class, ServerlessAwsLambdaDeployStepInfo.class,
-        ServerlessAwsLambdaRollbackStepInfo.class, CloudformationRollbackStepInfo.class})
+        ServerlessAwsLambdaRollbackStepInfo.class, CloudformationRollbackStepInfo.class, AzureWebAppSlotSetupStep.class,
+        AzureWebAppTrafficShiftStep.class, AzureWebAppSwapSlotStep.class, AzureWebAppRollbackStep.class})
 
 @OwnedBy(HarnessTeam.CDC)
 public interface CDStepInfo extends StepSpecType, WithStepElementParameters, WithDelegateSelector {

@@ -370,3 +370,15 @@ io.harness.cdng.configfile.steps.ConfigFilesOutcome
 io.harness.cdng.manifest.yaml.harness.HarnessStore
 io.harness.cdng.gitops.steps.ClusterStepParameters
 io.harness.steps.customstage.CustomStageSpecParams
+io.harness.cdng.azure.webapp.AzureWebAppRollbackStepInfo
+io.harness.cdng.azure.webapp.AzureWebAppRollbackStepNode
+io.harness.cdng.azure.webapp.AzureWebAppRollbackStepParameters
+io.harness.cdng.azure.webapp.AzureWebAppSlotSetupStepInfo
+io.harness.cdng.azure.webapp.AzureWebAppSlotSetupStepNode
+io.harness.cdng.azure.webapp.AzureWebAppSlotSetupStepParameters
+io.harness.cdng.azure.webapp.AzureWebAppSwapSlotStepInfo
+io.harness.cdng.azure.webapp.AzureWebAppSwapSlotStepNode
+io.harness.cdng.azure.webapp.AzureWebAppSwapSlotStepParameters
+io.harness.cdng.azure.webapp.AzureWebAppTrafficShiftStepInfo
+io.harness.cdng.azure.webapp.AzureWebAppTrafficShiftStepNode
+io.harness.cdng.azure.webapp.AzureWebAppTrafficShiftStepParameters

@@ -96,10 +96,14 @@ public class EntityYamlRootNames {
   public static final String BUILD_AND_PUSH_ECR = "BuildAndPushECR";
   public static final String BUILD_AND_PUSH_DOCKER_REGISTRY = "BuildAndPushDockerRegistry";
   public static final String NG_FILE = "NgFile";
-  public static String CLOUDFORMATION_CREATE_STACK_STEP = "CreateStack";
-  public static String CLOUDFORMATION_DELETE_STACK_STEP = "DeleteStack";
+  public static final String CLOUDFORMATION_CREATE_STACK_STEP = "CreateStack";
+  public static final String CLOUDFORMATION_DELETE_STACK_STEP = "DeleteStack";
   public static final String SERVERLESS_AWS_LAMBDA_DEPLOY = "ServerlessAwsLambdaDeploy";
   public static final String SERVERLESS_AWS_LAMBDA_ROLLBACK = "ServerlessAwsLambdaRollback";
-  public static String CLOUDFORMATION_ROLLBACK_STACK_STEP = "RollbackStack";
+  public static final String CLOUDFORMATION_ROLLBACK_STACK_STEP = "RollbackStack";
   public static final String INFRASTRUCTURE = "infrastructure";
+  public static final String AZURE_WEBAPP_SLOT_SETUP = "AzureWebAppSlotSetup";
+  public static final String AZURE_WEBAPP_TRAFFIC_SHIFT = "AzureWebAppTrafficShift";
+  public static final String AZURE_WEBAPP_SWAP_SLOT = "AzureWebAppSwapSlot";
+  public static final String AZURE_WEBAPP_ROLLBACK = "AzureWebAppRollback";
 }

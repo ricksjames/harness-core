@@ -93,4 +93,8 @@ public interface EntityTypeConstants {
   String SERVERLESS_AWS_LAMBDA_ROLLBACK = "ServerlessAwsLambdaRollback";
   String CLOUDFORMATION_ROLLBACK_STACK_STEP = "RollbackStack";
   String INFRASTRUCTURE = "Infrastructure";
+  String AZURE_WEBAPP_SLOT_SETUP = "AzureWebAppSlotSetup";
+  String AZURE_WEBAPP_TRAFFIC_SHIFT = "AzureWebAppTrafficShift";
+  String AZURE_WEBAPP_SWAP_SLOT = "AzureWebAppSwapSlot";
+  String AZURE_WEBAPP_ROLLBACK = "AzureWebAppRollback";
 }
