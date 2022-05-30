@@ -22,6 +22,7 @@ import com.google.inject.Singleton;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang.StringUtils;
 
 @Slf4j
 @Singleton
@@ -72,6 +73,9 @@ public class CEViewFolderServiceImpl implements CEViewFolderService {
 
   @Override
   public List<CEView> moveMultipleCEViews(String accountId, List<String> ceViewIds, String toFolderId) {
+    if (StringUtils.isEmpty(toFolderId)) {
+      toFolderId = ceViewFolderDao.getDefaultFolder(accountId).getUuid();
+    }
     return ceViewDao.moveMultiplePerspectiveFolder(accountId, ceViewIds, toFolderId);
   }
 
