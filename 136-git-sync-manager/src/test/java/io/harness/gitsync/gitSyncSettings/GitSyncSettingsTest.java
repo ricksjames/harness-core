@@ -15,6 +15,7 @@ import static io.harness.rule.OwnerRule.MEET;
 import static io.harness.rule.OwnerRule.MOHIT_GARG;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.when;
 
 import io.harness.annotations.dev.HarnessTeam;
@@ -26,6 +27,8 @@ import io.harness.gitsync.common.beans.GitSyncSettings;
 import io.harness.gitsync.common.dtos.GitSyncSettingsDTO;
 import io.harness.gitsync.common.impl.GitSyncSettingsServiceImpl;
 import io.harness.gitsync.common.service.YamlGitConfigService;
+import io.harness.project.remote.ProjectClient;
+import io.harness.remote.client.NGRestUtils;
 import io.harness.repositories.gitSyncSettings.GitSyncSettingsRepository;
 import io.harness.rule.Owner;
 
@@ -44,6 +47,7 @@ public class GitSyncSettingsTest extends GitSyncTestBase {
   @Inject GitSyncSettingsServiceImpl gitSyncSettingsService;
   @Inject GitSyncSettingsRepository gitSyncSettingsRepository;
   @Mock YamlGitConfigService yamlGitConfigService;
+  @Mock ProjectClient projectClient;
   public static final String accountIdentifier = "accountIdentifier";
   public static final String projectIdentifier = "projectIdentifier";
   public static final String orgIdentifier = "orgIdentifier";
@@ -122,6 +126,18 @@ public class GitSyncSettingsTest extends GitSyncTestBase {
   @Category(UnitTests.class)
   public void testEnableGitSimplificationIfGitSyncIsEnabled() {
     when(yamlGitConfigService.isGitSyncEnabled(accountIdentifier, orgIdentifier, projectIdentifier)).thenReturn(true);
+    try {
+      gitSyncSettingsService.enableGitSimplification(accountIdentifier, orgIdentifier, projectIdentifier);
+    } catch (Exception exception) {
+      assertThat(exception).isInstanceOf(InvalidRequestException.class);
+    }
+  }
+
+  @Test
+  @Owner(developers = MOHIT_GARG)
+  @Category(UnitTests.class)
+  public void testEnableGitSimplificationIfNoProjectFound() {
+    when(NGRestUtils.getResponse(any())).thenReturn(false);
     try {
       gitSyncSettingsService.enableGitSimplification(accountIdentifier, orgIdentifier, projectIdentifier);
     } catch (Exception exception) {

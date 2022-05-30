@@ -15,6 +15,7 @@ import static io.harness.Microservice.TEMPLATESERVICE;
 import static io.harness.annotations.dev.HarnessTeam.DX;
 import static io.harness.eventsframework.EventsFrameworkConstants.GIT_FULL_SYNC_STREAM;
 
+import io.harness.AuthorizationServiceHeader;
 import io.harness.EntityType;
 import io.harness.Microservice;
 import io.harness.SCMJavaClientModule;
@@ -78,6 +79,7 @@ import io.harness.gitsync.gitsyncerror.service.GitSyncErrorService;
 import io.harness.manage.ManagedScheduledExecutorService;
 import io.harness.ng.core.event.MessageListener;
 import io.harness.persistence.HPersistence;
+import io.harness.project.ProjectClientModule;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.inject.AbstractModule;
@@ -126,6 +128,9 @@ public class GitSyncModule extends AbstractModule {
   @Override
   protected void configure() {
     registerRequiredBindings();
+    install(ProjectClientModule.getInstance(config.getNgManagerClientConfig(),
+        config.getDashboardSecretsConfig().getNgManagerServiceSecret(),
+        AuthorizationServiceHeader.GIT_SYNC_SERVICE.getServiceId()));
     install(SCMJavaClientModule.getInstance());
     install(GitSyncSdkGrpcClientModule.getInstance());
     install(PrimaryVersionManagerModule.getInstance());

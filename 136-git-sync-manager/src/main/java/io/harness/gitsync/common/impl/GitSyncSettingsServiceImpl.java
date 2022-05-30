@@ -19,6 +19,9 @@ import io.harness.gitsync.common.dtos.GitSyncSettingsDTO;
 import io.harness.gitsync.common.remote.GitSyncSettingsMapper;
 import io.harness.gitsync.common.service.GitSyncSettingsService;
 import io.harness.gitsync.common.service.YamlGitConfigService;
+import io.harness.ng.core.dto.ProjectResponse;
+import io.harness.project.remote.ProjectClient;
+import io.harness.remote.client.NGRestUtils;
 import io.harness.repositories.gitSyncSettings.GitSyncSettingsRepository;
 
 import com.google.inject.Inject;
@@ -39,6 +42,7 @@ import org.springframework.data.mongodb.core.query.Update;
 public class GitSyncSettingsServiceImpl implements GitSyncSettingsService {
   private final GitSyncSettingsRepository gitSyncSettingsRepository;
   private final YamlGitConfigService yamlGitConfigService;
+  private final ProjectClient projectClient;
 
   @Override
   public Optional<GitSyncSettingsDTO> get(String accountIdentifier, String orgIdentifier, String projectIdentifier) {
@@ -86,6 +90,14 @@ public class GitSyncSettingsServiceImpl implements GitSyncSettingsService {
 
   @Override
   public boolean enableGitSimplification(String accountIdentifier, String orgIdentifier, String projectIdentifier) {
+    Optional<ProjectResponse> projectResponseOptional =
+        NGRestUtils.getResponse(projectClient.getProject(projectIdentifier, accountIdentifier, orgIdentifier));
+    if (!projectResponseOptional.isPresent()) {
+      throw new InvalidRequestException(
+          String.format("No project exists for given  accountId: %s , orgId: %s , projectId: %s", accountIdentifier,
+              orgIdentifier, projectIdentifier));
+    }
+
     if (yamlGitConfigService.isGitSyncEnabled(accountIdentifier, orgIdentifier, projectIdentifier)) {
       throwExceptionIfGitSyncAlreadyEnabled();
     }
