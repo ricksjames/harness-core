@@ -121,4 +121,20 @@ public class PMSInputSetFilterHelper {
     update.set(InputSetEntityKeys.deleted, true);
     return update;
   }
+
+  public Criteria getCriteriaForFind(String accountId, String orgIdentifier, String projectIdentifier,
+      String pipelineIdentifier, String identifier, boolean notDeleted) {
+    return Criteria.where(InputSetEntityKeys.deleted)
+        .is(!notDeleted)
+        .and(InputSetEntityKeys.accountId)
+        .is(accountId)
+        .and(InputSetEntityKeys.orgIdentifier)
+        .is(orgIdentifier)
+        .and(InputSetEntityKeys.projectIdentifier)
+        .is(projectIdentifier)
+        .and(InputSetEntityKeys.pipelineIdentifier)
+        .is(pipelineIdentifier)
+        .and(InputSetEntityKeys.identifier)
+        .is(identifier);
+  }
 }

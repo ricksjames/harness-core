@@ -164,6 +164,9 @@ public class PMSInputSetElementMapper {
 
   public InputSetSummaryResponseDTOPMS toInputSetSummaryResponseDTOPMS(InputSetEntity entity,
       InputSetErrorWrapperDTOPMS inputSetErrorDetails, Map<String, String> overlaySetErrorDetails) {
+    // For List View, getEntityGitDetails(...) method cant be used because for REMOTE input sets. That is because
+    // GitAwareContextHelper.getEntityGitDetailsFromScmGitMetadata() cannot be used, because there won't be any
+    // SCM Context set in the List call.
     EntityGitDetails entityGitDetails = entity.getStoreType() == null
         ? EntityGitDetailsMapper.mapEntityGitDetails(entity)
         : entity.getStoreType() == StoreType.REMOTE ? GitAwareContextHelper.getEntityGitDetails(entity)

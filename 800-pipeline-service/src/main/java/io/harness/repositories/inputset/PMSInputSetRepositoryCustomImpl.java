@@ -30,6 +30,7 @@ import io.harness.pms.inputset.gitsync.InputSetYamlDTO;
 import io.harness.pms.ngpipeline.inputset.beans.entity.InputSetEntity;
 import io.harness.pms.ngpipeline.inputset.beans.entity.InputSetEntity.InputSetEntityKeys;
 import io.harness.pms.ngpipeline.inputset.mappers.PMSInputSetFilterHelper;
+import io.harness.springdata.TransactionHelper;
 
 import com.google.inject.Inject;
 import com.mongodb.client.result.UpdateResult;
@@ -63,6 +64,7 @@ public class PMSInputSetRepositoryCustomImpl implements PMSInputSetRepositoryCus
   private final OutboxService outboxService;
   private final GitSyncSdkService gitSyncSdkService;
   private final GitAwareEntityHelper gitAwareEntityHelper;
+  private final TransactionHelper transactionHelper;
 
   @Override
   public List<InputSetEntity> findAll(Criteria criteria) {
@@ -108,14 +110,11 @@ public class PMSInputSetRepositoryCustomImpl implements PMSInputSetRepositoryCus
                                   .build());
     GitAwareContextHelper.initDefaultScmGitMetaData();
     GitEntityInfo gitEntityInfo = GitContextHelper.getGitEntityInfo();
-    if (gitEntityInfo == null || gitEntityInfo.getStoreType().equals(StoreType.INLINE)) {
-      entityToSave.setStoreType(StoreType.INLINE);
-      InputSetEntity inputSetEntity = mongoTemplate.save(entityToSave);
-      functor.get();
-      return inputSetEntity;
-    }
     if (gitSyncSdkService.isGitSimplificationEnabled(entityToSave.getAccountIdentifier(),
             entityToSave.getOrgIdentifier(), entityToSave.getProjectIdentifier())) {
+      if (gitEntityInfo == null) {
+        throw new InvalidRequestException("No Git Details provided");
+      }
       Scope scope = Scope.builder()
                         .accountIdentifier(entityToSave.getAccountIdentifier())
                         .orgIdentifier(entityToSave.getOrgIdentifier())
@@ -131,44 +130,27 @@ public class PMSInputSetRepositoryCustomImpl implements PMSInputSetRepositoryCus
     } else {
       entityToSave.setStoreType(StoreType.INLINE);
     }
-    InputSetEntity savedInputSetEntity = mongoTemplate.save(entityToSave);
-    functor.get();
-    return savedInputSetEntity;
+    return transactionHelper.performTransaction(() -> {
+      InputSetEntity savedInputSetEntity = mongoTemplate.save(entityToSave);
+      functor.get();
+      return savedInputSetEntity;
+    });
   }
 
   @Override
   public Optional<InputSetEntity> findForOldGitSync(String accountId, String orgIdentifier, String projectIdentifier,
       String pipelineIdentifier, String identifier, boolean notDeleted) {
-    return gitAwarePersistence.findOne(Criteria.where(InputSetEntityKeys.deleted)
-                                           .is(!notDeleted)
-                                           .and(InputSetEntityKeys.accountId)
-                                           .is(accountId)
-                                           .and(InputSetEntityKeys.orgIdentifier)
-                                           .is(orgIdentifier)
-                                           .and(InputSetEntityKeys.projectIdentifier)
-                                           .is(projectIdentifier)
-                                           .and(InputSetEntityKeys.pipelineIdentifier)
-                                           .is(pipelineIdentifier)
-                                           .and(InputSetEntityKeys.identifier)
-                                           .is(identifier),
-        projectIdentifier, orgIdentifier, accountId, InputSetEntity.class);
+    Criteria criteriaForFind = PMSInputSetFilterHelper.getCriteriaForFind(
+        accountId, orgIdentifier, projectIdentifier, pipelineIdentifier, identifier, notDeleted);
+    return gitAwarePersistence.findOne(
+        criteriaForFind, projectIdentifier, orgIdentifier, accountId, InputSetEntity.class);
   }
 
   @Override
   public Optional<InputSetEntity> find(String accountId, String orgIdentifier, String projectIdentifier,
       String pipelineIdentifier, String identifier, boolean notDeleted, boolean getMetadataOnly) {
-    Criteria criteria = Criteria.where(InputSetEntityKeys.deleted)
-                            .is(!notDeleted)
-                            .and(InputSetEntityKeys.accountId)
-                            .is(accountId)
-                            .and(InputSetEntityKeys.orgIdentifier)
-                            .is(orgIdentifier)
-                            .and(InputSetEntityKeys.projectIdentifier)
-                            .is(projectIdentifier)
-                            .and(InputSetEntityKeys.pipelineIdentifier)
-                            .is(pipelineIdentifier)
-                            .and(InputSetEntityKeys.identifier)
-                            .is(identifier);
+    Criteria criteria = PMSInputSetFilterHelper.getCriteriaForFind(
+        accountId, orgIdentifier, projectIdentifier, pipelineIdentifier, identifier, notDeleted);
     Query query = new Query(criteria);
     InputSetEntity savedEntity = mongoTemplate.findOne(query, InputSetEntity.class);
     if (savedEntity == null) {
@@ -229,21 +211,35 @@ public class PMSInputSetRepositoryCustomImpl implements PMSInputSetRepositoryCus
 
   @Override
   public InputSetEntity update(InputSetEntity entityToUpdate) {
-    Criteria criteria = Criteria.where(InputSetEntityKeys.deleted)
-                            .is(false)
-                            .and(InputSetEntityKeys.accountId)
-                            .is(entityToUpdate.getAccountId())
-                            .and(InputSetEntityKeys.orgIdentifier)
-                            .is(entityToUpdate.getOrgIdentifier())
-                            .and(InputSetEntityKeys.projectIdentifier)
-                            .is(entityToUpdate.getProjectIdentifier())
-                            .and(InputSetEntityKeys.pipelineIdentifier)
-                            .is(entityToUpdate.getPipelineIdentifier())
-                            .and(InputSetEntityKeys.identifier)
-                            .is(entityToUpdate.getIdentifier());
+    Criteria criteria = PMSInputSetFilterHelper.getCriteriaForFind(entityToUpdate.getAccountId(),
+        entityToUpdate.getOrgIdentifier(), entityToUpdate.getProjectIdentifier(),
+        entityToUpdate.getPipelineIdentifier(), entityToUpdate.getIdentifier(), true);
     Query query = new Query(criteria);
     long timeOfUpdate = System.currentTimeMillis();
     Update updateOperations = PMSInputSetFilterHelper.getUpdateOperations(entityToUpdate, timeOfUpdate);
+    InputSetEntity updatedEntity = transactionHelper.performTransaction(
+        () -> updateInputSetInDB(query, updateOperations, entityToUpdate, timeOfUpdate));
+
+    updatedEntity = onboardToInlineIfNullStoreType(updatedEntity, query);
+    if (updatedEntity == null) {
+      return null;
+    }
+
+    if (updatedEntity.getStoreType() == StoreType.REMOTE
+        && gitSyncSdkService.isGitSimplificationEnabled(entityToUpdate.getAccountIdentifier(),
+            entityToUpdate.getOrgIdentifier(), entityToUpdate.getProjectIdentifier())) {
+      Scope scope = Scope.builder()
+                        .accountIdentifier(updatedEntity.getAccountIdentifier())
+                        .orgIdentifier(updatedEntity.getOrgIdentifier())
+                        .projectIdentifier(updatedEntity.getProjectIdentifier())
+                        .build();
+      gitAwareEntityHelper.updateEntityOnGit(updatedEntity, entityToUpdate.getYaml(), scope);
+    }
+    return updatedEntity;
+  }
+
+  InputSetEntity updateInputSetInDB(
+      Query query, Update updateOperations, InputSetEntity entityToUpdate, long timeOfUpdate) {
     InputSetEntity oldEntityFromDB = mongoTemplate.findAndModify(
         query, updateOperations, new FindAndModifyOptions().returnNew(false), InputSetEntity.class);
     if (oldEntityFromDB == null) {
@@ -251,31 +247,17 @@ public class PMSInputSetRepositoryCustomImpl implements PMSInputSetRepositoryCus
     }
     InputSetEntity updatedEntity =
         PMSInputSetFilterHelper.updateFieldsInDBEntry(oldEntityFromDB, entityToUpdate, timeOfUpdate);
+    outboxService.save(new InputSetUpdateEvent(entityToUpdate.getAccountIdentifier(), entityToUpdate.getOrgIdentifier(),
+        entityToUpdate.getProjectIdentifier(), entityToUpdate.getPipelineIdentifier(), updatedEntity, oldEntityFromDB));
+    return updatedEntity;
+  }
+
+  InputSetEntity onboardToInlineIfNullStoreType(InputSetEntity updatedEntity, Query query) {
     if (updatedEntity.getStoreType() == null) {
       Update updateOperationsForOnboardingToInline = PMSInputSetFilterHelper.getUpdateOperationsForOnboardingToInline();
       updatedEntity = mongoTemplate.findAndModify(query, updateOperationsForOnboardingToInline,
           new FindAndModifyOptions().returnNew(true), InputSetEntity.class);
     }
-    if (updatedEntity == null) {
-      return null;
-    }
-    if (updatedEntity.getStoreType() == StoreType.INLINE) {
-      outboxService.save(new InputSetUpdateEvent(entityToUpdate.getAccountIdentifier(),
-          entityToUpdate.getOrgIdentifier(), entityToUpdate.getProjectIdentifier(),
-          entityToUpdate.getPipelineIdentifier(), updatedEntity, oldEntityFromDB));
-      return updatedEntity;
-    }
-    if (gitSyncSdkService.isGitSimplificationEnabled(entityToUpdate.getAccountIdentifier(),
-            entityToUpdate.getOrgIdentifier(), entityToUpdate.getProjectIdentifier())) {
-      Scope scope = Scope.builder()
-                        .accountIdentifier(updatedEntity.getAccountIdentifier())
-                        .orgIdentifier(updatedEntity.getOrgIdentifier())
-                        .projectIdentifier(updatedEntity.getProjectIdentifier())
-                        .build();
-      gitAwareEntityHelper.updateEntityOnGit(updatedEntity, updatedEntity.getYaml(), scope);
-    }
-    outboxService.save(new InputSetUpdateEvent(entityToUpdate.getAccountIdentifier(), entityToUpdate.getOrgIdentifier(),
-        entityToUpdate.getProjectIdentifier(), entityToUpdate.getPipelineIdentifier(), updatedEntity, oldEntityFromDB));
     return updatedEntity;
   }
 
@@ -321,18 +303,8 @@ public class PMSInputSetRepositoryCustomImpl implements PMSInputSetRepositoryCus
   @Override
   public InputSetEntity delete(
       String accountId, String orgIdentifier, String projectIdentifier, String pipelineIdentifier, String identifier) {
-    Criteria criteria = Criteria.where(InputSetEntityKeys.deleted)
-                            .is(false)
-                            .and(InputSetEntityKeys.accountId)
-                            .is(accountId)
-                            .and(InputSetEntityKeys.orgIdentifier)
-                            .is(orgIdentifier)
-                            .and(InputSetEntityKeys.projectIdentifier)
-                            .is(projectIdentifier)
-                            .and(InputSetEntityKeys.pipelineIdentifier)
-                            .is(pipelineIdentifier)
-                            .and(InputSetEntityKeys.identifier)
-                            .is(identifier);
+    Criteria criteria = PMSInputSetFilterHelper.getCriteriaForFind(
+        accountId, orgIdentifier, projectIdentifier, pipelineIdentifier, identifier, true);
     Query query = new Query(criteria);
     Update updateOperationsForDelete = PMSInputSetFilterHelper.getUpdateOperationsForDelete();
     return mongoTemplate.findAndModify(
