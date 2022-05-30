@@ -64,6 +64,24 @@ public class AzureTask extends AbstractDelegateRunnableTask {
         return azureAsyncTaskHelper.listResourceGroups(azureTaskParams.getEncryptionDetails(),
             azureTaskParams.getAzureConnector(),
             azureTaskParams.getAdditionalParams().get(AzureAdditionalParams.SUBSCRIPTION_ID));
+      case LIST_WEBAPP_NAMES:
+        msg = "Could not retrieve any Azure Web App names because of invalid parameter(s)";
+        validateSubscriptionIdExist(azureTaskParams, msg);
+        validateResourceGroupExist(azureTaskParams, msg);
+        return azureAsyncTaskHelper.listWebAppNames(azureTaskParams.getEncryptionDetails(),
+            azureTaskParams.getAzureConnector(),
+            azureTaskParams.getAdditionalParams().get(AzureAdditionalParams.SUBSCRIPTION_ID),
+            azureTaskParams.getAdditionalParams().get(AzureAdditionalParams.RESOURCE_GROUP));
+      case LIST_DEPLOYMENT_SLOTS:
+        msg = "Could not retrieve any azure Web App deployment slots because of invalid parameter(s)";
+        validateSubscriptionIdExist(azureTaskParams, msg);
+        validateResourceGroupExist(azureTaskParams, msg);
+        validateWebAppNameExist(azureTaskParams, msg);
+        return azureAsyncTaskHelper.listDeploymentSlots(azureTaskParams.getEncryptionDetails(),
+            azureTaskParams.getAzureConnector(),
+            azureTaskParams.getAdditionalParams().get(AzureAdditionalParams.SUBSCRIPTION_ID),
+            azureTaskParams.getAdditionalParams().get(AzureAdditionalParams.RESOURCE_GROUP),
+            azureTaskParams.getAdditionalParams().get(AzureAdditionalParams.WEB_APP_NAME));
       case LIST_CONTAINER_REGISTRIES: {
         validateSubscriptionIdExist(
             azureTaskParams, "Could not retrieve any container registries because of invalid parameter(s)");
@@ -126,6 +144,15 @@ public class AzureTask extends AbstractDelegateRunnableTask {
       throw NestedExceptionUtils.hintWithExplanationException(
           "Please check your resource group configuration parameter", failMessage,
           new AzureConfigException("Resource group name not provided"));
+    }
+  }
+
+  private void validateWebAppNameExist(AzureTaskParams azureTaskParams, String failMessage) {
+    if (azureTaskParams == null
+        || (azureTaskParams.getAdditionalParams() == null
+            || azureTaskParams.getAdditionalParams().get(AzureAdditionalParams.WEB_APP_NAME) == null)) {
+      throw NestedExceptionUtils.hintWithExplanationException("Please check Web App name configuration parameter",
+          failMessage, new AzureConfigException("Web App name not provided"));
     }
   }
 

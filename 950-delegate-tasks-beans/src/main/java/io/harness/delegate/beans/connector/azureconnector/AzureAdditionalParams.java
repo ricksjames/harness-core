@@ -10,4 +10,10 @@ package io.harness.delegate.beans.connector.azureconnector;
 import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
 
-@OwnedBy(HarnessTeam.CDP) public enum AzureAdditionalParams { CONTAINER_REGISTRY, SUBSCRIPTION_ID, RESOURCE_GROUP }
+@OwnedBy(HarnessTeam.CDP)
+public enum AzureAdditionalParams {
+  CONTAINER_REGISTRY,
+  SUBSCRIPTION_ID,
+  RESOURCE_GROUP,
+  WEB_APP_NAME
+}

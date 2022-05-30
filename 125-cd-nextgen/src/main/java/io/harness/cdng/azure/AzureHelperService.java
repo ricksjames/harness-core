@@ -68,7 +68,7 @@ public class AzureHelperService {
   @Inject @Named(DEFAULT_CONNECTOR_SERVICE) private ConnectorService connectorService;
   @Inject private SecretManagerClientService secretManagerClientService;
   @Inject private DelegateGrpcClientWrapper delegateGrpcClientWrapper;
-  @VisibleForTesting static final int timeoutInSecs = 30;
+  @VisibleForTesting static final int timeoutInSecs = 90;
 
   public AzureConnectorDTO getConnector(IdentifierRef azureConnectorRef) {
     Optional<ConnectorResponseDTO> connectorDTO =

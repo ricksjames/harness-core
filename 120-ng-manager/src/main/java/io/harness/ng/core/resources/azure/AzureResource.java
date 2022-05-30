@@ -13,8 +13,10 @@ import io.harness.NGCommonEntityConstants;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.beans.IdentifierRef;
 import io.harness.cdng.k8s.resources.azure.dtos.AzureClustersDTO;
+import io.harness.cdng.k8s.resources.azure.dtos.AzureDeploymentSlotsDTO;
 import io.harness.cdng.k8s.resources.azure.dtos.AzureResourceGroupsDTO;
 import io.harness.cdng.k8s.resources.azure.dtos.AzureSubscriptionsDTO;
+import io.harness.cdng.k8s.resources.azure.dtos.AzureWebAppNamesDTO;
 import io.harness.cdng.k8s.resources.azure.service.AzureResourceService;
 import io.harness.ng.core.dto.ErrorDTO;
 import io.harness.ng.core.dto.FailureDTO;
@@ -64,6 +66,37 @@ public class AzureResource {
         IdentifierRefHelper.getIdentifierRef(azureConnectorIdentifier, accountId, orgIdentifier, projectIdentifier);
     return ResponseDTO.newResponse(
         azureResourceService.getSubscriptions(connectorRef, orgIdentifier, projectIdentifier));
+  }
+
+  @GET
+  @Path("subscriptions/{subscriptionId}/resourceGroups/{resourceGroup}/azure-app-services")
+  @ApiOperation(value = "Gets azure app services by subscription and resourceGroup", nickname = "getAzureAppServices")
+  public ResponseDTO<AzureWebAppNamesDTO> getAppServiceNames(
+      @NotNull @QueryParam("connectorRef") String azureConnectorIdentifier,
+      @NotNull @QueryParam(NGCommonEntityConstants.ACCOUNT_KEY) String accountId,
+      @NotNull @QueryParam(NGCommonEntityConstants.ORG_KEY) String orgIdentifier,
+      @NotNull @QueryParam(NGCommonEntityConstants.PROJECT_KEY) String projectIdentifier,
+      @PathParam("subscriptionId") String subscriptionId, @PathParam("resourceGroup") String resourceGroup) {
+    IdentifierRef connectorRef =
+        IdentifierRefHelper.getIdentifierRef(azureConnectorIdentifier, accountId, orgIdentifier, projectIdentifier);
+    return ResponseDTO.newResponse(azureResourceService.getWebAppNames(
+        connectorRef, orgIdentifier, projectIdentifier, subscriptionId, resourceGroup));
+  }
+
+  @GET
+  @Path("subscriptions/{subscriptionId}/resourceGroups/{resourceGroup}/azure-app-services/{webAppName}/slots")
+  @ApiOperation(value = "Gets azure webApp deployment slots", nickname = "getAzureAppServices")
+  public ResponseDTO<AzureDeploymentSlotsDTO> getAppServiceDeploymentSlotNames(
+      @NotNull @QueryParam("connectorRef") String azureConnectorIdentifier,
+      @NotNull @QueryParam(NGCommonEntityConstants.ACCOUNT_KEY) String accountId,
+      @NotNull @QueryParam(NGCommonEntityConstants.ORG_KEY) String orgIdentifier,
+      @NotNull @QueryParam(NGCommonEntityConstants.PROJECT_KEY) String projectIdentifier,
+      @PathParam("subscriptionId") String subscriptionId, @PathParam("resourceGroup") String resourceGroup,
+      @PathParam("webAppName") String webAppName) {
+    IdentifierRef connectorRef =
+        IdentifierRefHelper.getIdentifierRef(azureConnectorIdentifier, accountId, orgIdentifier, projectIdentifier);
+    return ResponseDTO.newResponse(azureResourceService.getAppServiceDeploymentSlots(
+        connectorRef, orgIdentifier, projectIdentifier, subscriptionId, resourceGroup, webAppName));
   }
 
   @GET
