@@ -10,9 +10,7 @@ package io.harness.serializer;
 import io.harness.logging.serializer.kryo.ApiServiceBeansProtoKryoRegistrar;
 import io.harness.morphia.MorphiaRegistrar;
 import io.harness.serializer.kryo.ApiServiceBeansKryoRegister;
-import io.harness.serializer.kryo.NGCommonsKryoRegistrar;
 import io.harness.serializer.kryo.RbacCoreKryoRegistrar;
-import io.harness.serializer.kryo.RecasterKryoRegistrar;
 import io.harness.serializer.morphia.ApiServiceBeansMorphiaRegistrar;
 
 import com.google.common.collect.ImmutableSet;
@@ -27,9 +25,7 @@ public class ApiServiceBeansRegistrars {
           .addAll(CommonsRegistrars.kryoRegistrars)
           .add(ApiServiceBeansKryoRegister.class)
           .add(ApiServiceBeansProtoKryoRegistrar.class)
-          //          .add(NGCommonsKryoRegistrar.class)
           .add(RbacCoreKryoRegistrar.class)
-          //          .add(RecasterKryoRegistrar.class)
           .build();
 
   public static final ImmutableSet<Class<? extends MorphiaRegistrar>> morphiaRegistrars =
