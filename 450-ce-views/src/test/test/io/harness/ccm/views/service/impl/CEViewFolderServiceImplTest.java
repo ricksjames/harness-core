@@ -7,7 +7,7 @@
 
 package io.harness.ccm.views.service.impl;
 
-import static io.harness.rule.OwnerRule.*;
+import static io.harness.rule.OwnerRule.TRUNAPUSHPA;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Matchers.any;
