@@ -357,7 +357,7 @@ public class ArtifactoryServiceImpl implements ArtifactoryService {
     String helmChartNameQuery = String.join(",", helmChartNameQueries);
 
     String requestBody = "items.find({\"$or\": [ " + helmChartNameQuery
-        + " ]}).include(\"name\", \"repo\", \"@chart.version\", \"path\")";
+        + " ]}).include(\"name\", \"repo\", \"@chart.version\", \"@chart.appVersion\", \"path\")";
     ArtifactoryResponse artifactoryResponse = getArtifactoryResponse(artifactory, aclQuery, requestBody);
     Map<String, List> response = artifactoryResponse.parseBody(Map.class);
     if (response != null) {
