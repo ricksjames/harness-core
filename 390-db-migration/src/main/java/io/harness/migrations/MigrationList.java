@@ -62,7 +62,6 @@ import io.harness.migrations.all.AuthTokenTtlMigration;
 import io.harness.migrations.all.AwsAmiAsgDesiredInstancesMigration;
 import io.harness.migrations.all.AwsConfigEc2IamRoleMigration;
 import io.harness.migrations.all.CECloudAccountMigration;
-import io.harness.migrations.all.CEViewsFolderMigration;
 import io.harness.migrations.all.CVCollectionCronFrequencyMigration;
 import io.harness.migrations.all.CleanUpDatadogCallLogMigration;
 import io.harness.migrations.all.CleanupOrphanInstances;
@@ -453,7 +452,6 @@ public class MigrationList {
         .add(Pair.of(371, BaseMigration.class))
         .add(Pair.of(372, BaseMigration.class))
         .add(Pair.of(373, AddRingDetailsToDelegateRing.class))
-        .add(Pair.of(374, CEViewsFolderMigration.class))
         .build();
   }
 }
