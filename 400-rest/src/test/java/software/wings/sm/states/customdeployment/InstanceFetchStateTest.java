@@ -150,7 +150,7 @@ public class InstanceFetchStateTest extends WingsBaseTest {
     Key<ServiceTemplate> serviceTemplateKey = new Key<>(ServiceTemplate.class, "collection", "id");
     doReturn(singletonList(serviceTemplateKey))
         .when(mockServiceTemplateService)
-        .getTemplateRefKeysByService(anyString(), anyString(), anyString());
+        .getTemplateRefKeysByService(any(), any(), any());
     final PhaseElement phaseElement =
         PhaseElement.builder().serviceElement(ServiceElement.builder().uuid(SERVICE_ID).build()).build();
     doReturn(phaseElement).when(context).getContextElement(any(), any());
