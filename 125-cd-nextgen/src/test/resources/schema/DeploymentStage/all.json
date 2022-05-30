@@ -1094,6 +1094,96 @@
       },
       "$schema": "http://json-schema.org/draft-07/schema#"
     },
+    "ConfigFile": {
+      "type": "object",
+      "required": [
+        "identifier",
+        "spec"
+      ],
+      "properties": {
+        "identifier": {
+          "type": "string"
+        },
+        "spec": {
+          "$ref": "#/definitions/ConfigFileAttributes"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "ConfigFileAttributeStepParameters": {
+      "type": "object",
+      "properties": {
+        "store": {
+          "$ref": "#/definitions/StoreConfigWrapperParameters"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "LocalFile",
+            "Encrypted",
+            "Remote"
+          ]
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "ConfigFileAttributes": {
+      "type": "object",
+      "required": [
+        "store",
+        "type"
+      ],
+      "properties": {
+        "configFileAttributeStepParameters": {
+          "$ref": "#/definitions/ConfigFileAttributeStepParameters"
+        },
+        "store": {
+          "$ref": "#/definitions/StoreConfigWrapper"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "LocalFile",
+            "Encrypted",
+            "Remote"
+          ]
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "ConfigFileOverrideSetWrapper": {
+      "type": "object",
+      "properties": {
+        "overrideSet": {
+          "$ref": "#/definitions/ConfigFileOverrideSets"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "ConfigFileOverrideSets": {
+      "type": "object",
+      "properties": {
+        "configFiles": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ConfigFileWrapper"
+          }
+        },
+        "identifier": {
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "ConfigFileWrapper": {
+      "type": "object",
+      "properties": {
+        "configFile": {
+          "$ref": "#/definitions/ConfigFile"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
     "CountInstanceSelection": {
       "allOf": [
         {
@@ -2141,6 +2231,40 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#"
     },
+    "HarnessStore": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/StoreConfig"
+        },
+        {
+          "type": "object",
+          "required": [
+            "filePath",
+            "fileReference",
+            "fileType"
+          ],
+          "properties": {
+            "filePath": {
+              "type": "string",
+              "minLength": 1
+            },
+            "fileReference": {
+              "type": "string",
+              "minLength": 1
+            },
+            "fileType": {
+              "type": "string",
+              "description": "io.harness.cdng.manifest.yaml.harness.HarnessFileType",
+              "enum": [
+                "FileStore",
+                "Encrypted"
+              ]
+            }
+          }
+        }
+      ],
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
     "HelmChartManifest": {
       "allOf": [
         {
@@ -2286,22 +2410,6 @@
           }
         }
       ],
-      "$schema": "http://json-schema.org/draft-07/schema#"
-    },
-    "HoldingScope": {
-      "type": "object",
-      "required": [
-        "nodeSetupId",
-        "scope"
-      ],
-      "properties": {
-        "nodeSetupId": {
-          "type": "string"
-        },
-        "scope": {
-          "type": "string"
-        }
-      },
       "$schema": "http://json-schema.org/draft-07/schema#"
     },
     "HttpHeaderConfig": {
@@ -4769,7 +4877,8 @@
             "Nexus3Registry",
             "ArtifactoryRegistry",
             "CustomArtifact",
-            "Acr"
+            "Acr",
+            "Jenkins"
           ]
         }
       },
@@ -5067,7 +5176,13 @@
               ]
             },
             "holdingScope": {
-              "$ref": "#/definitions/HoldingScope"
+              "type": "string",
+              "enum": [
+                "PLAN",
+                "PIPELINE",
+                "STAGE",
+                "STEP_GROUP"
+              ]
             },
             "name": {
               "type": "string"
@@ -5744,6 +5859,12 @@
         "artifacts": {
           "$ref": "#/definitions/ArtifactListConfig"
         },
+        "configFiles": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ConfigFileWrapper"
+          }
+        },
         "manifests": {
           "type": "array",
           "items": {
@@ -6142,7 +6263,8 @@
             "Nexus3Registry",
             "ArtifactoryRegistry",
             "CustomArtifact",
-            "Acr"
+            "Acr",
+            "Jenkins"
           ]
         }
       },
@@ -6365,6 +6487,12 @@
       "properties": {
         "artifacts": {
           "$ref": "#/definitions/ArtifactListConfig"
+        },
+        "configFiles": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ConfigFileWrapper"
+          }
         },
         "manifests": {
           "type": "array",
@@ -7110,7 +7238,8 @@
             "Inline",
             "Artifactory",
             "S3Url",
-            "InheritFromManifest"
+            "InheritFromManifest",
+            "Harness"
           ]
         }
       },
@@ -7216,6 +7345,22 @@
           "if": {
             "properties": {
               "type": {
+                "const": "Harness"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "spec": {
+                "$ref": "#/definitions/HarnessStore"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
                 "const": "Http"
               }
             }
@@ -7293,6 +7438,18 @@
           }
         }
       ]
+    },
+    "StoreConfigWrapperParameters": {
+      "type": "object",
+      "properties": {
+        "spec": {
+          "$ref": "#/definitions/StoreConfig"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
     },
     "StringNGVariable": {
       "allOf": [
@@ -7544,6 +7701,16 @@
               }
             ]
           }
+        },
+        "exportTerraformPlanJson": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string"
+            }
+          ]
         },
         "secretManagerRef": {
           "type": "string"
@@ -7873,6 +8040,12 @@
               "type": "array",
               "items": {
                 "$ref": "#/definitions/ArtifactOverrideSetWrapper"
+              }
+            },
+            "configFileOverrideSets": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ConfigFileOverrideSetWrapper"
               }
             },
             "manifestOverrideSets": {
