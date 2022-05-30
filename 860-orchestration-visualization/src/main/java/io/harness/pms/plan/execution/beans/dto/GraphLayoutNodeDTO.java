@@ -54,4 +54,6 @@ public class GraphLayoutNodeDTO {
   @Deprecated ExecutionErrorInfo failureInfo;
   FailureInfoDTO failureInfoDTO;
   private Map<String, PmsStepDetails> stepDetails;
+  private Boolean hidden;
+  String nodeExecutionId;
 }

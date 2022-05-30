@@ -14,14 +14,17 @@ import io.harness.annotations.dev.OwnedBy;
 import io.harness.engine.executions.node.NodeExecutionService;
 import io.harness.engine.utils.OrchestrationUtils;
 import io.harness.execution.NodeExecution;
+import io.harness.pms.contracts.ambiance.Ambiance;
 import io.harness.pms.execution.ExecutionStatus;
 import io.harness.pms.execution.utils.AmbianceUtils;
 import io.harness.pms.plan.execution.ExecutionSummaryUpdateUtils;
 import io.harness.pms.plan.execution.beans.PipelineExecutionSummaryEntity;
+import io.harness.pms.plan.execution.beans.dto.GraphLayoutNodeDTO;
 import io.harness.repositories.executions.PmsExecutionSummaryRespository;
 
 import com.google.inject.Inject;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -89,10 +92,36 @@ public class PmsExecutionSummaryServiceImpl implements PmsExecutionSummaryServic
   }
 
   @Override
-  public void update(String planExecutionId, NodeExecution nodeExecution) {
-    updatePipelineLevelInfo(planExecutionId, nodeExecution);
+  public void addStageNodeInGraphIfUnderStrategy(String planExecutionId, NodeExecution nodeExecution, Update updat1e) {
+    if (OrchestrationUtils.isStageNode(nodeExecution)
+        && AmbianceUtils.getStrategyLevelFromAmbiance(nodeExecution.getAmbiance()).isPresent()) {
+      String stageSetupId = nodeExecution.getNodeId();
+      Update update = new Update();
+      Ambiance ambiance = nodeExecution.getAmbiance();
+      Optional<PipelineExecutionSummaryEntity> entity =
+          getPipelineExecutionSummary(AmbianceUtils.getAccountId(ambiance), AmbianceUtils.getOrgIdentifier(ambiance),
+              AmbianceUtils.getProjectIdentifier(ambiance), planExecutionId);
+      if (!entity.isPresent()) {
+        return;
+      }
+      PipelineExecutionSummaryEntity pipelineExecutionSummaryEntity = entity.get();
+      Map<String, GraphLayoutNodeDTO> graphLayoutNodeDTOMap = pipelineExecutionSummaryEntity.getLayoutNodeMap();
+      if (graphLayoutNodeDTOMap.containsKey(nodeExecution.getUuid())) {
+        return;
+      }
+      GraphLayoutNodeDTO graphLayoutNodeDTO = graphLayoutNodeDTOMap.get(stageSetupId);
+      update.set(PipelineExecutionSummaryEntity.PlanExecutionSummaryKeys.layoutNodeMap + "." + nodeExecution.getUuid(),
+          graphLayoutNodeDTO);
+      String strategyNodeId = AmbianceUtils.getStrategyLevelFromAmbiance(ambiance).get().getSetupId();
+      update.addToSet(PipelineExecutionSummaryEntity.PlanExecutionSummaryKeys.layoutNodeMap + "." + strategyNodeId
+              + ".edgeLayoutList.currentNodeChildren",
+          nodeExecution.getUuid());
+      updat1e.pull(PipelineExecutionSummaryEntity.PlanExecutionSummaryKeys.layoutNodeMap + "." + strategyNodeId
+              + ".edgeLayoutList.currentNodeChildren",
+          stageSetupId);
+      update(planExecutionId, update);
+    }
   }
-
   @Override
   public Optional<PipelineExecutionSummaryEntity> getPipelineExecutionSummary(
       String accountId, String orgId, String projectId, String planExecutionId) {

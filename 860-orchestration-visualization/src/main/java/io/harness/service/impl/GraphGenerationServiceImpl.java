@@ -37,6 +37,7 @@ import io.harness.generator.OrchestrationAdjacencyListGenerator;
 import io.harness.lock.AcquiredLock;
 import io.harness.lock.PersistentLocker;
 import io.harness.plan.NodeType;
+import io.harness.pms.PmsFeatureFlagService;
 import io.harness.pms.contracts.execution.events.OrchestrationEventType;
 import io.harness.pms.contracts.steps.StepCategory;
 import io.harness.pms.execution.utils.StatusUtils;
@@ -79,6 +80,7 @@ public class GraphGenerationServiceImpl implements GraphGenerationService {
   @Inject private PmsExecutionSummaryService pmsExecutionSummaryService;
   @Inject private PersistentLocker persistentLocker;
   @Inject private OrchestrationLogPublisher orchestrationLogPublisher;
+  @Inject private PmsFeatureFlagService pmsFeatureFlagService;
 
   @Override
   public boolean updateGraph(String planExecutionId) {
@@ -172,6 +174,8 @@ public class GraphGenerationServiceImpl implements GraphGenerationService {
           }
           processedNodeExecutionIds.add(nodeExecutionId);
           NodeExecution nodeExecution = nodeExecutionService.get(nodeExecutionId);
+          pmsExecutionSummaryService.addStageNodeInGraphIfUnderStrategy(
+              planExecutionId, nodeExecution, executionSummaryUpdate);
           if (OrchestrationUtils.isStageNode(nodeExecution)
               && nodeExecution.getNodeType() == NodeType.IDENTITY_PLAN_NODE
               && StatusUtils.isFinalStatus(nodeExecution.getStatus())) {

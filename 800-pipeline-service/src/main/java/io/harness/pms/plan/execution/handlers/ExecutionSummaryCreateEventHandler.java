@@ -36,8 +36,10 @@ import io.harness.pms.plan.creation.NodeTypeLookupService;
 import io.harness.pms.plan.execution.beans.PipelineExecutionSummaryEntity;
 import io.harness.pms.plan.execution.beans.PipelineExecutionSummaryEntity.PlanExecutionSummaryKeys;
 import io.harness.pms.plan.execution.beans.dto.GraphLayoutNodeDTO;
+import io.harness.pms.yaml.YAMLFieldNameConstants;
 import io.harness.repositories.executions.PmsExecutionSummaryRespository;
 
+import com.google.common.collect.Lists;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import java.text.SimpleDateFormat;
@@ -46,6 +48,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -56,6 +59,8 @@ import org.springframework.data.mongodb.core.query.Update;
 @OwnedBy(HarnessTeam.PIPELINE)
 @Singleton
 public class ExecutionSummaryCreateEventHandler implements OrchestrationStartObserver {
+  private static List<String> INTERNAL_NODE_TYPES =
+      Lists.newArrayList(YAMLFieldNameConstants.PARALLEL, YAMLFieldNameConstants.STRATEGY);
   private final PMSPipelineService pmsPipelineService;
   private final PlanService planService;
   private final PlanExecutionService planExecutionService;
@@ -117,7 +122,7 @@ public class ExecutionSummaryCreateEventHandler implements OrchestrationStartObs
     Set<String> modules = new LinkedHashSet<>();
     for (Map.Entry<String, GraphLayoutNode> entry : layoutNodeMap.entrySet()) {
       GraphLayoutNodeDTO graphLayoutNodeDTO = GraphLayoutDtoMapper.toDto(entry.getValue());
-      if (entry.getValue().getNodeType().equals("parallel")) {
+      if (INTERNAL_NODE_TYPES.contains(entry.getValue().getNodeType())) {
         layoutNodeDTOMap.put(entry.getKey(), graphLayoutNodeDTO);
         continue;
       }
