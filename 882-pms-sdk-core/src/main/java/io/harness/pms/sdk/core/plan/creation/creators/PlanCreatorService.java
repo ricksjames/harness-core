@@ -244,7 +244,7 @@ public class PlanCreatorService extends PlanCreationServiceImplBase {
       // TODO(BRIJESH): Hardcoding for steps for now. Will update the logic.
       if (field.getName().equals("step")) {
         executionInputTemplate = RuntimeInputFormHelper.createExecutionInputFormAndUpdateYamlField(
-            field.getNode().getParentNode().getCurrJsonNode());
+            field.getNode().getParentNode().getCurrJsonNode(), field.getName());
       }
     }
     try (AutoLogContext ignore =

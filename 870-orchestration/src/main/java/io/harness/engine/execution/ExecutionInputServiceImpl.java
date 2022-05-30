@@ -30,13 +30,15 @@ public class ExecutionInputServiceImpl implements ExecutionInputService {
   @Override
   // TODO(BRIJESH): Should return the status if merging was successful. Use lock so that only one input can be processed
   // and only one doneWith should be called.
-  public void continueExecution(String nodeExecutionId) {
+  public void continueExecution(String nodeExecutionId, String executionInputYaml) {
     Optional<ExecutionInputInstance> optional = executionInputRepository.findByNodeExecutionId(nodeExecutionId);
     if (optional.isPresent()) {
       ExecutionInputInstance executionInputInstance = optional.get();
       // Write the merging logic here.
       waitNotifyEngine.doneWith(executionInputInstance.getInputInstanceId(),
           ExecutionInputData.builder().inputInstanceId(executionInputInstance.getInputInstanceId()).build());
+      executionInputInstance.setUserInput(executionInputYaml);
+      executionInputRepository.save(executionInputInstance);
     } else {
       throw new InvalidRequestException(
           String.format("Execution Input template does not exist for input execution id : %s", nodeExecutionId));

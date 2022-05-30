@@ -44,7 +44,7 @@ public class RuntimeInputFormHelper {
     return (new YamlConfig(templateMap, yamlConfig.getYamlMap())).getYaml();
   }
 
-  public String createExecutionInputFormAndUpdateYamlField(JsonNode jsonNode) {
+  public String createExecutionInputFormAndUpdateYamlField(JsonNode jsonNode, String fieldName) {
     YamlConfig yamlConfig = new YamlConfig(jsonNode);
     Map<FQN, Object> fullMap = yamlConfig.getFqnToValueMap();
     Map<FQN, Object> templateMap = new LinkedHashMap<>();
@@ -53,7 +53,8 @@ public class RuntimeInputFormHelper {
       if (NGExpressionUtils.matchesExecutionInputPattern(value)) {
         templateMap.put(key, fullMap.get(key));
         fullMap.put(key,
-            EXPR_START + NGExpressionUtils.EXPRESSION_INPUT_CONSTANT + "." + key.getExpressionFqn() + EXPR_END_ESC);
+            EXPR_START + NGExpressionUtils.EXPRESSION_INPUT_CONSTANT + "." + fieldName + "." + key.getExpressionFqn()
+                + EXPR_END_ESC);
       }
     });
     // Updating the executionInput field to expression in jsonNode.

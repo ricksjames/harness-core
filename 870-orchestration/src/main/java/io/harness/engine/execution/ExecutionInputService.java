@@ -14,7 +14,7 @@ import io.harness.execution.ExecutionInputInstance;
 
 @OwnedBy(PIPELINE)
 public interface ExecutionInputService {
-  void continueExecution(String nodeExecutionId);
+  void continueExecution(String nodeExecutionId, String executionInputYaml);
   ExecutionInputInstance getExecutionInputInstance(String nodeExecutionId);
   ExecutionInputInstance save(ExecutionInputInstance executionInputInstance);
 }

@@ -147,7 +147,7 @@ public class ExecutionInputResource {
           description = PlanExecutionResourceConstants.NODE_EXECUTION_ID_PARAM_MESSAGE) String nodeExecutionId,
       @RequestBody(required = true,
           description = "Execution Input for the provided nodeExecutionId") @NotNull String executionInputYaml) {
-    executionInputService.continueExecution(nodeExecutionId);
+    executionInputService.continueExecution(nodeExecutionId, executionInputYaml);
     return ResponseDTO.newResponse(ExecutionInputStatusDTO.builder()
                                        .nodeExecutionId(nodeExecutionId)
                                        .status(ExecutionInputStatus.Success)
