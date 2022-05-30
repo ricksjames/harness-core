@@ -238,9 +238,9 @@ public class PipelineServiceImpl implements PipelineService {
   @Override
   public Pipeline update(Pipeline pipeline, boolean migration, boolean fromYaml) {
     validateTemplateExpressions(pipeline);
-    if (featureFlagService.isEnabled(FeatureName.USER_GROUP_AS_EXPRESSION, pipeline.getAccountId())) {
-      validateUserGroupExpression(pipeline);
-    }
+
+    validateUserGroupExpression(pipeline);
+
     Pipeline savedPipeline = wingsPersistence.getWithAppId(Pipeline.class, pipeline.getAppId(), pipeline.getUuid());
     notNullCheck("Pipeline not saved", savedPipeline, USER);
 
