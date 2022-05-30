@@ -2061,22 +2061,6 @@
       ],
       "$schema": "http://json-schema.org/draft-07/schema#"
     },
-    "GitOpsServiceSpec": {
-      "allOf": [
-        {
-          "$ref": "#/definitions/ServiceSpec"
-        },
-        {
-          "type": "object",
-          "properties": {
-            "metadata": {
-              "type": "string"
-            }
-          }
-        }
-      ],
-      "$schema": "http://json-schema.org/draft-07/schema#"
-    },
     "GitStore": {
       "allOf": [
         {
@@ -5657,7 +5641,6 @@
         "type": {
           "type": "string",
           "enum": [
-            "GitOps",
             "Kubernetes",
             "NativeHelm",
             "Ssh",
@@ -5668,22 +5651,6 @@
       },
       "$schema": "http://json-schema.org/draft-07/schema#",
       "allOf": [
-        {
-          "if": {
-            "properties": {
-              "type": {
-                "const": "GitOps"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "spec": {
-                "$ref": "#/definitions/GitOpsServiceSpec"
-              }
-            }
-          }
-        },
         {
           "if": {
             "properties": {
