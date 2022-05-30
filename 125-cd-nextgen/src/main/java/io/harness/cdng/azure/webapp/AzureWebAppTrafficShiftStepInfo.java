@@ -7,8 +7,6 @@
 
 package io.harness.cdng.azure.webapp;
 
-import static io.harness.yaml.schema.beans.SupportedPossibleFieldTypes.runtime;
-
 import io.harness.annotation.RecasterAlias;
 import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
