@@ -12,6 +12,7 @@ import static io.harness.data.structure.EmptyPredicate.isEmpty;
 import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.beans.EphemeralOrchestrationGraph;
+import io.harness.beans.FeatureName;
 import io.harness.beans.GraphVertex;
 import io.harness.beans.OrchestrationEventLog;
 import io.harness.beans.OrchestrationGraph;
@@ -37,8 +38,10 @@ import io.harness.generator.OrchestrationAdjacencyListGenerator;
 import io.harness.lock.AcquiredLock;
 import io.harness.lock.PersistentLocker;
 import io.harness.plan.NodeType;
+import io.harness.pms.PmsFeatureFlagService;
 import io.harness.pms.contracts.execution.events.OrchestrationEventType;
 import io.harness.pms.contracts.steps.StepCategory;
+import io.harness.pms.execution.utils.AmbianceUtils;
 import io.harness.pms.execution.utils.StatusUtils;
 import io.harness.pms.plan.execution.ExecutionSummaryUpdateUtils;
 import io.harness.pms.plan.execution.service.PmsExecutionSummaryService;
@@ -79,6 +82,7 @@ public class GraphGenerationServiceImpl implements GraphGenerationService {
   @Inject private PmsExecutionSummaryService pmsExecutionSummaryService;
   @Inject private PersistentLocker persistentLocker;
   @Inject private OrchestrationLogPublisher orchestrationLogPublisher;
+  @Inject private PmsFeatureFlagService pmsFeatureFlagService;
 
   @Override
   public boolean updateGraph(String planExecutionId) {
@@ -172,6 +176,11 @@ public class GraphGenerationServiceImpl implements GraphGenerationService {
           }
           processedNodeExecutionIds.add(nodeExecutionId);
           NodeExecution nodeExecution = nodeExecutionService.get(nodeExecutionId);
+          if (pmsFeatureFlagService.isEnabled(
+                  AmbianceUtils.getAccountId(nodeExecution.getAmbiance()), FeatureName.PIPELINE_MATRIX)) {
+            pmsExecutionSummaryService.addStageNodeInGraphIfUnderStrategy(
+                planExecutionId, nodeExecution, executionSummaryUpdate);
+          }
           if (OrchestrationUtils.isStageNode(nodeExecution)
               && nodeExecution.getNodeType() == NodeType.IDENTITY_PLAN_NODE
               && StatusUtils.isFinalStatus(nodeExecution.getStatus())) {
