@@ -38,6 +38,7 @@ import javax.ws.rs.QueryParam;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.hibernate.validator.constraints.NotEmpty;
 
 @OwnedBy(CDP)
 @Api("azure")
@@ -77,7 +78,8 @@ public class AzureResource {
       @NotNull @QueryParam(NGCommonEntityConstants.ACCOUNT_KEY) String accountId,
       @NotNull @QueryParam(NGCommonEntityConstants.ORG_KEY) String orgIdentifier,
       @NotNull @QueryParam(NGCommonEntityConstants.PROJECT_KEY) String projectIdentifier,
-      @PathParam("subscriptionId") String subscriptionId, @PathParam("resourceGroup") String resourceGroup) {
+      @NotNull @NotEmpty @PathParam("subscriptionId") String subscriptionId,
+      @NotNull @NotEmpty @PathParam("resourceGroup") String resourceGroup) {
     IdentifierRef connectorRef =
         IdentifierRefHelper.getIdentifierRef(azureConnectorIdentifier, accountId, orgIdentifier, projectIdentifier);
     return ResponseDTO.newResponse(azureResourceService.getWebAppNames(
@@ -92,8 +94,9 @@ public class AzureResource {
       @NotNull @QueryParam(NGCommonEntityConstants.ACCOUNT_KEY) String accountId,
       @NotNull @QueryParam(NGCommonEntityConstants.ORG_KEY) String orgIdentifier,
       @NotNull @QueryParam(NGCommonEntityConstants.PROJECT_KEY) String projectIdentifier,
-      @PathParam("subscriptionId") String subscriptionId, @PathParam("resourceGroup") String resourceGroup,
-      @PathParam("webAppName") String webAppName) {
+      @NotNull @NotEmpty @PathParam("subscriptionId") String subscriptionId,
+      @NotNull @NotEmpty @PathParam("resourceGroup") String resourceGroup,
+      @NotNull @NotEmpty @PathParam("webAppName") String webAppName) {
     IdentifierRef connectorRef =
         IdentifierRefHelper.getIdentifierRef(azureConnectorIdentifier, accountId, orgIdentifier, projectIdentifier);
     return ResponseDTO.newResponse(azureResourceService.getAppServiceDeploymentSlots(
