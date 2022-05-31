@@ -126,8 +126,8 @@ public class AzureTask extends AbstractDelegateRunnableTask {
         || (azureTaskParams.getAdditionalParams() == null
             || azureTaskParams.getAdditionalParams().get(azureResource) == null)) {
       throw NestedExceptionUtils.hintWithExplanationException(
-          "Please check " + azureResource.toString() + " configuration parameter", failMessage,
-          new AzureConfigException(azureResource.toString() + " not provided"));
+          "Please check " + azureResource.getResourceName() + " configuration parameter", failMessage,
+          new AzureConfigException(azureResource.getResourceName() + " not provided"));
     }
   }
 
