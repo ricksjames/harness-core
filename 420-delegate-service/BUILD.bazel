@@ -88,6 +88,7 @@ java_library(
         "@maven//:org_slf4j_slf4j_api",
         "@maven//:org_springframework_data_spring_data_commons",
         "@maven//:ru_vyarus_guice_validator",
+        "@maven//:org_glassfish_jersey_bundles_repackaged_jersey_guava",
     ],
 )
 
