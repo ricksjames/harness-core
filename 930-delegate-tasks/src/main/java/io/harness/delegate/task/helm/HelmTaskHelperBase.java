@@ -54,6 +54,9 @@ import io.harness.chartmuseum.ChartmuseumClient;
 import io.harness.delegate.beans.connector.helm.HttpHelmAuthType;
 import io.harness.delegate.beans.connector.helm.HttpHelmConnectorDTO;
 import io.harness.delegate.beans.connector.helm.HttpHelmUsernamePasswordDTO;
+import io.harness.delegate.beans.connector.helm.OciHelmAuthType;
+import io.harness.delegate.beans.connector.helm.OciHelmConnectorDTO;
+import io.harness.delegate.beans.connector.helm.OciHelmUsernamePasswordDTO;
 import io.harness.delegate.beans.storeconfig.GcsHelmStoreDelegateConfig;
 import io.harness.delegate.beans.storeconfig.HttpHelmStoreDelegateConfig;
 import io.harness.delegate.beans.storeconfig.S3HelmStoreDelegateConfig;
@@ -885,6 +888,25 @@ public class HelmTaskHelperBase {
     }
 
     HttpHelmUsernamePasswordDTO creds = (HttpHelmUsernamePasswordDTO) httpHelmConnectorDTO.getAuth().getCredentials();
+    return creds.getPasswordRef().getDecryptedValue();
+  }
+
+  public String getOciHelmUsername(final OciHelmConnectorDTO ociHelmConnectorDTO) {
+    if (ociHelmConnectorDTO.getAuth().getAuthType() == OciHelmAuthType.ANONYMOUS) {
+      return null;
+    }
+
+    OciHelmUsernamePasswordDTO creds = (OciHelmUsernamePasswordDTO) ociHelmConnectorDTO.getAuth().getCredentials();
+    return FieldWithPlainTextOrSecretValueHelper.getSecretAsStringFromPlainTextOrSecretRef(
+        creds.getUsername(), creds.getUsernameRef());
+  }
+
+  public char[] getOciHelmPassword(final OciHelmConnectorDTO ociHelmConnectorDTO) {
+    if (ociHelmConnectorDTO.getAuth().getAuthType() == OciHelmAuthType.ANONYMOUS) {
+      return null;
+    }
+
+    OciHelmUsernamePasswordDTO creds = (OciHelmUsernamePasswordDTO) ociHelmConnectorDTO.getAuth().getCredentials();
     return creds.getPasswordRef().getDecryptedValue();
   }
 

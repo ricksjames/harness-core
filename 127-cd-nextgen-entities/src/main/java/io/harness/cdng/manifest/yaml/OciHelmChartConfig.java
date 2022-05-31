@@ -13,7 +13,7 @@ import io.harness.annotation.RecasterAlias;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.beans.SwaggerConstants;
 import io.harness.cdng.manifest.ManifestStoreType;
-import io.harness.cdng.manifest.yaml.ociHelmChartConfig.OciHelmChartConfigWrapper;
+import io.harness.cdng.manifest.yaml.ociHelmChartConfig.OciHelmChartStoreConfigWrapper;
 import io.harness.cdng.manifest.yaml.storeConfig.StoreConfig;
 import io.harness.data.validator.EntityIdentifier;
 import io.harness.filters.ConnectorRefExtractorHelper;
@@ -45,7 +45,7 @@ import org.springframework.data.annotation.TypeAlias;
 @SimpleVisitorHelper(helperClass = ConnectorRefExtractorHelper.class)
 @TypeAlias("OciStore")
 @RecasterAlias("io.harness.cdng.manifest.yaml.OciStoreConfig")
-public class OciStoreConfig implements StoreConfig, Visitable, WithConnectorRef {
+public class OciHelmChartConfig implements StoreConfig, Visitable, WithConnectorRef {
   @JsonProperty(YamlNode.UUID_FIELD_NAME)
   @Getter(onMethod_ = { @ApiModelProperty(hidden = true) })
   @ApiModelProperty(hidden = true)
@@ -56,7 +56,7 @@ public class OciStoreConfig implements StoreConfig, Visitable, WithConnectorRef 
   @JsonProperty("config")
   @ApiModelProperty(dataType = "io.harness.cdng.manifest.yaml.storeConfig.OciHelmChartConfigWrapper")
   @SkipAutoEvaluation
-  ParameterField<OciHelmChartConfigWrapper> config;
+  ParameterField<OciHelmChartStoreConfigWrapper> config;
 
   @ApiModelProperty(dataType = SwaggerConstants.STRING_CLASSPATH) @Wither private ParameterField<String> basePath;
 
@@ -67,7 +67,7 @@ public class OciStoreConfig implements StoreConfig, Visitable, WithConnectorRef 
 
   @Override
   public StoreConfig cloneInternal() {
-    return OciStoreConfig.builder().basePath(basePath).config(config).build();
+    return OciHelmChartConfig.builder().basePath(basePath).config(config).build();
   }
 
   @Override
@@ -76,16 +76,16 @@ public class OciStoreConfig implements StoreConfig, Visitable, WithConnectorRef 
   }
 
   public StoreConfig applyOverrides(StoreConfig overrideConfig) {
-    OciStoreConfig ociStoreConfig = (OciStoreConfig) overrideConfig;
-    OciStoreConfig resultantHelmOciStore = this;
-    if (!ParameterField.isNull(ociStoreConfig.getBasePath())) {
-      resultantHelmOciStore = resultantHelmOciStore.withBasePath(ociStoreConfig.getBasePath());
+    OciHelmChartConfig ociHelmChartConfig = (OciHelmChartConfig) overrideConfig;
+    OciHelmChartConfig resultantHelmOciChart = this;
+    if (!ParameterField.isNull(ociHelmChartConfig.getBasePath())) {
+      resultantHelmOciChart = resultantHelmOciChart.withBasePath(ociHelmChartConfig.getBasePath());
     }
-    if (!ParameterField.isNull(ociStoreConfig.getConfig())) {
-      resultantHelmOciStore = resultantHelmOciStore.withConfig(ociStoreConfig.getConfig());
+    if (!ParameterField.isNull(ociHelmChartConfig.getConfig())) {
+      resultantHelmOciChart = resultantHelmOciChart.withConfig(ociHelmChartConfig.getConfig());
     }
 
-    return resultantHelmOciStore;
+    return resultantHelmOciChart;
   }
 
   @Override

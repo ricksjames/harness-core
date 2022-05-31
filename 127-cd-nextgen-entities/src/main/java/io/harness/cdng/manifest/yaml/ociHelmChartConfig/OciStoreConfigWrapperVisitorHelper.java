@@ -10,7 +10,7 @@ package io.harness.cdng.manifest.yaml.ociHelmChartConfig;
 import io.harness.walktree.visitor.validation.ConfigValidator;
 import io.harness.walktree.visitor.validation.ValidationVisitor;
 
-public class OciConfigWrapperVisitorHelper implements ConfigValidator {
+public class OciStoreConfigWrapperVisitorHelper implements ConfigValidator {
   @Override
   public void validate(Object object, ValidationVisitor visitor) {
     // Nothing to validate.
@@ -18,7 +18,7 @@ public class OciConfigWrapperVisitorHelper implements ConfigValidator {
 
   @Override
   public Object createDummyVisitableElement(Object originalElement) {
-    OciHelmChartConfigWrapper ociHelmChartConfigWrapper = (OciHelmChartConfigWrapper) originalElement;
-    return OciHelmChartConfigWrapper.builder().type(ociHelmChartConfigWrapper.getType()).build();
+    OciHelmChartStoreConfigWrapper ociHelmChartStoreConfigWrapper = (OciHelmChartStoreConfigWrapper) originalElement;
+    return OciHelmChartStoreConfigWrapper.builder().type(ociHelmChartStoreConfigWrapper.getType()).build();
   }
 }

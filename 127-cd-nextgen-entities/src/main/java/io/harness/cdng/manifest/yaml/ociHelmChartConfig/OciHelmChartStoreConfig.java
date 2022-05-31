@@ -22,8 +22,8 @@ import java.io.Serializable;
 
 @OwnedBy(CDP)
 @JsonTypeInfo(use = NAME, property = "type", include = EXTERNAL_PROPERTY, visible = true)
-public interface OciHelmChartConfig extends OverridesApplier<OciHelmChartConfig>, Serializable {
+public interface OciHelmChartStoreConfig extends OverridesApplier<OciHelmChartStoreConfig>, Serializable {
   @JsonIgnore String getKind();
-  @JsonIgnore OciHelmChartConfig cloneInternal();
+  @JsonIgnore OciHelmChartStoreConfig cloneInternal();
   @JsonIgnore ParameterField<String> getConnectorReference();
 }

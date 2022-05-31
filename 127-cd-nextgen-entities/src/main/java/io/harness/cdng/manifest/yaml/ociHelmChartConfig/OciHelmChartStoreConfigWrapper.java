@@ -41,23 +41,23 @@ import org.springframework.data.annotation.TypeAlias;
 @Data
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@SimpleVisitorHelper(helperClass = OciConfigWrapperVisitorHelper.class)
+@SimpleVisitorHelper(helperClass = OciStoreConfigWrapperVisitorHelper.class)
 @TypeAlias("ociHelmChartConfigWrapper")
 @RecasterAlias("io.harness.cdng.manifest.yaml.ociHelmChartConfig.OciHelmChartConfigWrapper")
-public class OciHelmChartConfigWrapper implements OverridesApplier<OciHelmChartConfigWrapper>, Visitable {
+public class OciHelmChartStoreConfigWrapper implements OverridesApplier<OciHelmChartStoreConfigWrapper>, Visitable {
   @JsonProperty(YamlNode.UUID_FIELD_NAME)
   @Getter(onMethod_ = { @ApiModelProperty(hidden = true) })
   @ApiModelProperty(hidden = true)
   private String uuid;
 
-  @NotNull @JsonProperty("type") OciHelmChartConfigType type;
+  @NotNull @JsonProperty("type") OciHelmChartStoreConfigType type;
   @NotNull
   @JsonTypeInfo(use = NAME, property = "type", include = EXTERNAL_PROPERTY, visible = true)
   @Wither
-  OciHelmChartConfig spec;
+  OciHelmChartStoreConfig spec;
 
   @Builder
-  public OciHelmChartConfigWrapper(String uuid, OciHelmChartConfigType type, OciHelmChartConfig spec) {
+  public OciHelmChartStoreConfigWrapper(String uuid, OciHelmChartStoreConfigType type, OciHelmChartStoreConfig spec) {
     this.uuid = uuid;
     this.type = type;
     this.spec = spec;
@@ -69,8 +69,8 @@ public class OciHelmChartConfigWrapper implements OverridesApplier<OciHelmChartC
   }
 
   @Override
-  public OciHelmChartConfigWrapper applyOverrides(OciHelmChartConfigWrapper overrideConfig) {
-    OciHelmChartConfigWrapper resultantConfig = this;
+  public OciHelmChartStoreConfigWrapper applyOverrides(OciHelmChartStoreConfigWrapper overrideConfig) {
+    OciHelmChartStoreConfigWrapper resultantConfig = this;
     if (overrideConfig != null) {
       if (!overrideConfig.getType().equals(resultantConfig.getType())) {
         throw new UnexpectedTypeException(format("Unable to apply spec override of type '%s' to spec of type '%s'",
@@ -92,17 +92,18 @@ public class OciHelmChartConfigWrapper implements OverridesApplier<OciHelmChartC
   @Value
   public static class OciHelmChartConfigWrapperParameters {
     String type;
-    OciHelmChartConfig spec;
+    OciHelmChartStoreConfig spec;
 
-    public static OciHelmChartConfigWrapperParameters fromOciHelmChartConfigWrapper(
-        OciHelmChartConfigWrapper ociHelmChartConfigWrapper) {
-      if (ociHelmChartConfigWrapper == null) {
+    public static OciHelmChartConfigWrapperParameters fromOciHelmChartStoreConfigWrapper(
+        OciHelmChartStoreConfigWrapper ociHelmChartStoreConfigWrapper) {
+      if (ociHelmChartStoreConfigWrapper == null) {
         return null;
       }
 
-      return new OciHelmChartConfigWrapperParameters(
-          ociHelmChartConfigWrapper.getType() == null ? null : ociHelmChartConfigWrapper.getType().getDisplayName(),
-          ociHelmChartConfigWrapper.getSpec());
+      return new OciHelmChartConfigWrapperParameters(ociHelmChartStoreConfigWrapper.getType() == null
+              ? null
+              : ociHelmChartStoreConfigWrapper.getType().getDisplayName(),
+          ociHelmChartStoreConfigWrapper.getSpec());
     }
   }
 }

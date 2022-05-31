@@ -8,12 +8,12 @@
 package io.harness.cdng.manifest.yaml;
 
 import static io.harness.annotations.dev.HarnessTeam.CDP;
-import static io.harness.cdng.manifest.yaml.ociHelmChartConfig.OciConfigType.GENERIC;
+import static io.harness.cdng.manifest.yaml.ociHelmChartConfig.OciStoreConfigType.GENERIC;
 
 import io.harness.annotation.RecasterAlias;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.beans.SwaggerConstants;
-import io.harness.cdng.manifest.yaml.ociHelmChartConfig.OciHelmChartConfig;
+import io.harness.cdng.manifest.yaml.ociHelmChartConfig.OciHelmChartStoreConfig;
 import io.harness.filters.ConnectorRefExtractorHelper;
 import io.harness.filters.WithConnectorRef;
 import io.harness.pms.yaml.ParameterField;
@@ -39,7 +39,7 @@ import org.springframework.data.annotation.TypeAlias;
 @SimpleVisitorHelper(helperClass = ConnectorRefExtractorHelper.class)
 @TypeAlias("OciGenericConfig")
 @RecasterAlias("io/harness/cdng/manifest/yaml/OciHelmChartGenericConfig.java")
-public class OciHelmChartGenericConfig implements OciHelmChartConfig, Visitable, WithConnectorRef {
+public class OciHelmChartStoreGenericConfig implements OciHelmChartStoreConfig, Visitable, WithConnectorRef {
   @ApiModelProperty(dataType = SwaggerConstants.STRING_CLASSPATH) @Wither private ParameterField<String> connectorRef;
 
   @Override
@@ -48,8 +48,8 @@ public class OciHelmChartGenericConfig implements OciHelmChartConfig, Visitable,
   }
 
   @Override
-  public OciHelmChartConfig cloneInternal() {
-    return OciHelmChartGenericConfig.builder().connectorRef(connectorRef).build();
+  public OciHelmChartStoreConfig cloneInternal() {
+    return OciHelmChartStoreGenericConfig.builder().connectorRef(connectorRef).build();
   }
 
   @Override
@@ -58,12 +58,12 @@ public class OciHelmChartGenericConfig implements OciHelmChartConfig, Visitable,
   }
 
   @Override
-  public OciHelmChartConfig applyOverrides(OciHelmChartConfig overrideConfig) {
-    OciHelmChartGenericConfig ociHelmChartGenericConfig = (OciHelmChartGenericConfig) overrideConfig;
-    OciHelmChartGenericConfig resultantHelmOciHelmChart = this;
-    if (!ParameterField.isNull(ociHelmChartGenericConfig.getConnectorReference())) {
+  public OciHelmChartStoreConfig applyOverrides(OciHelmChartStoreConfig overrideConfig) {
+    OciHelmChartStoreGenericConfig ociHelmChartStoreGenericConfig = (OciHelmChartStoreGenericConfig) overrideConfig;
+    OciHelmChartStoreGenericConfig resultantHelmOciHelmChart = this;
+    if (!ParameterField.isNull(ociHelmChartStoreGenericConfig.getConnectorReference())) {
       resultantHelmOciHelmChart =
-          resultantHelmOciHelmChart.withConnectorRef(ociHelmChartGenericConfig.getConnectorReference());
+          resultantHelmOciHelmChart.withConnectorRef(ociHelmChartStoreGenericConfig.getConnectorReference());
     }
     return resultantHelmOciHelmChart;
   }

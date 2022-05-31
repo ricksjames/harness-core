@@ -170,6 +170,8 @@ import io.harness.delegate.beans.connector.gcpkmsconnector.GcpKmsValidationParam
 import io.harness.delegate.beans.connector.helm.HttpHelmConnectivityTaskParams;
 import io.harness.delegate.beans.connector.helm.HttpHelmConnectivityTaskResponse;
 import io.harness.delegate.beans.connector.helm.HttpHelmValidationParams;
+import io.harness.delegate.beans.connector.helm.OciHelmConnectivityTaskParams;
+import io.harness.delegate.beans.connector.helm.OciHelmConnectivityTaskResponse;
 import io.harness.delegate.beans.connector.jenkins.JenkinsCapabilityHelper;
 import io.harness.delegate.beans.connector.jenkins.JenkinsTestConnectionTaskParams;
 import io.harness.delegate.beans.connector.jenkins.JenkinsTestConnectionTaskResponse;
@@ -1466,5 +1468,8 @@ public class DelegateTasksBeansKryoRegister implements KryoRegistrar {
     kryo.register(JenkinsCapabilityHelper.class, 29302);
     kryo.register(JenkinsValidationParams.class, 29303);
     kryo.register(JenkinsArtifactDelegateRequest.class, 29304);
+    kryo.register(HttpHelmValidationParams.class, 29305);
+    kryo.register(OciHelmConnectivityTaskParams.class, 29306);
+    kryo.register(OciHelmConnectivityTaskResponse.class, 29307);
   }
 }

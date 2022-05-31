@@ -16,11 +16,11 @@ import com.fasterxml.jackson.annotation.JsonValue;
 import java.util.Arrays;
 
 @OwnedBy(HarnessTeam.CDP)
-public enum OciHelmChartConfigType {
+public enum OciHelmChartStoreConfigType {
   @JsonProperty("Basic") BASIC("Basic");
   private final String displayName;
 
-  OciHelmChartConfigType(String displayName) {
+  OciHelmChartStoreConfigType(String displayName) {
     this.displayName = displayName;
   }
 
@@ -35,13 +35,13 @@ public enum OciHelmChartConfigType {
   }
 
   @JsonCreator(mode = JsonCreator.Mode.DELEGATING)
-  public static OciHelmChartConfigType getOciHelmChartConfigType(@JsonProperty("type") String displayName) {
-    for (OciHelmChartConfigType ociHelmChartConfigType : OciHelmChartConfigType.values()) {
-      if (ociHelmChartConfigType.displayName.equalsIgnoreCase(displayName)) {
-        return ociHelmChartConfigType;
+  public static OciHelmChartStoreConfigType getOciHelmChartStoreConfigType(@JsonProperty("type") String displayName) {
+    for (OciHelmChartStoreConfigType ociHelmChartStoreConfigType : OciHelmChartStoreConfigType.values()) {
+      if (ociHelmChartStoreConfigType.displayName.equalsIgnoreCase(displayName)) {
+        return ociHelmChartStoreConfigType;
       }
     }
     throw new IllegalArgumentException(String.format("Invalid value:%s, the expected values are: %s", displayName,
-        Arrays.toString(OciHelmChartConfigType.values())));
+        Arrays.toString(OciHelmChartStoreConfigType.values())));
   }
 }
