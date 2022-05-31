@@ -54,7 +54,6 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -176,17 +175,20 @@ public class AzureHelperService {
     return responseData;
   }
 
-  public DelegateResponseData executeSyncTask(ExecutionCapabilityDemander params, BaseNGAccess ngAccess,
-      String ifFailedMessage, Integer... customTaskTimeoutInSec) {
-    DelegateResponseData responseData =
-        getResponseData(null, ngAccess, params, Arrays.stream(customTaskTimeoutInSec).findFirst());
+  public DelegateResponseData executeSyncTask(
+      ExecutionCapabilityDemander params, BaseNGAccess ngAccess, String ifFailedMessage) {
+    DelegateResponseData responseData = getResponseData(null, ngAccess, params, Optional.empty());
+    return getTaskExecutionResponse(responseData, ifFailedMessage);
+  }
+  public DelegateResponseData executeSyncTask(
+      ExecutionCapabilityDemander params, BaseNGAccess ngAccess, String ifFailedMessage, Optional<Integer> timeout) {
+    DelegateResponseData responseData = getResponseData(null, ngAccess, params, timeout);
     return getTaskExecutionResponse(responseData, ifFailedMessage);
   }
 
-  public DelegateResponseData executeSyncTask(Ambiance ambiance, ExecutionCapabilityDemander params,
-      BaseNGAccess ngAccess, String ifFailedMessage, Integer... customTaskTimeoutInSec) {
-    DelegateResponseData responseData =
-        getResponseData(ambiance, ngAccess, params, Arrays.stream(customTaskTimeoutInSec).findFirst());
+  public DelegateResponseData executeSyncTask(
+      Ambiance ambiance, ExecutionCapabilityDemander params, BaseNGAccess ngAccess, String ifFailedMessage) {
+    DelegateResponseData responseData = getResponseData(ambiance, ngAccess, params, Optional.empty());
     return getTaskExecutionResponse(responseData, ifFailedMessage);
   }
 

@@ -69,8 +69,8 @@ public class AzureResource {
   }
 
   @GET
-  @Path("subscriptions/{subscriptionId}/resourceGroups/{resourceGroup}/azure-app-services")
-  @ApiOperation(value = "Gets azure app services by subscription and resourceGroup", nickname = "getAzureAppServices")
+  @Path("subscriptions/{subscriptionId}/resourceGroups/{resourceGroup}/web-app-services-names")
+  @ApiOperation(value = "Gets azure app services by subscriptionId and resourceGroup", nickname = "getAzureWebAppNames")
   public ResponseDTO<AzureWebAppNamesDTO> getAppServiceNames(
       @NotNull @QueryParam("connectorRef") String azureConnectorIdentifier,
       @NotNull @QueryParam(NGCommonEntityConstants.ACCOUNT_KEY) String accountId,
@@ -84,8 +84,8 @@ public class AzureResource {
   }
 
   @GET
-  @Path("subscriptions/{subscriptionId}/resourceGroups/{resourceGroup}/azure-app-services/{webAppName}/slots")
-  @ApiOperation(value = "Gets azure webApp deployment slots", nickname = "getAzureAppServices")
+  @Path("subscriptions/{subscriptionId}/resourceGroups/{resourceGroup}/web-app-services-names/{webAppName}/slots")
+  @ApiOperation(value = "Gets azure webApp deployment slots", nickname = "getAzureWebAppDeploymentSlots")
   public ResponseDTO<AzureDeploymentSlotsDTO> getAppServiceDeploymentSlotNames(
       @NotNull @QueryParam("connectorRef") String azureConnectorIdentifier,
       @NotNull @QueryParam(NGCommonEntityConstants.ACCOUNT_KEY) String accountId,

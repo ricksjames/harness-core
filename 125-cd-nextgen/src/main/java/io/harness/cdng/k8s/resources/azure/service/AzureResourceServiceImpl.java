@@ -37,11 +37,13 @@ import com.google.inject.Singleton;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Singleton
 @OwnedBy(HarnessTeam.CDP)
 public class AzureResourceServiceImpl implements AzureResourceService {
+  public static final Integer AZURE_CUSTOM_TIMEOUT_IN_SEC = 60;
   @Inject AzureHelperService azureHelperService;
 
   @Override
@@ -152,8 +154,9 @@ public class AzureResourceServiceImpl implements AzureResourceService {
                                                     .additionalParams(additionalParams)
                                                     .build();
 
-    AzureWebAppNamesResponse azureWebAppNamesResponse = (AzureWebAppNamesResponse) azureHelperService.executeSyncTask(
-        azureTaskParamsTaskParams, baseNGAccess, "Azure list Web App names task failure due to error", 60);
+    AzureWebAppNamesResponse azureWebAppNamesResponse =
+        (AzureWebAppNamesResponse) azureHelperService.executeSyncTask(azureTaskParamsTaskParams, baseNGAccess,
+            "Azure list Web App names task failure due to error", Optional.of(AZURE_CUSTOM_TIMEOUT_IN_SEC));
     return AzureWebAppNamesDTO.builder().webAppNames(azureWebAppNamesResponse.getWebAppNames()).build();
   }
 
