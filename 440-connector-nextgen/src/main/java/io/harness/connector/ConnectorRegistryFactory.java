@@ -10,27 +10,7 @@ package io.harness.connector;
 import static io.harness.annotations.dev.HarnessTeam.DX;
 
 import io.harness.annotations.dev.OwnedBy;
-import io.harness.connector.heartbeat.ArtifactoryValidationParamsProvider;
-import io.harness.connector.heartbeat.AwsKmsConnectorValidationParamsProvider;
-import io.harness.connector.heartbeat.AwsSecretManagerValidationParamsProvider;
-import io.harness.connector.heartbeat.AwsValidationParamsProvider;
-import io.harness.connector.heartbeat.AzureKeyVaultConnectorValidationParamsProvider;
-import io.harness.connector.heartbeat.AzureValidationParamsProvider;
-import io.harness.connector.heartbeat.CEK8sConnectorValidationParamsProvider;
-import io.harness.connector.heartbeat.CVConnectorParamsProvider;
-import io.harness.connector.heartbeat.ConnectorValidationParamsProvider;
-import io.harness.connector.heartbeat.DockerConnectorValidationParamsProvider;
-import io.harness.connector.heartbeat.GcpKmsConnectorValidationParamsProvider;
-import io.harness.connector.heartbeat.GcpValidationParamsProvider;
-import io.harness.connector.heartbeat.HttpHelmConnectorValidationParamsProvider;
-import io.harness.connector.heartbeat.JiraValidationParamsProvider;
-import io.harness.connector.heartbeat.K8sConnectorValidationParamsProvider;
-import io.harness.connector.heartbeat.NexusValidationParamsProvider;
-import io.harness.connector.heartbeat.NoOpConnectorValidationParamsProvider;
-import io.harness.connector.heartbeat.PhysicalDataCenterConnectorValidationParamsProvider;
-import io.harness.connector.heartbeat.ScmConnectorValidationParamsProvider;
-import io.harness.connector.heartbeat.ServiceNowValidationParamsProvider;
-import io.harness.connector.heartbeat.VaultConnectorValidationParamsProvider;
+import io.harness.connector.heartbeat.*;
 import io.harness.connector.mappers.ConnectorDTOToEntityMapper;
 import io.harness.connector.mappers.ConnectorEntityToDTOMapper;
 import io.harness.connector.mappers.appdynamicsmapper.AppDynamicsDTOToEntity;
@@ -75,6 +55,8 @@ import io.harness.connector.mappers.gitlabconnector.GitlabDTOToEntity;
 import io.harness.connector.mappers.gitlabconnector.GitlabEntityToDTO;
 import io.harness.connector.mappers.helm.HttpHelmDTOToEntity;
 import io.harness.connector.mappers.helm.HttpHelmEntityToDTO;
+import io.harness.connector.mappers.helm.OciHelmDTOToEntity;
+import io.harness.connector.mappers.helm.OciHelmEntityToDTO;
 import io.harness.connector.mappers.jenkins.JenkinsDTOToEntity;
 import io.harness.connector.mappers.jenkins.JenkinsEntityToDTO;
 import io.harness.connector.mappers.jira.JiraDTOToEntity;
@@ -127,6 +109,7 @@ import io.harness.connector.validator.JenkinsConnectionValidator;
 import io.harness.connector.validator.JiraConnectorValidator;
 import io.harness.connector.validator.KubernetesConnectionValidator;
 import io.harness.connector.validator.NexusConnectorValidator;
+import io.harness.connector.validator.OciHelmRepoConnectionValidator;
 import io.harness.connector.validator.PhysicalDataCenterConnectorValidator;
 import io.harness.connector.validator.SecretManagerConnectorValidator;
 import io.harness.connector.validator.ServiceNowConnectorValidator;
@@ -270,6 +253,10 @@ public class ConnectorRegistryFactory {
     registrar.put(ConnectorType.HTTP_HELM_REPO,
         new ConnectorRegistrar(ConnectorCategory.ARTIFACTORY, HttpHelmRepoConnectionValidator.class,
             HttpHelmConnectorValidationParamsProvider.class, HttpHelmDTOToEntity.class, HttpHelmEntityToDTO.class,
+            NotSupportedValidationHandler.class));
+    registrar.put(ConnectorType.OCI_HELM_REPO,
+        new ConnectorRegistrar(ConnectorCategory.ARTIFACTORY, OciHelmRepoConnectionValidator.class,
+            OciHelmConnectorValidationParamsProvider.class, OciHelmDTOToEntity.class, OciHelmEntityToDTO.class,
             NotSupportedValidationHandler.class));
     registrar.put(ConnectorType.PAGER_DUTY,
         new ConnectorRegistrar(ConnectorCategory.MONITORING, CVConnectorValidator.class,

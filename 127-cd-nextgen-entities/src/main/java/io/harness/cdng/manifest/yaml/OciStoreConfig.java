@@ -7,14 +7,14 @@
 
 package io.harness.cdng.manifest.yaml;
 
-import static io.harness.annotations.dev.HarnessTeam.CDC;
+import static io.harness.annotations.dev.HarnessTeam.CDP;
 
 import io.harness.annotation.RecasterAlias;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.beans.SwaggerConstants;
 import io.harness.cdng.manifest.ManifestStoreType;
+import io.harness.cdng.manifest.yaml.ociHelmChartConfig.OciHelmChartConfigWrapper;
 import io.harness.cdng.manifest.yaml.storeConfig.StoreConfig;
-import io.harness.cdng.manifest.yaml.storeConfig.StoreConfigWrapper;
 import io.harness.data.validator.EntityIdentifier;
 import io.harness.filters.ConnectorRefExtractorHelper;
 import io.harness.filters.WithConnectorRef;
@@ -37,7 +37,7 @@ import lombok.Getter;
 import lombok.experimental.Wither;
 import org.springframework.data.annotation.TypeAlias;
 
-@OwnedBy(CDC)
+@OwnedBy(CDP)
 @Data
 @Builder
 @EqualsAndHashCode(callSuper = false)
@@ -54,11 +54,11 @@ public class OciStoreConfig implements StoreConfig, Visitable, WithConnectorRef 
   @EntityIdentifier String identifier;
   @Wither
   @JsonProperty("config")
-  @ApiModelProperty(dataType = "io.harness.cdng.manifest.yaml.storeConfig.StoreConfigWrapper")
+  @ApiModelProperty(dataType = "io.harness.cdng.manifest.yaml.storeConfig.OciHelmChartConfigWrapper")
   @SkipAutoEvaluation
-  ParameterField<StoreConfigWrapper> config;
+  ParameterField<OciHelmChartConfigWrapper> config;
 
-  @ApiModelProperty(dataType = SwaggerConstants.STRING_CLASSPATH) @Wither private ParameterField<String> connectorRef;
+  @ApiModelProperty(dataType = SwaggerConstants.STRING_CLASSPATH) @Wither private ParameterField<String> basePath;
 
   @Override
   public String getKind() {
@@ -67,19 +67,22 @@ public class OciStoreConfig implements StoreConfig, Visitable, WithConnectorRef 
 
   @Override
   public StoreConfig cloneInternal() {
-    return OciStoreConfig.builder().connectorRef(connectorRef).build();
+    return OciStoreConfig.builder().basePath(basePath).config(config).build();
   }
 
   @Override
   public ParameterField<String> getConnectorReference() {
-    return connectorRef;
+    return config.getValue().getSpec().getConnectorReference();
   }
 
   public StoreConfig applyOverrides(StoreConfig overrideConfig) {
     OciStoreConfig ociStoreConfig = (OciStoreConfig) overrideConfig;
     OciStoreConfig resultantHelmOciStore = this;
-    if (!ParameterField.isNull(ociStoreConfig.getConnectorRef())) {
-      resultantHelmOciStore = resultantHelmOciStore.withConnectorRef(ociStoreConfig.getConnectorRef());
+    if (!ParameterField.isNull(ociStoreConfig.getBasePath())) {
+      resultantHelmOciStore = resultantHelmOciStore.withBasePath(ociStoreConfig.getBasePath());
+    }
+    if (!ParameterField.isNull(ociStoreConfig.getConfig())) {
+      resultantHelmOciStore = resultantHelmOciStore.withConfig(ociStoreConfig.getConfig());
     }
 
     return resultantHelmOciStore;
@@ -88,7 +91,7 @@ public class OciStoreConfig implements StoreConfig, Visitable, WithConnectorRef 
   @Override
   public Map<String, ParameterField<String>> extractConnectorRefs() {
     Map<String, ParameterField<String>> connectorRefMap = new HashMap<>();
-    connectorRefMap.put(YAMLFieldNameConstants.CONNECTOR_REF, connectorRef);
+    connectorRefMap.put(YAMLFieldNameConstants.CONNECTOR_REF, getConnectorReference());
     return connectorRefMap;
   }
 }
