@@ -89,7 +89,7 @@ import io.harness.annotations.dev.TargetModule;
 import io.harness.beans.ArtifactMetadata;
 import io.harness.beans.EmbeddedUser;
 import io.harness.beans.ExecutionStatus;
-import io.harness.beans.FeatureName;
+
 import io.harness.beans.PageResponse;
 import io.harness.beans.SweepingOutputInstance;
 import io.harness.beans.WorkflowType;
