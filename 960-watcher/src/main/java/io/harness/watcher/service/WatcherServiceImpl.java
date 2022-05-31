@@ -1372,6 +1372,17 @@ public class WatcherServiceImpl implements WatcherService {
 
   @VisibleForTesting
   String getResponseStringFromUrl() throws IOException {
+    try {
+    RestResponse<String> restResponse = callInterruptible21(timeLimiter, ofMinutes(1),
+        ()
+            -> SafeHttpCall.execute(managerClient.getWatcherVersion(
+            watcherConfiguration.getAccountId()));
+    if (restResponse != null) {
+        return restResponse.getResource().toString();
+    }
+    } catch (Exception e) {
+      // Ignore
+    }
     return Http.getResponseStringFromUrl(watcherConfiguration.getUpgradeCheckLocation(), 10, 10);
   }
 

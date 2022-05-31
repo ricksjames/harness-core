@@ -8,13 +8,17 @@
 package io.harness.delegate.service;
 
 import static io.harness.beans.FeatureName.USE_IMMUTABLE_DELEGATE;
+import static io.harness.beans.FeatureName.WATCHER_VERSION_FROM_RING;
 import static io.harness.delegate.beans.DelegateType.CE_KUBERNETES;
 import static io.harness.delegate.beans.DelegateType.KUBERNETES;
 import static io.harness.delegate.beans.VersionOverrideType.DELEGATE_IMAGE_TAG;
 import static io.harness.delegate.beans.VersionOverrideType.DELEGATE_JAR;
 import static io.harness.delegate.beans.VersionOverrideType.UPGRADER_IMAGE_TAG;
 import static io.harness.delegate.beans.VersionOverrideType.WATCHER_JAR;
+import static io.harness.network.Http.getResponseStringFromUrl;
 
+import static java.util.Collections.singletonList;
+import static org.apache.commons.lang.StringUtils.substringBefore;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
 import io.harness.delegate.beans.VersionOverride;
@@ -39,6 +43,7 @@ public class DelegateVersionService {
   private final DelegateRingService delegateRingService;
   private final FeatureFlagService featureFlagService;
   private final MainConfiguration mainConfiguration;
+  private final software.wings.service.impl.infra.InfraDownloadService infraDownloadService;
   private final HPersistence persistence;
 
   public String getDelegateImageTag(final String accountId, final String delegateType) {
@@ -79,7 +84,7 @@ public class DelegateVersionService {
   public List<String> getDelegateJarVersions(final String accountId) {
     final VersionOverride versionOverride = getVersionOverride(accountId, DELEGATE_JAR);
     if (versionOverride != null && isNotBlank(versionOverride.getVersion())) {
-      return Collections.singletonList(versionOverride.getVersion());
+      return singletonList(versionOverride.getVersion());
     }
 
     final List<String> ringVersion = delegateRingService.getDelegateVersions(accountId);
@@ -91,9 +96,17 @@ public class DelegateVersionService {
   }
 
   public List<String> getWatcherJarVersions(final String accountId) {
+    if (featureFlagService.isNotEnabled(WATCHER_VERSION_FROM_RING, accountId)) {
+      try {
+        String delegateMetadata = getResponseStringFromUrl(infraDownloadService.getCdnWatcherMetaDataFileUrl(), 10, 10);
+        return singletonList(substringBefore(delegateMetadata, " ").trim());
+      } catch (Exception ex) {
+        return Collections.emptyList();
+      }
+    }
     final VersionOverride versionOverride = getVersionOverride(accountId, WATCHER_JAR);
     if (versionOverride != null && isNotBlank(versionOverride.getVersion())) {
-      return Collections.singletonList(versionOverride.getVersion());
+      return singletonList(versionOverride.getVersion());
     }
 
     final List<String> ringVersion = delegateRingService.getWatcherVersions(accountId);

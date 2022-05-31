@@ -20,6 +20,8 @@ import static io.harness.security.JWTAuthenticationFilter.setSourcePrincipalInCo
 import static io.harness.security.JWTTokenServiceUtils.extractToken;
 import static io.harness.security.JWTTokenServiceUtils.verifyJWTToken;
 
+import static com.auth0.jwt.JWT.decode;
+import static java.util.Base64.getUrlDecoder;
 import static java.util.Collections.emptyMap;
 import static javax.ws.rs.HttpMethod.OPTIONS;
 import static javax.ws.rs.Priorities.AUTHENTICATION;
@@ -61,12 +63,14 @@ import software.wings.service.intfc.ExternalApiRateLimitingService;
 import software.wings.service.intfc.HarnessApiKeyService;
 import software.wings.service.intfc.UserService;
 
+import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.Claim;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.util.Base64.Decoder;
 import java.util.HashMap;
 import java.util.Map;
 import javax.annotation.Priority;
@@ -414,8 +418,16 @@ public class AuthenticationFilter implements ContainerRequestFilter {
     try (AccountLogContext ignore = new AccountLogContext(accountId, OVERRIDE_ERROR)) {
       String authHeader = containerRequestContext.getHeaderString(HttpHeaders.AUTHORIZATION);
       if (authHeader != null && authHeader.contains("Delegate")) {
-        authService.validateDelegateToken(
-            accountId, substringAfter(containerRequestContext.getHeaderString(HttpHeaders.AUTHORIZATION), "Delegate "));
+        final String jwtToken =
+            substringAfter(containerRequestContext.getHeaderString(HttpHeaders.AUTHORIZATION), "Delegate ");
+        Decoder decoder = getUrlDecoder();
+        String header = new String(decoder.decode(jwtToken.split("\\.")[0]));
+        if (header.contains("HS256")) {
+          authService.validateDelegateToken(accountId, jwtToken);
+        } else {
+          final String delegateId = containerRequestContext.getHeaderString("delegateId");
+          authService.validateDelegateToken(accountId, jwtToken, delegateId, true);
+        }
       } else {
         throw new IllegalStateException("Invalid authentication header:" + authHeader);
       }
