@@ -17,6 +17,7 @@ import static io.harness.beans.OrchestrationWorkflowType.ROLLING;
 import static io.harness.rule.OwnerRule.ADWAIT;
 import static io.harness.rule.OwnerRule.SATYAM;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static software.wings.api.InstanceElement.Builder.anInstanceElement;
 import static software.wings.beans.Application.Builder.anApplication;
 import static software.wings.beans.AwsAmiInfrastructureMapping.Builder.anAwsAmiInfrastructureMapping;
@@ -59,6 +60,7 @@ import io.harness.context.ContextElementType;
 import io.harness.delegate.task.aws.LoadBalancerDetailsForBGDeployment;
 import io.harness.delegate.task.spotinst.request.SpotInstSetupTaskParameters;
 import io.harness.delegate.task.spotinst.request.SpotInstTaskParameters;
+import io.harness.exception.SpotInstException;
 import io.harness.rule.Owner;
 import io.harness.rule.OwnerRule;
 import io.harness.spotinst.model.ElastiGroup;
@@ -161,72 +163,19 @@ public class SpotinstStateHelperTest extends WingsBaseTest {
   @Owner(developers = SATYAM)
   @Category(UnitTests.class)
   public void testPrepareStateExecutionData() {
-    ExecutionContextImpl mockContext = mock(ExecutionContextImpl.class);
-    SpotInstServiceSetup mockState = mock(SpotInstServiceSetup.class);
     String minInstances = "3";
     String maxInstances = "20";
     String targetInstances = "5";
-
-    doReturn(3).when(mockState).getOlderActiveVersionCountToKeep();
-    doReturn(minInstances).when(mockState).getMinInstances();
-    doReturn(targetInstances).when(mockState).getMaxInstances();
-    doReturn(maxInstances).when(mockState).getTargetInstances();
-
-    PhaseElement phaseElement =
-        PhaseElement.builder()
-            .serviceElement(ServiceElement.builder().uuid(SERVICE_ID).name(SERVICE_NAME).build())
-            .build();
-    doReturn(phaseElement).when(mockContext).getContextElement(any(), anyString());
-    WorkflowStandardParams mockWorkflowStandardParams = mock(WorkflowStandardParams.class);
-    doReturn(mockWorkflowStandardParams).when(mockContext).getContextElement(any());
-    Environment environment = anEnvironment().uuid(ENV_ID).name(ENV_NAME).build();
-    doReturn(environment).when(workflowStandardParamsExtensionService).fetchRequiredEnv(mockWorkflowStandardParams);
-    doReturn(environment).when(mockContext).fetchRequiredEnvironment();
-    Application application = anApplication().appId(APP_ID).name("app-name").build();
-    doReturn(application).when(mockContext).fetchRequiredApp();
-    doReturn(application).when(mockAppService).get(anyString());
-    EmbeddedUser currentUser = EmbeddedUser.builder().name("user").email("user@harness.io").build();
-    doReturn(currentUser).when(mockWorkflowStandardParams).getCurrentUser();
+    String elastigroupNamePrefix = "cdteam";
     String image = "ami-id";
-    Artifact artifact =
-        anArtifact().withRevision(image).withDisplayName("ami-display-name").withUuid(ARTIFACT_ID).build();
-    doReturn(artifact).when(mockContext).getDefaultArtifactForService(anyString());
-    Activity activity = Activity.builder().uuid(ACTIVITY_ID).build();
-    doReturn(activity).when(mockActivityService).save(any());
-    AwsAmiInfrastructureMapping infrastructureMapping = anAwsAmiInfrastructureMapping()
-                                                            .withSpotinstCloudProvider(SPOTINST_SETTING_ID)
-                                                            .withComputeProviderSettingId(SETTING_ID)
-                                                            .withRegion("us-east-1")
-                                                            .build();
-    doReturn(infrastructureMapping).when(mockInfrastructureMappingService).get(anyString(), anyString());
+
+    ExecutionContextImpl mockContext = mock(ExecutionContextImpl.class);
+    SpotInstServiceSetup mockState = mock(SpotInstServiceSetup.class);
+    init(mockContext, mockState);
     SettingAttribute awsProvider = aSettingAttribute().withValue(AwsConfig.builder().build()).build();
     SettingAttribute spotinst = aSettingAttribute().withValue(SpotInstConfig.builder().build()).build();
     doReturn(awsProvider).doReturn(spotinst).when(mockSettingsService).get(anyString());
-    doReturn(emptyList()).when(mockSecretManager).getEncryptionDetails(any(), anyString(), anyString());
-    String userData = "userData";
-    UserDataSpecification userDataSpecification = UserDataSpecification.builder().data(userData).build();
-    doReturn(userDataSpecification).when(mockServiceResourceService).getUserDataSpecification(anyString(), anyString());
-    String elastigroupNamePrefix = "cdteam";
-    String elastigroupJson = "{\n"
-        + "  \"group\":{\n"
-        + "    \"name\":\"adwait__11\",\n"
-        + "    \"capacity\":{\n"
-        + "      \"minimum\":1,\n"
-        + "      \"maximum\":3,\n"
-        + "      \"target\":1,\n"
-        + "      \"unit\":\"instance\"\n"
-        + "    }\n"
-        + "  }\n"
-        + "}";
-    doReturn(elastigroupNamePrefix).when(mockState).getElastiGroupNamePrefix();
-    doReturn(elastigroupNamePrefix)
-        .doReturn(elastigroupJson)
-        .doReturn(minInstances)
-        .doReturn(maxInstances)
-        .doReturn(targetInstances)
-        .doReturn(userData)
-        .when(mockContext)
-        .renderExpression(anyString());
+
     SpotInstSetupStateExecutionData executionData =
         spotInstStateHelper.prepareStateExecutionData(mockContext, mockState);
     assertThat(executionData).isNotNull();
@@ -243,6 +192,84 @@ public class SpotinstStateHelperTest extends WingsBaseTest {
     assertThat(setupParams.getElastiGroupNamePrefix()).isEqualTo(elastigroupNamePrefix);
     assertThat(setupParams.getImage()).isEqualTo(image);
     assertThat(setupParams.getUserData()).isEqualTo("dXNlckRhdGE=");
+  }
+
+  @Test
+  @Owner(developers = SATYAM)
+  @Category(UnitTests.class)
+  public void testPrepareStateExecutionDataNull() {
+    ExecutionContextImpl mockContext = mock(ExecutionContextImpl.class);
+    SpotInstServiceSetup mockState = mock(SpotInstServiceSetup.class);
+    init(mockContext, mockState);
+    SettingAttribute awsProvider = aSettingAttribute().withValue(AwsConfig.builder().build()).build();
+    doReturn(awsProvider).doReturn(null).when(mockSettingsService).get(anyString());
+
+    assertThatThrownBy(() ->  spotInstStateHelper.prepareStateExecutionData(mockContext, mockState)).isInstanceOf(SpotInstException.class);
+
+  }
+
+  private void init(ExecutionContextImpl mockContext, SpotInstServiceSetup mockState) {
+    String minInstances = "3";
+    String maxInstances = "20";
+    String targetInstances = "5";
+
+    doReturn(3).when(mockState).getOlderActiveVersionCountToKeep();
+    doReturn(minInstances).when(mockState).getMinInstances();
+    doReturn(targetInstances).when(mockState).getMaxInstances();
+    doReturn(maxInstances).when(mockState).getTargetInstances();
+
+    PhaseElement phaseElement =
+            PhaseElement.builder()
+                    .serviceElement(ServiceElement.builder().uuid(SERVICE_ID).name(SERVICE_NAME).build())
+                    .build();
+    doReturn(phaseElement).when(mockContext).getContextElement(any(), anyString());
+    WorkflowStandardParams mockWorkflowStandardParams = mock(WorkflowStandardParams.class);
+    doReturn(mockWorkflowStandardParams).when(mockContext).getContextElement(any());
+    Environment environment = anEnvironment().uuid(ENV_ID).name(ENV_NAME).build();
+    doReturn(environment).when(workflowStandardParamsExtensionService).fetchRequiredEnv(mockWorkflowStandardParams);
+    doReturn(environment).when(mockContext).fetchRequiredEnvironment();
+    Application application = anApplication().appId(APP_ID).name("app-name").build();
+    doReturn(application).when(mockContext).fetchRequiredApp();
+    doReturn(application).when(mockAppService).get(anyString());
+    EmbeddedUser currentUser = EmbeddedUser.builder().name("user").email("user@harness.io").build();
+    doReturn(currentUser).when(mockWorkflowStandardParams).getCurrentUser();
+    String image = "ami-id";
+    Artifact artifact =
+            anArtifact().withRevision(image).withDisplayName("ami-display-name").withUuid(ARTIFACT_ID).build();
+    doReturn(artifact).when(mockContext).getDefaultArtifactForService(anyString());
+    Activity activity = Activity.builder().uuid(ACTIVITY_ID).build();
+    doReturn(activity).when(mockActivityService).save(any());
+    AwsAmiInfrastructureMapping infrastructureMapping = anAwsAmiInfrastructureMapping()
+            .withSpotinstCloudProvider(SPOTINST_SETTING_ID)
+            .withComputeProviderSettingId(SETTING_ID)
+            .withRegion("us-east-1")
+            .build();
+    doReturn(infrastructureMapping).when(mockInfrastructureMappingService).get(anyString(), anyString());
+    doReturn(emptyList()).when(mockSecretManager).getEncryptionDetails(any(), anyString(), anyString());
+    String userData = "userData";
+    UserDataSpecification userDataSpecification = UserDataSpecification.builder().data(userData).build();
+    doReturn(userDataSpecification).when(mockServiceResourceService).getUserDataSpecification(anyString(), anyString());
+    String elastigroupNamePrefix = "cdteam";
+    String elastigroupJson = "{\n"
+            + "  \"group\":{\n"
+            + "    \"name\":\"adwait__11\",\n"
+            + "    \"capacity\":{\n"
+            + "      \"minimum\":1,\n"
+            + "      \"maximum\":3,\n"
+            + "      \"target\":1,\n"
+            + "      \"unit\":\"instance\"\n"
+            + "    }\n"
+            + "  }\n"
+            + "}";
+    doReturn(elastigroupNamePrefix).when(mockState).getElastiGroupNamePrefix();
+    doReturn(elastigroupNamePrefix)
+            .doReturn(elastigroupJson)
+            .doReturn(minInstances)
+            .doReturn(maxInstances)
+            .doReturn(targetInstances)
+            .doReturn(userData)
+            .when(mockContext)
+            .renderExpression(anyString());
   }
 
   @Test
