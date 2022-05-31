@@ -425,7 +425,7 @@ public class ArtifactoryServiceImpl implements ArtifactoryService {
         }
         String version = versionProperty.get("value");
         Map<String, String> appVersionProperty =
-                properties.stream().filter(property -> property.get("key").equals("chart.version")).findAny().orElse(Collections.emptyMap());
+                properties.stream().filter(property -> property.get("key").equals("chart.appVersion")).findAny().orElse(Collections.emptyMap());
         helmChartNameToVersionMap.put(name, version);
         helmChartNameToAppVersionMap.put(name, appVersionProperty.get("value"));
       }
