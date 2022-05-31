@@ -71,7 +71,7 @@ public class CreatePRStep extends TaskChainExecutableWithRollbackAndRbac {
   @Inject private KryoSerializer kryoSerializer;
   @Inject private CDStepHelper cdStepHelper;
   @Inject private StepHelper stepHelper;
-  @Inject ExecutionSweepingOutputService executionSweepingOutputService;
+  @Inject private ExecutionSweepingOutputService executionSweepingOutputService;
 
   private final Set<ConnectorType> validConnectorTypes =
       ImmutableSet.of(ConnectorType.GITHUB, ConnectorType.GITLAB, ConnectorType.BITBUCKET);
@@ -97,6 +97,7 @@ public class CreatePRStep extends TaskChainExecutableWithRollbackAndRbac {
       CreatePROutcome createPROutcome = CreatePROutcome.builder()
                                             .changedFiles(((CreatePRPassThroughData) passThroughData).getFilePaths())
                                             .prLink(ngGitOpsResponse.getPrLink())
+                                            .commitId(ngGitOpsResponse.getCommitId())
                                             .build();
 
       executionSweepingOutputService.consume(
@@ -124,10 +125,7 @@ public class CreatePRStep extends TaskChainExecutableWithRollbackAndRbac {
       Ambiance ambiance, StepElementParameters stepParameters, StepInputPackage inputPackage) {
     /*
     TODO:
-     1. Include commit message, targetBranch and is new branch options
      2. Handle the case when PR already exists
-     3. Handle case when branch doesn't exist
-     4. Publish commitId in step outcome (Samarth)
      Delegate side: (NgGitOpsCommandTask.java)
      5. Improve logging for commitAndPush, createPR, etc
      */
@@ -140,8 +138,11 @@ public class CreatePRStep extends TaskChainExecutableWithRollbackAndRbac {
         stringMap, new CDExpressionResolveFunctor(engineExpressionService, ambiance));
 
     List<GitFetchFilesConfig> gitFetchFilesConfig = new ArrayList<>();
+    // TODO: Should ManifestOutcome type be changed
     gitFetchFilesConfig.add(
         getGitFetchFilesConfig(ambiance, store, ValuesManifestOutcome.builder().identifier("dummy").build()));
+
+    stringMap.remove("__uuid");
 
     NGGitOpsTaskParams ngGitOpsTaskParams =
         NGGitOpsTaskParams.builder()
@@ -149,10 +150,12 @@ public class CreatePRStep extends TaskChainExecutableWithRollbackAndRbac {
             .gitFetchFilesConfig(gitFetchFilesConfig.get(0))
             .accountId(AmbianceUtils.getAccountId(ambiance))
             .stringMap(stringMap)
-            .prTitle("new PR")
+            .isNewBranch(gitOpsSpecParams.getIsNewBranch().getValue())
+            .commitMessage(gitOpsSpecParams.getCommitMessage().getValue())
+            .prTitle(gitOpsSpecParams.getPrTitle().getValue())
+            .targetBranch(gitOpsSpecParams.getTargetBranch().getValue())
             .connectorInfoDTO(cdStepHelper.getConnector(store.getConnectorReference().getValue(), ambiance))
             .sourceBranch(gitFetchFilesConfig.get(0).getGitStoreDelegateConfig().getBranch())
-            .targetBranch("master")
             .build();
 
     final TaskData taskData = TaskData.builder()

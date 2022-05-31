@@ -11,7 +11,9 @@ import lombok.Builder;
 public class CreatePRStepParams extends CreatePRBaseStepInfo implements GitOpsSpecParameters {
   @Builder(builderMethodName = "infoBuilder")
   public CreatePRStepParams(ParameterField<List<TaskSelectorYaml>> delegateSelectors,
-      ParameterField<Map<String, String>> stringMap, ParameterField<StoreConfigWrapper> store) {
-    super(delegateSelectors, stringMap, store);
+      ParameterField<Map<String, String>> stringMap, ParameterField<StoreConfigWrapper> store,
+      ParameterField<String> commitMessage, ParameterField<String> targetBranch, ParameterField<Boolean> isNewBranch,
+      ParameterField<String> prTitle) {
+    super(delegateSelectors, stringMap, store, commitMessage, targetBranch, isNewBranch, prTitle);
   }
 }

@@ -40,4 +40,24 @@ public class CreatePRBaseStepInfo {
   @ApiModelProperty(dataType = "io.harness.cdng.manifest.yaml.storeConfig.StoreConfigWrapper")
   @SkipAutoEvaluation
   ParameterField<StoreConfigWrapper> store;
+
+  @JsonProperty("commitMessage")
+  @ApiModelProperty(dataType = SwaggerConstants.STRING_CLASSPATH)
+  @SkipAutoEvaluation
+  ParameterField<String> commitMessage;
+
+  @JsonProperty("targetBranch")
+  @ApiModelProperty(dataType = SwaggerConstants.STRING_CLASSPATH)
+  @SkipAutoEvaluation
+  ParameterField<String> targetBranch;
+
+  @JsonProperty("isNewBranch")
+  @ApiModelProperty(dataType = SwaggerConstants.BOOLEAN_CLASSPATH)
+  @SkipAutoEvaluation
+  ParameterField<Boolean> isNewBranch;
+
+  @JsonProperty("prTitle")
+  @ApiModelProperty(dataType = SwaggerConstants.STRING_CLASSPATH)
+  @SkipAutoEvaluation
+  ParameterField<String> prTitle;
 }

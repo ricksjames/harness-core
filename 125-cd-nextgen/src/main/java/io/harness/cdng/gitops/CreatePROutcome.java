@@ -22,4 +22,5 @@ import org.springframework.data.annotation.TypeAlias;
 public class CreatePROutcome implements Outcome, ExecutionSweepingOutput {
   String prLink;
   List<String> changedFiles;
+  String commitId;
 }

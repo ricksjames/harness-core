@@ -47,6 +47,8 @@ import io.harness.shell.SshSessionConfig;
 import software.wings.beans.LogColor;
 import software.wings.beans.LogWeight;
 
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
@@ -54,8 +56,11 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import com.google.inject.Inject;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
@@ -74,7 +79,7 @@ public class NGGitOpsCommandTask extends AbstractDelegateRunnableTask {
   @Inject private NGGitService ngGitService;
 
   public static final String FetchFiles = "Fetch Files";
-  public static final String UpdateFiles = "Update fetched files";
+  public static final String UpdateFiles = "Update GitOps Configuration files";
   public static final String CommitAndPush = "Commit and Push";
   public static final String CreatePR = "Create PR";
 
@@ -129,7 +134,8 @@ public class NGGitOpsCommandTask extends AbstractDelegateRunnableTask {
       ScmConnector scmConnector =
           gitOpsTaskParams.getGitFetchFilesConfig().getGitStoreDelegateConfig().getGitConfigDTO();
 
-      CommitAndPushResult gitCommitAndPushResult = commit(gitOpsTaskParams, fetchFilesResult);
+      CommitAndPushResult gitCommitAndPushResult =
+          commit(gitOpsTaskParams, fetchFilesResult, gitOpsTaskParams.getCommitMessage());
 
       logCallback = markDoneAndStartNew(logCallback, CreatePR, commandUnitsProgress);
 
@@ -139,6 +145,7 @@ public class NGGitOpsCommandTask extends AbstractDelegateRunnableTask {
       logCallback.saveExecutionLog("Done.", INFO, CommandExecutionStatus.SUCCESS);
 
       return NGGitOpsResponse.builder()
+          .commitId(gitCommitAndPushResult.getGitCommitResult().getCommitId())
           .prNumber(createPRResponse.getNumber())
           .prLink(getPRLink(createPRResponse.getNumber(), scmConnector.getConnectorType(), scmConnector.getUrl()))
           .taskStatus(TaskStatus.SUCCESS)
@@ -165,7 +172,8 @@ public class NGGitOpsCommandTask extends AbstractDelegateRunnableTask {
     }
   }
 
-  public CommitAndPushResult commit(NGGitOpsTaskParams gitOpsTaskParams, FetchFilesResult fetchFilesResult) {
+  public CommitAndPushResult commit(
+      NGGitOpsTaskParams gitOpsTaskParams, FetchFilesResult fetchFilesResult, String commitMessage) {
     ScmConnector scmConnector = gitOpsTaskParams.getGitFetchFilesConfig().getGitStoreDelegateConfig().getGitConfigDTO();
     SSHKeySpecDTO sshKeySpecDTO =
         gitOpsTaskParams.getGitFetchFilesConfig().getGitStoreDelegateConfig().getSshKeySpecDTO();
@@ -196,7 +204,7 @@ public class NGGitOpsCommandTask extends AbstractDelegateRunnableTask {
                                                 .connectorId(gitOpsTaskParams.getConnectorInfoDTO().getName())
                                                 .pushOnlyIfHeadSeen(false)
                                                 .forcePush(true)
-                                                .commitMessage("commitMsg")
+                                                .commitMessage(commitMessage)
                                                 .build();
 
     return ngGitService.commitAndPush(gitConfig, gitCommitRequest, getAccountId(), sshSessionConfig);
@@ -220,25 +228,80 @@ public class NGGitOpsCommandTask extends AbstractDelegateRunnableTask {
             .build());
   }
 
+  public JSONObject mapToJson(Map<String, String> stringMap) {
+    JSONObject fieldsToUpdate = new JSONObject(stringMap);
+    JSONObject nestedFields = new JSONObject();
+
+    Set<String> complexFields = new HashSet<>();
+
+    for (Object key : fieldsToUpdate.keySet()) {
+      String str = (String) key;
+      if (str.contains(".")) {
+        /*
+          we need to make a conversion as shown below:
+
+          "place.details.city": "blr"
+
+          TO
+
+          "place":
+           {
+              "details":
+              {
+                 "city": "blr",
+              }
+           }
+
+         */
+        complexFields.add(str);
+
+        String[] keys = str.split("\\.");
+
+        int len = keys.length - 1;
+
+        Map<Object, Object> map1 = new HashMap<>();
+        Map<Object, Object> map2 = new HashMap<>();
+
+        map1.put(keys[len], fieldsToUpdate.get(key));
+
+        while (--len >= 0) {
+          map2.put(keys[len], map1);
+          map1 = map2;
+          map2 = new HashMap<>();
+        }
+
+        nestedFields.putAll(map1);
+      }
+    }
+
+    for (String str : complexFields) {
+      fieldsToUpdate.remove(str);
+    }
+
+    fieldsToUpdate.putAll(nestedFields);
+
+    return fieldsToUpdate;
+  }
+
   public void updateFiles(NGGitOpsTaskParams gitOpsTaskParams, FetchFilesResult fetchFilesResult)
       throws ParseException, IOException {
     Map<String, String> stringMap = gitOpsTaskParams.getStringMap();
     List<String> fetchedFilesContents = new ArrayList<>();
 
     for (GitFile gitFile : fetchFilesResult.getFiles()) {
-      if (gitFile.getFilePath().contains(".yaml")) {
+      if (gitFile.getFilePath().contains(".yaml") || gitFile.getFilePath().contains(".yml")) {
         fetchedFilesContents.add(convertYamlToJson(gitFile.getFileContent()));
       } else {
         fetchedFilesContents.add(gitFile.getFileContent());
       }
     }
 
-    List<String> updatedFiles = replaceFields(fetchedFilesContents, stringMap);
+    List<String> updatedFiles = replaceFieldsNew(fetchedFilesContents, stringMap);
     List<GitFile> updatedGitFiles = new ArrayList<>();
 
     for (int i = 0; i < updatedFiles.size(); i++) {
       GitFile gitFile = fetchFilesResult.getFiles().get(i);
-      if (gitFile.getFilePath().contains(".yaml")) {
+      if (gitFile.getFilePath().contains(".yaml") || gitFile.getFilePath().contains(".yml")) {
         gitFile.setFileContent(convertJsonToYaml(updatedFiles.get(i)));
       } else {
         gitFile.setFileContent(updatedFiles.get(i));
@@ -249,58 +312,28 @@ public class NGGitOpsCommandTask extends AbstractDelegateRunnableTask {
     fetchFilesResult.setFiles(updatedGitFiles);
   }
 
-  public List<String> replaceFields(List<String> stringList, Map<String, String> stringMap) throws ParseException {
+  public List<String> replaceFieldsNew(List<String> fileList, Map<String, String> fieldsToModify)
+      throws ParseException, JsonProcessingException {
+    JSONObject fieldsToUpdate = mapToJson(fieldsToModify); // get the list of fields to be updated
     List<String> result = new ArrayList<>();
-    for (String str : stringList) {
-      for (String key : stringMap.keySet()) {
-        if (contains(str, key)) {
-          str = replace(str, key, stringMap);
-        }
-      }
-      result.add(str);
+    for (String str : fileList) {
+      JSONParser parser = new JSONParser();
+      JSONObject json = (JSONObject) parser.parse(str);
+
+      // change the required fields by merging
+      json.putAll(fieldsToUpdate);
+
+      result.add(convertToPrettyJson(json.toString()));
     }
     return result;
   }
 
-  private boolean contains(String str, String key) {
-    if (key.contains(".")) { // complex object
-      String[] keys = key.split("\\.");
-      boolean isSubstring = true;
-      for (String s : keys) {
-        isSubstring = isSubstring && str.contains(s);
-      }
-      return isSubstring;
-    }
+  public String convertToPrettyJson(String uglyJson) throws JsonProcessingException {
+    ObjectMapper jsonReader = new ObjectMapper(new JsonFactory());
+    Object obj = jsonReader.readValue(uglyJson, Object.class);
 
-    // simple object
-    return str.contains(key);
-  }
-
-  private String replace(String str, String key, Map<String, String> stringMap) throws ParseException {
-    JSONParser parser = new JSONParser();
-    JSONObject json = (JSONObject) parser.parse(str);
-
-    if (key.contains(".")) {
-      String[] keys = key.split("\\.");
-      int len = keys.length - 1;
-      return str.replaceAll("\"" + keys[len] + "\""
-              + "\\s*:\\s*\"*" + recGet(json, keys) + "\"*",
-          "\"" + keys[len] + "\": \"" + stringMap.get(key) + "\"");
-    }
-
-    return str.replaceAll("\"" + key + "\""
-            + "\\s*:\\s*\"*" + json.get(key) + "\"*",
-        "\"" + key + "\": \"" + stringMap.get(key) + "\"");
-  }
-
-  private String recGet(JSONObject jsonObject, String[] keys) {
-    JSONObject json = jsonObject;
-    int i = 0;
-    while (i < keys.length - 1) {
-      json = (JSONObject) json.get(keys[i]);
-      i++;
-    }
-    return json.get(keys[i]).toString();
+    ObjectMapper jsonWriter = new ObjectMapper();
+    return jsonWriter.writerWithDefaultPrettyPrinter().writeValueAsString(obj);
   }
 
   public String convertYamlToJson(String yaml) throws IOException {

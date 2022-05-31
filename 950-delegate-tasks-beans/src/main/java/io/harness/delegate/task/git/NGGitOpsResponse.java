@@ -14,6 +14,7 @@ import lombok.experimental.NonFinal;
 public class NGGitOpsResponse implements DelegateTaskNotifyResponseData {
   String prLink;
   int prNumber;
+  String commitId;
   TaskStatus taskStatus;
   String errorMessage;
   UnitProgressData unitProgressData;

@@ -573,6 +573,9 @@
         {
           "type": "object",
           "properties": {
+            "commitMessage": {
+              "type": "string"
+            },
             "delegateSelectors": {
               "oneOf": [
                 {
@@ -588,11 +591,20 @@
                 }
               ]
             },
+            "isNewBranch": {
+              "type": "boolean"
+            },
+            "prTitle": {
+              "type": "string"
+            },
             "store": {
               "$ref": "#/definitions/StoreConfigWrapper"
             },
             "stringMap": {
               "$ref": "#/definitions/ParameterFieldMapStringString"
+            },
+            "targetBranch": {
+              "type": "string"
             }
           }
         }
