@@ -214,13 +214,14 @@ public class FileStoreServiceImpl implements FileStoreService {
   }
 
   @Override
-  public Page<EntitySetupUsageDTO> listReferencedByInScope(SearchPageParams pageParams,
-      @NotNull String accountIdentifier, String orgIdentifier, String projectIdentifier, EntityType entityType) {
+  public Page<EntitySetupUsageDTO> listFilesReferredByEntityType(SearchPageParams pageParams,
+      @NotNull String accountIdentifier, String orgIdentifier, String projectIdentifier, EntityType entityType,
+      String referredByEntityName) {
     if (isEmpty(accountIdentifier)) {
       throw new InvalidArgumentsException("Account identifier cannot be null or empty");
     }
     return fileReferenceService.getAllReferencedByInScope(
-        accountIdentifier, orgIdentifier, projectIdentifier, pageParams, entityType);
+        accountIdentifier, orgIdentifier, projectIdentifier, pageParams, entityType, referredByEntityName);
   }
 
   @Override

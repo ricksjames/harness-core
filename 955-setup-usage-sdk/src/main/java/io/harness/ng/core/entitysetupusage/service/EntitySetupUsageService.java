@@ -55,5 +55,6 @@ public interface EntitySetupUsageService {
   long deleteByReferredByEntityType(EntityType referredByEntityType);
 
   Page<EntitySetupUsageDTO> listAllEntityUsagePerEntityScope(int page, int size, String accountIdentifier,
-      String referredEntityFQScope, EntityType referredEntityType, EntityType referredByEntityType, Sort sort);
+      String referredEntityFQScope, EntityType referredEntityType, EntityType referredByEntityType,
+      String referredByEntityName, Sort sort);
 }

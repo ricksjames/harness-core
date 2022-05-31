@@ -109,8 +109,20 @@ public interface FileStoreService {
   Page<FileDTO> listFilesAndFolders(@NotNull String accountIdentifier, String orgIdentifier, String projectIdentifier,
       @NotNull FileFilterDTO fileFilterDTO, Pageable pageable);
 
-  Page<EntitySetupUsageDTO> listReferencedByInScope(SearchPageParams pageParams, @NotNull String accountIdentifier,
-      String orgIdentifier, String projectIdentifier, EntityType entityType);
+  /**
+   *  List Files and Folders.
+   *
+   * @param pageParams pagination related params - page number, page size and search term
+   * @param accountIdentifier the account identifier
+   * @param orgIdentifier the organization identifier
+   * @param projectIdentifier the project identifier
+   * @param entityType entity type
+   * @param entityName name of referenced by entity
+   * @return the list of files and folders referenced by entity type
+   */
+  Page<EntitySetupUsageDTO> listFilesReferredByEntityType(SearchPageParams pageParams,
+      @NotNull String accountIdentifier, String orgIdentifier, String projectIdentifier, EntityType entityType,
+      String entityName);
 
   /**
    * List NG files by pages based on filter criteria.

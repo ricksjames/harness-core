@@ -118,7 +118,7 @@ public class FileReferenceServiceImpl implements FileReferenceService {
   }
 
   public Page<EntitySetupUsageDTO> getAllReferencedByInScope(String accountIdentifier, String orgIdentifier,
-      String projectIdentifier, SearchPageParams pageParams, EntityType entityType) {
+      String projectIdentifier, SearchPageParams pageParams, EntityType entityType, String referredByEntityName) {
     String referredEntityFQScope = IdentifierRef.builder()
                                        .accountIdentifier(accountIdentifier)
                                        .orgIdentifier(orgIdentifier)
@@ -126,7 +126,7 @@ public class FileReferenceServiceImpl implements FileReferenceService {
                                        .build()
                                        .getFullyQualifiedScopeIdentifier();
     return entitySetupUsageService.listAllEntityUsagePerEntityScope(pageParams.getPage(), pageParams.getSize(),
-        accountIdentifier, referredEntityFQScope, EntityType.FILES, entityType,
+        accountIdentifier, referredEntityFQScope, EntityType.FILES, entityType, referredByEntityName,
         Sort.by(Sort.Direction.ASC, EntitySetupUsageKeys.referredByEntityName));
   }
 

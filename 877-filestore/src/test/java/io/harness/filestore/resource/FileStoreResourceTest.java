@@ -68,10 +68,10 @@ import org.springframework.data.domain.PageImpl;
 @OwnedBy(HarnessTeam.CDP)
 @RunWith(MockitoJUnitRunner.class)
 public class FileStoreResourceTest extends CategoryTest {
-  private static final String ACCOUNT = "account";
-  private static final String ORG = "org";
-  private static final String PROJECT = "project";
-  private static final String IDENTIFIER = "testFile";
+  private final String ACCOUNT = "account";
+  private final String ORG = "org";
+  private final String PROJECT = "project";
+  private final String IDENTIFIER = "testFile";
 
   @Mock private FileStoreServiceImpl fileStoreService;
   @Mock private AccessControlClient accessControlClient;
@@ -325,11 +325,11 @@ public class FileStoreResourceTest extends CategoryTest {
     EntitySetupUsageDTO entitySetupUsage = EntitySetupUsageDTO.builder().build();
     final Page<EntitySetupUsageDTO> entityServiceUsageList =
         new PageImpl<>(Collections.singletonList(entitySetupUsage));
-    when(fileStoreService.listReferencedByInScope(any(), any(), any(), any(), any()))
+    when(fileStoreService.listFilesReferredByEntityType(any(), any(), any(), any(), any(), any()))
         .thenReturn(entityServiceUsageList);
 
-    ResponseDTO<Page<EntitySetupUsageDTO>> response =
-        fileStoreResource.getReferencedByInScope(1, 10, ACCOUNT, ORG, PROJECT, EntityType.PIPELINES);
+    ResponseDTO<Page<EntitySetupUsageDTO>> response = fileStoreResource.listFilesReferredByEntityType(
+        1, 10, ACCOUNT, ORG, PROJECT, EntityType.PIPELINES, "EntityName");
     Page<EntitySetupUsageDTO> returnedList = response.getData();
 
     assertThat(returnedList).isNotNull();

@@ -140,12 +140,13 @@ public class FileReferenceServiceTest extends CategoryTest {
                                        .getFullyQualifiedScopeIdentifier();
     SearchPageParams searchPageParams = SearchPageParams.builder().page(1).size(10).build();
     Page<EntitySetupUsageDTO> references = mock(Page.class);
+    String entityName = "EntityName";
     when(entitySetupUsageService.listAllEntityUsagePerEntityScope(searchPageParams.getPage(),
              searchPageParams.getSize(), ACCOUNT_IDENTIFIER, referredEntityFQScope, EntityType.FILES,
-             EntityType.PIPELINES, Sort.by(Sort.Direction.ASC, EntitySetupUsageKeys.referredByEntityName)))
+             EntityType.PIPELINES, entityName, Sort.by(Sort.Direction.ASC, EntitySetupUsageKeys.referredByEntityName)))
         .thenReturn(references);
     Page<EntitySetupUsageDTO> result = fileReferenceService.getAllReferencedByInScope(
-        ACCOUNT_IDENTIFIER, ORG_IDENTIFIER, PROJECT_IDENTIFIER, searchPageParams, EntityType.PIPELINES);
+        ACCOUNT_IDENTIFIER, ORG_IDENTIFIER, PROJECT_IDENTIFIER, searchPageParams, EntityType.PIPELINES, entityName);
     assertThat(result).isEqualTo(references);
   }
 }

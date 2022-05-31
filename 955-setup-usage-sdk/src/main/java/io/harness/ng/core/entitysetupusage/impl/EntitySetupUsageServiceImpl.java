@@ -272,12 +272,13 @@ public class EntitySetupUsageServiceImpl implements EntitySetupUsageService {
 
   @Override
   public Page<EntitySetupUsageDTO> listAllEntityUsagePerEntityScope(int page, int size, String accountIdentifier,
-      String referredEntityFQScope, EntityType referredEntityType, EntityType referredByEntityType, Sort sort) {
+      String referredEntityFQScope, EntityType referredEntityType, EntityType referredByEntityType,
+      String referredByEntityName, Sort sort) {
     if (null == referredByEntityType) {
       return Page.empty();
     }
     Criteria criteria = entitySetupUsageFilterHelper.createCriteriaForEntitiesInScope(
-        accountIdentifier, referredEntityFQScope, referredEntityType, referredByEntityType);
+        accountIdentifier, referredEntityFQScope, referredEntityType, referredByEntityType, referredByEntityName);
 
     Pageable pageable = getPageRequest(page, size, sort);
     Page<EntitySetupUsage> entityReferences = entityReferenceRepository.findAll(criteria, pageable);

@@ -15,10 +15,13 @@ import static io.harness.NGCommonEntityConstants.FILE_LIST_IDENTIFIERS_PARAM_MES
 import static io.harness.NGCommonEntityConstants.FILE_PARAM_MESSAGE;
 import static io.harness.NGCommonEntityConstants.FILE_SEARCH_TERM_PARAM_MESSAGE;
 import static io.harness.NGCommonEntityConstants.IDENTIFIER_KEY;
+import static io.harness.NGCommonEntityConstants.NAME_KEY;
+import static io.harness.NGCommonEntityConstants.NAME_PARAM_MESSAGE;
 import static io.harness.NGCommonEntityConstants.ORG_KEY;
 import static io.harness.NGCommonEntityConstants.ORG_PARAM_MESSAGE;
 import static io.harness.NGCommonEntityConstants.PROJECT_KEY;
 import static io.harness.NGCommonEntityConstants.PROJECT_PARAM_MESSAGE;
+import static io.harness.NGCommonEntityConstants.REFERRED_BY_ENTITY_TYPE;
 import static io.harness.NGResourceFilterConstants.FILTER_KEY;
 import static io.harness.NGResourceFilterConstants.IDENTIFIERS;
 import static io.harness.NGResourceFilterConstants.PAGE_KEY;
@@ -363,20 +366,22 @@ public class FileStoreResource {
         ApiResponse(description = "Returns the list of reference by entities per referenced entity type and scope. ")
       })
   public ResponseDTO<Page<EntitySetupUsageDTO>>
-  getReferencedByInScope(@Parameter(description = "Page number of navigation. The default value is 0") @QueryParam(
-                             PAGE_KEY) @DefaultValue("0") int page,
+  listFilesReferredByEntityType(@Parameter(description = "Page number of navigation. The default value is 0")
+                                @QueryParam(PAGE_KEY) @DefaultValue("0") int page,
       @Parameter(description = "Number of entries per page. The default value is 100") @QueryParam(
           SIZE_KEY) @DefaultValue("100") int size,
       @Parameter(description = ACCOUNT_PARAM_MESSAGE) @QueryParam(ACCOUNT_KEY) @NotBlank String accountIdentifier,
       @Parameter(description = ORG_PARAM_MESSAGE) @QueryParam(ORG_KEY) String orgIdentifier,
       @Parameter(description = PROJECT_PARAM_MESSAGE) @QueryParam(PROJECT_KEY) String projectIdentifier,
-      @Parameter(description = "Entity type") @QueryParam(ENTITY_TYPE) EntityType referredByEntityType) {
+      @Parameter(description = "Referred by entity type") @QueryParam(
+          REFERRED_BY_ENTITY_TYPE) EntityType referredByEntityType,
+      @Parameter(description = NAME_PARAM_MESSAGE) @QueryParam(NAME_KEY) String referredByEntityName) {
     accessControlClient.checkForAccessOrThrow(ResourceScope.of(accountIdentifier, orgIdentifier, projectIdentifier),
         Resource.of(FILE, null), FILE_VIEW_PERMISSION);
 
     return ResponseDTO.newResponse(
-        fileStoreService.listReferencedByInScope(SearchPageParams.builder().page(page).size(size).build(),
-            accountIdentifier, orgIdentifier, projectIdentifier, referredByEntityType));
+        fileStoreService.listFilesReferredByEntityType(SearchPageParams.builder().page(page).size(size).build(),
+            accountIdentifier, orgIdentifier, projectIdentifier, referredByEntityType, referredByEntityName));
   }
 
   @GET
