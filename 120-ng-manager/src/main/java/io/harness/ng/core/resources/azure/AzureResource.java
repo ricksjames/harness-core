@@ -69,7 +69,7 @@ public class AzureResource {
   }
 
   @GET
-  @Path("subscriptions/{subscriptionId}/resourceGroups/{resourceGroup}/web-app-services-names")
+  @Path("subscriptions/{subscriptionId}/resourceGroups/{resourceGroup}/app-services-names")
   @ApiOperation(value = "Gets azure app services names by subscriptionId and resourceGroup", nickname = "getAzureWebAppNames")
   public ResponseDTO<AzureWebAppNamesDTO> getAppServiceNames(
       @NotNull @QueryParam("connectorRef") String azureConnectorIdentifier,
@@ -84,7 +84,7 @@ public class AzureResource {
   }
 
   @GET
-  @Path("subscriptions/{subscriptionId}/resourceGroups/{resourceGroup}/web-app-services-names/{webAppName}/slots")
+  @Path("subscriptions/{subscriptionId}/resourceGroups/{resourceGroup}/app-services/{webAppName}/slots")
   @ApiOperation(value = "Gets azure webApp deployment slots", nickname = "getAzureWebAppDeploymentSlots")
   public ResponseDTO<AzureDeploymentSlotsDTO> getAppServiceDeploymentSlotNames(
       @NotNull @QueryParam("connectorRef") String azureConnectorIdentifier,
