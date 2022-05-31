@@ -98,7 +98,7 @@ public class CDNGPlanCreatorProvider implements PipelineServiceInfoProvider {
   private static final List<String> CLOUDFORMATION_CATEGORY =
       Arrays.asList("Kubernetes", "Provisioner", "Cloudformation");
   private static final String CLOUDFORMATION_STEP_METADATA = "Cloudformation";
-  private static final List<String> TERRAFORM_CATEGORY = Arrays.asList("Kubernetes", "Provisioner");
+  private static final List<String> TERRAFORM_CATEGORY = Arrays.asList("Kubernetes", "Provisioner", "Helm");
 
   @Inject InjectorUtils injectorUtils;
   @Override
@@ -338,7 +338,7 @@ public class CDNGPlanCreatorProvider implements PipelineServiceInfoProvider {
             .build();
 
     StepInfo createStack = StepInfo.newBuilder()
-                               .setName("Cloudformation create stack")
+                               .setName("CloudFormation Create Stack")
                                .setType(StepSpecTypeConstants.CLOUDFORMATION_CREATE_STACK)
                                .setFeatureRestrictionName(FeatureRestrictionName.CREATE_STACK.name())
                                .setStepMetaData(StepMetaData.newBuilder()
@@ -349,7 +349,7 @@ public class CDNGPlanCreatorProvider implements PipelineServiceInfoProvider {
                                .build();
 
     StepInfo deleteStack = StepInfo.newBuilder()
-                               .setName("Cloudformation delete stack")
+                               .setName("CloudFormation Delete Stack")
                                .setType(StepSpecTypeConstants.CLOUDFORMATION_DELETE_STACK)
                                .setFeatureRestrictionName(FeatureRestrictionName.DELETE_STACK.name())
                                .setStepMetaData(StepMetaData.newBuilder()
@@ -360,7 +360,7 @@ public class CDNGPlanCreatorProvider implements PipelineServiceInfoProvider {
                                .build();
 
     StepInfo rollbackStack = StepInfo.newBuilder()
-                                 .setName("Cloudformation rollback stack")
+                                 .setName("CloudFormation Rollback")
                                  .setType(StepSpecTypeConstants.CLOUDFORMATION_ROLLBACK_STACK)
                                  .setFeatureRestrictionName(FeatureRestrictionName.ROLLBACK_STACK.name())
                                  .setStepMetaData(StepMetaData.newBuilder()

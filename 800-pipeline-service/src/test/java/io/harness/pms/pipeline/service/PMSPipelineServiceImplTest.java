@@ -68,6 +68,7 @@ public class PMSPipelineServiceImplTest extends PipelineServiceTestBase {
   @Inject private PipelineMetadataService pipelineMetadataService;
   @InjectMocks private PMSPipelineServiceImpl pmsPipelineService;
   @Inject private PMSPipelineRepository pmsPipelineRepository;
+
   StepCategory library;
   StepCategory cv;
 
@@ -236,9 +237,6 @@ public class PMSPipelineServiceImplTest extends PipelineServiceTestBase {
     doReturn(updatedPipelineEntity).when(pmsPipelineServiceHelper).updatePipelineInfo(pipelineEntity);
     pmsPipelineService.create(pipelineEntity);
     pmsPipelineService.delete(accountId, ORG_IDENTIFIER, PROJ_IDENTIFIER, PIPELINE_IDENTIFIER, 1L);
-    assertThatThrownBy(
-        () -> pmsPipelineService.delete(accountId, ORG_IDENTIFIER, PROJ_IDENTIFIER, PIPELINE_IDENTIFIER, 1L))
-        .isInstanceOf(InvalidRequestException.class);
   }
 
   @Test

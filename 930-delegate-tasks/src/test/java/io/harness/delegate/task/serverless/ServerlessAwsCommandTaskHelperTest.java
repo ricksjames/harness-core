@@ -55,7 +55,6 @@ public class ServerlessAwsCommandTaskHelperTest extends CategoryTest {
   @Mock private AwsInternalConfig awsInternalConfig;
   @Mock private ServerlessCommandRequest serverlessCommandRequest;
 
-  private final long timeout = 10;
   @InjectMocks private ServerlessAwsCommandTaskHelper serverlessAwsCommandTaskHelper;
   private ServerlessAwsLambdaManifestSchema serverlessAwsLambdaManifestSchema =
       ServerlessAwsLambdaManifestSchema.builder().plugins(Arrays.asList("asfd", "asfdasdf")).build();
