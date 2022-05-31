@@ -27,9 +27,8 @@ public class NGFeatureFlagHelperService {
 
     public boolean isEnabled(String accountId, FeatureName featureName) {
         try {
-            boolean isFeatureFlagEnabled =  Failsafe.with(fetchRetryPolicy)
+            return Failsafe.with(fetchRetryPolicy)
                     .get(() -> RestClientUtils.getResponse(accountClient.isFeatureFlagEnabled(featureName.name(), accountId)));
-            return  isFeatureFlagEnabled;
         }
         catch (InvalidRequestException e) {
             throw new UnexpectedException("Unexpected error, could not fetch the feature flag");
