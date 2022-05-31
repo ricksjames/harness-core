@@ -439,19 +439,23 @@ public class TerragruntProvisionTask extends AbstractDelegateRunnableTask {
       return terragruntExecutionDataBuilder.build();
 
     } catch (WingsException ex) {
+      Exception sanitizedException = ExceptionMessageSanitizer.sanitizeException(ex);
       return logErrorAndGetFailureResponse(
-          wrapUpLogCallBack, ex, ExceptionUtils.getMessage(ExceptionMessageSanitizer.sanitizeException(ex)));
+          wrapUpLogCallBack, sanitizedException, ExceptionUtils.getMessage(sanitizedException));
     } catch (IOException ex) {
-      return logErrorAndGetFailureResponse(wrapUpLogCallBack, ex,
-          format("IO Failure occurred while performing Terragrunt Task: %s",
-              ExceptionMessageSanitizer.sanitizeException(ex).getMessage()));
+      Exception sanitizedException = ExceptionMessageSanitizer.sanitizeException(ex);
+      return logErrorAndGetFailureResponse(wrapUpLogCallBack, sanitizedException,
+          format("IO Failure occurred while performing Terragrunt Task: %s", sanitizedException.getMessage()));
     } catch (InterruptedException ex) {
       Thread.currentThread().interrupt();
-      return logErrorAndGetFailureResponse(wrapUpLogCallBack, ex, "Interrupted while performing Terragrunt Task");
+      return logErrorAndGetFailureResponse(wrapUpLogCallBack, ExceptionMessageSanitizer.sanitizeException(ex),
+          "Interrupted while performing Terragrunt Task");
     } catch (TimeoutException | UncheckedTimeoutException ex) {
-      return logErrorAndGetFailureResponse(wrapUpLogCallBack, ex, "Timed out while performing Terragrunt Task");
+      return logErrorAndGetFailureResponse(wrapUpLogCallBack, ExceptionMessageSanitizer.sanitizeException(ex),
+          "Timed out while performing Terragrunt Task");
     } catch (Exception ex) {
-      return logErrorAndGetFailureResponse(wrapUpLogCallBack, ex, "Failed to complete Terragrunt Task");
+      return logErrorAndGetFailureResponse(
+          wrapUpLogCallBack, ExceptionMessageSanitizer.sanitizeException(ex), "Failed to complete Terragrunt Task");
     } finally {
       FileUtils.deleteQuietly(new File(workingDir));
       FileUtils.deleteQuietly(new File(baseDir));
