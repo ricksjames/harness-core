@@ -15,6 +15,7 @@ import static io.harness.pms.rbac.NGResourceType.ENVIRONMENT;
 import static io.harness.rbac.CDNGRbacPermissions.ENVIRONMENT_CREATE_PERMISSION;
 import static io.harness.rbac.CDNGRbacPermissions.ENVIRONMENT_UPDATE_PERMISSION;
 import static io.harness.rbac.CDNGRbacPermissions.ENVIRONMENT_VIEW_PERMISSION;
+import static io.harness.rbac.CDNGRbacPermissions.SERVICE_UPDATE_PERMISSION;
 import static io.harness.utils.PageUtils.getNGPageResponse;
 
 import static java.lang.Long.parseLong;
@@ -47,17 +48,16 @@ import io.harness.ng.core.environment.beans.Environment;
 import io.harness.ng.core.environment.beans.Environment.EnvironmentKeys;
 import io.harness.ng.core.environment.beans.EnvironmentFilterPropertiesDTO;
 import io.harness.ng.core.environment.beans.EnvironmentType;
-import io.harness.ng.core.environment.beans.NGServiceOverridesEntity;
-import io.harness.ng.core.environment.beans.ServiceOverrideRequestDTO;
-import io.harness.ng.core.environment.beans.ServiceOverrideResponseDTO;
 import io.harness.ng.core.environment.dto.EnvironmentRequestDTO;
 import io.harness.ng.core.environment.dto.EnvironmentResponse;
 import io.harness.ng.core.environment.mappers.EnvironmentFilterHelper;
 import io.harness.ng.core.environment.mappers.EnvironmentMapper;
-import io.harness.ng.core.environment.mappers.ServiceOverridesMapper;
 import io.harness.ng.core.environment.services.EnvironmentService;
-import io.harness.ng.core.environment.services.ServiceOverrideService;
 import io.harness.ng.core.environment.yaml.NGEnvironmentConfig;
+import io.harness.ng.core.serviceoverride.beans.NGServiceOverridesEntity;
+import io.harness.ng.core.serviceoverride.beans.ServiceOverrideRequestDTO;
+import io.harness.ng.core.serviceoverride.mapper.ServiceOverridesMapper;
+import io.harness.ng.core.serviceoverride.services.ServiceOverrideService;
 import io.harness.ng.core.utils.CoreCriteriaUtils;
 import io.harness.rbac.CDNGRbacUtility;
 import io.harness.security.annotations.NextGenManagerAuth;
@@ -457,11 +457,11 @@ public class EnvironmentResourceV2 {
   @Operation(operationId = "upsertServiceOverride", summary = "Upsert",
       responses = { @io.swagger.v3.oas.annotations.responses.ApiResponse(description = "Upserts a Service Override") },
       hidden = true)
-  public ResponseDTO<ServiceOverrideResponseDTO>
+  public ResponseDTO<io.harness.ng.core.serviceoverride.beans.ServiceOverrideResponseDTO>
   upsertServiceOverride(@Parameter(description = NGCommonEntityConstants.ACCOUNT_PARAM_MESSAGE) @NotNull @QueryParam(
                             NGCommonEntityConstants.ACCOUNT_KEY) String accountId,
       @Parameter(description = "Details of the Service Override to be upserted")
-      @Valid ServiceOverrideRequestDTO serviceOverrideRequestDTO) {
+      @Valid io.harness.ng.core.serviceoverride.beans.ServiceOverrideRequestDTO serviceOverrideRequestDTO) {
     throwExceptionForNoRequestDTO(serviceOverrideRequestDTO);
 
     NGServiceOverridesEntity serviceOverridesEntity =
@@ -471,12 +471,44 @@ public class EnvironmentResourceV2 {
     environmentValidationHelper.checkThatEnvExists(serviceOverridesEntity.getAccountId(),
         serviceOverridesEntity.getOrgIdentifier(), serviceOverridesEntity.getProjectIdentifier(),
         serviceOverridesEntity.getEnvironmentRef());
+    // todo: validation for service
+    // check access for service and env
     accessControlClient.checkForAccessOrThrow(ResourceScope.of(accountId, serviceOverrideRequestDTO.getOrgIdentifier(),
                                                   serviceOverrideRequestDTO.getProjectIdentifier()),
         Resource.of(ENVIRONMENT, serviceOverrideRequestDTO.getEnvironmentRef()), ENVIRONMENT_UPDATE_PERMISSION);
-    // todo: service rbac
+    accessControlClient.checkForAccessOrThrow(ResourceScope.of(accountId, serviceOverrideRequestDTO.getOrgIdentifier(),
+                                                  serviceOverrideRequestDTO.getProjectIdentifier()),
+        Resource.of(SERVICE, serviceOverrideRequestDTO.getServiceRef()), SERVICE_UPDATE_PERMISSION);
     NGServiceOverridesEntity createdServiceOverride = serviceOverrideService.upsert(serviceOverridesEntity);
     return ResponseDTO.newResponse(ServiceOverridesMapper.toResponseWrapper(createdServiceOverride));
+  }
+
+  @DELETE
+  @Path("/serviceOverrides")
+  @ApiOperation(value = "Delete a Service Override entity", nickname = "deleteServiceOverride")
+  @Operation(operationId = "deleteServiceOverride", summary = "Delete a ServiceOverride entity",
+      responses =
+      {
+        @io.swagger.v3.oas.annotations.responses.
+        ApiResponse(description = "Returns true if the Service Override is deleted")
+      },
+      hidden = true)
+  public ResponseDTO<Boolean>
+  deleteServiceOverride(@Parameter(description = NGCommonEntityConstants.ACCOUNT_PARAM_MESSAGE) @NotNull @QueryParam(
+                            NGCommonEntityConstants.ACCOUNT_KEY) @AccountIdentifier String accountId,
+      @Parameter(description = NGCommonEntityConstants.ORG_PARAM_MESSAGE, required = true) @QueryParam(
+          NGCommonEntityConstants.ORG_KEY) @OrgIdentifier String orgIdentifier,
+      @Parameter(description = NGCommonEntityConstants.PROJECT_PARAM_MESSAGE, required = true) @QueryParam(
+          NGCommonEntityConstants.PROJECT_KEY) @ProjectIdentifier String projectIdentifier,
+      @Parameter(description = NGCommonEntityConstants.ENV_PARAM_MESSAGE) @QueryParam(
+          NGCommonEntityConstants.ENVIRONMENT_IDENTIFIER_KEY) @ResourceIdentifier String environmentIdentifier,
+      @Parameter(description = NGCommonEntityConstants.SERVICE_PARAM_MESSAGE) @QueryParam(
+          NGCommonEntityConstants.SERVICE_IDENTIFIER_KEY) @ResourceIdentifier String serviceIdentifier) {
+    orgAndProjectValidationHelper.checkThatTheOrganizationAndProjectExists(orgIdentifier, projectIdentifier, accountId);
+    environmentValidationHelper.checkThatEnvExists(accountId, orgIdentifier, projectIdentifier, environmentIdentifier);
+    // todo: RBAC for delete
+    return ResponseDTO.newResponse(serviceOverrideService.delete(
+        accountId, orgIdentifier, projectIdentifier, environmentIdentifier, serviceIdentifier));
   }
 
   private List<EnvironmentResponse> filterEnvironmentResponseByPermissionAndId(

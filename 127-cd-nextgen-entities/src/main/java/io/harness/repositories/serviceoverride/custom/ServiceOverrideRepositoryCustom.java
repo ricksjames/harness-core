@@ -5,10 +5,11 @@
  * https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt.
  */
 
-package io.harness.repositories.environment.custom;
+package io.harness.repositories.serviceoverride.custom;
 
-import io.harness.ng.core.environment.beans.NGServiceOverridesEntity;
+import io.harness.ng.core.serviceoverride.beans.NGServiceOverridesEntity;
 
+import com.mongodb.client.result.DeleteResult;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -16,4 +17,5 @@ import org.springframework.data.mongodb.core.query.Criteria;
 public interface ServiceOverrideRepositoryCustom {
   Page<NGServiceOverridesEntity> findAll(Criteria criteria, Pageable pageable);
   NGServiceOverridesEntity upsert(Criteria criteria, NGServiceOverridesEntity serviceOverridesEntity);
+  DeleteResult delete(Criteria criteria);
 }

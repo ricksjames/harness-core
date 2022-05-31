@@ -5,12 +5,13 @@
  * https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt.
  */
 
-package io.harness.repositories.environment.custom;
+package io.harness.repositories.serviceoverride.custom;
 
-import io.harness.ng.core.environment.beans.NGServiceOverridesEntity;
 import io.harness.ng.core.environment.mappers.EnvironmentFilterHelper;
+import io.harness.ng.core.serviceoverride.beans.NGServiceOverridesEntity;
 
 import com.google.inject.Inject;
+import com.mongodb.client.result.DeleteResult;
 import java.time.Duration;
 import java.util.List;
 import lombok.AccessLevel;
@@ -18,7 +19,6 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.jodah.failsafe.Failsafe;
 import net.jodah.failsafe.RetryPolicy;
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -57,10 +57,17 @@ public class ServiceOverrideRepositoryCustomImpl implements ServiceOverrideRepos
                      new FindAndModifyOptions().returnNew(true).upsert(true), NGServiceOverridesEntity.class));
   }
 
+  @Override
+  public DeleteResult delete(Criteria criteria) {
+    Query query = new Query(criteria);
+    RetryPolicy<Object> retryPolicy = getRetryPolicy("[Retrying]: Failed deleting Service Override; attempt: {}",
+        "[Failed]: Failed deleting Service Override; attempt: {}");
+    return Failsafe.with(retryPolicy).get(() -> mongoTemplate.remove(query, NGServiceOverridesEntity.class));
+  }
+
   private RetryPolicy<Object> getRetryPolicy(String failedAttemptMessage, String failureMessage) {
     return new RetryPolicy<>()
         .handle(OptimisticLockingFailureException.class)
-        .handle(DuplicateKeyException.class)
         .withDelay(RETRY_SLEEP_DURATION)
         .withMaxAttempts(MAX_ATTEMPTS)
         .onFailedAttempt(event -> log.info(failedAttemptMessage, event.getAttemptCount(), event.getLastFailure()))

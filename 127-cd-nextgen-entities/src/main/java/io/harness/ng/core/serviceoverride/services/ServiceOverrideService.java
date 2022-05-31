@@ -5,11 +5,12 @@
  * https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt.
  */
 
-package io.harness.ng.core.environment.services;
+package io.harness.ng.core.serviceoverride.services;
 
-import io.harness.ng.core.environment.beans.NGServiceOverridesEntity;
+import io.harness.ng.core.serviceoverride.beans.NGServiceOverridesEntity;
 
 import java.util.Optional;
+import org.hibernate.validator.constraints.NotEmpty;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -21,4 +22,7 @@ public interface ServiceOverrideService {
   NGServiceOverridesEntity upsert(NGServiceOverridesEntity requestServiceOverride);
 
   Page<NGServiceOverridesEntity> list(Criteria criteria, Pageable pageable);
+
+  boolean delete(@NotEmpty String accountId, @NotEmpty String orgIdentifier, @NotEmpty String projectIdentifier,
+      @NotEmpty String environmentRef, @NotEmpty String serviceRef);
 }

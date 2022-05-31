@@ -5,7 +5,7 @@
  * https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt.
  */
 
-package io.harness.ng.core.environment.beans;
+package io.harness.ng.core.serviceoverride.beans;
 
 import static io.harness.annotations.dev.HarnessTeam.CDC;
 
@@ -17,14 +17,12 @@ import io.harness.mongo.index.CompoundMongoIndex;
 import io.harness.mongo.index.MongoIndex;
 import io.harness.ng.DbAliases;
 import io.harness.persistence.PersistentEntity;
-import io.harness.yaml.core.variables.NGVariable;
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import javax.validation.constraints.NotNull;
 import lombok.Builder;
 import lombok.Data;
-import lombok.Value;
 import lombok.experimental.FieldNameConstants;
 import lombok.experimental.Wither;
 import org.hibernate.validator.constraints.NotEmpty;
@@ -36,13 +34,12 @@ import org.springframework.data.annotation.TypeAlias;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 @Data
-@Value
 @Builder
 @Entity(value = "serviceOverridesNG", noClassnameStored = true)
 @FieldNameConstants(innerTypeName = "NGServiceOverridesEntityKeys")
 @Document("serviceOverridesNG")
-@TypeAlias("io.harness.ng.core.environment.beans.NGServiceOverridesEntity")
-@RecasterAlias("io.harness.ng.core.environment.beans.NGServiceOverridesEntity")
+@TypeAlias("io.harness.ng.core.serviceoverride.beans.NGServiceOverridesEntity")
+@RecasterAlias("io.harness.ng.core.serviceoverride.beans.NGServiceOverridesEntity")
 @StoreIn(DbAliases.NG_MANAGER)
 @OwnedBy(CDC)
 public class NGServiceOverridesEntity implements PersistentEntity {
@@ -68,7 +65,7 @@ public class NGServiceOverridesEntity implements PersistentEntity {
   @NotNull @Trimmed String serviceRef;
   @NotNull @Trimmed String environmentRef;
 
-  List<NGVariable> variableOverrides;
+  String yaml;
 
   @Wither @CreatedDate Long createdAt;
   @Wither @LastModifiedDate Long lastModifiedAt;

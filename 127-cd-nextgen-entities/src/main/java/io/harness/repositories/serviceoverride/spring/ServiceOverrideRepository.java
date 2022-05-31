@@ -5,11 +5,11 @@
  * https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt.
  */
 
-package io.harness.repositories.environment.spring;
+package io.harness.repositories.serviceoverride.spring;
 
 import io.harness.annotation.HarnessRepo;
-import io.harness.ng.core.environment.beans.NGServiceOverridesEntity;
-import io.harness.repositories.environment.custom.ServiceOverrideRepositoryCustom;
+import io.harness.ng.core.serviceoverride.beans.NGServiceOverridesEntity;
+import io.harness.repositories.serviceoverride.custom.ServiceOverrideRepositoryCustom;
 
 import java.util.Optional;
 import org.springframework.data.repository.PagingAndSortingRepository;

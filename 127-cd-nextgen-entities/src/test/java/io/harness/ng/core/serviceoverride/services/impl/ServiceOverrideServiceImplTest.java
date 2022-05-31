@@ -5,7 +5,7 @@
  * https://polyformproject.org/wp-content/uploads/2020/05/PolyForm-Free-Trial-1.0.0.txt.
  */
 
-package io.harness.ng.core.environment.services.impl;
+package io.harness.ng.core.serviceoverride.services.impl;
 
 import static io.harness.rule.OwnerRule.HINGER;
 
@@ -17,15 +17,12 @@ import io.harness.annotations.dev.OwnedBy;
 import io.harness.category.element.UnitTests;
 import io.harness.exception.InvalidRequestException;
 import io.harness.ng.core.NGCoreTestBase;
-import io.harness.ng.core.environment.beans.NGServiceOverridesEntity;
+import io.harness.ng.core.serviceoverride.beans.NGServiceOverridesEntity;
 import io.harness.ng.core.utils.CoreCriteriaUtils;
 import io.harness.rule.Owner;
 import io.harness.utils.PageUtils;
-import io.harness.yaml.core.variables.NGVariableType;
-import io.harness.yaml.core.variables.StringNGVariable;
 
 import com.google.inject.Inject;
-import java.util.Arrays;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.springframework.data.domain.Page;
@@ -38,7 +35,7 @@ public class ServiceOverrideServiceImplTest extends NGCoreTestBase {
 
   private final String ACCOUNT_ID = "accountId";
   private final String ORG_IDENTIFIER = "orgIdentifier";
-  private final String PROJECT_IDENTIFIER = "proIdentifier";
+  private final String PROJECT_IDENTIFIER = "projectIdentifier";
   private final String ENV_REF = "envIdentifier";
   private final String SERVICE_REF = "serviceIdentifier";
 
@@ -62,14 +59,13 @@ public class ServiceOverrideServiceImplTest extends NGCoreTestBase {
             .projectIdentifier(PROJECT_IDENTIFIER)
             .environmentRef(ENV_REF)
             .serviceRef(SERVICE_REF)
-            .variableOverrides(
-                Arrays.asList(StringNGVariable.builder().name("memory").type(NGVariableType.STRING).build(),
-                    StringNGVariable.builder().name("memory").type(NGVariableType.STRING).build()))
+            .yaml(
+                "serviceOverride:\n  orgIdentifier: orgIdentifier\\\n  projectIdentifier: projectIdentifier\n  environmentRef: envIdentifier\n  serviceRef: serviceIdentifier\n  variableOverrides: \n    - name: op1\n      value: var1\n      type: String\n    - name: op1\n      value: var1\n      type: String")
             .build();
     assertThatThrownBy(() -> serviceOverrideService.validateOverrideValues(serviceOverridesEntity))
         .isInstanceOf(InvalidRequestException.class)
         .hasMessageContaining(
-            String.format("Duplicate Service overrides provided: [memory] for service: [%s]", SERVICE_REF));
+            String.format("Duplicate Service overrides provided: [op1] for service: [%s]", SERVICE_REF));
   }
 
   @Test
@@ -84,9 +80,8 @@ public class ServiceOverrideServiceImplTest extends NGCoreTestBase {
             .projectIdentifier(PROJECT_IDENTIFIER)
             .environmentRef(ENV_REF)
             .serviceRef(SERVICE_REF)
-            .variableOverrides(
-                Arrays.asList(StringNGVariable.builder().name("memory").type(NGVariableType.STRING).build(),
-                    StringNGVariable.builder().name("cpu").type(NGVariableType.STRING).build()))
+            .yaml(
+                "serviceOverride:\n  orgIdentifier: orgIdentifier\\\n  projectIdentifier: projectIdentifier\n  environmentRef: envIdentifier\n  serviceRef: serviceIdentifier\n  variableOverrides: \n    - name: memory\n      value: var1\n      type: String\n    - name: cpu\n      value: var1\n      type: String")
             .build();
     NGServiceOverridesEntity upsertedServiceOverridesEntity = serviceOverrideService.upsert(serviceOverridesEntity);
     assertThat(upsertedServiceOverridesEntity).isNotNull();
@@ -97,7 +92,7 @@ public class ServiceOverrideServiceImplTest extends NGCoreTestBase {
     assertThat(upsertedServiceOverridesEntity.getServiceRef()).isEqualTo(serviceOverridesEntity.getServiceRef());
     assertThat(upsertedServiceOverridesEntity.getEnvironmentRef())
         .isEqualTo(serviceOverridesEntity.getEnvironmentRef());
-    assertThat(upsertedServiceOverridesEntity.getVariableOverrides().size()).isEqualTo(2);
+    assertThat(upsertedServiceOverridesEntity.getYaml()).isNotNull();
 
     // list
     Criteria criteriaFromFilter =

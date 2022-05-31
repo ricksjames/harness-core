@@ -5,13 +5,10 @@
  * https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt.
  */
 
-package io.harness.ng.core.environment.beans;
-
-import io.harness.yaml.core.variables.NGVariable;
+package io.harness.ng.core.serviceoverride.beans;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import io.swagger.v3.oas.annotations.media.Schema;
-import java.util.List;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Data;
@@ -29,5 +26,5 @@ public class ServiceOverrideResponseDTO {
   String projectIdentifier;
   String environmentRef;
   String serviceRef;
-  List<NGVariable> variableOverrides;
+  String yaml;
 }

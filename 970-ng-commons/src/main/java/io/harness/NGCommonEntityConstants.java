@@ -103,6 +103,7 @@ public class NGCommonEntityConstants {
   public static final String ENV_PARAM_MESSAGE = "Environment Identifier for the Entity.";
 
   // Service Overrides
+  public static final String SERVICE_IDENTIFIER_KEY = "serviceIdentifier";
   public static final String SERVICE_PARAM_MESSAGE = "Service Identifier for the Entity.";
   public static final String VARIABLE_OVERRIDE_PARAM_MESSAGE = "Variable Overrides for an Environment";
 }

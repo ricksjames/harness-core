@@ -5,7 +5,7 @@
  * https://polyformproject.org/wp-content/uploads/2020/06/PolyForm-Shield-1.0.0.txt.
  */
 
-package io.harness.ng.core.environment.services.impl;
+package io.harness.ng.core.serviceoverride.services.impl;
 
 import static io.harness.eventsframework.EventsFrameworkConstants.ENTITY_CRUD;
 import static io.harness.outbox.TransactionOutboxModule.OUTBOX_TRANSACTION_TEMPLATE;
@@ -13,14 +13,17 @@ import static io.harness.springdata.TransactionUtils.DEFAULT_TRANSACTION_RETRY_P
 
 import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
+import io.harness.data.structure.EmptyPredicate;
 import io.harness.eventsframework.api.Producer;
 import io.harness.exception.InvalidRequestException;
 import io.harness.ng.core.entitysetupusage.service.EntitySetupUsageService;
-import io.harness.ng.core.environment.beans.NGServiceOverridesEntity;
-import io.harness.ng.core.environment.beans.NGServiceOverridesEntity.NGServiceOverridesEntityKeys;
-import io.harness.ng.core.environment.services.ServiceOverrideService;
+import io.harness.ng.core.serviceoverride.beans.NGServiceOverridesEntity;
+import io.harness.ng.core.serviceoverride.beans.NGServiceOverridesEntity.NGServiceOverridesEntityKeys;
+import io.harness.ng.core.serviceoverride.services.ServiceOverrideService;
+import io.harness.ng.core.serviceoverride.yaml.NGServiceOverrideConfig;
 import io.harness.outbox.api.OutboxService;
-import io.harness.repositories.environment.spring.ServiceOverrideRepository;
+import io.harness.repositories.serviceoverride.spring.ServiceOverrideRepository;
+import io.harness.utils.YamlPipelineUtils;
 import io.harness.yaml.core.variables.NGVariable;
 
 import com.google.common.base.Joiner;
@@ -28,7 +31,10 @@ import com.google.common.collect.Lists;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
+import com.mongodb.client.result.DeleteResult;
+import java.io.IOException;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -91,22 +97,68 @@ public class ServiceOverrideServiceImpl implements ServiceOverrideService {
   }
 
   void validateOverrideValues(NGServiceOverridesEntity requestServiceOverride) {
-    Set<String> variableKeys = new HashSet<>();
-    Set<String> duplicates = new HashSet<>();
-    for (NGVariable variableOverride : requestServiceOverride.getVariableOverrides()) {
-      if (!variableKeys.add(variableOverride.getName())) {
-        duplicates.add(variableOverride.getName());
+    List<NGVariable> variableOverrides = null;
+    if (EmptyPredicate.isNotEmpty(requestServiceOverride.getYaml())) {
+      try {
+        final NGServiceOverrideConfig config =
+            YamlPipelineUtils.read(requestServiceOverride.getYaml(), NGServiceOverrideConfig.class);
+        variableOverrides = config.getServiceOverrideInfoConfig().getVariableOverrides();
+      } catch (IOException e) {
+        throw new InvalidRequestException("Cannot create service ng service config due to " + e.getMessage());
       }
     }
-    if (!duplicates.isEmpty()) {
-      throw new InvalidRequestException(String.format("Duplicate Service overrides provided: [%s] for service: [%s]",
-          Joiner.on(",").skipNulls().join(duplicates), requestServiceOverride.getServiceRef()));
+    if (variableOverrides != null) {
+      Set<String> variableKeys = new HashSet<>();
+      Set<String> duplicates = new HashSet<>();
+      for (NGVariable variableOverride : variableOverrides) {
+        if (!variableKeys.add(variableOverride.getName())) {
+          duplicates.add(variableOverride.getName());
+        }
+      }
+      if (!duplicates.isEmpty()) {
+        throw new InvalidRequestException(String.format("Duplicate Service overrides provided: [%s] for service: [%s]",
+            Joiner.on(",").skipNulls().join(duplicates), requestServiceOverride.getServiceRef()));
+      }
     }
   }
 
   @Override
   public Page<NGServiceOverridesEntity> list(Criteria criteria, Pageable pageable) {
     return serviceOverrideRepository.findAll(criteria, pageable);
+  }
+
+  @Override
+  public boolean delete(
+      String accountId, String orgIdentifier, String projectIdentifier, String environmentRef, String serviceRef) {
+    NGServiceOverridesEntity serviceOverridesEntity = NGServiceOverridesEntity.builder()
+                                                          .accountId(accountId)
+                                                          .orgIdentifier(orgIdentifier)
+                                                          .projectIdentifier(projectIdentifier)
+                                                          .environmentRef(environmentRef)
+                                                          .serviceRef(serviceRef)
+                                                          .build();
+
+    // todo: check for override usage in pipelines
+    // todo: outbox events
+    Criteria criteria = getServiceOverrideEqualityCriteria(serviceOverridesEntity);
+
+    Optional<NGServiceOverridesEntity> entityOptional =
+        get(accountId, orgIdentifier, projectIdentifier, environmentRef, serviceRef);
+    if (entityOptional.isPresent()) {
+      return Failsafe.with(transactionRetryPolicy).get(() -> transactionTemplate.execute(status -> {
+        DeleteResult deleteResult = serviceOverrideRepository.delete(criteria);
+        if (!deleteResult.wasAcknowledged() || deleteResult.getDeletedCount() != 1) {
+          throw new InvalidRequestException(String.format(
+              "Service Override for Service [%s], Environment [%s], Project[%s], Organization [%s] couldn't be deleted.",
+              serviceRef, environmentRef, projectIdentifier, orgIdentifier));
+        }
+        return true;
+      }));
+    } else {
+      throw new InvalidRequestException(String.format(
+          "Service Override for Service [%s], Environment [%s], Project[%s], Organization [%s] doesn't exist.",
+          serviceRef, environmentRef, projectIdentifier, orgIdentifier));
+    }
   }
 
   void validatePresenceOfRequiredFields(Object... fields) {
