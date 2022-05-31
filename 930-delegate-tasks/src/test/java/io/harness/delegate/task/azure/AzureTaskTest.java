@@ -206,13 +206,12 @@ public class AzureTaskTest {
   }
 
   @Test
-  @Owner(developers = MLUKIC)
+  @Owner(developers = VLICA)
   @Category(UnitTests.class)
   public void testFailedListWebAppDeploymentSlotsTaskType() {
     Map<AzureAdditionalParams, String> additionalParamsStringMap = new HashMap<>();
     additionalParamsStringMap.put(AzureAdditionalParams.SUBSCRIPTION_ID, subscriptionId);
     additionalParamsStringMap.put(AzureAdditionalParams.RESOURCE_GROUP, resourceGroup);
-
 
     TaskParameters taskParameters = getAzureTaskParams(AzureTaskType.LIST_DEPLOYMENT_SLOTS, additionalParamsStringMap);
 
