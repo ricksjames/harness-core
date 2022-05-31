@@ -14,7 +14,6 @@ import io.harness.dto.converter.FailureInfoDTOConverter;
 import io.harness.engine.utils.OrchestrationUtils;
 import io.harness.execution.NodeExecution;
 import io.harness.plan.NodeType;
-import io.harness.pms.contracts.ambiance.Ambiance;
 import io.harness.pms.contracts.ambiance.Level;
 import io.harness.pms.contracts.steps.StepCategory;
 import io.harness.pms.execution.ExecutionStatus;
@@ -24,7 +23,6 @@ import io.harness.steps.StepSpecTypeConstants;
 
 import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import lombok.experimental.UtilityClass;
 import org.springframework.data.mongodb.core.query.Update;
 
