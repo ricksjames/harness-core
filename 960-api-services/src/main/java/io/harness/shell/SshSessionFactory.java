@@ -110,6 +110,7 @@ public class SshSessionFactory {
     JSch jsch = new JSch();
     log.info("[SshSessionFactory]: SSHSessionConfig is : {}", config);
     Session session;
+
     if (config.getAuthenticationScheme() != null && config.getAuthenticationScheme() == KERBEROS) {
       logCallback.saveExecutionLog("SSH using Kerberos Auth");
       log.info("[SshSessionFactory]: SSH using Kerberos Auth");
@@ -184,6 +185,7 @@ public class SshSessionFactory {
         session.setProxy(proxyHTTP);
       }
     }
+
     session.connect(config.getSshConnectionTimeout());
 
     return session;

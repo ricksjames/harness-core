@@ -130,6 +130,7 @@ import software.wings.beans.artifact.ArtifactStreamAttributes;
 import software.wings.beans.command.AbstractCommandUnit;
 import software.wings.beans.command.Command;
 import software.wings.beans.command.CommandExecutionContext;
+import software.wings.beans.command.CommandMapper;
 import software.wings.beans.command.CopyConfigCommandUnit;
 import software.wings.beans.command.ExecCommandUnit;
 import software.wings.beans.command.ScpCommandUnit;
@@ -225,6 +226,9 @@ public class CommandStateTest extends WingsBaseTest {
                                .addCommandUnits(anExecCommandUnit().withCommandString("${var2}").build())
                                .build())
           .build();
+
+  private static final software.wings.beans.dto.Command COMMANDDTO = CommandMapper.toCommandDTO(COMMAND);
+
   private static final Service SERVICE = Service.builder().uuid(SERVICE_ID).name("SERVICE_NAME").build();
   private static final ServiceTemplate SERVICE_TEMPLATE =
       aServiceTemplate().withUuid(TEMPLATE_ID).withServiceId(SERVICE.getUuid()).build();
@@ -430,7 +434,7 @@ public class CommandStateTest extends WingsBaseTest {
     commandState.setConnectionType(CommandState.ConnectionType.WINRM);
     SettingAttribute settingAttribute = new SettingAttribute();
     settingAttribute.setValue(WinRmConnectionAttributes.builder().build());
-    when(serviceCommandExecutorService.execute(eq(COMMAND), any())).thenReturn(SUCCESS);
+    when(serviceCommandExecutorService.execute(eq(COMMANDDTO), any())).thenReturn(SUCCESS);
     when(settingsService.get("WINRM_CONNECTION_ATTRIBUTES")).thenReturn(settingAttribute);
 
     when(templateService.get(eq("123454"), any()))
@@ -476,7 +480,7 @@ public class CommandStateTest extends WingsBaseTest {
     SettingAttribute settingAttribute = new SettingAttribute();
     settingAttribute.setValue(WinRmConnectionAttributes.builder().build());
     when(context.getContextElement(ContextElementType.INSTANCE)).thenReturn(null);
-    when(serviceCommandExecutorService.execute(eq(COMMAND), any())).thenReturn(SUCCESS);
+    when(serviceCommandExecutorService.execute(eq(COMMANDDTO), any())).thenReturn(SUCCESS);
     when(settingsService.get("WINRM_CONNECTION_ATTRIBUTES")).thenReturn(settingAttribute);
 
     when(templateService.get(eq("123454"), any()))
@@ -500,7 +504,7 @@ public class CommandStateTest extends WingsBaseTest {
     commandState.setConnectionType(CommandState.ConnectionType.WINRM);
     SettingAttribute settingAttribute = new SettingAttribute();
     settingAttribute.setValue(WinRmConnectionAttributes.builder().build());
-    when(serviceCommandExecutorService.execute(eq(COMMAND), any())).thenReturn(SUCCESS);
+    when(serviceCommandExecutorService.execute(eq(COMMANDDTO), any())).thenReturn(SUCCESS);
     when(settingsService.get("WINRM_CONNECTION_ATTRIBUTES")).thenReturn(settingAttribute);
 
     when(templateService.get(eq("123454"), any()))
@@ -561,7 +565,7 @@ public class CommandStateTest extends WingsBaseTest {
     commandState.setTemplateUuid(TEMPLATE_ID);
     commandState.setHost(HOST_NAME);
     commandState.setSshKeyRef("ssh_key_ref");
-    when(serviceCommandExecutorService.execute(eq(COMMAND), any())).thenReturn(SUCCESS);
+    when(serviceCommandExecutorService.execute(eq(COMMANDDTO), any())).thenReturn(SUCCESS);
     when(settingsService.get("ssh_key_ref")).thenReturn(new SettingAttribute());
 
     when(templateService.get(eq("123454"), any()))
@@ -599,7 +603,7 @@ public class CommandStateTest extends WingsBaseTest {
   @Owner(developers = SAHIL)
   @Category(UnitTests.class)
   public void testExecuteWithTemplateUUID() {
-    when(serviceCommandExecutorService.execute(eq(COMMAND), any())).thenReturn(SUCCESS);
+    when(serviceCommandExecutorService.execute(eq(COMMANDDTO), any())).thenReturn(SUCCESS);
 
     when(serviceResourceService.getCommandByName(APP_ID, SERVICE_ID, ENV_ID, "START"))
         .thenReturn(aServiceCommand().withTargetToAllEnv(true).withCommand(COMMAND).withTemplateUuid("123454").build());
@@ -652,7 +656,7 @@ public class CommandStateTest extends WingsBaseTest {
   @Owner(developers = SAHIL)
   @Category(UnitTests.class)
   public void executeWithServiceTemplateUuidNewFlow() {
-    when(serviceCommandExecutorService.execute(eq(COMMAND), any())).thenReturn(SUCCESS);
+    when(serviceCommandExecutorService.execute(eq(COMMANDDTO), any())).thenReturn(SUCCESS);
 
     when(serviceResourceService.getCommandByName(APP_ID, SERVICE_ID, ENV_ID, "START"))
         .thenReturn(aServiceCommand().withTargetToAllEnv(true).withCommand(COMMAND).withTemplateUuid("123454").build());
@@ -729,7 +733,7 @@ public class CommandStateTest extends WingsBaseTest {
     when(artifactStream.fetchArtifactStreamAttributes(featureFlagService)).thenReturn(artifactStreamAttributes);
     when(artifactStream.getSettingId()).thenReturn(SETTING_ID);
     when(artifactStream.getUuid()).thenReturn(ARTIFACT_STREAM_ID);
-    when(serviceCommandExecutorService.execute(command,
+    when(serviceCommandExecutorService.execute(CommandMapper.toCommandDTO(command),
              aCommandExecutionContext()
                  .appId(APP_ID)
                  .backupPath(BACKUP_PATH)
@@ -813,7 +817,7 @@ public class CommandStateTest extends WingsBaseTest {
     when(artifactStream.fetchArtifactStreamAttributes(featureFlagService)).thenReturn(artifactStreamAttributes);
     when(artifactStream.getSettingId()).thenReturn(SETTING_ID);
     when(artifactStream.getUuid()).thenReturn(ARTIFACT_STREAM_ID);
-    when(serviceCommandExecutorService.execute(command,
+    when(serviceCommandExecutorService.execute(CommandMapper.toCommandDTO(command),
              aCommandExecutionContext()
                  .appId(APP_ID)
                  .backupPath(BACKUP_PATH)
@@ -881,7 +885,7 @@ public class CommandStateTest extends WingsBaseTest {
   @Owner(developers = SRINIVAS)
   @Category(UnitTests.class)
   public void execute() {
-    when(serviceCommandExecutorService.execute(eq(COMMAND), any())).thenReturn(SUCCESS);
+    when(serviceCommandExecutorService.execute(eq(COMMANDDTO), any())).thenReturn(SUCCESS);
 
     commandState.setHost(HOST_NAME);
     commandState.setSshKeyRef("ssh_key_ref");
@@ -997,7 +1001,7 @@ public class CommandStateTest extends WingsBaseTest {
     when(artifactStream.fetchArtifactStreamAttributes(featureFlagService)).thenReturn(artifactStreamAttributes);
     when(artifactStream.getSettingId()).thenReturn(SETTING_ID);
     when(artifactStream.getUuid()).thenReturn(ARTIFACT_STREAM_ID);
-    when(serviceCommandExecutorService.execute(command,
+    when(serviceCommandExecutorService.execute(CommandMapper.toCommandDTO(command),
              aCommandExecutionContext()
                  .appId(APP_ID)
                  .backupPath(BACKUP_PATH)
@@ -1103,7 +1107,7 @@ public class CommandStateTest extends WingsBaseTest {
     when(artifactStream.fetchArtifactStreamAttributes(featureFlagService)).thenReturn(artifactStreamAttributes);
     when(artifactStream.getSettingId()).thenReturn(SETTING_ID);
     when(artifactStream.getUuid()).thenReturn(ARTIFACT_STREAM_ID);
-    when(serviceCommandExecutorService.execute(command,
+    when(serviceCommandExecutorService.execute(CommandMapper.toCommandDTO(command),
              aCommandExecutionContext()
                  .appId(APP_ID)
                  .backupPath(BACKUP_PATH)
@@ -1535,7 +1539,7 @@ public class CommandStateTest extends WingsBaseTest {
     commandState.setExecuteOnDelegate(true);
     commandState.setConnectionType(null);
 
-    when(serviceCommandExecutorService.execute(eq(COMMAND), any())).thenReturn(SUCCESS);
+    when(serviceCommandExecutorService.execute(eq(COMMANDDTO), any())).thenReturn(SUCCESS);
     when(serviceResourceService.getWithDetails(APP_ID, null)).thenReturn(SERVICE);
     when(templateService.get(eq("123454"), any()))
         .thenReturn(Template.builder()
@@ -1578,7 +1582,7 @@ public class CommandStateTest extends WingsBaseTest {
     SettingAttribute settingAttribute = new SettingAttribute();
     settingAttribute.setValue(WinRmConnectionAttributes.builder().build());
 
-    when(serviceCommandExecutorService.execute(eq(COMMAND), any())).thenReturn(SUCCESS);
+    when(serviceCommandExecutorService.execute(eq(COMMANDDTO), any())).thenReturn(SUCCESS);
     when(settingsService.get("WINRM_CONNECTION_ATTRIBUTES")).thenReturn(settingAttribute);
 
     when(serviceResourceService.getWithDetails(APP_ID, null)).thenReturn(SERVICE);
@@ -1626,7 +1630,7 @@ public class CommandStateTest extends WingsBaseTest {
     SettingAttribute settingAttribute = new SettingAttribute();
     settingAttribute.setValue(WinRmConnectionAttributes.builder().build());
 
-    when(serviceCommandExecutorService.execute(eq(COMMAND), any())).thenReturn(SUCCESS);
+    when(serviceCommandExecutorService.execute(eq(COMMANDDTO), any())).thenReturn(SUCCESS);
     when(settingsService.get("WINRM_CONNECTION_ATTRIBUTES")).thenReturn(settingAttribute);
 
     when(serviceResourceService.getWithDetails(APP_ID, null)).thenReturn(SERVICE);
@@ -1662,7 +1666,7 @@ public class CommandStateTest extends WingsBaseTest {
     SettingAttribute settingAttribute = new SettingAttribute();
     settingAttribute.setValue(WinRmConnectionAttributes.builder().build());
 
-    when(serviceCommandExecutorService.execute(eq(COMMAND), any())).thenReturn(SUCCESS);
+    when(serviceCommandExecutorService.execute(eq(COMMANDDTO), any())).thenReturn(SUCCESS);
     when(settingsService.get("WINRM_CONNECTION_ATTRIBUTES")).thenReturn(settingAttribute);
 
     when(serviceResourceService.getWithDetails(APP_ID, null)).thenReturn(SERVICE);
@@ -1699,7 +1703,7 @@ public class CommandStateTest extends WingsBaseTest {
     settingAttribute.setValue(WinRmConnectionAttributes.builder().build());
 
     when(context.getApp()).thenReturn(application);
-    when(serviceCommandExecutorService.execute(eq(COMMAND), any())).thenReturn(SUCCESS);
+    when(serviceCommandExecutorService.execute(eq(COMMANDDTO), any())).thenReturn(SUCCESS);
     when(settingsService.get("WINRM_CONNECTION_ATTRIBUTES")).thenReturn(null);
     when(settingsService.getSettingAttributeByName(ACCOUNT_ID, "WINRM_CONNECTION_ATTRIBUTES")).thenReturn(null);
 
@@ -1731,7 +1735,7 @@ public class CommandStateTest extends WingsBaseTest {
     settingAttribute.setValue(WinRmConnectionAttributes.builder().build());
 
     when(context.getApp()).thenReturn(application);
-    when(serviceCommandExecutorService.execute(eq(COMMAND), any())).thenReturn(SUCCESS);
+    when(serviceCommandExecutorService.execute(eq(COMMANDDTO), any())).thenReturn(SUCCESS);
     when(settingsService.get("WINRM_CONNECTION_ATTRIBUTES")).thenReturn(null);
     when(settingsService.get("UUID")).thenReturn(settingAttribute);
     when(settingsService.getSettingAttributeByName(ACCOUNT_ID, "WINRM_CONNECTION_ATTRIBUTES"))
@@ -1759,7 +1763,7 @@ public class CommandStateTest extends WingsBaseTest {
     SettingAttribute settingAttribute = new SettingAttribute();
     settingAttribute.setValue(null);
 
-    when(serviceCommandExecutorService.execute(eq(COMMAND), any())).thenReturn(SUCCESS);
+    when(serviceCommandExecutorService.execute(eq(COMMANDDTO), any())).thenReturn(SUCCESS);
     when(settingsService.get("WINRM_CONNECTION_ATTRIBUTES")).thenReturn(settingAttribute);
 
     when(serviceResourceService.getWithDetails(APP_ID, null)).thenReturn(SERVICE);
@@ -1783,7 +1787,7 @@ public class CommandStateTest extends WingsBaseTest {
     SettingAttribute settingAttribute = new SettingAttribute();
     settingAttribute.setValue(HostConnectionAttributes.Builder.aHostConnectionAttributes().build());
 
-    when(serviceCommandExecutorService.execute(eq(COMMAND), any())).thenReturn(SUCCESS);
+    when(serviceCommandExecutorService.execute(eq(COMMANDDTO), any())).thenReturn(SUCCESS);
     when(settingsService.get("ssh_key_ref")).thenReturn(settingAttribute);
     when(serviceResourceService.getWithDetails(APP_ID, null)).thenReturn(SERVICE);
 
@@ -1832,7 +1836,7 @@ public class CommandStateTest extends WingsBaseTest {
     SettingAttribute settingAttribute = new SettingAttribute();
     settingAttribute.setValue(HostConnectionAttributes.Builder.aHostConnectionAttributes().build());
 
-    when(serviceCommandExecutorService.execute(eq(COMMAND), any())).thenReturn(SUCCESS);
+    when(serviceCommandExecutorService.execute(eq(COMMANDDTO), any())).thenReturn(SUCCESS);
     when(settingsService.get("ssh_key_ref")).thenReturn(settingAttribute);
     when(serviceResourceService.getWithDetails(APP_ID, null)).thenReturn(SERVICE);
 
@@ -1881,7 +1885,7 @@ public class CommandStateTest extends WingsBaseTest {
     SettingAttribute settingAttribute = new SettingAttribute();
     settingAttribute.setValue(HostConnectionAttributes.Builder.aHostConnectionAttributes().build());
 
-    when(serviceCommandExecutorService.execute(eq(COMMAND), any())).thenReturn(SUCCESS);
+    when(serviceCommandExecutorService.execute(eq(COMMANDDTO), any())).thenReturn(SUCCESS);
     when(settingsService.get("ssh_key_ref")).thenReturn(settingAttribute);
     when(serviceResourceService.getWithDetails(APP_ID, null)).thenReturn(SERVICE);
 
@@ -1913,7 +1917,7 @@ public class CommandStateTest extends WingsBaseTest {
     SettingAttribute settingAttribute = new SettingAttribute();
     settingAttribute.setValue(HostConnectionAttributes.Builder.aHostConnectionAttributes().build());
 
-    when(serviceCommandExecutorService.execute(eq(COMMAND), any())).thenReturn(SUCCESS);
+    when(serviceCommandExecutorService.execute(eq(COMMANDDTO), any())).thenReturn(SUCCESS);
     when(settingsService.get("ssh_key_ref")).thenReturn(settingAttribute);
     when(serviceResourceService.getWithDetails(APP_ID, null)).thenReturn(SERVICE);
 
@@ -1948,7 +1952,7 @@ public class CommandStateTest extends WingsBaseTest {
     SettingAttribute settingAttribute = new SettingAttribute();
     settingAttribute.setValue(HostConnectionAttributes.Builder.aHostConnectionAttributes().build());
 
-    when(serviceCommandExecutorService.execute(eq(COMMAND), any())).thenReturn(SUCCESS);
+    when(serviceCommandExecutorService.execute(eq(COMMANDDTO), any())).thenReturn(SUCCESS);
     when(settingsService.get("ssh_key_ref")).thenReturn(settingAttribute);
     when(serviceResourceService.getWithDetails(APP_ID, null)).thenReturn(SERVICE);
 
@@ -1985,7 +1989,7 @@ public class CommandStateTest extends WingsBaseTest {
     SettingAttribute settingAttribute = new SettingAttribute();
     settingAttribute.setValue(HostConnectionAttributes.Builder.aHostConnectionAttributes().build());
 
-    when(serviceCommandExecutorService.execute(eq(COMMAND), any())).thenReturn(SUCCESS);
+    when(serviceCommandExecutorService.execute(eq(COMMANDDTO), any())).thenReturn(SUCCESS);
     when(settingsService.get("ssh_key_ref")).thenReturn(settingAttribute);
     when(serviceResourceService.getWithDetails(APP_ID, null)).thenReturn(SERVICE);
 
@@ -2015,7 +2019,7 @@ public class CommandStateTest extends WingsBaseTest {
     SettingAttribute settingAttribute = new SettingAttribute();
     settingAttribute.setValue(HostConnectionAttributes.Builder.aHostConnectionAttributes().build());
 
-    when(serviceCommandExecutorService.execute(eq(COMMAND), any())).thenReturn(SUCCESS);
+    when(serviceCommandExecutorService.execute(eq(COMMANDDTO), any())).thenReturn(SUCCESS);
     when(settingsService.get("ssh_key_ref")).thenReturn(settingAttribute);
     when(serviceResourceService.getWithDetails(APP_ID, null)).thenReturn(SERVICE);
 
@@ -2041,7 +2045,7 @@ public class CommandStateTest extends WingsBaseTest {
     settingAttribute.setValue(HostConnectionAttributes.Builder.aHostConnectionAttributes().build());
 
     when(context.getContextElement(ContextElementType.INSTANCE)).thenReturn(null);
-    when(serviceCommandExecutorService.execute(eq(COMMAND), any())).thenReturn(SUCCESS);
+    when(serviceCommandExecutorService.execute(eq(COMMANDDTO), any())).thenReturn(SUCCESS);
     when(settingsService.get("ssh_key_ref")).thenReturn(settingAttribute);
     when(serviceResourceService.getWithDetails(APP_ID, null)).thenReturn(SERVICE);
 
@@ -2067,7 +2071,7 @@ public class CommandStateTest extends WingsBaseTest {
     settingAttribute.setValue(HostConnectionAttributes.Builder.aHostConnectionAttributes().build());
 
     when(serviceInstanceService.get(APP_ID, ENV_ID, SERVICE_INSTANCE_ID)).thenReturn(null);
-    when(serviceCommandExecutorService.execute(eq(COMMAND), any())).thenReturn(SUCCESS);
+    when(serviceCommandExecutorService.execute(eq(COMMANDDTO), any())).thenReturn(SUCCESS);
     when(settingsService.get("ssh_key_ref")).thenReturn(settingAttribute);
     when(serviceResourceService.getWithDetails(APP_ID, null)).thenReturn(SERVICE);
 
@@ -2118,7 +2122,7 @@ public class CommandStateTest extends WingsBaseTest {
     SettingAttribute settingAttribute = new SettingAttribute();
     settingAttribute.setValue(HostConnectionAttributes.Builder.aHostConnectionAttributes().build());
 
-    when(serviceCommandExecutorService.execute(eq(COMMAND), any())).thenReturn(SUCCESS);
+    when(serviceCommandExecutorService.execute(eq(COMMANDDTO), any())).thenReturn(SUCCESS);
     when(settingsService.get("ssh_key_ref")).thenReturn(settingAttribute);
     when(serviceResourceService.getWithDetails(APP_ID, null)).thenReturn(SERVICE);
 
@@ -2174,7 +2178,7 @@ public class CommandStateTest extends WingsBaseTest {
     SettingAttribute settingAttribute = new SettingAttribute();
     settingAttribute.setValue(HostConnectionAttributes.Builder.aHostConnectionAttributes().build());
 
-    when(serviceCommandExecutorService.execute(eq(COMMAND), any())).thenReturn(SUCCESS);
+    when(serviceCommandExecutorService.execute(eq(COMMANDDTO), any())).thenReturn(SUCCESS);
     when(settingsService.get("ssh_key_ref")).thenReturn(settingAttribute);
     when(serviceResourceService.getWithDetails(APP_ID, null)).thenReturn(SERVICE);
 
@@ -2235,7 +2239,7 @@ public class CommandStateTest extends WingsBaseTest {
     SettingAttribute settingAttribute = new SettingAttribute();
     settingAttribute.setValue(HostConnectionAttributes.Builder.aHostConnectionAttributes().build());
 
-    when(serviceCommandExecutorService.execute(eq(COMMAND), any())).thenReturn(SUCCESS);
+    when(serviceCommandExecutorService.execute(eq(COMMANDDTO), any())).thenReturn(SUCCESS);
     when(settingsService.get("ssh_key_ref")).thenReturn(settingAttribute);
     when(serviceResourceService.getWithDetails(APP_ID, null)).thenReturn(SERVICE);
 
@@ -2277,7 +2281,7 @@ public class CommandStateTest extends WingsBaseTest {
     SettingAttribute settingAttribute = new SettingAttribute();
     settingAttribute.setValue(HostConnectionAttributes.Builder.aHostConnectionAttributes().build());
 
-    when(serviceCommandExecutorService.execute(eq(COMMAND), any())).thenReturn(SUCCESS);
+    when(serviceCommandExecutorService.execute(eq(COMMANDDTO), any())).thenReturn(SUCCESS);
     when(settingsService.get("ssh_key_ref")).thenReturn(settingAttribute);
     when(serviceResourceService.getWithDetails(APP_ID, null)).thenReturn(SERVICE);
 
@@ -2307,7 +2311,7 @@ public class CommandStateTest extends WingsBaseTest {
     SettingAttribute settingAttribute = new SettingAttribute();
     settingAttribute.setValue(HostConnectionAttributes.Builder.aHostConnectionAttributes().build());
 
-    when(serviceCommandExecutorService.execute(eq(COMMAND), any())).thenReturn(SUCCESS);
+    when(serviceCommandExecutorService.execute(eq(COMMANDDTO), any())).thenReturn(SUCCESS);
     when(settingsService.get("ssh_key_ref")).thenReturn(settingAttribute);
     when(serviceResourceService.getWithDetails(APP_ID, null)).thenReturn(SERVICE);
 
@@ -2403,7 +2407,7 @@ public class CommandStateTest extends WingsBaseTest {
     when(artifactStream.fetchArtifactStreamAttributes(featureFlagService)).thenReturn(artifactStreamAttributes);
     when(artifactStream.getSettingId()).thenReturn(SETTING_ID);
     when(artifactStream.getUuid()).thenReturn(ARTIFACT_STREAM_ID);
-    when(serviceCommandExecutorService.execute(command,
+    when(serviceCommandExecutorService.execute(CommandMapper.toCommandDTO(command),
              aCommandExecutionContext()
                  .appId(APP_ID)
                  .backupPath(BACKUP_PATH)

@@ -192,7 +192,7 @@ public class ScimGroupServiceImpl implements ScimGroupService {
   public Response updateGroup(String groupId, String accountId, PatchRequest patchRequest) {
     String operation = isNotEmpty(patchRequest.getOperations()) ? patchRequest.getOperations().toString() : null;
     String schemas = isNotEmpty(patchRequest.getSchemas()) ? patchRequest.getSchemas().toString() : null;
-    log.info("Patch Request Logging\n Operations {}\n, Schemas {}\n,External Id {}\n, Meta {}", operation, schemas,
+    log.info("Patch Request Logging\nOperations {}\n, Schemas {}\n,External Id {}\n, Meta {}", operation, schemas,
         patchRequest.getExternalId(), patchRequest.getMeta());
     UserGroup existingGroup = userGroupService.get(accountId, groupId);
 

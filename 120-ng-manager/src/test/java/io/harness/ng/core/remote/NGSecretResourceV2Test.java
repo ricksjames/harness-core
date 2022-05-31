@@ -42,6 +42,9 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.mockito.Mockito;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 
 @OwnedBy(PL)
 public class NGSecretResourceV2Test extends CategoryTest {
@@ -67,10 +70,10 @@ public class NGSecretResourceV2Test extends CategoryTest {
   @Category(UnitTests.class)
   public void testIfListSecretsPostCallReturnsSuccessfully() {
     List<Object> mockResponse = Collections.singletonList(getMockResponse());
-    PageResponse<Object> pageResponse = PageResponse.builder().content(mockResponse).build();
+    Page<Object> page = new PageImpl<>(mockResponse);
 
     doNothing().when(secretPermissionValidator).checkForAccessOrThrow(any(), any(), any(), any());
-    doReturn(pageResponse)
+    doReturn(page)
         .when(ngSecretService)
         .list(any(), any(), any(), any(), any(), anyBoolean(), any(), anyInt(), anyInt(), any());
     ResponseDTO<PageResponse<SecretResponseWrapper>> list = ngSecretResourceV2.listSecrets(

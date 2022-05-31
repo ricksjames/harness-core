@@ -64,6 +64,7 @@ public class DeploymentFreezeDeactivationHandler implements Handler<GovernanceCo
     iterator = persistenceIteratorFactory.createIterator(DeploymentFreezeDeactivationHandler.class,
         MongoPersistenceIterator.<GovernanceConfig, MorphiaFilterExpander<GovernanceConfig>>builder()
             .mode(PersistenceIterator.ProcessMode.LOOP)
+            .iteratorName("DeploymentFreezeDeactivation")
             .clazz(GovernanceConfig.class)
             .fieldName(GovernanceConfigKeys.nextCloseIterations)
             .acceptableNoAlertDelay(ofSeconds(60))

@@ -9,7 +9,9 @@ package io.harness.delegate.task.cloudformation.handlers;
 
 import static io.harness.delegate.task.cloudformation.CloudformationTaskNGParameters.CloudformationTaskNGParametersBuilder;
 import static io.harness.logging.CommandExecutionStatus.FAILURE;
+import static io.harness.logging.CommandExecutionStatus.SUCCESS;
 import static io.harness.logging.LogLevel.ERROR;
+import static io.harness.rule.OwnerRule.NGONZALEZ;
 import static io.harness.rule.OwnerRule.VLICA;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -26,6 +28,9 @@ import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.aws.AWSCloudformationClient;
 import io.harness.aws.beans.AwsInternalConfig;
+import io.harness.aws.cf.DeployStackRequest;
+import io.harness.aws.cf.DeployStackResult;
+import io.harness.aws.cf.Status;
 import io.harness.category.element.UnitTests;
 import io.harness.delegate.beans.connector.awsconnector.AwsConnectorDTO;
 import io.harness.delegate.beans.connector.awsconnector.AwsCredentialDTO;
@@ -48,12 +53,10 @@ import software.wings.service.intfc.aws.delegate.AwsCFHelperServiceDelegate;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.cloudformation.model.CreateStackResult;
 import com.amazonaws.services.cloudformation.model.Stack;
-import com.amazonaws.services.cloudformation.model.UpdateStackResult;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.concurrent.TimeoutException;
+import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -97,7 +100,7 @@ public class CloudformationCreateStackTaskHandlerTest {
                      .parameters(new HashMap<String, String>() {
                        { put("parameterName", "parameterValue"); }
                      })
-                     .timeoutInMs(100000)
+                     .timeoutInMs(10000)
                      .capabilities(Collections.singletonList("capability-1"));
 
     doReturn(AwsInternalConfig.builder().build()).when(awsNgConfigMapper).createAwsInternalConfig(any());
@@ -113,8 +116,7 @@ public class CloudformationCreateStackTaskHandlerTest {
   @Test
   @Owner(developers = VLICA)
   @Category(UnitTests.class)
-  public void testCreateNewStackIsSuccessUsingTemplateBody()
-      throws IOException, InterruptedException, TimeoutException {
+  public void testCreateNewStackIsSuccessUsingTemplateBody() throws Exception {
     doReturn(createStackResult).when(awsCloudformationClient).createStack(any(), any(), any());
 
     Stack createdStack = new Stack();
@@ -125,7 +127,7 @@ public class CloudformationCreateStackTaskHandlerTest {
     parameters.templateBody("templateBody");
 
     CloudformationTaskNGResponse response =
-        createStackTaskHandler.executeTaskInternal(parameters.build(), "delegateId", "task-Id", logCallback);
+        createStackTaskHandler.executeTask(parameters.build(), "delegateId", "task-Id", logCallback);
 
     assertThat(response).isNotNull();
     assertThat(response.getCommandExecutionStatus()).isEqualTo(CommandExecutionStatus.SUCCESS);
@@ -138,13 +140,13 @@ public class CloudformationCreateStackTaskHandlerTest {
 
     ArgumentCaptor<String> logCaptor = ArgumentCaptor.forClass(String.class);
     verify(logCallback, atLeastOnce()).saveExecutionLog(logCaptor.capture());
-    assertThat(logCaptor.getAllValues().contains("# Create Successful for stack"));
+    assertThat(logCaptor.getAllValues().contains("# Using Template Body to create Stack")).isTrue();
   }
 
   @Test
   @Owner(developers = VLICA)
   @Category(UnitTests.class)
-  public void testCreateNewStackIsSuccessUsingTemplateURL() throws IOException, InterruptedException, TimeoutException {
+  public void testCreateNewStackIsSuccessUsingTemplateURL() throws Exception {
     doReturn("normalizedTemplateUrl").when(awsCFHelperServiceDelegate).normalizeS3TemplatePath(any());
     doReturn(createStackResult).when(awsCloudformationClient).createStack(any(), any(), any());
 
@@ -155,7 +157,7 @@ public class CloudformationCreateStackTaskHandlerTest {
 
     parameters.templateUrl("templateURL");
     CloudformationTaskNGResponse response =
-        createStackTaskHandler.executeTaskInternal(parameters.build(), "delegateId", "task-Id", logCallback);
+        createStackTaskHandler.executeTask(parameters.build(), "delegateId", "task-Id", logCallback);
 
     assertThat(response).isNotNull();
     assertThat(response.getCommandExecutionStatus()).isEqualTo(CommandExecutionStatus.SUCCESS);
@@ -169,13 +171,14 @@ public class CloudformationCreateStackTaskHandlerTest {
 
     ArgumentCaptor<String> logCaptor = ArgumentCaptor.forClass(String.class);
     verify(logCallback, atLeastOnce()).saveExecutionLog(logCaptor.capture());
-    assertThat(logCaptor.getAllValues().contains("# Create Successful for stack"));
+    assertThat(logCaptor.getAllValues().contains("# Using Template Url: [normalizedTemplateUrl] to Create Stack"))
+        .isTrue();
   }
 
   @Test
   @Owner(developers = VLICA)
   @Category(UnitTests.class)
-  public void testUpdateStackIsSuccessUsingTemplateBody() throws IOException, InterruptedException, TimeoutException {
+  public void testUpdateStackIsSuccessUsingTemplateBody() throws Exception {
     doReturn(createStackResult).when(awsCloudformationClient).createStack(any(), any(), any());
 
     Stack createdStack = new Stack();
@@ -184,31 +187,33 @@ public class CloudformationCreateStackTaskHandlerTest {
     when(awsCloudformationClient.getAllStacks(any(), any(), any()))
         .thenReturn(Collections.singletonList(createdStack), Collections.singletonList(createdStack));
 
-    UpdateStackResult updatedStackResult = new UpdateStackResult();
-    updatedStackResult.setStackId("stackId-123");
-    when(awsCloudformationClient.updateStack(any(), any(), any())).thenReturn(updatedStackResult);
+    DeployStackRequest deployStackRequest = DeployStackRequest.builder().stackName("stackId-123").build();
+    DeployStackResult deployStackResult =
+        DeployStackResult.builder().noUpdatesToPerform(false).status(Status.SUCCESS).build();
+    when(cloudformationBaseHelper.transformToDeployStackRequest(any())).thenReturn(deployStackRequest);
+    when(awsCloudformationClient.deployStack(any(), any(), any(), any(), any())).thenReturn(deployStackResult);
 
     parameters.templateBody("templateBody");
     CloudformationTaskNGResponse response =
-        createStackTaskHandler.executeTaskInternal(parameters.build(), "delegateId", "task-Id", logCallback);
+        createStackTaskHandler.executeTask(parameters.build(), "delegateId", "task-Id", logCallback);
 
     assertThat(response).isNotNull();
     assertThat(response.getCommandExecutionStatus()).isEqualTo(CommandExecutionStatus.SUCCESS);
     verify(cloudformationBaseHelper, times(1)).getCloudformationTags(any());
     verify(cloudformationBaseHelper, times(1)).getCapabilities(any(), any(), any(), any(), any());
-    verify(awsCloudformationClient, times(1)).updateStack(any(), any(), any());
+    verify(awsCloudformationClient, times(1)).deployStack(any(), any(), any(), any(), any());
     verify(awsCloudformationClient, times(2)).getAllStacks(any(), any(), any());
     verify(cloudformationBaseHelper, times(1)).printStackEvents(any(), any(), anyLong(), any(), any());
     verify(cloudformationBaseHelper, times(1)).printStackResources(any(), any(), any(), any());
     ArgumentCaptor<String> logCaptor = ArgumentCaptor.forClass(String.class);
     verify(logCallback, atLeastOnce()).saveExecutionLog(logCaptor.capture());
-    assertThat(logCaptor.getAllValues().contains("# Update Successful for stack"));
+    assertThat(logCaptor.getAllValues().contains("# Update Successful for stack")).isTrue();
   }
 
   @Test
   @Owner(developers = VLICA)
   @Category(UnitTests.class)
-  public void testUpdateStackIsSuccessUsingTemplateUrl() throws IOException, InterruptedException, TimeoutException {
+  public void testUpdateStackIsSuccessUsingTemplateUrl() throws Exception {
     doReturn(createStackResult).when(awsCloudformationClient).createStack(any(), any(), any());
 
     Stack createdStack = new Stack();
@@ -217,32 +222,34 @@ public class CloudformationCreateStackTaskHandlerTest {
     when(awsCloudformationClient.getAllStacks(any(), any(), any()))
         .thenReturn(Collections.singletonList(createdStack), Collections.singletonList(createdStack));
 
-    UpdateStackResult updatedStackResult = new UpdateStackResult();
-    updatedStackResult.setStackId("stackId-123");
-    when(awsCloudformationClient.updateStack(any(), any(), any())).thenReturn(updatedStackResult);
+    DeployStackRequest deployStackRequest = DeployStackRequest.builder().stackName("stackId-123").build();
+    DeployStackResult deployStackResult =
+        DeployStackResult.builder().noUpdatesToPerform(false).status(Status.SUCCESS).build();
+    when(cloudformationBaseHelper.transformToDeployStackRequest(any())).thenReturn(deployStackRequest);
+    when(awsCloudformationClient.deployStack(any(), any(), any(), any(), any())).thenReturn(deployStackResult);
 
     parameters.templateUrl("templateURL");
     CloudformationTaskNGResponse response =
-        createStackTaskHandler.executeTaskInternal(parameters.build(), "delegateId", "task-Id", logCallback);
+        createStackTaskHandler.executeTask(parameters.build(), "delegateId", "task-Id", logCallback);
 
     assertThat(response).isNotNull();
     assertThat(response.getCommandExecutionStatus()).isEqualTo(CommandExecutionStatus.SUCCESS);
     verify(cloudformationBaseHelper, times(1)).getCloudformationTags(any());
     verify(cloudformationBaseHelper, times(1)).getCapabilities(any(), any(), any(), any(), any());
-    verify(awsCloudformationClient, times(1)).updateStack(any(), any(), any());
+    verify(awsCloudformationClient, times(1)).deployStack(any(), any(), any(), any(), any());
     verify(awsCloudformationClient, times(2)).getAllStacks(any(), any(), any());
     verify(cloudformationBaseHelper, times(1)).printStackEvents(any(), any(), anyLong(), any(), any());
     verify(cloudformationBaseHelper, times(1)).printStackResources(any(), any(), any(), any());
     verify(awsCFHelperServiceDelegate, times(1)).normalizeS3TemplatePath(any());
     ArgumentCaptor<String> logCaptor = ArgumentCaptor.forClass(String.class);
     verify(logCallback, atLeastOnce()).saveExecutionLog(logCaptor.capture());
-    assertThat(logCaptor.getAllValues().contains("# Update Successful for stack"));
+    assertThat(logCaptor.getAllValues().contains("# Update Successful for stack")).isTrue();
   }
 
   @Test
   @Owner(developers = VLICA)
   @Category(UnitTests.class)
-  public void testCreateNewStackIsFailureCauseOfException() throws IOException, InterruptedException, TimeoutException {
+  public void testCreateNewStackIsFailureCauseOfException() throws Exception {
     doThrow(new AmazonServiceException("service exception"))
         .when(awsCloudformationClient)
         .createStack(any(), any(), any());
@@ -250,7 +257,7 @@ public class CloudformationCreateStackTaskHandlerTest {
     parameters.templateBody("templateBody");
 
     CloudformationTaskNGResponse response =
-        createStackTaskHandler.executeTaskInternal(parameters.build(), "delegateId", "task-Id", logCallback);
+        createStackTaskHandler.executeTask(parameters.build(), "delegateId", "task-Id", logCallback);
 
     assertThat(response).isNotNull();
     assertThat(response.getCommandExecutionStatus()).isEqualTo(CommandExecutionStatus.FAILURE);
@@ -271,7 +278,7 @@ public class CloudformationCreateStackTaskHandlerTest {
   @Test
   @Owner(developers = VLICA)
   @Category(UnitTests.class)
-  public void testUpdateNewStackIsFailureCauseOfException() throws IOException, InterruptedException, TimeoutException {
+  public void testUpdateNewStackIsFailureCauseOfException() throws Exception {
     doReturn(createStackResult).when(awsCloudformationClient).createStack(any(), any(), any());
 
     Stack createdStack = new Stack();
@@ -285,11 +292,11 @@ public class CloudformationCreateStackTaskHandlerTest {
 
     doThrow(new AmazonServiceException(" AWS service exception"))
         .when(awsCloudformationClient)
-        .updateStack(any(), any(), any());
+        .deployStack(any(), any(), any(), any(), any());
 
     parameters.templateUrl("templateURL");
     CloudformationTaskNGResponse response =
-        createStackTaskHandler.executeTaskInternal(parameters.build(), "delegateId", "task-Id", logCallback);
+        createStackTaskHandler.executeTask(parameters.build(), "delegateId", "task-Id", logCallback);
 
     ArgumentCaptor<LogLevel> logLevelCaptor = ArgumentCaptor.forClass(LogLevel.class);
 
@@ -297,7 +304,7 @@ public class CloudformationCreateStackTaskHandlerTest {
     assertThat(response.getCommandExecutionStatus()).isEqualTo(FAILURE);
     verify(cloudformationBaseHelper, times(1)).getCloudformationTags(any());
     verify(cloudformationBaseHelper, times(1)).getCapabilities(any(), any(), any(), any(), any());
-    verify(awsCloudformationClient, times(1)).updateStack(any(), any(), any());
+    verify(awsCloudformationClient, times(1)).deployStack(any(), any(), any(), any(), any());
     verify(awsCloudformationClient, times(1)).getAllStacks(any(), any(), any());
 
     verify(logCallback, atLeastOnce()).saveExecutionLog(any(), logLevelCaptor.capture());
@@ -305,10 +312,81 @@ public class CloudformationCreateStackTaskHandlerTest {
   }
 
   @Test
+  @Owner(developers = NGONZALEZ)
+  @Category(UnitTests.class)
+  public void testUpdateStackFailsDeployStack() throws Exception {
+    doReturn(createStackResult).when(awsCloudformationClient).createStack(anyString(), any(), any());
+
+    Stack createdStack = new Stack();
+    createdStack.setStackStatus("CREATE_COMPLETE");
+    createdStack.setStackName("stackName");
+    when(awsCloudformationClient.getAllStacks(anyString(), any(), any()))
+        .thenReturn(Collections.singletonList(createdStack), Collections.singletonList(createdStack));
+
+    DeployStackRequest deployStackRequest = DeployStackRequest.builder().stackName("stackId-123").build();
+    DeployStackResult deployStackResult =
+        DeployStackResult.builder().noUpdatesToPerform(false).status(Status.FAILURE).build();
+    when(cloudformationBaseHelper.transformToDeployStackRequest(any())).thenReturn(deployStackRequest);
+    when(awsCloudformationClient.deployStack(anyString(), any(), any(), any(), any())).thenReturn(deployStackResult);
+
+    parameters.templateBody("templateBody");
+    CloudformationTaskNGResponse response =
+        createStackTaskHandler.executeTask(parameters.build(), "delegateId", "task-Id", logCallback);
+
+    assertThat(response).isNotNull();
+    assertThat(response.getCommandExecutionStatus()).isEqualTo(FAILURE);
+    verify(cloudformationBaseHelper, times(1)).getCloudformationTags(anyString());
+    verify(cloudformationBaseHelper, times(1)).getCapabilities(any(), anyString(), anyString(), any(), any());
+    verify(awsCloudformationClient, times(1)).deployStack(anyString(), any(), any(), any(), any());
+    verify(awsCloudformationClient, times(1)).getAllStacks(anyString(), any(), any());
+    verify(cloudformationBaseHelper, times(0)).printStackEvents(any(), anyString(), anyLong(), any(), any());
+    verify(cloudformationBaseHelper, times(0)).printStackResources(any(), anyString(), any(), any());
+    ArgumentCaptor<String> logCaptor = ArgumentCaptor.forClass(String.class);
+    verify(logCallback, atLeastOnce()).saveExecutionLog(logCaptor.capture());
+    List<String> foobar = logCaptor.getAllValues();
+    assertThat(logCaptor.getAllValues().contains("# Update Successful for stack")).isFalse();
+  }
+
+  @Test
+  @Owner(developers = NGONZALEZ)
+  @Category(UnitTests.class)
+  public void testUpdateStackDoesntUpdatesAnything() throws Exception {
+    doReturn(createStackResult).when(awsCloudformationClient).createStack(anyString(), any(), any());
+
+    Stack createdStack = new Stack();
+    createdStack.setStackStatus("CREATE_COMPLETE");
+    createdStack.setStackName("stackName");
+    when(awsCloudformationClient.getAllStacks(anyString(), any(), any()))
+        .thenReturn(Collections.singletonList(createdStack), Collections.singletonList(createdStack));
+
+    DeployStackRequest deployStackRequest = DeployStackRequest.builder().stackName("stackId-123").build();
+    DeployStackResult deployStackResult =
+        DeployStackResult.builder().noUpdatesToPerform(true).status(Status.SUCCESS).build();
+    when(cloudformationBaseHelper.transformToDeployStackRequest(any())).thenReturn(deployStackRequest);
+    when(awsCloudformationClient.deployStack(anyString(), any(), any(), any(), any())).thenReturn(deployStackResult);
+
+    parameters.templateBody("templateBody");
+    CloudformationTaskNGResponse response =
+        createStackTaskHandler.executeTask(parameters.build(), "delegateId", "task-Id", logCallback);
+
+    assertThat(response).isNotNull();
+    assertThat(response.getCommandExecutionStatus()).isEqualTo(SUCCESS);
+    assertThat(response.isUpdatedNotPerformed()).isTrue();
+    verify(cloudformationBaseHelper, times(1)).getCloudformationTags(anyString());
+    verify(cloudformationBaseHelper, times(1)).getCapabilities(any(), anyString(), anyString(), any(), any());
+    verify(awsCloudformationClient, times(1)).deployStack(anyString(), any(), any(), any(), any());
+    verify(awsCloudformationClient, times(2)).getAllStacks(anyString(), any(), any());
+    verify(cloudformationBaseHelper, times(0)).printStackEvents(any(), anyString(), anyLong(), any(), any());
+    verify(cloudformationBaseHelper, times(1)).printStackResources(any(), anyString(), any(), any());
+    ArgumentCaptor<String> logCaptor = ArgumentCaptor.forClass(String.class);
+    verify(logCallback, atLeastOnce()).saveExecutionLog(logCaptor.capture());
+    assertThat(logCaptor.getAllValues().contains("# Update Successful for stack")).isFalse();
+  }
+
+  @Test
   @Owner(developers = VLICA)
   @Category(UnitTests.class)
-  public void testCreateNewStackIsFailureCauseCreatedStackHasWrongStatus()
-      throws IOException, InterruptedException, TimeoutException {
+  public void testCreateNewStackIsFailureCauseCreatedStackHasWrongStatus() throws Exception {
     doReturn(createStackResult).when(awsCloudformationClient).createStack(any(), any(), any());
 
     Stack stackFailedStatus = new Stack();
@@ -317,7 +395,7 @@ public class CloudformationCreateStackTaskHandlerTest {
         .thenReturn(new ArrayList<>(), Collections.singletonList(stackFailedStatus));
     parameters.templateBody("templateBody");
     CloudformationTaskNGResponse response =
-        createStackTaskHandler.executeTaskInternal(parameters.build(), "delegateId", "task-Id", logCallback);
+        createStackTaskHandler.executeTask(parameters.build(), "delegateId", "task-Id", logCallback);
     assertThat(response).isNotNull();
     assertThat(response.getCommandExecutionStatus()).isEqualTo(FAILURE);
 
@@ -327,7 +405,7 @@ public class CloudformationCreateStackTaskHandlerTest {
         .thenReturn(new ArrayList<>(), Collections.singletonList(stackRollbackFailedStatus));
     parameters.templateBody("templateBody");
     CloudformationTaskNGResponse response1 =
-        createStackTaskHandler.executeTaskInternal(parameters.build(), "delegateId", "task-Id", logCallback);
+        createStackTaskHandler.executeTask(parameters.build(), "delegateId", "task-Id", logCallback);
     assertThat(response1).isNotNull();
     assertThat(response1.getCommandExecutionStatus()).isEqualTo(FAILURE);
 
@@ -337,7 +415,7 @@ public class CloudformationCreateStackTaskHandlerTest {
         .thenReturn(new ArrayList<>(), Collections.singletonList(stackRollbackCompleteStatus));
     parameters.templateBody("templateBody");
     CloudformationTaskNGResponse response2 =
-        createStackTaskHandler.executeTaskInternal(parameters.build(), "delegateId", "task-Id", logCallback);
+        createStackTaskHandler.executeTask(parameters.build(), "delegateId", "task-Id", logCallback);
     assertThat(response2).isNotNull();
     assertThat(response2.getCommandExecutionStatus()).isEqualTo(FAILURE);
 
@@ -347,7 +425,7 @@ public class CloudformationCreateStackTaskHandlerTest {
         .thenReturn(new ArrayList<>(), Collections.singletonList(stackUnknownStatus));
     parameters.templateBody("templateBody");
     CloudformationTaskNGResponse response3 =
-        createStackTaskHandler.executeTaskInternal(parameters.build(), "delegateId", "task-Id", logCallback);
+        createStackTaskHandler.executeTask(parameters.build(), "delegateId", "task-Id", logCallback);
     assertThat(response3).isNotNull();
     assertThat(response3.getCommandExecutionStatus()).isEqualTo(FAILURE);
 
@@ -357,7 +435,7 @@ public class CloudformationCreateStackTaskHandlerTest {
         .thenReturn(new ArrayList<>(), Collections.singletonList(stackRollbackInProgressStatus));
     parameters.templateBody("templateBody");
     CloudformationTaskNGResponse response4 =
-        createStackTaskHandler.executeTaskInternal(parameters.build(), "delegateId", "task-Id", logCallback);
+        createStackTaskHandler.executeTask(parameters.build(), "delegateId", "task-Id", logCallback);
     assertThat(response4).isNotNull();
     assertThat(response4.getCommandExecutionStatus()).isEqualTo(FAILURE);
   }
@@ -365,13 +443,14 @@ public class CloudformationCreateStackTaskHandlerTest {
   @Test
   @Owner(developers = VLICA)
   @Category(UnitTests.class)
-  public void testUpdateNewStackIsFailureCauseUpdatedStackHasWrongStatus()
-      throws IOException, InterruptedException, TimeoutException {
+  public void testUpdateNewStackIsFailureCauseUpdatedStackHasWrongStatus() throws Exception {
     ExistingStackInfo existingStackInfo = ExistingStackInfo.builder().stackExisted(true).build();
     when(cloudformationBaseHelper.getExistingStackInfo(any(), any(), any())).thenReturn(existingStackInfo);
-    UpdateStackResult updatedStackResult = new UpdateStackResult();
-    updatedStackResult.setStackId("stackId-123");
-    when(awsCloudformationClient.updateStack(any(), any(), any())).thenReturn(updatedStackResult);
+    DeployStackRequest deployStackRequest = DeployStackRequest.builder().stackName("stackId-123").build();
+    DeployStackResult deployStackResult =
+        DeployStackResult.builder().noUpdatesToPerform(false).status(Status.SUCCESS).build();
+    when(cloudformationBaseHelper.transformToDeployStackRequest(any())).thenReturn(deployStackRequest);
+    when(awsCloudformationClient.deployStack(any(), any(), any(), any(), any())).thenReturn(deployStackResult);
 
     Stack stackUpdateRollbackFailedStatus = new Stack();
     stackUpdateRollbackFailedStatus.setStackStatus("UPDATE_ROLLBACK_FAILED");
@@ -381,7 +460,7 @@ public class CloudformationCreateStackTaskHandlerTest {
             Collections.singletonList(stackUpdateRollbackFailedStatus));
     parameters.templateBody("templatupdateStackeBody");
     CloudformationTaskNGResponse response =
-        createStackTaskHandler.executeTaskInternal(parameters.build(), "delegateId", "task-Id", logCallback);
+        createStackTaskHandler.executeTask(parameters.build(), "delegateId", "task-Id", logCallback);
     assertThat(response).isNotNull();
     assertThat(response.getCommandExecutionStatus()).isEqualTo(FAILURE);
 
@@ -393,7 +472,7 @@ public class CloudformationCreateStackTaskHandlerTest {
             Collections.singletonList(stackUpdateCompleteCleanupInProgress));
     parameters.templateBody("templateBody");
     CloudformationTaskNGResponse response1 =
-        createStackTaskHandler.executeTaskInternal(parameters.build(), "delegateId", "task-Id", logCallback);
+        createStackTaskHandler.executeTask(parameters.build(), "delegateId", "task-Id", logCallback);
     assertThat(response1).isNotNull();
     assertThat(response1.getCommandExecutionStatus()).isEqualTo(FAILURE);
 
@@ -405,7 +484,7 @@ public class CloudformationCreateStackTaskHandlerTest {
             Collections.singletonList(stackRollbackCompleteCleanupInProgress));
     parameters.templateBody("templateBody");
     CloudformationTaskNGResponse response2 =
-        createStackTaskHandler.executeTaskInternal(parameters.build(), "delegateId", "task-Id", logCallback);
+        createStackTaskHandler.executeTask(parameters.build(), "delegateId", "task-Id", logCallback);
     assertThat(response2).isNotNull();
     assertThat(response2.getCommandExecutionStatus()).isEqualTo(FAILURE);
 
@@ -417,7 +496,7 @@ public class CloudformationCreateStackTaskHandlerTest {
             Collections.singletonList(stackRollbackInProgress), Collections.singletonList(stackRollbackInProgress));
     parameters.templateBody("templateBody");
     CloudformationTaskNGResponse response3 =
-        createStackTaskHandler.executeTaskInternal(parameters.build(), "delegateId", "task-Id", logCallback);
+        createStackTaskHandler.executeTask(parameters.build(), "delegateId", "task-Id", logCallback);
     assertThat(response3).isNotNull();
     assertThat(response3.getCommandExecutionStatus()).isEqualTo(FAILURE);
 
@@ -428,7 +507,7 @@ public class CloudformationCreateStackTaskHandlerTest {
         .thenReturn(Collections.singletonList(stackUnknownStatus), Collections.singletonList(stackUnknownStatus));
     parameters.templateBody("templateBody");
     CloudformationTaskNGResponse response4 =
-        createStackTaskHandler.executeTaskInternal(parameters.build(), "delegateId", "task-Id", logCallback);
+        createStackTaskHandler.executeTask(parameters.build(), "delegateId", "task-Id", logCallback);
     assertThat(response4).isNotNull();
     assertThat(response4.getCommandExecutionStatus()).isEqualTo(FAILURE);
   }
@@ -436,7 +515,7 @@ public class CloudformationCreateStackTaskHandlerTest {
   @Test
   @Owner(developers = VLICA)
   @Category(UnitTests.class)
-  public void testDeleteExistingStackAndCreateNewOne() throws IOException, InterruptedException, TimeoutException {
+  public void testDeleteExistingStackAndCreateNewOne() throws Exception {
     Stack createdStack = new Stack();
     createdStack.setStackStatus("CREATE_COMPLETE");
 
@@ -452,7 +531,7 @@ public class CloudformationCreateStackTaskHandlerTest {
     parameters.templateBody("templateBody");
 
     CloudformationTaskNGResponse response =
-        createStackTaskHandler.executeTaskInternal(parameters.build(), "delegateId", "task-Id", logCallback);
+        createStackTaskHandler.executeTask(parameters.build(), "delegateId", "task-Id", logCallback);
 
     assertThat(response).isNotNull();
     assertThat(response.getCommandExecutionStatus()).isEqualTo(CommandExecutionStatus.SUCCESS);
@@ -465,7 +544,8 @@ public class CloudformationCreateStackTaskHandlerTest {
 
     ArgumentCaptor<String> logCaptor = ArgumentCaptor.forClass(String.class);
     verify(logCallback, atLeastOnce()).saveExecutionLog(logCaptor.capture());
-    assertThat(logCaptor.getAllValues().contains("# Stack stackName deleted successfully now creating a new stack"));
-    assertThat(logCaptor.getAllValues().contains("# Create Successful for stack"));
+    assertThat(logCaptor.getAllValues().contains("# Stack stackName deleted successfully now creating a new stack"))
+        .isTrue();
+    assertThat(logCaptor.getAllValues().contains("# Stack creation Successful")).isTrue();
   }
 }

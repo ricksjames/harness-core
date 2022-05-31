@@ -61,6 +61,7 @@ public class AddClusterNameInGcpTypeInstanceMigration implements Migration {
                                    .project(InfrastructureMappingKeys.uuid, true)
                                    .project(ContainerInfrastructureMappingKeys.clusterName, true)
                                    .project(InfrastructureMappingKeys.appId, true)
+                                   .project(InfrastructureMappingKeys.name, true)
                                    .fetch())) {
         while (infraMappingHIterator.hasNext()) {
           ContainerInfrastructureMapping infrastructureMapping =
@@ -77,8 +78,8 @@ public class AddClusterNameInGcpTypeInstanceMigration implements Migration {
                 .update(new BasicDBObject(
                     "$set", new Document("instanceInfo.clusterName", infrastructureMapping.getClusterName())));
 
-            log.info("Added clusterName to instances for infraMappingId: {} infra mappings: {}",
-                infrastructureMapping.getUuid(), instanceWriteOperation.execute());
+            log.info("Added clusterName to instances for infraMapping : {} with id : {} infra mappings: {}",
+                infrastructureMapping.getName(), infrastructureMapping.getUuid(), instanceWriteOperation.execute());
           } catch (Exception e) {
             log.error(StringUtils.join(DEBUG_LINE, "Failed to add cluster name to instances for infraMappingId: ",
                           infrastructureMapping.getUuid()),

@@ -575,7 +575,7 @@ public class DelegateServiceImpl implements DelegateService {
       DelegateGroup delegateGroup = fetchFromCache
           ? delegateCache.getDelegateGroup(delegate.getAccountId(), delegate.getDelegateGroupId())
           : delegateSetupService.getDelegateGroup(delegate.getAccountId(), delegate.getDelegateGroupId());
-      if (delegateGroup.getTags() != null) {
+      if (delegateGroup != null && delegateGroup.getTags() != null) {
         selectors.addAll(delegateGroup.getTags());
       }
     }
@@ -3814,6 +3814,7 @@ public class DelegateServiceImpl implements DelegateService {
 
   private String getVersion(String accountId) {
     String accountVersion = accountService.getAccountPrimaryDelegateVersion(accountId);
+    accountVersion = Arrays.stream(accountVersion.split("-")).findFirst().get();
     return isNotEmpty(accountVersion) ? accountVersion : versionInfoManager.getVersionInfo().getVersion();
   }
 
