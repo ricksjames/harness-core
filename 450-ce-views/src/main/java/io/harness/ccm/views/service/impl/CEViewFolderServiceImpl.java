@@ -80,8 +80,8 @@ public class CEViewFolderServiceImpl implements CEViewFolderService {
   @Override
   public List<CEView> moveMultipleCEViews(String accountId, List<String> ceViewIds, String toFolderId) {
     if (StringUtils.isEmpty(toFolderId)) {
-      ceViewDao.moveMultiplePerspectiveFolder
-          (accountId, ceViewIds, ceViewFolderDao.getDefaultFolder(accountId).getUuid());
+      ceViewDao.moveMultiplePerspectiveFolder(
+          accountId, ceViewIds, ceViewFolderDao.getDefaultFolder(accountId).getUuid());
     }
     return ceViewDao.moveMultiplePerspectiveFolder(accountId, ceViewIds, toFolderId);
   }
