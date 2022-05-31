@@ -629,6 +629,7 @@ public class PipelineResource implements YamlSchemaResource {
 
   @POST
   @Path("/v2/steps")
+  @Hidden
   @ApiOperation(value = "Get Steps for given modules Version 2", nickname = "getStepsV2")
   @Operation(operationId = "getStepsV2", summary = "Gets all the Steps for given Category (V2 Version)",
       responses =
@@ -738,6 +739,7 @@ public class PipelineResource implements YamlSchemaResource {
   @POST
   @Path("/validate-yaml-with-schema")
   @ApiOperation(value = "Validate a Pipeline YAML", nickname = "validatePipelineByYAML")
+  @Hidden
   @Operation(operationId = "postPipeline", summary = "Validate a Pipeline YAML with Schema",
       responses =
       {
@@ -763,6 +765,7 @@ public class PipelineResource implements YamlSchemaResource {
   @POST
   @Path("/validate-pipeline-with-schema")
   @ApiOperation(value = "Validate a Pipeline", nickname = "validatePipeline")
+  @Hidden
   @Operation(operationId = "postPipeline", summary = "Validate a Pipeline with Schema",
       responses =
       {
