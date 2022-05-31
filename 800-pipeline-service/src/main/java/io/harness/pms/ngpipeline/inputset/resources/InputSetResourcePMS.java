@@ -195,6 +195,7 @@ public class InputSetResourcePMS {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "default",
             description = "The Overlay Input Set that corresponds to the given Overlay Input Set Identifier")
       })
+  @Hidden
   public ResponseDTO<OverlayInputSetResponseDTOPMS>
   getOverlayInputSet(
       @PathParam(NGCommonEntityConstants.INPUT_SET_IDENTIFIER_KEY) @Parameter(
@@ -292,6 +293,7 @@ public class InputSetResourcePMS {
             description =
                 "If the YAML is valid, returns created Overlay Input Set. If not, it sends what is wrong with the YAML")
       })
+  @Hidden
   public ResponseDTO<OverlayInputSetResponseDTOPMS>
   createOverlayInputSet(
       @NotNull @QueryParam(NGCommonEntityConstants.ACCOUNT_KEY) @Parameter(
@@ -392,6 +394,7 @@ public class InputSetResourcePMS {
             description =
                 "If the YAML is valid, returns the updated Overlay Input Set. If not, it sends what is wrong with the YAML")
       })
+  @Hidden
   public ResponseDTO<OverlayInputSetResponseDTOPMS>
   updateOverlayInputSet(
       @Parameter(description = PipelineResourceConstants.IF_MATCH_PARAM_MESSAGE) @HeaderParam(IF_MATCH) String ifMatch,
@@ -530,6 +533,7 @@ public class InputSetResourcePMS {
             description =
                 "Fetch Runtime Input Template for a Pipeline, along with any expressions whose value is needed for running specific Stages")
       })
+  @Hidden
   public ResponseDTO<InputSetTemplateResponseDTOPMS>
   getTemplateFromPipeline(@NotNull @QueryParam(NGCommonEntityConstants.ACCOUNT_KEY) @AccountIdentifier @Parameter(
                               description = PipelineResourceConstants.ACCOUNT_PARAM_MESSAGE) String accountId,
@@ -561,6 +565,7 @@ public class InputSetResourcePMS {
         @io.swagger.v3.oas.annotations.responses.
         ApiResponse(responseCode = "default", description = "Merge given Input Sets into A single Runtime Input YAML")
       })
+  @Hidden
   public ResponseDTO<MergeInputSetResponseDTOPMS>
   getMergeInputSetFromPipelineTemplate(
       @NotNull @QueryParam(NGCommonEntityConstants.ACCOUNT_KEY) @AccountIdentifier @Parameter(
@@ -613,6 +618,7 @@ public class InputSetResourcePMS {
         @io.swagger.v3.oas.annotations.responses.
         ApiResponse(responseCode = "default", description = "Merge given Runtime Input YAML into the Pipeline")
       })
+  @Hidden
   // TODO(Naman): Correct PipelineServiceClient when modifying this api
   public ResponseDTO<MergeInputSetResponseDTOPMS>
   getMergeInputSetFromPipelineTemplate(
