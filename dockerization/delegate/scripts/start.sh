@@ -4,6 +4,36 @@
 # that can be found in the licenses directory at the root of this repository, also available at
 # https://polyformproject.org/wp-content/uploads/2020/05/PolyForm-Free-Trial-1.0.0.txt.
 
+function jar_app_version() {
+  JAR=$1
+  if unzip -l $JAR | grep -q io/harness/versionInfo.yaml
+  then
+    VERSION=$(unzip -c $JAR io/harness/versionInfo.yaml | grep "^version " | cut -d ":" -f2 | tr -d " " | tr -d "\r" | tr -d "\n")
+  fi
+
+  if [ -z "$VERSION" ]
+  then
+    if unzip -l $JAR | grep -q main/resources-filtered/versionInfo.yaml
+    then
+      VERSION=$(unzip -c $JAR main/resources-filtered/versionInfo.yaml | grep "^version " | cut -d ":" -f2 | tr -d " " | tr -d "\r" | tr -d "\n")
+    fi
+  fi
+
+  if [ -z "$VERSION" ]
+  then
+    if unzip -l $JAR | grep -q BOOT-INF/classes/main/resources-filtered/versionInfo.yaml
+    then
+      VERSION=$(unzip -c $JAR BOOT-INF/classes/main/resources-filtered/versionInfo.yaml | grep "^version " | cut -d ":" -f2 | tr -d " " | tr -d "\r" | tr -d "\n")
+    fi
+  fi
+
+  if [ -z "$VERSION" ]
+  then
+    VERSION=$(unzip -c $JAR META-INF/MANIFEST.MF | grep Application-Version | cut -d "=" -f2 | tr -d " " | tr -d "\r" | tr -d "\n")
+  fi
+  echo $VERSION
+}
+
 # url-encodes a given input string - used to encode the proxy password for curl commands.
 # Note:
 #   - We implement the functionality ourselves to avoid dependencies on new packages.
@@ -20,7 +50,10 @@ url_encode () {
     done
 }
 
-JRE_BINARY=jdk8u242-b08-jre/bin/java
+JVM_URL_BASE_PATH=$DELEGATE_STORAGE_URL
+if [[ $DEPLOY_MODE == "KUBERNETES" ]]; then
+  JVM_URL_BASE_PATH=$JVM_URL_BASE_PATH/public/shared
+fi
 
 SOURCE="${BASH_SOURCE[0]}"
 while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
@@ -120,6 +153,78 @@ if [[ $DESIRED_VERSION != "" ]]; then
   echo "Installing Helm $DESIRED_VERSION ..."
   curl $PROXY_CURL -#k https://raw.githubusercontent.com/kubernetes/helm/master/scripts/get | bash
   helm init --client-only
+fi
+
+echo "Checking Watcher latest version..."
+REMOTE_WATCHER_LATEST=$(curl $MANAGER_PROXY_CURL -ks $WATCHER_STORAGE_URL/$WATCHER_CHECK_LOCATION)
+if [[ $DEPLOY_MODE != "KUBERNETES" ]]; then
+  REMOTE_WATCHER_URL=$WATCHER_STORAGE_URL/$(echo $REMOTE_WATCHER_LATEST | cut -d " " -f2)
+else
+  REMOTE_WATCHER_URL=$REMOTE_WATCHER_URL_CDN/$(echo $REMOTE_WATCHER_LATEST | cut -d " " -f2)
+fi
+REMOTE_WATCHER_VERSION=$(echo $REMOTE_WATCHER_LATEST | cut -d " " -f1)
+
+if [ ! -e watcher.jar ]; then
+  echo "Downloading Watcher $REMOTE_WATCHER_VERSION ..."
+  curl $MANAGER_PROXY_CURL -#k $REMOTE_WATCHER_URL -o watcher.jar
+else
+  WATCHER_CURRENT_VERSION=$(jar_app_version watcher.jar)
+  if [[ $REMOTE_WATCHER_VERSION != $WATCHER_CURRENT_VERSION ]]; then
+    echo "The current version $WATCHER_CURRENT_VERSION is not the same as the expected remote version $REMOTE_WATCHER_VERSION"
+    echo "Downloading Watcher $REMOTE_WATCHER_VERSION ..."
+    mkdir -p watcherBackup.$WATCHER_CURRENT_VERSION
+    cp watcher.jar watcherBackup.$WATCHER_CURRENT_VERSION
+    curl $MANAGER_PROXY_CURL -#k $REMOTE_WATCHER_URL -o watcher.jar
+  fi
+fi
+
+if [[ $DEPLOY_MODE != "KUBERNETES" ]]; then
+  echo "Checking Delegate latest version..."
+  REMOTE_DELEGATE_LATEST=$(curl $MANAGER_PROXY_CURL -ks $DELEGATE_STORAGE_URL/$DELEGATE_CHECK_LOCATION)
+  REMOTE_DELEGATE_URL=$DELEGATE_STORAGE_URL/$(echo $REMOTE_DELEGATE_LATEST | cut -d " " -f2)
+  REMOTE_DELEGATE_VERSION=$(echo $REMOTE_DELEGATE_LATEST | cut -d " " -f1)
+
+  if [ ! -e delegate.jar ]; then
+    echo "Downloading Delegate $REMOTE_DELEGATE_VERSION ..."
+    curl $MANAGER_PROXY_CURL -#k $REMOTE_DELEGATE_URL -o delegate.jar
+  else
+    DELEGATE_CURRENT_VERSION=$(jar_app_version delegate.jar)
+    if [[ $REMOTE_DELEGATE_VERSION != $DELEGATE_CURRENT_VERSION ]]; then
+      echo "The current version $DELEGATE_CURRENT_VERSION is not the same as the expected remote version $REMOTE_DELEGATE_VERSION"
+      echo "Downloading Delegate $REMOTE_DELEGATE_VERSION ..."
+      mkdir -p backup.$DELEGATE_CURRENT_VERSION
+      cp delegate.jar backup.$DELEGATE_CURRENT_VERSION
+      curl $MANAGER_PROXY_CURL -#k $REMOTE_DELEGATE_URL -o delegate.jar
+    fi
+  fi
+fi
+
+WATCHER_VERSION=$(echo $REMOTE_WATCHER_VERSION | cut -d "." -f3)
+if [ $WATCHER_VERSION -ge 75276 ]; then
+  echo "using JRE11 with watcher $WATCHER_VERSION"
+  JRE_DIR="jdk-11.0.14+9-jre"
+  JVM_URL=$JVM_URL_BASE_PATH/jre/openjdk-11.0.14_9/OpenJDK11U-jre_x64_linux_hotspot_11.0.14_9.tar.gz
+else
+  echo "using JRE8 with watcher $WATCHER_VERSION"
+  JRE_DIR="jdk8u242-b08-jre"
+  JVM_URL=$JVM_URL_BASE_PATH/jre/openjdk-8u242/jre_x64_linux_8u242b08.tar.gz
+fi
+
+JRE_BINARY=$JRE_DIR/bin/java
+
+if [ ! -d $JRE_DIR -o ! -e $JRE_BINARY ]; then
+  echo "Downloading JRE packages..."
+  JVM_TAR_FILENAME=$(basename "$JVM_URL")
+  curl $MANAGER_PROXY_CURL -#kLO $JVM_URL
+  echo "Extracting JRE packages..."
+  rm -rf $JRE_DIR
+  tar xzf $JVM_TAR_FILENAME
+  rm -f $JVM_TAR_FILENAME
+fi
+
+if [ ! -d $JRE_DIR  -o ! -e $JRE_BINARY ]; then
+  echo "No JRE available. Exiting."
+  exit 1
 fi
 
 if [ ! -e config-watcher.yml ]; then
@@ -235,26 +340,22 @@ export CAPSULE_CACHE_DIR="$DIR/.cache"
 
 if [[ $1 == "upgrade" ]]; then
   echo "Upgrade"
+  WATCHER_CURRENT_VERSION=$(jar_app_version watcher.jar)
+  mkdir -p watcherBackup.$WATCHER_CURRENT_VERSION
+  cp watcher.jar watcherBackup.$WATCHER_CURRENT_VERSION
   $JRE_BINARY $PROXY_SYS_PROPS $OVERRIDE_TMP_PROPS -Dwatchersourcedir="$DIR" -Xmx192m -XX:+HeapDumpOnOutOfMemoryError -Xloggc:mygclogfilename.gc -XX:+UseParallelGC -XX:MaxGCPauseMillis=500 -Dfile.encoding=UTF-8 $WATCHER_JAVA_OPTS -jar watcher.jar config-watcher.yml upgrade $2
 else
   if `pgrep -f "\-Dwatchersourcedir=$DIR"> /dev/null`; then
     echo "Watcher already running"
   else
     nohup $JRE_BINARY $PROXY_SYS_PROPS $OVERRIDE_TMP_PROPS -Dwatchersourcedir="$DIR" -Xmx192m -XX:+HeapDumpOnOutOfMemoryError -Xloggc:mygclogfilename.gc -XX:+UseParallelGC -XX:MaxGCPauseMillis=500 -Dfile.encoding=UTF-8 $WATCHER_JAVA_OPTS -jar watcher.jar config-watcher.yml >nohup-watcher.out 2>&1 &
-    sleep 1
-    if [ -s nohup-watcher.out ]; then
-      echo "Failed to start Watcher."
-      echo "$(cat nohup-watcher.out)"
-      exit 1
+    sleep 5
+    if `pgrep -f "\-Dwatchersourcedir=$DIR"> /dev/null`; then
+      echo "Watcher started"
     else
-      sleep 3
-      if `pgrep -f "\-Dwatchersourcedir=$DIR"> /dev/null`; then
-        echo "Watcher started"
-      else
-        echo "Failed to start Watcher."
-        echo "$(tail -n 30 watcher.log)"
-        exit 1
-      fi
+      echo "Failed to start Watcher."
+      echo "$(tail -n 30 watcher.log)"
+      exit 1
     fi
   fi
 fi

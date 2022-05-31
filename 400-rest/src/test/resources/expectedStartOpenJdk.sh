@@ -334,20 +334,13 @@ else
     echo "Watcher already running"
   else
     nohup $JRE_BINARY $PROXY_SYS_PROPS $OVERRIDE_TMP_PROPS -Dwatchersourcedir="$DIR" -Xmx192m -XX:+HeapDumpOnOutOfMemoryError -Xloggc:mygclogfilename.gc -XX:+UseParallelGC -XX:MaxGCPauseMillis=500 -Dfile.encoding=UTF-8 $WATCHER_JAVA_OPTS -jar watcher.jar config-watcher.yml >nohup-watcher.out 2>&1 &
-    sleep 1
-    if [ -s nohup-watcher.out ]; then
-      echo "Failed to start Watcher."
-      echo "$(cat nohup-watcher.out)"
-      exit 1
+    sleep 5
+    if `pgrep -f "\-Dwatchersourcedir=$DIR"> /dev/null`; then
+      echo "Watcher started"
     else
-      sleep 3
-      if `pgrep -f "\-Dwatchersourcedir=$DIR"> /dev/null`; then
-        echo "Watcher started"
-      else
-        echo "Failed to start Watcher."
-        echo "$(tail -n 30 watcher.log)"
-        exit 1
-      fi
+      echo "Failed to start Watcher."
+      echo "$(tail -n 30 watcher.log)"
+      exit 1
     fi
   fi
 fi ) 2>&1 | tee -a logs/log_clean.log && sed '/######################################################################## 100.0%/d' logs/log_clean.log >> logs/startscript.log
