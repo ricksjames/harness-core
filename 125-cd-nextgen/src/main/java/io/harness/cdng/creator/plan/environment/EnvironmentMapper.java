@@ -9,9 +9,11 @@ package io.harness.cdng.creator.plan.environment;
 
 import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
+import io.harness.cdng.envGroup.yaml.EnvGroupPlanCreatorConfig;
 import io.harness.cdng.environment.steps.EnvironmentStepParameters;
 import io.harness.cdng.environment.yaml.EnvironmentPlanCreatorConfig;
 import io.harness.data.structure.CollectionUtils;
+import io.harness.ng.core.envGroup.EnvironmentGroupOutcome;
 import io.harness.steps.environment.EnvironmentOutcome;
 import io.harness.yaml.utils.NGVariablesUtils;
 
@@ -40,6 +42,16 @@ public class EnvironmentMapper {
         .build();
   }
 
+  public EnvironmentStepParameters toEnvironmentStepParameters(EnvGroupPlanCreatorConfig envGroupPlanCreatorConfig) {
+    return EnvironmentStepParameters.builder()
+        .name(envGroupPlanCreatorConfig.getName())
+        .identifier(envGroupPlanCreatorConfig.getIdentifier())
+        .description(envGroupPlanCreatorConfig.getDescription())
+        .tags(envGroupPlanCreatorConfig.getTags())
+        .envGroupRef(envGroupPlanCreatorConfig.getEnvironmentGroupRef())
+        .build();
+  }
+
   public EnvironmentOutcome toEnvironmentOutcome(EnvironmentStepParameters stepParameters) {
     overrideServiceVariables(stepParameters.getVariables(), stepParameters.getServiceOverrides());
     return EnvironmentOutcome.builder()
@@ -55,5 +67,14 @@ public class EnvironmentMapper {
 
   private void overrideServiceVariables(Map<String, Object> variables, Map<String, Object> serviceOverrides) {
     variables.putAll(serviceOverrides);
+  }
+
+  public EnvironmentGroupOutcome toEnvironmentGroupOutcome(EnvironmentStepParameters stepParameters) {
+    return EnvironmentGroupOutcome.builder()
+        .identifier(stepParameters.getIdentifier())
+        .name(stepParameters.getName() != null ? stepParameters.getName() : "")
+        .description(stepParameters.getDescription() != null ? stepParameters.getDescription() : "")
+        .tags(CollectionUtils.emptyIfNull(stepParameters.getTags()))
+        .build();
   }
 }

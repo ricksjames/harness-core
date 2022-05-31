@@ -113,7 +113,8 @@ public class EnvironmentPlanCreatorHelper {
   }
 
   private List<InfrastructureEntity> getInfraStructureEntityList(String accountIdentifier, String orgIdentifier,
-      String projectIdentifier, EnvironmentYamlV2 environmentV2, InfrastructureEntityService infrastructure) {
+      String projectIdentifier, EnvironmentYamlV2 environmentV2,
+      InfrastructureEntityService infrastructureEntityService) {
     List<InfrastructureEntity> infrastructureEntityList = new ArrayList<>();
     String envIdentifier = environmentV2.getEnvironmentRef().getValue();
     if (!environmentV2.getDeployToAll()) {
@@ -122,14 +123,14 @@ public class EnvironmentPlanCreatorHelper {
               .stream()
               .map(infraStructureDefinitionYaml -> infraStructureDefinitionYaml.getRef().getValue())
               .collect(Collectors.toList());
-      infrastructureEntityList = infrastructure.getAllInfrastructureFromIdentifierList(
+      infrastructureEntityList = infrastructureEntityService.getAllInfrastructureFromIdentifierList(
           accountIdentifier, orgIdentifier, projectIdentifier, envIdentifier, infraIdentifierList);
     } else {
       if (isNotEmpty(environmentV2.getInfrastructureDefinitions())) {
         throw new InvalidRequestException(String.format("DeployToAll is enabled along with specific Infrastructures %s",
             environmentV2.getInfrastructureDefinitions()));
       }
-      infrastructureEntityList = infrastructure.getAllInfrastructureFromEnvIdentifier(
+      infrastructureEntityList = infrastructureEntityService.getAllInfrastructureFromEnvIdentifier(
           accountIdentifier, orgIdentifier, projectIdentifier, envIdentifier);
     }
     return infrastructureEntityList;
