@@ -15,6 +15,7 @@ import static software.wings.beans.artifact.ArtifactStreamType.GCR;
 
 import static org.apache.commons.lang3.StringUtils.EMPTY;
 
+import com.google.inject.Inject;
 import io.harness.annotations.dev.HarnessModule;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.annotations.dev.TargetModule;
@@ -38,7 +39,6 @@ import software.wings.beans.HostConnectionAttributes;
 import software.wings.beans.artifact.ArtifactStreamAttributes;
 import software.wings.settings.SettingValue;
 
-import com.google.api.client.util.Lists;
 import com.google.inject.Singleton;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -63,6 +63,7 @@ public class CapabilityHelper {
   public static final String TERRAFORM = "terraform";
   public static final String TERRAGRUNT = "terragrunt";
   public static final String HELM = "helm";
+
 
   public static List<ExecutionCapability> generateDelegateCapabilities(ExecutionCapabilityDemander capabilityDemander,
       List<EncryptedDataDetail> encryptedDataDetails, ExpressionEvaluator maskingEvaluator) {
@@ -177,28 +178,12 @@ public class CapabilityHelper {
     return false;
   }
 
-  public static String generateSelectionLogForSelectors(List<ExecutionCapability> executionCapabilities) {
-    if (isEmpty(executionCapabilities)) {
-      return EMPTY;
-    }
-    List<String> taskSelectors = Lists.newArrayList();
-    List<SelectorCapability> selectorCapabilities = executionCapabilities.stream()
-                                                        .filter(capability -> capability instanceof SelectorCapability)
-                                                        .map(s -> (SelectorCapability) s)
-                                                        .collect(Collectors.toList());
-    if (isEmpty(selectorCapabilities)) {
-      return EMPTY;
-    }
-    selectorCapabilities.forEach(capability -> taskSelectors.addAll(capability.getSelectors()));
-    return "Selectors: " + String.join(", ", taskSelectors);
-  }
-
   public static String generateLogStringWithCapabilitiesGenerated(
       String taskType, List<ExecutionCapability> executionCapabilities) {
     StringBuilder builder =
         new StringBuilder(128).append("Capabilities Generate for Task: ").append(taskType).append(" are: ");
 
-    executionCapabilities.forEach(capability -> builder.append('\n').append(capability.toString()));
+    executionCapabilities.forEach(capability -> builder.append('\n').append(capability.getCapabilityToString()));
     return builder.append('\n').toString();
   }
 
