@@ -164,7 +164,7 @@ public class PipelineResourceTest extends CategoryTest {
     doReturn(false).when(featureFlagHelper).isEnabled(ACCOUNT_ID, FeatureName.OPA_PIPELINE_GOVERNANCE);
     doReturn(GovernanceMetadata.newBuilder().setDeny(false).build())
         .when(pmsPipelineServiceHelper)
-        .validatePipelineYamlAndSetTemplateRefIfAny(entity, false);
+        .validatePipelineYaml(entity);
     doReturn(entityWithVersion).when(pmsPipelineService).create(entity);
     TemplateMergeResponseDTO templateMergeResponseDTO =
         TemplateMergeResponseDTO.builder().mergedPipelineYaml(yaml).build();
@@ -183,7 +183,7 @@ public class PipelineResourceTest extends CategoryTest {
     doReturn(entityWithVersion).when(pmsPipelineService).create(entity);
     doReturn(GovernanceMetadata.newBuilder().setDeny(true).build())
         .when(pmsPipelineServiceHelper)
-        .validatePipelineYamlAndSetTemplateRefIfAny(entity, true);
+        .validatePipelineYaml(entity);
     ResponseDTO<PipelineSaveResponse> responseDTO =
         pipelineResource.createPipelineV2(ACCOUNT_ID, ORG_IDENTIFIER, PROJ_IDENTIFIER, null, null, null, null, yaml);
     assertThat(responseDTO.getData().getGovernanceMetadata()).isNotNull();
@@ -195,9 +195,7 @@ public class PipelineResourceTest extends CategoryTest {
   @Category(UnitTests.class)
   public void testCreatePipelineWithSchemaErrors() {
     doReturn(false).when(featureFlagHelper).isEnabled(ACCOUNT_ID, FeatureName.OPA_PIPELINE_GOVERNANCE);
-    doThrow(JsonSchemaValidationException.class)
-        .when(pmsPipelineServiceHelper)
-        .validatePipelineYamlAndSetTemplateRefIfAny(entity, false);
+    doThrow(JsonSchemaValidationException.class).when(pmsPipelineServiceHelper).validatePipelineYaml(entity);
     assertThatThrownBy(()
                            -> pipelineResource.createPipeline(
                                ACCOUNT_ID, ORG_IDENTIFIER, PROJ_IDENTIFIER, null, null, null, null, yaml))
@@ -304,7 +302,7 @@ public class PipelineResourceTest extends CategoryTest {
     doReturn(false).when(featureFlagHelper).isEnabled(ACCOUNT_ID, FeatureName.OPA_PIPELINE_GOVERNANCE);
     doReturn(GovernanceMetadata.newBuilder().setDeny(false).build())
         .when(pmsPipelineServiceHelper)
-        .validatePipelineYamlAndSetTemplateRefIfAny(entity, false);
+        .validatePipelineYaml(entity);
     doReturn(entityWithVersion).when(pmsPipelineService).updatePipelineYaml(entity, ChangeType.MODIFY);
     TemplateMergeResponseDTO templateMergeResponseDTO =
         TemplateMergeResponseDTO.builder().mergedPipelineYaml(yaml).build();
@@ -324,7 +322,7 @@ public class PipelineResourceTest extends CategoryTest {
     doReturn(entityWithVersion).when(pmsPipelineService).updatePipelineYaml(entity, ChangeType.MODIFY);
     doReturn(GovernanceMetadata.newBuilder().setDeny(true).build())
         .when(pmsPipelineServiceHelper)
-        .validatePipelineYamlAndSetTemplateRefIfAny(entity, true);
+        .validatePipelineYaml(entity);
     ResponseDTO<PipelineSaveResponse> responseDTO = pipelineResource.updatePipelineV2(
         null, ACCOUNT_ID, ORG_IDENTIFIER, PROJ_IDENTIFIER, PIPELINE_IDENTIFIER, null, null, null, yaml);
     assertThat(responseDTO.getData().getGovernanceMetadata().getDeny()).isTrue();
@@ -335,9 +333,7 @@ public class PipelineResourceTest extends CategoryTest {
   @Category(UnitTests.class)
   @Ignore("Ignored till Schema validation is behind FF")
   public void testUpdatePipelineWithSchemaErrors() {
-    doThrow(JsonSchemaValidationException.class)
-        .when(pmsPipelineServiceHelper)
-        .validatePipelineYamlAndSetTemplateRefIfAny(entity, false);
+    doThrow(JsonSchemaValidationException.class).when(pmsPipelineServiceHelper).validatePipelineYaml(entity);
     assertThatThrownBy(()
                            -> pipelineResource.updatePipeline(null, ACCOUNT_ID, ORG_IDENTIFIER, PROJ_IDENTIFIER,
                                PIPELINE_IDENTIFIER, null, null, null, yaml))
