@@ -13,6 +13,7 @@ import io.harness.annotations.dev.OwnedBy;
 import io.harness.engine.execution.ExecutionInputService;
 import io.harness.execution.ExecutionInputInstance;
 import io.harness.expression.LateBindingValue;
+import io.harness.jackson.JsonNodeUtils;
 import io.harness.pms.contracts.ambiance.Ambiance;
 import io.harness.pms.execution.utils.AmbianceUtils;
 import io.harness.pms.serializer.recaster.RecastOrchestrationUtils;
@@ -42,14 +43,18 @@ public class ExecutionInputExpressionFunctor implements LateBindingValue {
 
     ObjectMapper objectMapper = new YAMLMapper();
     JsonNode jsonNode;
+    JsonNode templateNode;
     try {
       jsonNode = objectMapper.readTree(inputInstance.getUserInput());
+      templateNode = objectMapper.readTree(inputInstance.getTemplate());
+      // Merging user input with template.
+      JsonNodeUtils.merge(templateNode, jsonNode);
     } catch (JsonProcessingException e) {
       log.warn(
           "Could not covert the execution user input to Map. Expressions might not be resolved for nodeExecutionId {}",
           nodeExecutionId, e);
       return Collections.emptyMap();
     }
-    return RecastOrchestrationUtils.fromJson(jsonNode.toString());
+    return RecastOrchestrationUtils.fromJson(templateNode.toString());
   }
 }
