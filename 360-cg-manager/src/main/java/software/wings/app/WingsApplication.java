@@ -183,7 +183,7 @@ import io.harness.workers.background.critical.iterator.ArtifactCollectionHandler
 import io.harness.workers.background.critical.iterator.EventDeliveryHandler;
 import io.harness.workers.background.critical.iterator.ResourceConstraintBackupHandler;
 import io.harness.workers.background.critical.iterator.WorkflowExecutionMonitorHandler;
-import io.harness.workers.background.critical.iterator.WorkflowZombieMonitorHandler;
+import io.harness.workers.background.critical.iterator.WorkflowExecutionZombieMonitorHandler;
 import io.harness.workers.background.iterator.ArtifactCleanupHandler;
 import io.harness.workers.background.iterator.InstanceSyncHandler;
 import io.harness.workers.background.iterator.SettingAttributeValidateConnectivityHandler;

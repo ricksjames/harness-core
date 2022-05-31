@@ -131,6 +131,11 @@ public class WorkflowExecution implements PersistentRegularIterable, AccountData
                  .field(WorkflowExecutionKeys.status)
                  .field(WorkflowExecutionKeys.nextIteration)
                  .build())
+            .add(CompoundMongoIndex.builder()
+                    .name("workflowExecutionZombieMonitor")
+                    .field(WorkflowExecutionKeys.status)
+                    .field(WorkflowExecutionKeys.nextZombieIteration)
+                    .build())
         .add(SortCompoundMongoIndex.builder()
                  .name("accountId_pipExecutionId_createdAt")
                  .field(WorkflowExecutionKeys.accountId)
@@ -350,6 +355,7 @@ public class WorkflowExecution implements PersistentRegularIterable, AccountData
   private boolean cdPageCandidate;
 
   private Long nextIteration;
+  private Long nextZombieIteration;
   private List<NameValuePair> tags;
   private String message;
   @Transient private String failureDetails;
@@ -389,11 +395,18 @@ public class WorkflowExecution implements PersistentRegularIterable, AccountData
 
   @Override
   public void updateNextIteration(String fieldName, long nextIteration) {
-    this.nextIteration = nextIteration;
+    if (WorkflowExecutionKeys.nextZombieIteration.equals(fieldName)) {
+      this.nextZombieIteration = nextIteration;
+    } else {
+      this.nextIteration = nextIteration;
+    }
   }
 
   @Override
   public Long obtainNextIteration(String fieldName) {
+    if (WorkflowExecutionKeys.nextZombieIteration.equals(fieldName)) {
+      return nextZombieIteration;
+    }
     return nextIteration;
   }
 
