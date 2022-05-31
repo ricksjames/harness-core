@@ -23,6 +23,6 @@ public class ServerlessAwsLambdaDeployResult implements ServerlessDeployResult {
   private String stage;
   private String previousVersionTimeStamp;
   private String errorMessage;
-  private Boolean isFirstDeployment;
+  private boolean isFirstDeployment;
   private List<ServerlessAwsLambdaFunction> functions;
 }

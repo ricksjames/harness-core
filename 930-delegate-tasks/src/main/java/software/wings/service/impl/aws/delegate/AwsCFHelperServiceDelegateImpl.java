@@ -15,6 +15,7 @@ import static java.util.stream.Collectors.toList;
 
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.aws.beans.AwsInternalConfig;
+import io.harness.data.structure.EmptyPredicate;
 import io.harness.exception.ExceptionUtils;
 import io.harness.exception.InvalidRequestException;
 import io.harness.security.encryption.EncryptedDataDetail;
@@ -112,7 +113,7 @@ public class AwsCFHelperServiceDelegateImpl
       closeableAmazonCloudFormationClient.getClient().describeStacks(describeStacksRequest);
       return true;
     } catch (AmazonCloudFormationException amazonCloudFormationException) {
-      if (amazonCloudFormationException.getErrorCode().equals("ValidationError")) {
+      if (EmptyPredicate.isNotEmpty(amazonCloudFormationException.getErrorCode()) && amazonCloudFormationException.getErrorCode().equals("ValidationError")) {
         return false;
       } else {
         handleAmazonClientException(amazonCloudFormationException);
