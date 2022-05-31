@@ -315,19 +315,19 @@ public class CloudformationCreateStackTaskHandlerTest {
   @Owner(developers = NGONZALEZ)
   @Category(UnitTests.class)
   public void testUpdateStackFailsDeployStack() throws Exception {
-    doReturn(createStackResult).when(awsCloudformationClient).createStack(anyString(), any(), any());
+    doReturn(createStackResult).when(awsCloudformationClient).createStack(any(), any(), any());
 
     Stack createdStack = new Stack();
     createdStack.setStackStatus("CREATE_COMPLETE");
     createdStack.setStackName("stackName");
-    when(awsCloudformationClient.getAllStacks(anyString(), any(), any()))
+    when(awsCloudformationClient.getAllStacks(any(), any(), any()))
         .thenReturn(Collections.singletonList(createdStack), Collections.singletonList(createdStack));
 
     DeployStackRequest deployStackRequest = DeployStackRequest.builder().stackName("stackId-123").build();
     DeployStackResult deployStackResult =
         DeployStackResult.builder().noUpdatesToPerform(false).status(Status.FAILURE).build();
     when(cloudformationBaseHelper.transformToDeployStackRequest(any())).thenReturn(deployStackRequest);
-    when(awsCloudformationClient.deployStack(anyString(), any(), any(), any(), any())).thenReturn(deployStackResult);
+    when(awsCloudformationClient.deployStack(any(), any(), any(), any(), any())).thenReturn(deployStackResult);
 
     parameters.templateBody("templateBody");
     CloudformationTaskNGResponse response =
@@ -335,12 +335,12 @@ public class CloudformationCreateStackTaskHandlerTest {
 
     assertThat(response).isNotNull();
     assertThat(response.getCommandExecutionStatus()).isEqualTo(FAILURE);
-    verify(cloudformationBaseHelper, times(1)).getCloudformationTags(anyString());
-    verify(cloudformationBaseHelper, times(1)).getCapabilities(any(), anyString(), anyString(), any(), any());
-    verify(awsCloudformationClient, times(1)).deployStack(anyString(), any(), any(), any(), any());
-    verify(awsCloudformationClient, times(1)).getAllStacks(anyString(), any(), any());
-    verify(cloudformationBaseHelper, times(0)).printStackEvents(any(), anyString(), anyLong(), any(), any());
-    verify(cloudformationBaseHelper, times(0)).printStackResources(any(), anyString(), any(), any());
+    verify(cloudformationBaseHelper, times(1)).getCloudformationTags(any());
+    verify(cloudformationBaseHelper, times(1)).getCapabilities(any(), any(), any(), any(), any());
+    verify(awsCloudformationClient, times(1)).deployStack(any(), any(), any(), any(), any());
+    verify(awsCloudformationClient, times(1)).getAllStacks(any(), any(), any());
+    verify(cloudformationBaseHelper, times(0)).printStackEvents(any(), any(), anyLong(), any(), any());
+    verify(cloudformationBaseHelper, times(0)).printStackResources(any(), any(), any(), any());
     ArgumentCaptor<String> logCaptor = ArgumentCaptor.forClass(String.class);
     verify(logCallback, atLeastOnce()).saveExecutionLog(logCaptor.capture());
     List<String> foobar = logCaptor.getAllValues();
@@ -351,19 +351,19 @@ public class CloudformationCreateStackTaskHandlerTest {
   @Owner(developers = NGONZALEZ)
   @Category(UnitTests.class)
   public void testUpdateStackDoesntUpdatesAnything() throws Exception {
-    doReturn(createStackResult).when(awsCloudformationClient).createStack(anyString(), any(), any());
+    doReturn(createStackResult).when(awsCloudformationClient).createStack(any(), any(), any());
 
     Stack createdStack = new Stack();
     createdStack.setStackStatus("CREATE_COMPLETE");
     createdStack.setStackName("stackName");
-    when(awsCloudformationClient.getAllStacks(anyString(), any(), any()))
+    when(awsCloudformationClient.getAllStacks(any(), any(), any()))
         .thenReturn(Collections.singletonList(createdStack), Collections.singletonList(createdStack));
 
     DeployStackRequest deployStackRequest = DeployStackRequest.builder().stackName("stackId-123").build();
     DeployStackResult deployStackResult =
         DeployStackResult.builder().noUpdatesToPerform(true).status(Status.SUCCESS).build();
     when(cloudformationBaseHelper.transformToDeployStackRequest(any())).thenReturn(deployStackRequest);
-    when(awsCloudformationClient.deployStack(anyString(), any(), any(), any(), any())).thenReturn(deployStackResult);
+    when(awsCloudformationClient.deployStack(any(), any(), any(), any(), any())).thenReturn(deployStackResult);
 
     parameters.templateBody("templateBody");
     CloudformationTaskNGResponse response =
@@ -372,12 +372,12 @@ public class CloudformationCreateStackTaskHandlerTest {
     assertThat(response).isNotNull();
     assertThat(response.getCommandExecutionStatus()).isEqualTo(SUCCESS);
     assertThat(response.isUpdatedNotPerformed()).isTrue();
-    verify(cloudformationBaseHelper, times(1)).getCloudformationTags(anyString());
-    verify(cloudformationBaseHelper, times(1)).getCapabilities(any(), anyString(), anyString(), any(), any());
-    verify(awsCloudformationClient, times(1)).deployStack(anyString(), any(), any(), any(), any());
-    verify(awsCloudformationClient, times(2)).getAllStacks(anyString(), any(), any());
-    verify(cloudformationBaseHelper, times(0)).printStackEvents(any(), anyString(), anyLong(), any(), any());
-    verify(cloudformationBaseHelper, times(1)).printStackResources(any(), anyString(), any(), any());
+    verify(cloudformationBaseHelper, times(1)).getCloudformationTags(any());
+    verify(cloudformationBaseHelper, times(1)).getCapabilities(any(), any(), any(), any(), any());
+    verify(awsCloudformationClient, times(1)).deployStack(any(), any(), any(), any(), any());
+    verify(awsCloudformationClient, times(2)).getAllStacks(any(), any(), any());
+    verify(cloudformationBaseHelper, times(0)).printStackEvents(any(), any(), anyLong(), any(), any());
+    verify(cloudformationBaseHelper, times(1)).printStackResources(any(), any(), any(), any());
     ArgumentCaptor<String> logCaptor = ArgumentCaptor.forClass(String.class);
     verify(logCallback, atLeastOnce()).saveExecutionLog(logCaptor.capture());
     assertThat(logCaptor.getAllValues().contains("# Update Successful for stack")).isFalse();
