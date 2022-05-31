@@ -70,9 +70,10 @@ public class AzureResource {
 
   @GET
   @Path("subscriptions/{subscriptionId}/resourceGroups/{resourceGroup}/app-services-names")
-  @ApiOperation(value = "Gets azure app services names by subscriptionId and resourceGroup", nickname = "getAzureWebAppNames")
-  public ResponseDTO<AzureWebAppNamesDTO> getAppServiceNames(
-      @NotNull @QueryParam("connectorRef") String azureConnectorIdentifier,
+  @ApiOperation(
+      value = "Gets azure app services names by subscriptionId and resourceGroup", nickname = "getAzureWebAppNames")
+  public ResponseDTO<AzureWebAppNamesDTO>
+  getAppServiceNames(@NotNull @QueryParam("connectorRef") String azureConnectorIdentifier,
       @NotNull @QueryParam(NGCommonEntityConstants.ACCOUNT_KEY) String accountId,
       @NotNull @QueryParam(NGCommonEntityConstants.ORG_KEY) String orgIdentifier,
       @NotNull @QueryParam(NGCommonEntityConstants.PROJECT_KEY) String projectIdentifier,
