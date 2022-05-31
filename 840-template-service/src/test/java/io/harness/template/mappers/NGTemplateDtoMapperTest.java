@@ -8,7 +8,9 @@
 package io.harness.template.mappers;
 
 import static io.harness.annotations.dev.HarnessTeam.CDC;
-import static io.harness.rule.OwnerRule.*;
+import static io.harness.rule.OwnerRule.ARCHIT;
+import static io.harness.rule.OwnerRule.INDER;
+import static io.harness.rule.OwnerRule.vivekveman;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
