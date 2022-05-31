@@ -66,7 +66,7 @@ public class AnomalyQueryHelper {
         CCMField.AZURE_SERVICE_NAME, CCMOperator.IN, anomalyFilterPropertiesDTO.getAzureServiceNames(), stringFilters);
     addStringFilter(
         CCMField.AZURE_RESOURCE, CCMOperator.IN, anomalyFilterPropertiesDTO.getAzureResources(), stringFilters);
-    addStringFilter(CCMField.ALL, CCMOperator.IN, anomalyFilterPropertiesDTO.getSearchText(), stringFilters);
+    addStringFilter(CCMField.ALL, CCMOperator.LIKE, anomalyFilterPropertiesDTO.getSearchText(), stringFilters);
 
     addNumberFilter(CCMField.ACTUAL_COST, CCMOperator.GREATER_THAN_EQUALS_TO,
         anomalyFilterPropertiesDTO.getMinActualAmount(), numberFilters);
