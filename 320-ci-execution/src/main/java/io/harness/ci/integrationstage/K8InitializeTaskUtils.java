@@ -4,9 +4,15 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
+import io.harness.beans.FeatureName;
 import io.harness.beans.quantity.unit.DecimalQuantityUnit;
 import io.harness.beans.quantity.unit.StorageQuantityUnit;
 import io.harness.beans.serializer.RunTimeInputHandler;
+import io.harness.beans.stages.IntegrationStageConfig;
+import io.harness.beans.steps.stepinfo.InitializeStepInfo;
+import io.harness.beans.sweepingoutputs.CodeBaseConnectorRefSweepingOutput;
+import io.harness.beans.sweepingoutputs.K8PodDetails;
+import io.harness.beans.yaml.extended.infrastrucutre.Infrastructure;
 import io.harness.beans.yaml.extended.infrastrucutre.K8sDirectInfraYaml;
 import io.harness.beans.yaml.extended.infrastrucutre.OSType;
 import io.harness.beans.yaml.extended.infrastrucutre.k8.Capabilities;
@@ -26,25 +32,79 @@ import io.harness.delegate.beans.ci.pod.ImageDetailsWithConnector;
 import io.harness.delegate.beans.ci.pod.PVCVolume;
 import io.harness.delegate.beans.ci.pod.PodToleration;
 import io.harness.delegate.beans.ci.pod.PodVolume;
+import io.harness.exception.InvalidRequestException;
 import io.harness.exception.ngexception.CIStageExecutionException;
+import io.harness.ff.CIFeatureFlagService;
 import io.harness.k8s.model.ImageDetails;
+import io.harness.logserviceclient.CILogServiceUtils;
 import io.harness.ng.core.NGAccess;
+import io.harness.pms.contracts.ambiance.Ambiance;
+import io.harness.pms.execution.utils.AmbianceUtils;
+import io.harness.pms.sdk.core.data.ExecutionSweepingOutput;
+import io.harness.pms.sdk.core.data.OptionalSweepingOutput;
+import io.harness.pms.sdk.core.plan.creation.yaml.StepOutcomeGroup;
+import io.harness.pms.sdk.core.resolver.RefObjectUtils;
+import io.harness.pms.sdk.core.resolver.outputs.ExecutionSweepingOutputService;
 import io.harness.pms.yaml.ParameterField;
 import io.harness.stateutils.buildstate.ConnectorUtils;
+import io.harness.stoserviceclient.STOServiceUtils;
+import io.harness.tiserviceclient.TIServiceUtils;
+import io.harness.util.ExceptionUtility;
+import io.harness.util.GithubApiFunctor;
+import io.harness.util.GithubApiTokenEvaluator;
 import io.harness.yaml.core.timeout.Timeout;
 import io.harness.yaml.extended.ci.container.ContainerResource;
 import lombok.extern.slf4j.Slf4j;
+import net.jodah.failsafe.Failsafe;
+import net.jodah.failsafe.RetryPolicy;
+import org.jetbrains.annotations.NotNull;
 
 import java.security.SecureRandom;
+import java.time.Duration;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static io.harness.beans.serializer.RunTimeInputHandler.UNRESOLVED_PARAMETER;
 import static io.harness.beans.serializer.RunTimeInputHandler.resolveIntegerParameter;
+import static io.harness.beans.serializer.RunTimeInputHandler.resolveOSType;
 import static io.harness.beans.serializer.RunTimeInputHandler.resolveStringParameter;
+import static io.harness.beans.sweepingoutputs.CISweepingOutputNames.CODE_BASE_CONNECTOR_REF;
 import static io.harness.common.CICommonPodConstants.POD_NAME_PREFIX;
+import static io.harness.common.CIExecutionConstants.ACCOUNT_ID_ATTR;
+import static io.harness.common.CIExecutionConstants.ADDON_VOLUME;
+import static io.harness.common.CIExecutionConstants.ADDON_VOL_MOUNT_PATH;
+import static io.harness.common.CIExecutionConstants.BUILD_NUMBER_ATTR;
+import static io.harness.common.CIExecutionConstants.HARNESS_ACCOUNT_ID_VARIABLE;
+import static io.harness.common.CIExecutionConstants.HARNESS_BUILD_ID_VARIABLE;
+import static io.harness.common.CIExecutionConstants.HARNESS_CI_INDIRECT_LOG_UPLOAD_FF;
+import static io.harness.common.CIExecutionConstants.HARNESS_EXECUTION_ID_VARIABLE;
+import static io.harness.common.CIExecutionConstants.HARNESS_LOG_PREFIX_VARIABLE;
+import static io.harness.common.CIExecutionConstants.HARNESS_ORG_ID_VARIABLE;
+import static io.harness.common.CIExecutionConstants.HARNESS_PIPELINE_ID_VARIABLE;
+import static io.harness.common.CIExecutionConstants.HARNESS_PROJECT_ID_VARIABLE;
+import static io.harness.common.CIExecutionConstants.HARNESS_STAGE_ID_VARIABLE;
+import static io.harness.common.CIExecutionConstants.HARNESS_WORKSPACE;
+import static io.harness.common.CIExecutionConstants.LABEL_REGEX;
+import static io.harness.common.CIExecutionConstants.LOG_SERVICE_ENDPOINT_VARIABLE;
+import static io.harness.common.CIExecutionConstants.LOG_SERVICE_TOKEN_VARIABLE;
+import static io.harness.common.CIExecutionConstants.ORG_ID_ATTR;
+import static io.harness.common.CIExecutionConstants.PIPELINE_EXECUTION_ID_ATTR;
+import static io.harness.common.CIExecutionConstants.PIPELINE_ID_ATTR;
 import static io.harness.common.CIExecutionConstants.POD_MAX_WAIT_UNTIL_READY_SECS;
+import static io.harness.common.CIExecutionConstants.PROJECT_ID_ATTR;
+import static io.harness.common.CIExecutionConstants.SHARED_VOLUME_PREFIX;
+import static io.harness.common.CIExecutionConstants.STAGE_ID_ATTR;
+import static io.harness.common.CIExecutionConstants.STAGE_NAME_ATTR;
+import static io.harness.common.CIExecutionConstants.STEP_MOUNT_PATH;
+import static io.harness.common.CIExecutionConstants.STEP_VOLUME;
+import static io.harness.common.CIExecutionConstants.STEP_WORK_DIR;
+import static io.harness.common.CIExecutionConstants.TI_SERVICE_ENDPOINT_VARIABLE;
+import static io.harness.common.CIExecutionConstants.TI_SERVICE_TOKEN_VARIABLE;
 import static io.harness.common.CIExecutionConstants.VOLUME_PREFIX;
+import static io.harness.common.STOExecutionConstants.STO_SERVICE_ENDPOINT_VARIABLE;
+import static io.harness.common.STOExecutionConstants.STO_SERVICE_TOKEN_VARIABLE;
 import static io.harness.data.structure.EmptyPredicate.isEmpty;
 import static io.harness.data.structure.EmptyPredicate.isNotEmpty;
 import static java.lang.Character.toLowerCase;
@@ -56,12 +116,24 @@ import static org.apache.commons.lang3.CharUtils.isAsciiAlphanumeric;
 @Slf4j
 @OwnedBy(HarnessTeam.CI)
 public class K8InitializeTaskUtils {
+
+    @Inject
+    private ConnectorUtils connectorUtils;
+    @Inject private ExecutionSweepingOutputService executionSweepingOutputService;
+    @Inject private ExecutionSweepingOutputService executionSweepingOutputResolver;
+    @Inject
+    CILogServiceUtils logServiceUtils;
+    @Inject
+    TIServiceUtils tiServiceUtils;
+    @Inject
+    STOServiceUtils stoServiceUtils;
+    @Inject private CIFeatureFlagService featureFlagService;
+
+    private final Duration RETRY_SLEEP_DURATION = Duration.ofSeconds(2);
+    private final int MAX_ATTEMPTS = 3;
     static final String SOURCE = "123456789bcdfghjklmnpqrstvwxyz";
     static final Integer RANDOM_LENGTH = 8;
     private static final SecureRandom random = new SecureRandom();
-    @Inject
-    private ConnectorUtils connectorUtils;
-
 
     public String generatePodName(String identifier) {
         return POD_NAME_PREFIX + "-" + getK8PodIdentifier(identifier) + "-"
@@ -87,6 +159,117 @@ public class K8InitializeTaskUtils {
             sb.append(SOURCE.charAt(random.nextInt(SOURCE.length())));
         }
         return sb.toString();
+    }
+
+    public Map<String, String> getBuildLabels(Ambiance ambiance, K8PodDetails k8PodDetails) {
+        final String accountID = AmbianceUtils.getAccountId(ambiance);
+        final String orgID = AmbianceUtils.getOrgIdentifier(ambiance);
+        final String projectID = AmbianceUtils.getProjectIdentifier(ambiance);
+        final String pipelineID = ambiance.getMetadata().getPipelineIdentifier();
+        final String pipelineExecutionID = ambiance.getPlanExecutionId();
+        final int buildNumber = ambiance.getMetadata().getRunSequence();
+        final String stageID = k8PodDetails.getStageID();
+        final String stageName = k8PodDetails.getStageName();
+
+        Map<String, String> labels = new HashMap<>();
+        if (isLabelAllowed(accountID)) {
+            labels.put(ACCOUNT_ID_ATTR, accountID);
+        }
+        if (isLabelAllowed(orgID)) {
+            labels.put(ORG_ID_ATTR, orgID);
+        }
+        if (isLabelAllowed(projectID)) {
+            labels.put(PROJECT_ID_ATTR, projectID);
+        }
+        if (isLabelAllowed(pipelineID)) {
+            labels.put(PIPELINE_ID_ATTR, pipelineID);
+        }
+        if (isLabelAllowed(pipelineExecutionID)) {
+            labels.put(PIPELINE_EXECUTION_ID_ATTR, pipelineExecutionID);
+        }
+        if (isLabelAllowed(stageID)) {
+            labels.put(STAGE_ID_ATTR, stageID);
+        }
+        if (isLabelAllowed(stageName)) {
+            labels.put(STAGE_NAME_ATTR, stageName);
+        }
+        if (isLabelAllowed(String.valueOf(buildNumber))) {
+            labels.put(BUILD_NUMBER_ATTR, String.valueOf(buildNumber));
+        }
+        return labels;
+    }
+
+    private boolean isLabelAllowed(String label) {
+        if (label == null) {
+            return false;
+        }
+
+        return label.matches(LABEL_REGEX);
+    }
+
+    public String getWorkDir() {
+        return STEP_WORK_DIR;
+    }
+
+    public OSType getOS(Infrastructure infrastructure) {
+        if (infrastructure.getType() != Infrastructure.Type.KUBERNETES_DIRECT) {
+            return OSType.Linux;
+        }
+
+        if (((K8sDirectInfraYaml) infrastructure).getSpec() == null) {
+            throw new CIStageExecutionException("Input infrastructure can not be empty");
+        }
+
+        K8sDirectInfraYaml k8sDirectInfraYaml = (K8sDirectInfraYaml) infrastructure;
+        return resolveOSType(k8sDirectInfraYaml.getSpec().getOs());
+    }
+
+    public List<String> getSharedPaths(InitializeStepInfo initializeStepInfo) {
+        IntegrationStageConfig integrationStageConfig = initializeStepInfo.getStageElementConfig();
+        String stageID = initializeStepInfo.getStageIdentifier();
+        if (integrationStageConfig.getSharedPaths().isExpression()) {
+            ExceptionUtility.throwUnresolvedExpressionException(integrationStageConfig.getSharedPaths().getExpressionValue(),
+                    "sharedPath", "stage with identifier: " + stageID);
+        }
+        return (List<String>) integrationStageConfig.getSharedPaths().fetchFinalValue();
+    }
+
+    public Map<String, String> getVolumeToMountPath(List<String> sharedPaths, List<PodVolume> volumes) {
+        Map<String, String> volumeToMountPath = new HashMap<>();
+        volumeToMountPath.put(STEP_VOLUME, STEP_MOUNT_PATH);
+        volumeToMountPath.put(ADDON_VOLUME, ADDON_VOL_MOUNT_PATH);
+
+        int index = 0;
+        if (sharedPaths != null) {
+            for (String path : sharedPaths) {
+                if (isEmpty(path)) {
+                    continue;
+                }
+
+                String volumeName = format("%s%d", SHARED_VOLUME_PREFIX, index);
+                if (path.equals(STEP_MOUNT_PATH) || path.equals(ADDON_VOL_MOUNT_PATH)) {
+                    throw new InvalidRequestException(format("Shared path: %s is a reserved keyword ", path));
+                }
+                volumeToMountPath.put(volumeName, path);
+                index++;
+            }
+        }
+
+        if (isNotEmpty(volumes)) {
+            for (PodVolume volume : volumes) {
+                if (volume.getType() == PodVolume.Type.EMPTY_DIR) {
+                    EmptyDirVolume emptyDirVolume = (EmptyDirVolume) volume;
+                    volumeToMountPath.put(emptyDirVolume.getName(), emptyDirVolume.getMountPath());
+                } else if (volume.getType() == PodVolume.Type.HOST_PATH) {
+                    HostPathVolume hostPathVolume = (HostPathVolume) volume;
+                    volumeToMountPath.put(hostPathVolume.getName(), hostPathVolume.getMountPath());
+                } else if (volume.getType() == PodVolume.Type.PVC) {
+                    PVCVolume pvcVolume = (PVCVolume) volume;
+                    volumeToMountPath.put(pvcVolume.getName(), pvcVolume.getMountPath());
+                }
+            }
+        }
+        return volumeToMountPath;
     }
 
     public List<PodVolume> convertDirectK8Volumes(K8sDirectInfraYaml k8sDirectInfraYaml) {
@@ -197,7 +380,17 @@ public class K8InitializeTaskUtils {
         return podWaitUntilReadyTimeout;
     }
 
-    public ContainerSecurityContext getCtrSecurityContext(SecurityContext securityContext, OSType os) {
+    public ContainerSecurityContext getCtrSecurityContext(Infrastructure infrastructure) {
+        OSType os = getOS(infrastructure);
+        SecurityContext securityContext = null;
+        if (infrastructure.getType() == Infrastructure.Type.KUBERNETES_DIRECT && ((K8sDirectInfraYaml) infrastructure).getSpec() != null) {
+            securityContext = ((K8sDirectInfraYaml) infrastructure).getSpec().getContainerSecurityContext().getValue();
+        }
+
+        if (((K8sDirectInfraYaml) infrastructure).getSpec() == null) {
+            throw new CIStageExecutionException("Input infrastructure can not be empty");
+        }
+
         if (securityContext == null || os == OSType.Windows) {
             return ContainerSecurityContext.builder().build();
         }
@@ -240,5 +433,144 @@ public class K8InitializeTaskUtils {
                 IntegrationStageUtils.getFullyQualifiedImageName(imageDetails.getName(), imgConnector);
         imageDetails.setName(fullyQualifiedImageName);
         return ImageDetailsWithConnector.builder().imageConnectorDetails(imgConnector).imageDetails(imageDetails).build();
+    }
+
+    public Map<String, ConnectorDetails> resolveGitAppFunctor(
+            NGAccess ngAccess, InitializeStepInfo initializeStepInfo, Ambiance ambiance) {
+        String codeBaseConnectorRef = null;
+        if (initializeStepInfo.getCiCodebase() != null
+                && initializeStepInfo.getCiCodebase().getConnectorRef().getValue() != null) {
+            codeBaseConnectorRef = initializeStepInfo.getCiCodebase().getConnectorRef().getValue();
+            if (isNotEmpty(codeBaseConnectorRef)) {
+                consumeSweepingOutput(ambiance,
+                        CodeBaseConnectorRefSweepingOutput.builder().codeBaseConnectorRef(codeBaseConnectorRef).build(),
+                        CODE_BASE_CONNECTOR_REF);
+            }
+        }
+        GithubApiTokenEvaluator githubApiTokenEvaluator =
+                GithubApiTokenEvaluator.builder()
+                        .githubApiFunctorConfig(GithubApiFunctor.Config.builder()
+                                .codeBaseConnectorRef(codeBaseConnectorRef)
+                                .fetchConnector(true)
+                                .build())
+                        .connectorUtils(connectorUtils)
+                        .build();
+
+        return githubApiTokenEvaluator.resolve(initializeStepInfo, ngAccess, ambiance.getExpressionFunctorToken());
+    }
+
+    private <T extends ExecutionSweepingOutput> void consumeSweepingOutput(Ambiance ambiance, T value, String key) {
+        OptionalSweepingOutput optionalSweepingOutput =
+                executionSweepingOutputService.resolveOptional(ambiance, RefObjectUtils.getSweepingOutputRefObject(key));
+        if (!optionalSweepingOutput.isFound()) {
+            executionSweepingOutputResolver.consume(ambiance, key, value, StepOutcomeGroup.STAGE.name());
+        }
+    }
+
+    @NotNull
+    public Map<String, String> getLogServiceEnvVariables(K8PodDetails k8PodDetails, String accountID) {
+        Map<String, String> envVars = new HashMap<>();
+        final String logServiceBaseUrl = logServiceUtils.getLogServiceConfig().getBaseUrl();
+
+        RetryPolicy<Object> retryPolicy =
+                getRetryPolicy(format("[Retrying failed call to fetch log service token attempt: {}"),
+                        format("Failed to fetch log service token after retrying {} times"));
+
+        // Make a call to the log service and get back the token
+        String logServiceToken =
+                Failsafe.with(retryPolicy).get(() -> { return logServiceUtils.getLogServiceToken(accountID); });
+
+        envVars.put(LOG_SERVICE_TOKEN_VARIABLE, logServiceToken);
+        envVars.put(LOG_SERVICE_ENDPOINT_VARIABLE, logServiceBaseUrl);
+
+        return envVars;
+    }
+
+    @NotNull
+    public Map<String, String> getTIServiceEnvVariables(String accountId) {
+        Map<String, String> envVars = new HashMap<>();
+        final String tiServiceBaseUrl = tiServiceUtils.getTiServiceConfig().getBaseUrl();
+
+        String tiServiceToken = "token";
+
+        // Make a call to the TI service and get back the token. We do not need TI service token for all steps,
+        // so we can continue even if the service is down.
+        // TODO: (vistaar) Get token only when TI service interaction is required.
+        try {
+            tiServiceToken = tiServiceUtils.getTIServiceToken(accountId);
+        } catch (Exception e) {
+            log.error("Could not call token endpoint for TI service", e);
+        }
+
+        envVars.put(TI_SERVICE_TOKEN_VARIABLE, tiServiceToken);
+        envVars.put(TI_SERVICE_ENDPOINT_VARIABLE, tiServiceBaseUrl);
+
+        return envVars;
+    }
+
+    @NotNull
+    public Map<String, String> getSTOServiceEnvVariables(String accountId) {
+        Map<String, String> envVars = new HashMap<>();
+        final String stoServiceBaseUrl = stoServiceUtils.getStoServiceConfig().getBaseUrl();
+
+        String stoServiceToken = "token";
+
+        // Make a call to the STO service and get back the token.
+        try {
+            stoServiceToken = stoServiceUtils.getSTOServiceToken(accountId);
+        } catch (Exception e) {
+            log.error("Could not call token endpoint for STO service", e);
+        }
+
+        envVars.put(STO_SERVICE_TOKEN_VARIABLE, stoServiceToken);
+        envVars.put(STO_SERVICE_ENDPOINT_VARIABLE, stoServiceBaseUrl);
+
+        return envVars;
+    }
+
+    @NotNull
+    public Map<String, String> getCommonStepEnvVariables(K8PodDetails k8PodDetails, Map<String, String> gitEnvVars,
+                                                          Map<String, String> runtimeCodebaseVars, String workDirPath, String logPrefix, Ambiance ambiance) {
+        Map<String, String> envVars = new HashMap<>();
+        final String accountID = AmbianceUtils.getAccountId(ambiance);
+        final String orgID = AmbianceUtils.getOrgIdentifier(ambiance);
+        final String projectID = AmbianceUtils.getProjectIdentifier(ambiance);
+        final String pipelineID = ambiance.getMetadata().getPipelineIdentifier();
+        final int buildNumber = ambiance.getMetadata().getRunSequence();
+        final String stageID = k8PodDetails.getStageID();
+        final String executionID = ambiance.getPlanExecutionId();
+
+        // Add git connector environment variables
+        envVars.putAll(gitEnvVars);
+
+        // Add runtime git vars, i.e. manual pull request execution data.
+        envVars.putAll(runtimeCodebaseVars);
+
+        // Check whether FF to enable blob upload to log service (as opposed to directly blob storage) is enabled
+        if (featureFlagService.isEnabled(FeatureName.CI_INDIRECT_LOG_UPLOAD, accountID)) {
+            log.info("Indirect log upload FF is enabled for accountID: {}", accountID);
+            envVars.put(HARNESS_CI_INDIRECT_LOG_UPLOAD_FF, "true");
+        }
+
+        // Add other environment variables needed in the containers
+        envVars.put(HARNESS_WORKSPACE, workDirPath);
+        envVars.put(HARNESS_ACCOUNT_ID_VARIABLE, accountID);
+        envVars.put(HARNESS_PROJECT_ID_VARIABLE, projectID);
+        envVars.put(HARNESS_ORG_ID_VARIABLE, orgID);
+        envVars.put(HARNESS_PIPELINE_ID_VARIABLE, pipelineID);
+        envVars.put(HARNESS_BUILD_ID_VARIABLE, String.valueOf(buildNumber));
+        envVars.put(HARNESS_STAGE_ID_VARIABLE, stageID);
+        envVars.put(HARNESS_EXECUTION_ID_VARIABLE, executionID);
+        envVars.put(HARNESS_LOG_PREFIX_VARIABLE, logPrefix);
+        return envVars;
+    }
+
+    private RetryPolicy<Object> getRetryPolicy(String failedAttemptMessage, String failureMessage) {
+        return new RetryPolicy<>()
+                .handle(Exception.class)
+                .withDelay(RETRY_SLEEP_DURATION)
+                .withMaxAttempts(MAX_ATTEMPTS)
+                .onFailedAttempt(event -> log.info(failedAttemptMessage, event.getAttemptCount(), event.getLastFailure()))
+                .onFailure(event -> log.error(failureMessage, event.getAttemptCount(), event.getFailure()));
     }
 }
