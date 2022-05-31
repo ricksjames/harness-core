@@ -22,30 +22,6 @@ javaOpts: "-Xms64M"
 
 logStreamingServiceBaseUrl: "${logStreamingServiceBaseUrl}"
 upgraderDockerImage: "${upgraderDockerImage}"
-
-# Proxy settings if the delegate will be running behind proxy
-# Default value for proxyManager is false (delegate will directly connect to manager)
-proxyManager: "false"
-proxyHost: ""
-proxyPort: ""
-
-# Use Base64 encoded username and password
-# you can also set these parameters using --set flag during chart installation.
-proxyUser: ""
-proxyPassword: ""
-
-# Allowed values are http or https
-proxyScheme: ""
-
-# Enter a comma separated list of suffixes for which proxy is not
-# required. Do not use leading wildcards (.company.com,specifichost)
-# (optional):
-noProxy: ""
-
-# If the proxy doesn't support web socket (wss) protocol then set it
-# to true.
-pollForTasks: "false"
-
 </#macro>
 
 <#macro cgSpecific>

@@ -1,5 +1,4 @@
-# This harness-delegate-values.yaml file is compatible with version 1.0.2
-# of the harness-delegate helm chart.
+# This harness-delegate-values.yaml file is compatible harness-delegate-ng helm chart
 
 # You can download the harness-delegate helm chart at
 # https://app.harness.io/storage/harness-download/harness-helm-charts/
@@ -8,7 +7,7 @@
 # helm repo add harness https://app.harness.io/storage/harness-download/harness-helm-charts/
 
 # To install the chart with the release name my-release and this values.yaml
-# helm install --name my-release harness/harness-delegate -f harness-delegate-values.yaml
+# helm install --name my-release harness/harness-delegate-ng -f harness-delegate-values.yaml
 
 # Account Id to which the delegate will be connecting
 accountId: ACCOUNT_ID
@@ -16,30 +15,30 @@ accountId: ACCOUNT_ID
 # Secret identifier associated with the account
 delegateToken: ACCOUNT_KEY
 
-# Short 6 character identifier of the account
-accountIdShort: accoun
 delegateName: harness-delegate
-delegateType: HELM_DELEGATE
 delegateDockerImage: harness/delegate:latest
-managerHostAndPort: https://localhost:9090
+managerEndpoint: https://localhost:9090
 
-nextGen: true
-delegateTags: ""
-delegateDescription: ""
+# Mention tags that will be used to identify delegate
+tags: ""
+description: ""
+
+# Specify access for delegate, CLUSTER_ADMIN, CLUSTER_VIEWER and NAMESPACE_ADMIN are valid entries.
 k8sPermissionsType: CLUSTER_ADMIN
+
+# Namespace where delegate will be installed
 namespace: harness-delegate-ng
 
-delegateReplicas: 1
-delegateCpu: 0.5
-delegateRam: 2048
+# Resource Configuration
+replicas: 1
+cpu: 0.5
+memory: 2048
 
-enableCE: false
-
+# Need to run something specific before delegate starts, enter your script in initScripts.
 initScript: ""
 
-watcherStorageUrl: http://localhost:8888
-watcherCheckLocation: watcherci.txt
-delegateStorageUrl: http://localhost:8888
-delegateCheckLocation: delegateci.txt
-useCdn: false
-jreVersion: 1.8.0_242
+# Specify JAVA_OPTS
+javaOpts: "-Xms64M"
+
+logStreamingServiceBaseUrl: "http://localhost:8079"
+upgraderDockerImage: "harness/upgrader:latest"
