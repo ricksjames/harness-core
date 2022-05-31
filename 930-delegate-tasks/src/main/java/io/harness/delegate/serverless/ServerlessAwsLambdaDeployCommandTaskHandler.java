@@ -103,7 +103,6 @@ public class ServerlessAwsLambdaDeployCommandTaskHandler extends ServerlessComma
           Pair.of("ServerlessDeployConfig", "Must be instance of ServerlessAwsLambdaDeployConfig"));
     }
 
-    firstDeployment = false;
     timeoutInMillis = serverlessDeployRequest.getTimeoutIntervalInMin() * 60000;
     serverlessAwsLambdaInfraConfig =
         (ServerlessAwsLambdaInfraConfig) serverlessDeployRequest.getServerlessInfraConfig();
@@ -213,6 +212,7 @@ public class ServerlessAwsLambdaDeployCommandTaskHandler extends ServerlessComma
   private void prepareRollbackData(ServerlessDeployRequest serverlessDeployRequest, LogCallback executionLogCallback,
       ServerlessDelegateTaskParams serverlessDelegateTaskParams) throws Exception {
     executionLogCallback.saveExecutionLog(format("Preparing Rollback Data..%n%n"));
+    firstDeployment = false;
     if (!serverlessAwsCommandTaskHelper.cloudFormationTemplateExists(
             executionLogCallback, serverlessDeployRequest, serverlessDeployRequest.getManifestContent())) {
       firstDeployment = true;
