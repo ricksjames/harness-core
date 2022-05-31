@@ -169,7 +169,7 @@ public class AzureResourceServiceImplTest extends CategoryTest {
     when(azureHelperService.getConnector(identifierRef)).thenReturn(azureConnectorDTO);
 
     List<String> webAppNames = Arrays.asList("test-web-app-1", "test-web-app-2", "test-web-app-3");
-    when(azureHelperService.executeSyncTask(any(), any(), anyString(), anyInt()))
+    when(azureHelperService.executeSyncTask(any(), any(), anyString(), any()))
         .thenReturn(AzureWebAppNamesResponse.builder()
                         .commandExecutionStatus(CommandExecutionStatus.SUCCESS)
                         .webAppNames(webAppNames)
@@ -181,7 +181,7 @@ public class AzureResourceServiceImplTest extends CategoryTest {
     assertThat(azureWebAppNamesDTO).isNotNull();
     assertThat(azureWebAppNamesDTO.getWebAppNames().size()).isEqualTo(3);
 
-    verify(azureHelperService, times(1)).executeSyncTask(any(), any(), anyString(), anyInt());
+    verify(azureHelperService, times(1)).executeSyncTask(any(), any(), anyString(), any());
 
     assertThat(azureWebAppNamesDTO.getWebAppNames().get(0)).isEqualTo("test-web-app-1");
     assertThat(azureWebAppNamesDTO.getWebAppNames().get(1)).isEqualTo("test-web-app-2");
