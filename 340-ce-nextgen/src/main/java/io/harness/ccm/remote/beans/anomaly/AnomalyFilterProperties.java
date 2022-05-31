@@ -9,6 +9,9 @@ package io.harness.ccm.remote.beans.anomaly;
 
 import static io.harness.filter.FilterConstants.ANOMALY_FILTER;
 
+import io.harness.ccm.commons.entities.CCMAggregation;
+import io.harness.ccm.commons.entities.CCMGroupBy;
+import io.harness.ccm.commons.entities.CCMSort;
 import io.harness.ccm.commons.entities.CCMTimeFilter;
 import io.harness.filter.entity.FilterProperties;
 
@@ -54,6 +57,10 @@ public class AnomalyFilterProperties extends FilterProperties {
   Double minAnomalousSpend;
 
   List<CCMTimeFilter> timeFilters;
+  List<CCMSort> orderBy;
+  List<CCMGroupBy> groupBy;
+  List<CCMAggregation> aggregations;
+  List<String> searchText;
 
   Integer offset;
   Integer limit;

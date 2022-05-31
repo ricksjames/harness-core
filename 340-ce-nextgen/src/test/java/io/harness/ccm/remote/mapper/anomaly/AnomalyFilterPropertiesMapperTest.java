@@ -13,7 +13,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.harness.CategoryTest;
 import io.harness.category.element.UnitTests;
+import io.harness.ccm.commons.entities.CCMAggregation;
+import io.harness.ccm.commons.entities.CCMField;
+import io.harness.ccm.commons.entities.CCMGroupBy;
 import io.harness.ccm.commons.entities.CCMOperator;
+import io.harness.ccm.commons.entities.CCMSort;
+import io.harness.ccm.commons.entities.CCMSortOrder;
 import io.harness.ccm.commons.entities.CCMTimeFilter;
 import io.harness.ccm.remote.beans.anomaly.AnomalyFilterProperties;
 import io.harness.ccm.remote.beans.anomaly.AnomalyFilterPropertiesDTO;
@@ -22,6 +27,7 @@ import io.harness.filter.dto.FilterPropertiesDTO;
 import io.harness.filter.entity.FilterProperties;
 import io.harness.rule.Owner;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
@@ -44,6 +50,11 @@ public class AnomalyFilterPropertiesMapperTest extends CategoryTest {
   List<String> azureSubscriptions = Arrays.asList("azureSubscription1");
   List<String> azureServiceNames = Arrays.asList("azureServiceName1");
   List<String> azureResources = Arrays.asList("azureResource1");
+  List<CCMSort> orderBy =
+      Arrays.asList(CCMSort.builder().field(CCMField.ANOMALOUS_SPEND).order(CCMSortOrder.ASCENDING).build());
+  List<CCMGroupBy> groupBy = new ArrayList<>();
+  List<CCMAggregation> aggregations = new ArrayList<>();
+  List<String> searchText = Arrays.asList("abc");
   Double minActualAmount = 123.45;
   Double minAnomalousSpend = 1234.5;
   List<CCMTimeFilter> timeFilters = Arrays.asList(
@@ -77,6 +88,10 @@ public class AnomalyFilterPropertiesMapperTest extends CategoryTest {
                                             .minActualAmount(minActualAmount)
                                             .minAnomalousSpend(minAnomalousSpend)
                                             .timeFilters(timeFilters)
+                                            .orderBy(orderBy)
+                                            .groupBy(groupBy)
+                                            .aggregations(aggregations)
+                                            .searchText(searchText)
                                             .offset(offset)
                                             .limit(limit)
                                             .build();
@@ -98,6 +113,10 @@ public class AnomalyFilterPropertiesMapperTest extends CategoryTest {
     assertThat(filterPropertiesDTO.getMinActualAmount()).isEqualTo(minActualAmount);
     assertThat(filterPropertiesDTO.getMinAnomalousSpend()).isEqualTo(minAnomalousSpend);
     assertThat(filterPropertiesDTO.getTimeFilters()).isEqualTo(timeFilters);
+    assertThat(filterPropertiesDTO.getOrderBy()).isEqualTo(orderBy);
+    assertThat(filterPropertiesDTO.getGroupBy()).isEqualTo(groupBy);
+    assertThat(filterPropertiesDTO.getAggregations()).isEqualTo(aggregations);
+    assertThat(filterPropertiesDTO.getSearchText()).isEqualTo(searchText);
     assertThat(filterPropertiesDTO.getOffset()).isEqualTo(offset);
     assertThat(filterPropertiesDTO.getLimit()).isEqualTo(limit);
   }
@@ -122,6 +141,10 @@ public class AnomalyFilterPropertiesMapperTest extends CategoryTest {
                                                   .minActualAmount(minActualAmount)
                                                   .minAnomalousSpend(minAnomalousSpend)
                                                   .timeFilters(timeFilters)
+                                                  .orderBy(orderBy)
+                                                  .groupBy(groupBy)
+                                                  .aggregations(aggregations)
+                                                  .searchText(searchText)
                                                   .offset(offset)
                                                   .limit(limit)
                                                   .build();
@@ -142,6 +165,10 @@ public class AnomalyFilterPropertiesMapperTest extends CategoryTest {
     assertThat(filterProperties.getMinActualAmount()).isEqualTo(minActualAmount);
     assertThat(filterProperties.getMinAnomalousSpend()).isEqualTo(minAnomalousSpend);
     assertThat(filterProperties.getTimeFilters()).isEqualTo(timeFilters);
+    assertThat(filterProperties.getOrderBy()).isEqualTo(orderBy);
+    assertThat(filterProperties.getGroupBy()).isEqualTo(groupBy);
+    assertThat(filterProperties.getAggregations()).isEqualTo(aggregations);
+    assertThat(filterProperties.getSearchText()).isEqualTo(searchText);
     assertThat(filterProperties.getOffset()).isEqualTo(offset);
     assertThat(filterProperties.getLimit()).isEqualTo(limit);
   }

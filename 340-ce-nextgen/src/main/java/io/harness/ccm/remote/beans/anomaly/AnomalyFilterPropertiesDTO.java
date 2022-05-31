@@ -75,6 +75,7 @@ public class AnomalyFilterPropertiesDTO extends FilterPropertiesDTO {
   @Schema(description = "The order by condition for anomaly query") List<CCMSort> orderBy;
   @Schema(description = "The group by clause for anomaly query") List<CCMGroupBy> groupBy;
   @Schema(description = "The aggregations for anomaly query") List<CCMAggregation> aggregations;
+  @Schema(description = "The search text entered to filter out rows") List<String> searchText;
 
   @Schema(description = "Query Offset") Integer offset;
   @Schema(description = "Query Limit") Integer limit;
