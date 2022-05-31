@@ -8,6 +8,7 @@
 package io.harness.template.resources;
 
 import static io.harness.annotations.dev.HarnessTeam.CDC;
+import static io.harness.annotations.dev.HarnessTeam.PIPELINE;
 
 import static java.lang.Long.parseLong;
 import static javax.ws.rs.core.HttpHeaders.IF_MATCH;
@@ -57,6 +58,7 @@ import io.harness.template.entity.TemplateEntity.TemplateEntityKeys;
 import io.harness.template.helpers.TemplateMergeHelper;
 import io.harness.template.helpers.TemplateReferenceHelper;
 import io.harness.template.helpers.TemplateYamlConversionHelper;
+import io.harness.template.helpers.YamlVariablesUtils;
 import io.harness.template.mappers.NGTemplateDtoMapper;
 import io.harness.template.services.NGTemplateService;
 import io.harness.template.services.NGTemplateServiceHelper;
@@ -580,10 +582,15 @@ public class NGTemplateResource {
         NGTemplateDtoMapper.toTemplateEntity(accountId, orgId, projectId, appliedTemplateYaml);
     String pmsUnderstandableYaml =
         templateYamlConversionHelper.convertTemplateYamlToPMSUnderstandableYaml(templateEntity);
-    VariablesServiceRequest request = VariablesServiceRequest.newBuilder().setYaml(pmsUnderstandableYaml).build();
-    VariableMergeResponseProto variables = variablesServiceBlockingStub.getVariables(request);
-    VariableMergeServiceResponse variableMergeServiceResponse = VariablesResponseDtoMapper.toDto(variables);
-    return ResponseDTO.newResponse(variableMergeServiceResponse);
+    if (templateEntity.getTemplateEntityType().getOwnerTeam().equals(PIPELINE)) {
+      VariablesServiceRequest request = VariablesServiceRequest.newBuilder().setYaml(pmsUnderstandableYaml).build();
+      VariableMergeResponseProto variables = variablesServiceBlockingStub.getVariables(request);
+      VariableMergeServiceResponse variableMergeServiceResponse = VariablesResponseDtoMapper.toDto(variables);
+      return ResponseDTO.newResponse(variableMergeServiceResponse);
+    } else {
+      return ResponseDTO.newResponse(
+          YamlVariablesUtils.getYamlVariablesFromYaml(pmsUnderstandableYaml, templateEntity.getTemplateEntityType()));
+    }
   }
 
   @GET
