@@ -255,17 +255,4 @@ public class NotificationRuleServiceImpl implements NotificationRuleService {
         .lastModifiedAt(notificationRule.getLastUpdatedAt())
         .build();
   }
-
-  private NotificationRuleResponse notificationRuleEntityToResponse(
-      NotificationRule notificationRule, boolean enabled) {
-    NotificationRuleDTO notificationRuleDTO =
-        notificationRuleTypeNotificationRuleConditionTransformerMap.get(notificationRule.getType())
-            .getDto(notificationRule);
-    return NotificationRuleResponse.builder()
-        .notificationRule(notificationRuleDTO)
-        .enabled(enabled)
-        .createdAt(notificationRule.getCreatedAt())
-        .lastModifiedAt(notificationRule.getLastUpdatedAt())
-        .build();
-  }
 }

@@ -2183,7 +2183,7 @@ public class ApprovalStateTest extends WingsBaseTest {
     approvalState.setUserGroupAsExpression(true);
     approvalState.setUserGroupExpression(expression);
 
-    when(featureFlagService.isNotEnabled(eq(FeatureName.USER_GROUP_AS_EXPRESSION), anyString())).thenReturn(false);
+    when(featureFlagService.isNotEnabled(eq(FeatureName.USER_GROUP_AS_EXPRESSION), any())).thenReturn(false);
     when(context.renderExpression(expression)).thenReturn("group1, group2");
     when(context.getAccountId()).thenReturn(ACCOUNT_ID);
     when(userGroupService.get(ACCOUNT_ID, "group1")).thenReturn(UserGroup.builder().uuid("A1").build());
