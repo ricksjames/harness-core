@@ -283,8 +283,8 @@ public class K8sRollingDeployTaskHandlerTest extends WingsBaseTest {
             any(Kubectl.class), any(), any(K8sDelegateTaskParams.class), any(ExecutionLogCallback.class), anyBoolean());
     verify(k8sTaskHelperBase, times(1)).getReleaseHistoryData(any(), any());
     verify(k8sTaskHelperBase, times(1))
-        .applyManifests(any(Kubectl.class), any(), any(K8sDelegateTaskParams.class),
-            any(ExecutionLogCallback.class), anyBoolean());
+        .applyManifests(
+            any(Kubectl.class), any(), any(K8sDelegateTaskParams.class), any(ExecutionLogCallback.class), anyBoolean());
     verify(k8sRollingBaseHandler, times(1))
         .addLabelsInDeploymentSelectorForCanary(eq(false), eq(false), anyList(), anyList());
   }
