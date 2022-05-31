@@ -8,8 +8,7 @@
 package io.harness.template.mappers;
 
 import static io.harness.annotations.dev.HarnessTeam.CDC;
-import static io.harness.rule.OwnerRule.ARCHIT;
-import static io.harness.rule.OwnerRule.INDER;
+import static io.harness.rule.OwnerRule.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -18,6 +17,7 @@ import io.harness.CategoryTest;
 import io.harness.annotations.dev.OwnedBy;
 import io.harness.category.element.UnitTests;
 import io.harness.encryption.Scope;
+import io.harness.exception.InvalidRequestException;
 import io.harness.ng.core.template.TemplateEntityType;
 import io.harness.ng.core.template.TemplateSummaryResponseDTO;
 import io.harness.rule.Owner;
@@ -43,7 +43,7 @@ public class NGTemplateDtoMapperTest extends CategoryTest {
   private final String TEMPLATE_VERSION_LABEL = "version1";
   private final String TEMPLATE_CHILD_TYPE = "ShellScript";
 
-  private String yaml;
+  private String yaml, yaml_empty_version_label;
   TemplateEntity entity;
 
   @Before
@@ -198,5 +198,21 @@ public class NGTemplateDtoMapperTest extends CategoryTest {
 
     assertThatThrownBy(() -> NGTemplateDtoMapper.toTemplateEntity(ACCOUNT_ID, yaml2))
         .isInstanceOf(JerseyViolationException.class);
+  }
+
+  @Test
+  @Owner(developers = vivekveman)
+  @Category(UnitTests.class)
+  public void checkForNullVersion() throws IOException {
+    ClassLoader classLoader = this.getClass().getClassLoader();
+    String filename1 = "empty-version-label.yaml";
+    yaml_empty_version_label =
+        Resources.toString(Objects.requireNonNull(classLoader.getResource(filename1)), StandardCharsets.UTF_8);
+
+    assertThatThrownBy(()
+                           -> NGTemplateDtoMapper.toTemplateEntity(ACCOUNT_ID, ORG_IDENTIFIER, PROJ_IDENTIFIER,
+                               TEMPLATE_IDENTIFIER, TEMPLATE_VERSION_LABEL, yaml_empty_version_label))
+        .hasMessage("Template VersionLabel is Not Present")
+        .isInstanceOf(InvalidRequestException.class);
   }
 }
