@@ -1043,7 +1043,6 @@ public class DashboardStatisticsServiceImplTest extends WingsBaseTest {
   @Test
   @Owner(developers = ABHINAV2)
   @Category(UnitTests.class)
-  @RealMongo
   public void testLastDeployedAtTimestampGivenThatLatestExecutionFailed() {
     long someTime = 1630969310005L;
     long someTimeLater = 1630969317105L;
