@@ -67,7 +67,7 @@ public class RuntimeInputFormHelperTest extends CategoryTest {
     String yaml = readFile(filename);
     ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
     JsonNode jsonNode = mapper.readTree(yaml);
-    String templateYaml = RuntimeInputFormHelper.createExecutionInputFormAndUpdateYamlField(jsonNode, "");
+    String templateYaml = RuntimeInputFormHelper.createExecutionInputFormAndUpdateYamlField(jsonNode);
     assertNotNull(templateYaml);
     assertFalse(jsonNode.toString().contains("<+input>.executionInput()()"));
     assertTrue(yaml.contains("<+input>.executionInput()"));
