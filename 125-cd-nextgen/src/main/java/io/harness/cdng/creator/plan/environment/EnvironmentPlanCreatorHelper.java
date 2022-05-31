@@ -30,6 +30,7 @@ import io.harness.pms.contracts.plan.Dependency;
 import io.harness.pms.contracts.plan.PlanCreationContextValue;
 import io.harness.pms.contracts.plan.YamlUpdates;
 import io.harness.pms.execution.OrchestrationFacilitatorType;
+import io.harness.pms.merger.helpers.MergeHelper;
 import io.harness.pms.sdk.core.adviser.OrchestrationAdviserTypes;
 import io.harness.pms.sdk.core.plan.PlanNode;
 import io.harness.pms.sdk.core.plan.creation.beans.PlanCreationResponse;
@@ -94,12 +95,17 @@ public class EnvironmentPlanCreatorHelper {
     // Fetch service overrides
     NGServiceOverrides serviceOverride =
         null; // TODO: (prashantSharma) need to make a db call using serviceRef and environmentRef
+
     String envIdentifier = environmentV2.getEnvironmentRef().getValue();
     if (!environment.isPresent()) {
       throw new InvalidRequestException(
           String.format("No environment found with %s identifier in %s project in %s org and %s account", envIdentifier,
               projectIdentifier, orgIdentifier, accountIdentifier));
     }
+
+    String envYaml = mergeEnvironmentInputs(environment.get().getYaml(), environmentV2.getEnvironmentInputs());
+    // setting merged yaml in entity
+    environment.get().setYaml(envYaml);
 
     if (!gitOpsEnabled) {
       List<InfrastructureEntity> infrastructureEntityList = getInfraStructureEntityList(
@@ -110,6 +116,14 @@ public class EnvironmentPlanCreatorHelper {
       return EnvironmentPlanCreatorConfigMapper.toEnvPlanCreatorConfigWithGitops(
           environment.get(), environmentV2, serviceOverride);
     }
+  }
+
+  public String mergeEnvironmentInputs(String originalEnvYaml, Map<String, Object> environmentInputs) {
+    Map<String, Object> environmentInputYaml = new HashMap<>();
+    environmentInputYaml.put(YamlTypes.ENVIRONMENT_YAML, environmentInputs);
+    String mergedEnvYaml = MergeHelper.mergeInputSetFormatYamlToOriginYaml(
+        originalEnvYaml, YamlPipelineUtils.writeYamlString(environmentInputYaml));
+    return mergedEnvYaml;
   }
 
   private List<InfrastructureEntity> getInfraStructureEntityList(String accountIdentifier, String orgIdentifier,
