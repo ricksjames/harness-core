@@ -113,7 +113,8 @@ public class AwsCFHelperServiceDelegateImpl
       closeableAmazonCloudFormationClient.getClient().describeStacks(describeStacksRequest);
       return true;
     } catch (AmazonCloudFormationException amazonCloudFormationException) {
-      if (EmptyPredicate.isNotEmpty(amazonCloudFormationException.getErrorCode()) && amazonCloudFormationException.getErrorCode().equals("ValidationError")) {
+      if (EmptyPredicate.isNotEmpty(amazonCloudFormationException.getErrorCode())
+          && amazonCloudFormationException.getErrorCode().equals("ValidationError")) {
         return false;
       } else {
         handleAmazonClientException(amazonCloudFormationException);
