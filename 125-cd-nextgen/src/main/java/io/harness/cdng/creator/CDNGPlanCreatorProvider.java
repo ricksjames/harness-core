@@ -16,6 +16,8 @@ import io.harness.cdng.creator.plan.artifact.ArtifactsPlanCreator;
 import io.harness.cdng.creator.plan.artifact.PrimaryArtifactPlanCreator;
 import io.harness.cdng.creator.plan.artifact.SideCarArtifactPlanCreator;
 import io.harness.cdng.creator.plan.artifact.SideCarListPlanCreator;
+import io.harness.cdng.creator.plan.configfile.ConfigFilesPlanCreator;
+import io.harness.cdng.creator.plan.configfile.IndividualConfigFilePlanCreator;
 import io.harness.cdng.creator.plan.environment.EnvironmentPlanCreatorV2;
 import io.harness.cdng.creator.plan.execution.CDExecutionPMSPlanCreator;
 import io.harness.cdng.creator.plan.manifest.IndividualManifestPlanCreator;
@@ -94,9 +96,9 @@ import java.util.List;
 public class CDNGPlanCreatorProvider implements PipelineServiceInfoProvider {
   private static final String TERRAFORM_STEP_METADATA = "Terraform";
   private static final List<String> CLOUDFORMATION_CATEGORY =
-      Arrays.asList("Kubernetes", "Provisioner", "Cloudformation");
+      Arrays.asList("Kubernetes", "Provisioner", "Cloudformation", "Helm");
   private static final String CLOUDFORMATION_STEP_METADATA = "Cloudformation";
-  private static final List<String> TERRAFORM_CATEGORY = Arrays.asList("Kubernetes", "Provisioner");
+  private static final List<String> TERRAFORM_CATEGORY = Arrays.asList("Kubernetes", "Provisioner", "Helm");
 
   @Inject InjectorUtils injectorUtils;
   @Override
@@ -139,6 +141,8 @@ public class CDNGPlanCreatorProvider implements PipelineServiceInfoProvider {
     planCreators.add(new CloudformationCreateStackStepPlanCreator());
     planCreators.add(new CloudformationDeleteStackStepPlanCreator());
     planCreators.add(new CloudformationRollbackStackStepPlanCreator());
+    planCreators.add(new IndividualConfigFilePlanCreator());
+    planCreators.add(new ConfigFilesPlanCreator());
     planCreators.add(new SpecNodePlanCreator());
     injectorUtils.injectMembers(planCreators);
     return planCreators;
@@ -334,33 +338,36 @@ public class CDNGPlanCreatorProvider implements PipelineServiceInfoProvider {
             .build();
 
     StepInfo createStack = StepInfo.newBuilder()
-                               .setName("Cloudformation create stack")
+                               .setName("CloudFormation Create Stack")
                                .setType(StepSpecTypeConstants.CLOUDFORMATION_CREATE_STACK)
                                .setFeatureRestrictionName(FeatureRestrictionName.CREATE_STACK.name())
                                .setStepMetaData(StepMetaData.newBuilder()
                                                     .addAllCategory(CLOUDFORMATION_CATEGORY)
                                                     .addFolderPaths(CLOUDFORMATION_STEP_METADATA)
                                                     .build())
+                               .setFeatureFlag(FeatureName.CLOUDFORMATION_NG.name())
                                .build();
 
     StepInfo deleteStack = StepInfo.newBuilder()
-                               .setName("Cloudformation delete stack")
+                               .setName("CloudFormation Delete Stack")
                                .setType(StepSpecTypeConstants.CLOUDFORMATION_DELETE_STACK)
                                .setFeatureRestrictionName(FeatureRestrictionName.DELETE_STACK.name())
                                .setStepMetaData(StepMetaData.newBuilder()
                                                     .addAllCategory(CLOUDFORMATION_CATEGORY)
                                                     .addFolderPaths(CLOUDFORMATION_STEP_METADATA)
                                                     .build())
+                               .setFeatureFlag(FeatureName.CLOUDFORMATION_NG.name())
                                .build();
 
     StepInfo rollbackStack = StepInfo.newBuilder()
-                                 .setName("Cloudformation rollback stack")
+                                 .setName("CloudFormation Rollback")
                                  .setType(StepSpecTypeConstants.CLOUDFORMATION_ROLLBACK_STACK)
                                  .setFeatureRestrictionName(FeatureRestrictionName.ROLLBACK_STACK.name())
                                  .setStepMetaData(StepMetaData.newBuilder()
                                                       .addAllCategory(CLOUDFORMATION_CATEGORY)
                                                       .addFolderPaths(CLOUDFORMATION_STEP_METADATA)
                                                       .build())
+                                 .setFeatureFlag(FeatureName.CLOUDFORMATION_NG.name())
                                  .build();
 
     List<StepInfo> stepInfos = new ArrayList<>();

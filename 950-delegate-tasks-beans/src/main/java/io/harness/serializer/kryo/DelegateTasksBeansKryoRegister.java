@@ -24,6 +24,8 @@ import io.harness.capability.SocketConnectivityParameters;
 import io.harness.capability.SystemEnvParameters;
 import io.harness.capability.TestingCapability;
 import io.harness.ccm.config.CCMConfig;
+import io.harness.cvng.beans.DataCollectionConnectorBundle;
+import io.harness.cvng.beans.DataCollectionType;
 import io.harness.delegate.beans.DelegateStringProgressData;
 import io.harness.delegate.beans.DelegateStringResponseData;
 import io.harness.delegate.beans.DelegateTaskDetails;
@@ -168,6 +170,10 @@ import io.harness.delegate.beans.connector.gcpkmsconnector.GcpKmsValidationParam
 import io.harness.delegate.beans.connector.helm.HttpHelmConnectivityTaskParams;
 import io.harness.delegate.beans.connector.helm.HttpHelmConnectivityTaskResponse;
 import io.harness.delegate.beans.connector.helm.HttpHelmValidationParams;
+import io.harness.delegate.beans.connector.jenkins.JenkinsCapabilityHelper;
+import io.harness.delegate.beans.connector.jenkins.JenkinsTestConnectionTaskParams;
+import io.harness.delegate.beans.connector.jenkins.JenkinsTestConnectionTaskResponse;
+import io.harness.delegate.beans.connector.jenkins.JenkinsValidationParams;
 import io.harness.delegate.beans.connector.jira.JiraConnectionTaskParams;
 import io.harness.delegate.beans.connector.jira.JiraValidationParams;
 import io.harness.delegate.beans.connector.jira.connection.JiraTestConnectionTaskNGResponse;
@@ -277,6 +283,8 @@ import io.harness.delegate.task.artifacts.ecr.EcrArtifactDelegateRequest;
 import io.harness.delegate.task.artifacts.ecr.EcrArtifactDelegateResponse;
 import io.harness.delegate.task.artifacts.gcr.GcrArtifactDelegateRequest;
 import io.harness.delegate.task.artifacts.gcr.GcrArtifactDelegateResponse;
+import io.harness.delegate.task.artifacts.jenkins.JenkinsArtifactDelegateRequest;
+import io.harness.delegate.task.artifacts.jenkins.JenkinsArtifactDelegateResponse;
 import io.harness.delegate.task.artifacts.nexus.NexusArtifactDelegateRequest;
 import io.harness.delegate.task.artifacts.nexus.NexusArtifactDelegateResponse;
 import io.harness.delegate.task.artifacts.request.ArtifactTaskParameters;
@@ -769,6 +777,8 @@ public class DelegateTasksBeansKryoRegister implements KryoRegistrar {
     kryo.register(FetchS3FilesExecutionResponse.FetchS3FilesCommandStatus.class, 8070);
     kryo.register(TfVarGitSource.class, 8097);
     kryo.register(AwsElbConfig.class, 8500);
+    kryo.register(DataCollectionConnectorBundle.class, 9019);
+    kryo.register(DataCollectionType.class, 9028);
     kryo.register(PerpetualTaskBroadcastEvent.class, 40015);
     kryo.register(GitConfig.ProviderType.class, 40022);
     kryo.register(PhysicalDataCenterConfig.class, 40098);
@@ -877,6 +887,7 @@ public class DelegateTasksBeansKryoRegister implements KryoRegistrar {
     kryo.register(ArtifactTaskResponse.class, 19301);
     kryo.register(DockerArtifactDelegateRequest.class, 19302);
     kryo.register(DockerArtifactDelegateResponse.class, 19303);
+    kryo.register(JenkinsArtifactDelegateResponse.class, 29300);
     kryo.register(ArtifactTaskType.class, 19304);
     kryo.register(ArtifactDelegateResponse.class, 19305);
     kryo.register(ArtifactTaskExecutionResponse.class, 19306);
@@ -1450,5 +1461,10 @@ public class DelegateTasksBeansKryoRegister implements KryoRegistrar {
     kryo.register(NotificationProcessingResponse.class, 55217);
     kryo.register(SmtpConfigResponse.class, 55219);
     kryo.register(io.harness.notification.SmtpConfig.class, 55299);
+    kryo.register(JenkinsTestConnectionTaskParams.class, 29117);
+    kryo.register(JenkinsTestConnectionTaskResponse.class, 29118);
+    kryo.register(JenkinsCapabilityHelper.class, 29302);
+    kryo.register(JenkinsValidationParams.class, 29303);
+    kryo.register(JenkinsArtifactDelegateRequest.class, 29304);
   }
 }
