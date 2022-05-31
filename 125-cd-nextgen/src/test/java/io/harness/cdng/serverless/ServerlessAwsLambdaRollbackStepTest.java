@@ -207,7 +207,7 @@ public class ServerlessAwsLambdaRollbackStepTest {
     ServerlessAwsLambdaRollbackConfig serverlessAwsLambdaRollbackConfig =
         ServerlessAwsLambdaRollbackConfig.builder()
             .previousVersionTimeStamp(serverlessAwsLambdaRollbackDataOutcome.getPreviousVersionTimeStamp())
-            .isFirstDeployment(serverlessAwsLambdaRollbackDataOutcome.getIsFirstDeployment())
+            .isFirstDeployment(serverlessAwsLambdaRollbackDataOutcome.isFirstDeployment())
             .build();
     final String accountId = AmbianceUtils.getAccountId(ambiance);
     ServerlessRollbackRequest serverlessRollbackRequest =
