@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Set;
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
+import javax.ws.rs.DefaultValue;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -44,6 +45,7 @@ public class JenkinsConnectorDTO extends ConnectorConfigDTO implements DelegateS
   @NotNull @NotBlank String jenkinsUrl;
   @Valid JenkinsAuthenticationDTO auth;
   Set<String> delegateSelectors;
+  @DefaultValue(value = "false") boolean useConnectorUrlForJobExecution;
 
   @Override
   public List<DecryptableEntity> getDecryptableEntities() {
