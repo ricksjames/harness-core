@@ -4892,7 +4892,7 @@ plain_artifacts = [
     "org.glassfish.hk2:osgi-resource-locator:1.0.3",
     "org.glassfish.jaxb:jaxb-runtime:2.3.2",
     "org.glassfish.jaxb:txw2:2.3.2",
-    "org.glassfish.jersey.bundles.repackaged:jersey-guava:2.25.1",
+    "org.glassfish.jersey.bundles.repackaged:jersey-guava:2.26-b03",
     "org.glassfish.jersey.containers:jersey-container-servlet-core:2.35",
     "org.glassfish.jersey.containers:jersey-container-servlet:2.35",
     "org.glassfish.jersey.core:jersey-client:2.35",

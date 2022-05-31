@@ -80,6 +80,7 @@ java_library(
         "@maven//:org_springframework_spring_context",
         "@maven//:org_springframework_spring_core",
         "@maven//:org_springframework_spring_tx",
+        "@maven//:org_glassfish_jersey_bundles_repackaged_jersey_guava",
     ],
 )
 
