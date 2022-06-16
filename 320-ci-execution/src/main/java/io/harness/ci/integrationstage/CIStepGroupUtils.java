@@ -65,7 +65,6 @@ public class CIStepGroupUtils {
   private static final String INITIALIZE_TASK = InitializeStepInfo.STEP_TYPE.getType();
   @Inject private InitializeStepGenerator initializeStepGenerator;
   @Inject private CIExecutionConfigService ciExecutionConfigService;
-  @Inject private CIExecutionServiceConfig ciExecutionServiceConfig;
 
   public List<ExecutionWrapperConfig> createExecutionWrapperWithInitializeStep(StageElementConfig stageElementConfig,
       CIExecutionArgs ciExecutionArgs, CodeBase ciCodebase, Infrastructure infrastructure, String accountId) {
@@ -87,7 +86,8 @@ public class CIStepGroupUtils {
 
     if (gitClone) {
       initializeExecutionSections.add(
-          getGitCloneStep(ciExecutionArgs, ciCodebase, accountId, IntegrationStageUtils.getK8OS(infrastructure)));
+          getGitCloneStep(createPluginStepInfo( ciCodebase, ciExecutionConfigService, ciExecutionArgs, accountId,
+                  IntegrationStageUtils.getK8OS(infrastructure))));
     }
     for (ExecutionWrapperConfig executionWrapper : executionSections) {
       initializeExecutionSections.add(executionWrapper);
@@ -204,20 +204,39 @@ public class CIStepGroupUtils {
     return ciStepExecEnvironment;
   }
 
-  private ExecutionWrapperConfig getGitCloneStep(
-      CIExecutionArgs ciExecutionArgs, CodeBase ciCodebase, String accountId, OSType os) {
+  public static PluginStepInfo createPluginStepInfo(CodeBase ciCodebase, CIExecutionConfigService ciExecutionConfigService,
+                                                    CIExecutionArgs ciExecutionArgs) {
+    return createPluginStepInfo(ciCodebase, ciExecutionConfigService, ciExecutionArgs, null, null);
+  }
+
+  public static PluginStepInfo createPluginStepInfo(CodeBase ciCodebase, CIExecutionConfigService ciExecutionConfigService,
+                                                    CIExecutionArgs ciExecutionArgs, String accountId, OSType os) {
+    String branch = null;
+    String tag = null;
+    ExecutionSource executionSource = ciExecutionArgs.getExecutionSource();
+    if (executionSource.getType() == ExecutionSource.Type.MANUAL) {
+      ManualExecutionSource manualExecutionSource = (ManualExecutionSource) executionSource;
+      branch = manualExecutionSource.getBranch();
+      tag = manualExecutionSource.getTag();
+    }
+    return createPluginStepInfo(ciCodebase, ciExecutionConfigService, branch, tag, accountId, os);
+  }
+
+  public static PluginStepInfo createPluginStepInfo(CodeBase ciCodebase, CIExecutionConfigService ciExecutionConfigService,
+                                                    String branch, String tag) {
+    return createPluginStepInfo(ciCodebase, ciExecutionConfigService, branch, tag, null, null);
+  }
+
+  public static PluginStepInfo createPluginStepInfo(CodeBase ciCodebase, CIExecutionConfigService ciExecutionConfigService,
+                                                    String branch, String tag, String accountId, OSType os) {
     Map<String, JsonNode> settings = new HashMap<>();
     if (ciCodebase == null) {
       throw new CIStageExecutionException("Codebase is mandatory with enabled cloneCodebase flag");
     }
     Integer depth = ciCodebase.getDepth().getValue();
-    ExecutionSource executionSource = ciExecutionArgs.getExecutionSource();
     if (depth == null) {
-      if (executionSource.getType() == ExecutionSource.Type.MANUAL) {
-        ManualExecutionSource manualExecutionSource = (ManualExecutionSource) executionSource;
-        if (isNotEmpty(manualExecutionSource.getBranch()) || isNotEmpty(manualExecutionSource.getTag())) {
-          depth = GIT_CLONE_MANUAL_DEPTH;
-        }
+      if (isNotEmpty(branch) || isNotEmpty(tag)) {
+        depth = GIT_CLONE_MANUAL_DEPTH;
       }
     }
 
@@ -235,24 +254,33 @@ public class CIStepGroupUtils {
       envVariables.put(GIT_SSL_NO_VERIFY, "true");
     }
 
+    CIExecutionServiceConfig ciExecutionServiceConfig = ciExecutionConfigService.getCiExecutionServiceConfig();
     List<String> entrypoint = ciExecutionServiceConfig.getStepConfig().getGitCloneConfig().getEntrypoint();
-    if (os == OSType.Windows) {
+    if (OSType.Windows == os) {
       entrypoint = ciExecutionServiceConfig.getStepConfig().getGitCloneConfig().getWindowsEntrypoint();
     }
 
-    String gitCloneImage =
-        ciExecutionConfigService.getPluginVersionForK8(CIStepInfoType.GIT_CLONE, accountId).getImage();
     PluginStepInfo step = PluginStepInfo.builder()
-                              .identifier(GIT_CLONE_STEP_ID)
-                              .image(ParameterField.createValueField(gitCloneImage))
-                              .name(GIT_CLONE_STEP_NAME)
-                              .settings(ParameterField.createValueField(settings))
-                              .envVariables(envVariables)
-                              .entrypoint(entrypoint)
-                              .harnessManagedImage(true)
-                              .resources(ciCodebase.getResources())
-                              .build();
+            .connectorRef(ciCodebase.getConnectorRef())
+            .identifier(GIT_CLONE_STEP_ID)
+            .name(GIT_CLONE_STEP_NAME)
+            .settings(ParameterField.createValueField(settings))
+            .envVariables(envVariables)
+            .entrypoint(entrypoint)
+            .harnessManagedImage(true)
+            .resources(ciCodebase.getResources())
+            .privileged(ParameterField.createValueField(null))
+            .build();
 
+    if (accountId != null) {
+      String gitCloneImage =
+              ciExecutionConfigService.getPluginVersionForK8(CIStepInfoType.GIT_CLONE, accountId).getImage();
+      step.setImage(ParameterField.createValueField(gitCloneImage));
+    }
+    return step;
+  }
+
+  private ExecutionWrapperConfig getGitCloneStep(PluginStepInfo step) {
     String uuid = generateUuid();
     StepElementConfig stepElementConfig =
         StepElementConfig.builder()

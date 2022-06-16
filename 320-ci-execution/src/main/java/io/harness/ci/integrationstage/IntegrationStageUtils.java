@@ -42,6 +42,7 @@ import io.harness.beans.plugin.compatible.PluginCompatibleStep;
 import io.harness.beans.serializer.RunTimeInputHandler;
 import io.harness.beans.stages.IntegrationStageConfig;
 import io.harness.beans.steps.CIStepInfo;
+import io.harness.beans.steps.stepinfo.GitCloneStepInfo;
 import io.harness.beans.steps.stepinfo.PluginStepInfo;
 import io.harness.beans.steps.stepinfo.RunStepInfo;
 import io.harness.beans.steps.stepinfo.RunTestsStepInfo;
@@ -519,6 +520,9 @@ public class IntegrationStageUtils {
       switch (ciStepInfo.getNonYamlInfo().getStepInfoType()) {
         case RUN:
           return resolveConnectorIdentifier(((RunStepInfo) ciStepInfo).getConnectorRef(), ciStepInfo.getIdentifier());
+        case GIT_CLONE:
+          GitCloneStepInfo gitCloneStepInfo = ((GitCloneStepInfo) ciStepInfo);
+          return resolveConnectorIdentifier(gitCloneStepInfo.getConnectorRef(), gitCloneStepInfo.getIdentifier());
         case PLUGIN:
           return resolveConnectorIdentifier(
               ((PluginStepInfo) ciStepInfo).getConnectorRef(), ciStepInfo.getIdentifier());

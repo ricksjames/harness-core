@@ -36,6 +36,7 @@ import io.harness.beans.serializer.RunTimeInputHandler;
 import io.harness.beans.stages.IntegrationStageConfig;
 import io.harness.beans.steps.CIStepInfo;
 import io.harness.beans.steps.CIStepInfoType;
+import io.harness.beans.steps.stepinfo.GitCloneStepInfo;
 import io.harness.beans.steps.stepinfo.PluginStepInfo;
 import io.harness.beans.steps.stepinfo.RunStepInfo;
 import io.harness.beans.steps.stepinfo.RunTestsStepInfo;
@@ -67,6 +68,7 @@ import io.harness.utils.TimeoutUtils;
 import io.harness.yaml.core.variables.NGVariableType;
 import io.harness.yaml.core.variables.SecretNGVariable;
 import io.harness.yaml.core.variables.StringNGVariable;
+import io.harness.yaml.extended.ci.codebase.CodeBase;
 import io.harness.yaml.extended.ci.container.ContainerResource;
 
 import com.google.inject.Inject;
@@ -179,6 +181,13 @@ public class K8InitializeStepUtils {
         return createPluginCompatibleStepContainerDefinition((PluginCompatibleStep) ciStepInfo, integrationStage,
             ciExecutionArgs, portFinder, stepIndex, stepElement.getIdentifier(), stepElement.getName(),
             stepElement.getType(), timeout, accountId, os, extraMemoryPerStep, extraCPUPerStep);
+      case GIT_CLONE:
+        CodeBase codeBase = ((GitCloneStepInfo) ciStepInfo).getCodeBase();
+        PluginStepInfo pluginStepInfo = CIStepGroupUtils.createPluginStepInfo(codeBase, ciExecutionConfigService,
+                ciExecutionArgs, accountId, os );
+        return createPluginStepContainerDefinition(pluginStepInfo, integrationStage, ciExecutionArgs,
+                portFinder, stepIndex, stepElement.getIdentifier(), stepElement.getName(), accountId, os,
+                extraMemoryPerStep, extraCPUPerStep);
       case PLUGIN:
         return createPluginStepContainerDefinition((PluginStepInfo) ciStepInfo, integrationStage, ciExecutionArgs,
             portFinder, stepIndex, stepElement.getIdentifier(), stepElement.getName(), accountId, os,
@@ -524,6 +533,9 @@ public class K8InitializeStepUtils {
       case RUN:
         return getContainerCpuLimit(
             ((RunStepInfo) ciStepInfo).getResources(), stepElement.getType(), stepElement.getIdentifier(), accountId);
+      case GIT_CLONE:
+        return getContainerCpuLimit(((GitCloneStepInfo) ciStepInfo).getResources(), stepElement.getType(),
+                stepElement.getIdentifier(), accountId);
       case PLUGIN:
         return getContainerCpuLimit(((PluginStepInfo) ciStepInfo).getResources(), stepElement.getType(),
             stepElement.getIdentifier(), accountId);
@@ -569,6 +581,8 @@ public class K8InitializeStepUtils {
     switch (ciStepInfo.getNonYamlInfo().getStepInfoType()) {
       case RUN:
         return ((RunStepInfo) ciStepInfo).getResources();
+      case GIT_CLONE:
+        return ((GitCloneStepInfo) ciStepInfo).getResources();
       case PLUGIN:
         return ((PluginStepInfo) ciStepInfo).getResources();
       case RUN_TESTS:
@@ -735,7 +749,8 @@ public class K8InitializeStepUtils {
       case UPLOAD_ARTIFACTORY:
       case UPLOAD_S3:
       case UPLOAD_GCS:
-        return ((PluginCompatibleStep) ciStepInfo).getResources();
+      case GIT_CLONE:
+        return ((GitCloneStepInfo) ciStepInfo).getResources();
       case PLUGIN:
         return ((PluginStepInfo) ciStepInfo).getResources();
       case RUN_TESTS:
