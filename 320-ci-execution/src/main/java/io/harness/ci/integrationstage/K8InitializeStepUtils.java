@@ -12,8 +12,11 @@ import static io.harness.beans.serializer.RunTimeInputHandler.resolveIntegerPara
 import static io.harness.beans.serializer.RunTimeInputHandler.resolveMapParameter;
 import static io.harness.beans.serializer.RunTimeInputHandler.resolveStringParameter;
 import static io.harness.beans.serializer.RunTimeInputHandler.resolveStringParameterWithDefaultValue;
+import static io.harness.common.BuildEnvironmentConstants.DRONE_COMMIT_BRANCH;
+import static io.harness.common.BuildEnvironmentConstants.DRONE_REMOTE_URL;
 import static io.harness.common.CIExecutionConstants.DEFAULT_CONTAINER_CPU_POV;
 import static io.harness.common.CIExecutionConstants.DEFAULT_CONTAINER_MEM_POV;
+import static io.harness.common.CIExecutionConstants.HARNESS_WORKSPACE;
 import static io.harness.common.CIExecutionConstants.STEP_PREFIX;
 import static io.harness.common.CIExecutionConstants.STEP_REQUEST_MEMORY_MIB;
 import static io.harness.common.CIExecutionConstants.STEP_REQUEST_MILLI_CPU;
@@ -36,6 +39,7 @@ import io.harness.beans.serializer.RunTimeInputHandler;
 import io.harness.beans.stages.IntegrationStageConfig;
 import io.harness.beans.steps.CIStepInfo;
 import io.harness.beans.steps.CIStepInfoType;
+import io.harness.beans.steps.stepinfo.GitCloneStepInfo;
 import io.harness.beans.steps.stepinfo.PluginStepInfo;
 import io.harness.beans.steps.stepinfo.RunStepInfo;
 import io.harness.beans.steps.stepinfo.RunTestsStepInfo;
@@ -58,6 +62,7 @@ import io.harness.plancreator.steps.StepElementConfig;
 import io.harness.pms.contracts.ambiance.Ambiance;
 import io.harness.pms.execution.utils.AmbianceUtils;
 import io.harness.pms.yaml.YamlUtils;
+import io.harness.stateutils.buildstate.CodebaseUtils;
 import io.harness.stateutils.buildstate.ConnectorUtils;
 import io.harness.stateutils.buildstate.PluginSettingUtils;
 import io.harness.stateutils.buildstate.providers.StepContainerUtils;
@@ -67,6 +72,7 @@ import io.harness.utils.TimeoutUtils;
 import io.harness.yaml.core.variables.NGVariableType;
 import io.harness.yaml.core.variables.SecretNGVariable;
 import io.harness.yaml.core.variables.StringNGVariable;
+import io.harness.yaml.extended.ci.codebase.CodeBase;
 import io.harness.yaml.extended.ci.container.ContainerResource;
 
 import com.google.inject.Inject;
@@ -87,6 +93,7 @@ public class K8InitializeStepUtils {
   @Inject private CIExecutionConfigService ciExecutionConfigService;
   @Inject private CIFeatureFlagService featureFlagService;
   @Inject private ConnectorUtils connectorUtils;
+  @Inject CodebaseUtils codebaseUtils;
 
   public List<ContainerDefinitionInfo> createStepContainerDefinitions(List<ExecutionWrapperConfig> steps,
       StageElementConfig integrationStage, CIExecutionArgs ciExecutionArgs, PortFinder portFinder, String accountId,
@@ -179,6 +186,32 @@ public class K8InitializeStepUtils {
         return createPluginCompatibleStepContainerDefinition((PluginCompatibleStep) ciStepInfo, integrationStage,
             ciExecutionArgs, portFinder, stepIndex, stepElement.getIdentifier(), stepElement.getName(),
             stepElement.getType(), timeout, accountId, os, extraMemoryPerStep, extraCPUPerStep);
+      case GIT_CLONE:
+        GitCloneStepInfo gitCloneStepInfo = ((GitCloneStepInfo) ciStepInfo);
+        //GitCloneStepInfo has the same variables as CodeBase, so reusing CodeBase in GitCloneStepInfo class
+        CodeBase gitCloneStepCodeBase = gitCloneStepInfo.getCodeBase();
+
+        //Create a PluginStepInfo using the CodeBase from the GitCloneStepInfo
+        PluginStepInfo pluginStepInfo = CIStepGroupUtils.createPluginStepInfo(gitCloneStepCodeBase, ciExecutionConfigService,
+                ciExecutionArgs, accountId, os );
+
+        //Reuse CodeBase logic to set DRONE_REMOTE_URL, DRONE_COMMIT_BRANCH, DRONE_TAG
+        //TODO: need ambiance to create, can pass it into this method
+        //NGAccess ngAccess = AmbianceUtils.getNgAccess(ambiance);
+        //ConnectorDetails connectorDetails = codebaseUtils.getGitConnector(ngAccess, gitCloneStepCodeBase, false);
+        //Map<String, String> gitEnvVariables = codebaseUtils.getGitEnvVariables(connectorDetails, gitCloneStepCodeBase);
+        //pluginStepInfo.getEnvVariables().putAll(gitEnvVariables);
+
+        //Set DRONE_NETRC_PASSWORD and DRONE_NETRC_USERNAME
+        //TODO: Don't know how to do this, see container HARNESS_SECRETS_LIST, each clone step and codebase should be able to have it's own credentials
+
+        //Set clone directory
+        //TODO: this doesn't work...
+        pluginStepInfo.getEnvVariables().put(HARNESS_WORKSPACE, gitCloneStepInfo.getCloneDirectory().getValue() );
+
+        return createPluginStepContainerDefinition(pluginStepInfo, integrationStage, ciExecutionArgs,
+                portFinder, stepIndex, stepElement.getIdentifier(), stepElement.getName(), accountId, os,
+                extraMemoryPerStep, extraCPUPerStep);
       case PLUGIN:
         return createPluginStepContainerDefinition((PluginStepInfo) ciStepInfo, integrationStage, ciExecutionArgs,
             portFinder, stepIndex, stepElement.getIdentifier(), stepElement.getName(), accountId, os,
@@ -524,6 +557,9 @@ public class K8InitializeStepUtils {
       case RUN:
         return getContainerCpuLimit(
             ((RunStepInfo) ciStepInfo).getResources(), stepElement.getType(), stepElement.getIdentifier(), accountId);
+      case GIT_CLONE:
+        return getContainerCpuLimit(((GitCloneStepInfo) ciStepInfo).getResources(), stepElement.getType(),
+                stepElement.getIdentifier(), accountId);
       case PLUGIN:
         return getContainerCpuLimit(((PluginStepInfo) ciStepInfo).getResources(), stepElement.getType(),
             stepElement.getIdentifier(), accountId);
@@ -569,6 +605,8 @@ public class K8InitializeStepUtils {
     switch (ciStepInfo.getNonYamlInfo().getStepInfoType()) {
       case RUN:
         return ((RunStepInfo) ciStepInfo).getResources();
+      case GIT_CLONE:
+        return ((GitCloneStepInfo) ciStepInfo).getResources();
       case PLUGIN:
         return ((PluginStepInfo) ciStepInfo).getResources();
       case RUN_TESTS:
@@ -735,7 +773,8 @@ public class K8InitializeStepUtils {
       case UPLOAD_ARTIFACTORY:
       case UPLOAD_S3:
       case UPLOAD_GCS:
-        return ((PluginCompatibleStep) ciStepInfo).getResources();
+      case GIT_CLONE:
+        return ((GitCloneStepInfo) ciStepInfo).getResources();
       case PLUGIN:
         return ((PluginStepInfo) ciStepInfo).getResources();
       case RUN_TESTS:
