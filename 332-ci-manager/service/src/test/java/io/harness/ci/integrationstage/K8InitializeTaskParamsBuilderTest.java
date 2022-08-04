@@ -92,8 +92,8 @@ public class K8InitializeTaskParamsBuilderTest extends CIExecutionTestBase {
     when(k8InitializeTaskUtils.getLogServiceEnvVariables(any(), any())).thenReturn(new HashMap<>());
     when(k8InitializeTaskUtils.getTIServiceEnvVariables(any())).thenReturn(new HashMap<>());
     when(k8InitializeTaskUtils.getSTOServiceEnvVariables(any())).thenReturn(new HashMap<>());
-    when(codebaseUtils.getGitEnvVariables(any(), any())).thenReturn(new HashMap<>());
-    when(k8InitializeTaskUtils.getCommonStepEnvVariables(any(), any(), any(), any(), any(), any()))
+    when(codebaseUtils.getGitEnvVariables(any(), any(), any())).thenReturn(new HashMap<>());
+    when(k8InitializeTaskUtils.getCommonStepEnvVariables(any(), any(), any(), any()))
         .thenReturn(new HashMap<>());
     when(k8InitializeTaskUtils.getWorkDir()).thenReturn("/harness");
     when(k8InitializeTaskUtils.getCtrSecurityContext(any())).thenReturn(ContainerSecurityContext.builder().build());
@@ -111,8 +111,8 @@ public class K8InitializeTaskParamsBuilderTest extends CIExecutionTestBase {
         k8InitializeTaskParamsBuilder.getK8InitializeTaskParams(initializeStepInfo, ambiance, "");
     assertThat(response.getCik8PodParams().getName()).isEqualTo(podName);
     verify(k8InitializeStepUtils, times(1))
-        .createStepContainerDefinitionsStepGroupWithFF(any(), any(), any(), any(), any(), any(), anyInt());
-    verify(k8InitializeStepUtils, times(0)).createStepContainerDefinitions(any(), any(), any(), any(), any(), any());
+        .createStepContainerDefinitionsStepGroupWithFF(any(), any(), any(), any(), any(), any(), any(), anyInt());
+    verify(k8InitializeStepUtils, times(0)).createStepContainerDefinitions(any(), any(), any(), any(), any(), any(), any());
   }
 
   @Test
@@ -132,8 +132,8 @@ public class K8InitializeTaskParamsBuilderTest extends CIExecutionTestBase {
     when(k8InitializeTaskUtils.getLogServiceEnvVariables(any(), any())).thenReturn(new HashMap<>());
     when(k8InitializeTaskUtils.getTIServiceEnvVariables(any())).thenReturn(new HashMap<>());
     when(k8InitializeTaskUtils.getSTOServiceEnvVariables(any())).thenReturn(new HashMap<>());
-    when(codebaseUtils.getGitEnvVariables(any(), any())).thenReturn(new HashMap<>());
-    when(k8InitializeTaskUtils.getCommonStepEnvVariables(any(), any(), any(), any(), any(), any()))
+    when(codebaseUtils.getGitEnvVariables(any(), any(), any())).thenReturn(new HashMap<>());
+    when(k8InitializeTaskUtils.getCommonStepEnvVariables(any(), any(), any(), any()))
         .thenReturn(new HashMap<>());
     when(k8InitializeTaskUtils.getWorkDir()).thenReturn("/harness");
     when(k8InitializeTaskUtils.getCtrSecurityContext(any())).thenReturn(ContainerSecurityContext.builder().build());
@@ -144,7 +144,7 @@ public class K8InitializeTaskParamsBuilderTest extends CIExecutionTestBase {
         .thenReturn(getLiteEngineContainer());
     when(k8InitializeStepUtils.getStageRequest(any(), any())).thenReturn(Pair.of(1024, 1024));
     when(k8InitializeServiceUtils.createServiceContainerDefinitions(any(), any(), any())).thenReturn(new ArrayList<>());
-    when(k8InitializeStepUtils.createStepContainerDefinitions(any(), any(), any(), any(), any(), any()))
+    when(k8InitializeStepUtils.createStepContainerDefinitions(any(), any(), any(), any(), any(), any(), any()))
         .thenReturn(Arrays.asList(K8InitializeTaskUtilsHelper.getRunStepContainer(0)));
     doNothing().when(k8InitializeTaskUtils).consumeSweepingOutput(any(), any(), any());
     doNothing().when(k8InitializeTaskUtils).consumeSweepingOutput(any(), any(), any());
@@ -153,7 +153,7 @@ public class K8InitializeTaskParamsBuilderTest extends CIExecutionTestBase {
         k8InitializeTaskParamsBuilder.getK8InitializeTaskParams(initializeStepInfo, ambiance, "");
     assertThat(response.getCik8PodParams().getName()).isEqualTo(podName);
     verify(k8InitializeStepUtils, times(0))
-        .createStepContainerDefinitionsStepGroupWithFF(any(), any(), any(), any(), any(), any(), anyInt());
-    verify(k8InitializeStepUtils, times(1)).createStepContainerDefinitions(any(), any(), any(), any(), any(), any());
+        .createStepContainerDefinitionsStepGroupWithFF(any(), any(), any(), any(), any(), any(), any(), anyInt());
+    verify(k8InitializeStepUtils, times(1)).createStepContainerDefinitions(any(), any(), any(), any(), any(), any(), any());
   }
 }
