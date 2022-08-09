@@ -15,7 +15,6 @@ import static io.harness.beans.serializer.RunTimeInputHandler.resolveStringParam
 import static io.harness.ci.commonconstants.CIExecutionConstants.CPU;
 import static io.harness.ci.commonconstants.CIExecutionConstants.DEFAULT_CONTAINER_CPU_POV;
 import static io.harness.ci.commonconstants.CIExecutionConstants.DEFAULT_CONTAINER_MEM_POV;
-import static io.harness.ci.commonconstants.CIExecutionConstants.DRONE_WORKSPACE;
 import static io.harness.ci.commonconstants.CIExecutionConstants.MEMORY;
 import static io.harness.ci.commonconstants.CIExecutionConstants.STEP_PREFIX;
 import static io.harness.ci.commonconstants.CIExecutionConstants.STEP_REQUEST_MEMORY_MIB;
@@ -41,14 +40,12 @@ import io.harness.beans.stages.IntegrationStageConfigImpl;
 import io.harness.beans.steps.CIStepInfo;
 import io.harness.beans.steps.CIStepInfoType;
 import io.harness.beans.steps.stepinfo.InitializeStepInfo;
-import io.harness.beans.steps.stepinfo.GitCloneStepInfo;
 import io.harness.beans.steps.stepinfo.PluginStepInfo;
 import io.harness.beans.steps.stepinfo.RunStepInfo;
 import io.harness.beans.steps.stepinfo.RunTestsStepInfo;
 import io.harness.beans.sweepingoutputs.StageInfraDetails;
 import io.harness.beans.yaml.extended.infrastrucutre.Infrastructure;
 import io.harness.beans.yaml.extended.infrastrucutre.OSType;
-import io.harness.ci.buildstate.CodebaseUtils;
 import io.harness.ci.buildstate.ConnectorUtils;
 import io.harness.ci.buildstate.PluginSettingUtils;
 import io.harness.ci.buildstate.StepContainerUtils;
@@ -101,7 +98,7 @@ public class K8InitializeStepUtils {
   @Inject private CIExecutionConfigService ciExecutionConfigService;
   @Inject private CIFeatureFlagService featureFlagService;
   @Inject private ConnectorUtils connectorUtils;
-  @Inject private CodebaseUtils codebaseUtils;
+  @Inject private PluginSettingUtils pluginSettingUtils;
   private final String AXA_ACCOUNT_ID = "UVxMDMhNQxOCvroqqImWdQ";
 
   public List<ContainerDefinitionInfo> createStepContainerDefinitions(List<ExecutionWrapperConfig> steps,
@@ -182,7 +179,7 @@ public class K8InitializeStepUtils {
       if (executionWrapper.getStep() != null && !executionWrapper.getStep().isNull()) {
         stepIndex++;
         ContainerDefinitionInfo containerDefinitionInfo = handleSingleStep(executionWrapper, integrationStage,
-            ciExecutionArgs, portFinder, accountId, os, ambiance, stageMemoryRequest, stageCpuRequest, stepIndex,  null);
+            ciExecutionArgs, portFinder, accountId, os, ambiance, stageMemoryRequest, stageCpuRequest, stepIndex, null);
         if (containerDefinitionInfo != null) {
           containerDefinitionInfos.add(containerDefinitionInfo);
         }
@@ -341,13 +338,10 @@ public class K8InitializeStepUtils {
       case UPLOAD_ARTIFACTORY:
       case UPLOAD_S3:
       case UPLOAD_GCS:
+      case GIT_CLONE:
         return createPluginCompatibleStepContainerDefinition((PluginCompatibleStep) ciStepInfo, integrationStage,
             ciExecutionArgs, portFinder, stepIndex, stepElement.getIdentifier(), stepElement.getName(),
-            stepElement.getType(), timeout, accountId, os, extraMemoryPerStep, extraCPUPerStep);
-      case GIT_CLONE:
-        return createGitCloneStepContainerDefinition((GitCloneStepInfo) ciStepInfo, integrationStage, ciExecutionArgs,
-                portFinder, stepIndex, stepElement.getIdentifier(), stepElement.getName(), accountId, os, ambiance,
-                extraMemoryPerStep, extraCPUPerStep);
+            stepElement.getType(), timeout, accountId, os, ambiance, extraMemoryPerStep, extraCPUPerStep);
       case PLUGIN:
         return createPluginStepContainerDefinition((PluginStepInfo) ciStepInfo, integrationStage, ciExecutionArgs,
             portFinder, stepIndex, stepElement.getIdentifier(), stepElement.getName(), accountId, os,
@@ -378,16 +372,17 @@ public class K8InitializeStepUtils {
 
   private ContainerDefinitionInfo createPluginCompatibleStepContainerDefinition(PluginCompatibleStep stepInfo,
       StageElementConfig integrationStage, CIExecutionArgs ciExecutionArgs, PortFinder portFinder, int stepIndex,
-      String identifier, String stepName, String stepType, long timeout, String accountId, OSType os,
+      String identifier, String stepName, String stepType, long timeout, String accountId, OSType os, Ambiance ambiance,
       Integer extraMemoryPerStep, Integer extraCPUPerStep) {
     Integer port = portFinder.getNextPort();
 
     String containerName = format("%s%d", STEP_PREFIX, stepIndex);
     Map<String, String> envVarMap = new HashMap<>();
     envVarMap.putAll(getEnvVariables(integrationStage));
-    envVarMap.putAll(BuildEnvironmentUtils.getBuildEnvironmentVariables(ciExecutionArgs));
+    envVarMap.putAll(PluginSettingUtils.getBuildEnvironmentVariables(stepInfo, ciExecutionArgs));
     envVarMap.putAll(
-        PluginSettingUtils.getPluginCompatibleEnvVariables(stepInfo, identifier, timeout, StageInfraDetails.Type.K8));
+        pluginSettingUtils.getPluginCompatibleEnvVariables(stepInfo, identifier, timeout, ambiance,
+                StageInfraDetails.Type.K8));
     setEnvVariablesForHostedBuids(integrationStage, stepInfo, envVarMap);
 
     Integer runAsUser = resolveIntegerParameter(stepInfo.getRunAsUser(), null);
@@ -532,41 +527,6 @@ public class K8InitializeStepUtils {
         .runAsUser(runAsUser)
         .imagePullPolicy(RunTimeInputHandler.resolveImagePullPolicy(runTestsStepInfo.getImagePullPolicy()))
         .build();
-  }
-
-  private ContainerDefinitionInfo createGitCloneStepContainerDefinition(GitCloneStepInfo gitCloneStepInfo,
-      StageElementConfig integrationStage, CIExecutionArgs ciExecutionArgs, PortFinder portFinder, int stepIndex,
-      String identifier, String name, String accountId, OSType os, Ambiance ambiance, Integer extraMemoryPerStep,
-      Integer extraCPUPerStep) {
-
-    //Create a PluginStepInfo from the GitCloneStepInfo
-    PluginStepInfo pluginStepInfo = InitializeStepUtils.createPluginStepInfo(gitCloneStepInfo, ciExecutionConfigService, accountId, os);
-
-    //Get the Git Connector
-    final String connectorRef = pluginStepInfo.getConnectorRef().getValue();
-    final NGAccess ngAccess = AmbianceUtils.getNgAccess(ambiance);
-    final ConnectorDetails gitConnector = codebaseUtils.getGitConnector(ngAccess, connectorRef);
-
-    //Set the Git Connector Reference environment variables
-    final String repoName = gitCloneStepInfo.getRepoName().getValue();
-    final Map<String, String> gitEnvVars = codebaseUtils.getGitEnvVariables(gitConnector, repoName);
-    pluginStepInfo.getEnvVariables().putAll(gitEnvVars);
-
-    String cloneDirectoryString = RunTimeInputHandler.resolveStringParameter("cloneDirectory", name,
-            identifier, gitCloneStepInfo.getCloneDirectory(), false);
-    if(isNotEmpty(cloneDirectoryString)) {
-      pluginStepInfo.getEnvVariables().put(DRONE_WORKSPACE, cloneDirectoryString);
-    }
-
-    // Pass in an executionArgs without an executionSource so createPluginStepContainerDefinition method does not add
-    // tag and branch variables from clone codebase, possibly conflicting with existing env variables in pluginStepInfo
-    final CIExecutionArgs emptyExecutionArgs =
-            CIExecutionArgs.builder().runSequence(ciExecutionArgs.getRunSequence()).build();
-    ContainerDefinitionInfo pluginStepContainerDefinition = createPluginStepContainerDefinition(pluginStepInfo,
-            integrationStage, emptyExecutionArgs, portFinder, stepIndex, identifier, name, accountId, os,
-            extraMemoryPerStep, extraCPUPerStep);
-    pluginStepContainerDefinition.setGitConnector(gitConnector);
-    return pluginStepContainerDefinition;
   }
 
   private ContainerDefinitionInfo createPluginStepContainerDefinition(PluginStepInfo pluginStepInfo,

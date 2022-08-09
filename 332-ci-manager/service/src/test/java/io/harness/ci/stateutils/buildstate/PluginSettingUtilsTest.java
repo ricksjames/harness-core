@@ -7,11 +7,19 @@
 
 package io.harness.ci.stateutils.buildstate;
 
+
+import static io.harness.ci.buildstate.PluginSettingUtils.TAG_BUILD_EVENT;
+import static io.harness.ci.commonconstants.BuildEnvironmentConstants.DRONE_BUILD_EVENT;
+import static io.harness.ci.commonconstants.BuildEnvironmentConstants.DRONE_COMMIT_BRANCH;
+import static io.harness.ci.commonconstants.BuildEnvironmentConstants.DRONE_TAG;
+import static io.harness.ci.commonconstants.CIExecutionConstants.GIT_SSL_NO_VERIFY;
 import static io.harness.rule.OwnerRule.ALEKSANDAR;
+import static io.harness.rule.OwnerRule.JAMES_RICKS;
 import static io.harness.rule.OwnerRule.RAGHAV_GUPTA;
 
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.joor.Reflect.on;
 
 import io.harness.annotations.dev.HarnessTeam;
 import io.harness.annotations.dev.OwnedBy;
@@ -19,6 +27,7 @@ import io.harness.beans.plugin.compatible.PluginCompatibleStep;
 import io.harness.beans.steps.stepinfo.DockerStepInfo;
 import io.harness.beans.steps.stepinfo.ECRStepInfo;
 import io.harness.beans.steps.stepinfo.GCRStepInfo;
+import io.harness.beans.steps.stepinfo.GitCloneStepInfo;
 import io.harness.beans.steps.stepinfo.RestoreCacheGCSStepInfo;
 import io.harness.beans.steps.stepinfo.RestoreCacheS3StepInfo;
 import io.harness.beans.steps.stepinfo.SaveCacheGCSStepInfo;
@@ -29,21 +38,45 @@ import io.harness.beans.steps.stepinfo.UploadToS3StepInfo;
 import io.harness.beans.sweepingoutputs.StageInfraDetails.Type;
 import io.harness.beans.yaml.extended.ArchiveFormat;
 import io.harness.category.element.UnitTests;
+import io.harness.ci.buildstate.CodebaseUtils;
+import io.harness.ci.buildstate.ConnectorUtils;
 import io.harness.ci.buildstate.PluginSettingUtils;
 import io.harness.ci.executionplan.CIExecutionTestBase;
+import io.harness.pms.contracts.ambiance.Ambiance;
 import io.harness.pms.yaml.ParameterField;
 import io.harness.rule.Owner;
+import io.harness.yaml.extended.ci.codebase.Build;
+import io.harness.yaml.extended.ci.codebase.BuildSpec;
+import io.harness.yaml.extended.ci.codebase.BuildType;
+import io.harness.yaml.extended.ci.codebase.impl.BranchBuildSpec;
+import io.harness.yaml.extended.ci.codebase.impl.PRBuildSpec;
+import io.harness.yaml.extended.ci.codebase.impl.TagBuildSpec;
 
+import com.google.inject.Inject;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.mockito.Mock;
 
 @OwnedBy(HarnessTeam.CI)
 public class PluginSettingUtilsTest extends CIExecutionTestBase {
+
+  @Inject public PluginSettingUtils pluginSettingUtils;
+
+  @Mock private CodebaseUtils codebaseUtils;
+  @Mock private ConnectorUtils connectorUtils;
+
+  @Before
+  public void setUp() {
+    on(pluginSettingUtils).set("codebaseUtils", codebaseUtils);
+    on(codebaseUtils).set("connectorUtils", connectorUtils);
+  }
+
   @Test
   @Owner(developers = ALEKSANDAR)
   @Category(UnitTests.class)
@@ -59,9 +92,9 @@ public class PluginSettingUtilsTest extends CIExecutionTestBase {
     expected.put("PLUGIN_SOURCE", "target/libmodule.jar");
     expected.put("PLUGIN_ARTIFACT_FILE", "/addon/tmp/.plugin/artifact");
     expected.put("PLUGIN_FLAT", "true");
-
+    Ambiance ambiance = Ambiance.newBuilder().build();
     Map<String, String> actual =
-        PluginSettingUtils.getPluginCompatibleEnvVariables(uploadToArtifactoryStepInfo, "identifier", 100, Type.K8);
+        pluginSettingUtils.getPluginCompatibleEnvVariables(uploadToArtifactoryStepInfo, "identifier", 100, ambiance, Type.K8);
     assertThat(actual).isEqualTo(expected);
   }
 
@@ -93,8 +126,9 @@ public class PluginSettingUtilsTest extends CIExecutionTestBase {
     expected.put("PLUGIN_CUSTOM_LABELS", "label=label1");
     expected.put("PLUGIN_SNAPSHOT_MODE", "redo");
     expected.put("PLUGIN_ARTIFACT_FILE", "/addon/tmp/.plugin/artifact");
+    Ambiance ambiance = Ambiance.newBuilder().build();
     Map<String, String> actual =
-        PluginSettingUtils.getPluginCompatibleEnvVariables(gcrStepInfo, "identifier", 100, Type.K8);
+        pluginSettingUtils.getPluginCompatibleEnvVariables(gcrStepInfo, "identifier", 100, ambiance, Type.K8);
     assertThat(actual).isEqualTo(expected);
   }
 
@@ -127,8 +161,9 @@ public class PluginSettingUtilsTest extends CIExecutionTestBase {
     expected.put("PLUGIN_CUSTOM_LABELS", "label=label1");
     expected.put("PLUGIN_SNAPSHOT_MODE", "redo");
     expected.put("PLUGIN_ARTIFACT_FILE", "/addon/tmp/.plugin/artifact");
+    Ambiance ambiance = Ambiance.newBuilder().build();
     Map<String, String> actual =
-        PluginSettingUtils.getPluginCompatibleEnvVariables(ecrStepInfo, "identifier", 100, Type.K8);
+        pluginSettingUtils.getPluginCompatibleEnvVariables(ecrStepInfo, "identifier", 100, ambiance, Type.K8);
     assertThat(actual).isEqualTo(expected);
   }
   @Test
@@ -156,8 +191,9 @@ public class PluginSettingUtilsTest extends CIExecutionTestBase {
     expected.put("PLUGIN_CUSTOM_LABELS", "label=label1");
     expected.put("PLUGIN_SNAPSHOT_MODE", "redo");
     expected.put("PLUGIN_ARTIFACT_FILE", "/addon/tmp/.plugin/artifact");
+    Ambiance ambiance = Ambiance.newBuilder().build();
     Map<String, String> actual =
-        PluginSettingUtils.getPluginCompatibleEnvVariables(dockerStepInfo, "identifier", 100, Type.K8);
+        pluginSettingUtils.getPluginCompatibleEnvVariables(dockerStepInfo, "identifier", 100, ambiance, Type.K8);
     assertThat(actual).isEqualTo(expected);
   }
 
@@ -183,8 +219,9 @@ public class PluginSettingUtilsTest extends CIExecutionTestBase {
     expected.put("PLUGIN_FAIL_RESTORE_IF_KEY_NOT_PRESENT", "false");
     expected.put("PLUGIN_PATH_STYLE", "false");
     expected.put("PLUGIN_BACKEND_OPERATION_TIMEOUT", "100s");
+    Ambiance ambiance = Ambiance.newBuilder().build();
     Map<String, String> actual =
-        PluginSettingUtils.getPluginCompatibleEnvVariables(restoreCacheS3StepInfo, "identifier", 100, Type.K8);
+        pluginSettingUtils.getPluginCompatibleEnvVariables(restoreCacheS3StepInfo, "identifier", 100, ambiance, Type.K8);
     assertThat(actual).isEqualTo(expected);
   }
 
@@ -213,8 +250,9 @@ public class PluginSettingUtilsTest extends CIExecutionTestBase {
     expected.put("PLUGIN_FAIL_RESTORE_IF_KEY_NOT_PRESENT", "true");
     expected.put("PLUGIN_PATH_STYLE", "false");
     expected.put("PLUGIN_BACKEND_OPERATION_TIMEOUT", "100s");
+    Ambiance ambiance = Ambiance.newBuilder().build();
     Map<String, String> actual =
-        PluginSettingUtils.getPluginCompatibleEnvVariables(restoreCacheS3StepInfo, "identifier", 100, Type.K8);
+        pluginSettingUtils.getPluginCompatibleEnvVariables(restoreCacheS3StepInfo, "identifier", 100, ambiance, Type.K8);
     assertThat(actual).isEqualTo(expected);
   }
 
@@ -243,8 +281,9 @@ public class PluginSettingUtilsTest extends CIExecutionTestBase {
     expected.put("PLUGIN_ARCHIVE_FORMAT", "tar");
     expected.put("PLUGIN_BACKEND_OPERATION_TIMEOUT", "100s");
     expected.put("PLUGIN_OVERRIDE", "false");
+    Ambiance ambiance = Ambiance.newBuilder().build();
     Map<String, String> actual =
-        PluginSettingUtils.getPluginCompatibleEnvVariables(saveCacheS3StepInfo, "identifier", 100, Type.K8);
+        pluginSettingUtils.getPluginCompatibleEnvVariables(saveCacheS3StepInfo, "identifier", 100, ambiance, Type.K8);
     assertThat(actual).isEqualTo(expected);
   }
 
@@ -275,8 +314,9 @@ public class PluginSettingUtilsTest extends CIExecutionTestBase {
     expected.put("PLUGIN_ARCHIVE_FORMAT", "gzip");
     expected.put("PLUGIN_BACKEND_OPERATION_TIMEOUT", "100s");
     expected.put("PLUGIN_OVERRIDE", "true");
+    Ambiance ambiance = Ambiance.newBuilder().build();
     Map<String, String> actual =
-        PluginSettingUtils.getPluginCompatibleEnvVariables(saveCacheS3StepInfo, "identifier", 100, Type.K8);
+        pluginSettingUtils.getPluginCompatibleEnvVariables(saveCacheS3StepInfo, "identifier", 100, ambiance, Type.K8);
     assertThat(actual).isEqualTo(expected);
   }
 
@@ -297,8 +337,9 @@ public class PluginSettingUtilsTest extends CIExecutionTestBase {
     expected.put("PLUGIN_EXIT_CODE", "true");
     expected.put("PLUGIN_ARCHIVE_FORMAT", "tar");
     expected.put("PLUGIN_BACKEND_OPERATION_TIMEOUT", "100s");
+    Ambiance ambiance = Ambiance.newBuilder().build();
     Map<String, String> actual =
-        PluginSettingUtils.getPluginCompatibleEnvVariables(restoreCacheGCSStepInfo, "identifier", 100, Type.K8);
+        pluginSettingUtils.getPluginCompatibleEnvVariables(restoreCacheGCSStepInfo, "identifier", 100, ambiance, Type.K8);
     assertThat(actual).isEqualTo(expected);
   }
 
@@ -322,8 +363,9 @@ public class PluginSettingUtilsTest extends CIExecutionTestBase {
     expected.put("PLUGIN_EXIT_CODE", "true");
     expected.put("PLUGIN_ARCHIVE_FORMAT", "gzip");
     expected.put("PLUGIN_BACKEND_OPERATION_TIMEOUT", "100s");
+    Ambiance ambiance = Ambiance.newBuilder().build();
     Map<String, String> actual =
-        PluginSettingUtils.getPluginCompatibleEnvVariables(restoreCacheGCSStepInfo, "identifier", 100, Type.K8);
+        pluginSettingUtils.getPluginCompatibleEnvVariables(restoreCacheGCSStepInfo, "identifier", 100, ambiance, Type.K8);
     assertThat(actual).isEqualTo(expected);
   }
 
@@ -347,8 +389,9 @@ public class PluginSettingUtilsTest extends CIExecutionTestBase {
     expected.put("PLUGIN_ARCHIVE_FORMAT", "tar");
     expected.put("PLUGIN_OVERRIDE", "false");
     expected.put("PLUGIN_BACKEND_OPERATION_TIMEOUT", "100s");
+    Ambiance ambiance = Ambiance.newBuilder().build();
     Map<String, String> actual =
-        PluginSettingUtils.getPluginCompatibleEnvVariables(saveCacheGCSStepInfo, "identifier", 100, Type.K8);
+        pluginSettingUtils.getPluginCompatibleEnvVariables(saveCacheGCSStepInfo, "identifier", 100, ambiance, Type.K8);
     assertThat(actual).isEqualTo(expected);
   }
 
@@ -374,8 +417,9 @@ public class PluginSettingUtilsTest extends CIExecutionTestBase {
     expected.put("PLUGIN_ARCHIVE_FORMAT", "gzip");
     expected.put("PLUGIN_OVERRIDE", "false");
     expected.put("PLUGIN_BACKEND_OPERATION_TIMEOUT", "100s");
+    Ambiance ambiance = Ambiance.newBuilder().build();
     Map<String, String> actual =
-        PluginSettingUtils.getPluginCompatibleEnvVariables(saveCacheGCSStepInfo, "identifier", 100, Type.K8);
+        pluginSettingUtils.getPluginCompatibleEnvVariables(saveCacheGCSStepInfo, "identifier", 100, ambiance, Type.K8);
     assertThat(actual).isEqualTo(expected);
   }
 
@@ -397,9 +441,9 @@ public class PluginSettingUtilsTest extends CIExecutionTestBase {
     expected.put("PLUGIN_SOURCE", "sources");
     expected.put("PLUGIN_TARGET", "target");
     expected.put("PLUGIN_ARTIFACT_FILE", "/addon/tmp/.plugin/artifact");
-
+    Ambiance ambiance = Ambiance.newBuilder().build();
     Map<String, String> actual =
-        PluginSettingUtils.getPluginCompatibleEnvVariables(uploadToS3StepInfo, "identifier", 100, Type.K8);
+        pluginSettingUtils.getPluginCompatibleEnvVariables(uploadToS3StepInfo, "identifier", 100, ambiance, Type.K8);
     assertThat(actual).isEqualTo(expected);
   }
 
@@ -417,8 +461,9 @@ public class PluginSettingUtilsTest extends CIExecutionTestBase {
     expected.put("PLUGIN_TARGET", "bucket/dir/pom.xml");
     expected.put("PLUGIN_ARTIFACT_FILE", "/addon/tmp/.plugin/artifact");
 
+    Ambiance ambiance = Ambiance.newBuilder().build();
     Map<String, String> actual =
-        PluginSettingUtils.getPluginCompatibleEnvVariables(uploadToS3StepInfo, "identifier", 100, Type.K8);
+        pluginSettingUtils.getPluginCompatibleEnvVariables(uploadToS3StepInfo, "identifier", 100, ambiance, Type.K8);
     assertThat(actual).isEqualTo(expected);
   }
 
@@ -436,7 +481,54 @@ public class PluginSettingUtilsTest extends CIExecutionTestBase {
 
     List<String> expected = new ArrayList<>();
     expected.add("docker");
-    List<String> actual = PluginSettingUtils.getBaseImageConnectorRefs(stepInfo);
+    List<String> actual = pluginSettingUtils.getBaseImageConnectorRefs(stepInfo);
     assertThat(actual).isEqualTo(expected);
   }
+
+  @Test
+  @Owner(developers = JAMES_RICKS)
+  @Category(UnitTests.class)
+  public void shouldGetGitClonePluginCompatibleStepInfoBuildTypeEnvVariables() {
+    testGitCloneBuildParameters(BuildType.BRANCH, "myBranch");
+    testGitCloneBuildParameters(BuildType.TAG, "myTag");
+  }
+
+  private void testGitCloneBuildParameters(BuildType buildType, String value) {
+    final ParameterField<Build> buildParameter = createBuildParameter(buildType, value);
+    final GitCloneStepInfo stepInfo = GitCloneStepInfo.builder()
+            //.sslVerify(ParameterField.createValueField(false))
+            .connectorRef(ParameterField.createValueField("myConnectorRef"))
+            .build(buildParameter)
+            .repoName(ParameterField.createValueField("myRepoName"))
+            .build();
+    Map<String, String> expected = new HashMap<>();
+
+    if(buildType == BuildType.BRANCH) {
+      expected.put(DRONE_COMMIT_BRANCH, value );
+    } else if (BuildType.TAG == buildType) {
+      expected.put(DRONE_TAG, value );
+      expected.put(DRONE_BUILD_EVENT, TAG_BUILD_EVENT);
+    }
+    expected.put(GIT_SSL_NO_VERIFY, String.valueOf(false));
+
+    Ambiance ambiance = Ambiance.newBuilder().build();
+    Map<String, String> actual =
+            pluginSettingUtils.getPluginCompatibleEnvVariables(stepInfo, "identifier", 100, ambiance, Type.K8);
+    assertThat(actual).isEqualTo(expected);
+  }
+
+  private static ParameterField<Build> createBuildParameter(BuildType buildType, String value) {
+    final ParameterField<String> buildStringParameter = ParameterField.<String>builder().value(value).build();
+    BuildSpec buildSpec = null;
+    if(BuildType.BRANCH == buildType) {
+      buildSpec = BranchBuildSpec.builder().branch(buildStringParameter).build();
+    } else if (BuildType.TAG == buildType) {
+      buildSpec = TagBuildSpec.builder().tag(buildStringParameter).build();
+    } else if (BuildType.PR == buildType) {
+      buildSpec = PRBuildSpec.builder().number(buildStringParameter).build();
+    }
+    final Build build = Build.builder().spec(buildSpec).type(buildType).build();
+    return ParameterField.<Build>builder().value(build).build();
+  }
+
 }
